@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #0265A8;
+  --navy-2: #01488A;
+  --ivory: #F4EFE3;
+  --ivory-2: #EFE8D6;
+}
+
+html, body { background: var(--ivory); color: #0b2545; }
+body { font-family: Inter, system-ui, sans-serif; }
+
+/* Container query unit support for the fixed flyer */
+.flyer-stage { container-type: inline-size; }
+
+/* Text rendering */
+h1, h2, h3, .display { font-family: Fraunces, Georgia, serif; }
+
+/* Utility: subtle underline animation on links */
+.link-underline {
+  border-bottom: 1px solid currentColor;
+  transition: background .2s, color .2s;
+}
+.link-underline:hover { background: var(--navy); color: #fff; }
