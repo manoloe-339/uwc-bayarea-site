@@ -7,6 +7,7 @@ type FiresideSpeaker = {
   org: readonly string[];
   photo: string;
   photoPosition?: string;
+  linkedin?: string;
 };
 
 export const event = {
@@ -31,8 +32,18 @@ export const event = {
       "Bhembe and Wabantu, Swazi alumni of UWC Waterford Kamhlaba, reflect on the tensions shaping life in eSwatini - and in all of us.",
   },
   speakers: [
-    { name: "Ntokozo Bhembe", role: "Waterford Kamhlaba · '07", photo: "/bhembe.jpg" },
-    { name: "Wabantu Hlophe", role: "Waterford Kamhlaba · '10", photo: "/wabuntu.jpg" },
+    {
+      name: "Ntokozo Bhembe",
+      role: "Waterford Kamhlaba · '07",
+      photo: "/bhembe.jpg",
+      linkedin: "https://www.linkedin.com/in/ntokozo-bhembe/",
+    },
+    {
+      name: "Wabantu Hlophe",
+      role: "Waterford Kamhlaba · '10",
+      photo: "/wabuntu.jpg",
+      linkedin: "https://www.linkedin.com/in/wabantu-hlophe-92b388114/",
+    },
   ],
   fireside: {
     eyebrow: "Fireside chat",
@@ -42,6 +53,7 @@ export const event = {
         role: "Haiti · UWC RBC '21",
         org: ["Knight-Hennessy Scholar", "Stanford University"],
         photo: "/gil.jpg",
+        linkedin: "https://www.linkedin.com/in/gil-sander-joseph/",
       },
       {
         name: "Faith Abiodun",
@@ -49,6 +61,7 @@ export const event = {
         org: ["UWC International"],
         photo: "/faith.jpg",
         photoPosition: "50% 22%",
+        linkedin: "https://www.linkedin.com/in/faithabiodun/",
       },
     ] as FiresideSpeaker[],
   },

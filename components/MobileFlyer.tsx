@@ -93,7 +93,13 @@ export default function MobileFlyer() {
 
           <div className="mt-7 grid grid-cols-2 gap-4 pl-6">
             {event.speakers.map((sp) => (
-              <div key={sp.name} className="text-center">
+              <a
+                key={sp.name}
+                href={sp.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-center text-white no-underline transition active:opacity-80"
+              >
                 <div
                   className="mx-auto rounded-full bg-cover bg-center"
                   style={{
@@ -110,7 +116,7 @@ export default function MobileFlyer() {
                 <div className="text-[10px] tracking-[.14em] uppercase text-white/70">
                   {sp.role}
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         </div>
@@ -127,27 +133,34 @@ export default function MobileFlyer() {
         <div className="mt-6 flex flex-col items-center gap-8">
           {event.fireside.speakers.map((sp, idx) => (
             <div key={sp.name} className="flex flex-col items-center">
-              <div
-                className="rounded-full bg-cover"
-                style={{
-                  width: 130,
-                  height: 130,
-                  backgroundImage: `url(${sp.photo})`,
-                  backgroundPosition: sp.photoPosition ?? "center",
-                  boxShadow: "0 0 0 3px #fff, 0 12px 24px rgba(0,0,0,.3)",
-                }}
-              />
-              <div className="display font-bold text-[22px] leading-[1.1] mt-3">
-                {sp.name}
-              </div>
-              <div className="text-[11px] tracking-[.06em] text-white/70 mt-1.5">
-                {sp.role}
-              </div>
-              <div className="display font-semibold text-[14px] leading-[1.3] mt-2">
-                {sp.org.map((line, i) => (
-                  <div key={i}>{line}</div>
-                ))}
-              </div>
+              <a
+                href={sp.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center text-white no-underline transition active:opacity-80"
+              >
+                <div
+                  className="rounded-full bg-cover"
+                  style={{
+                    width: 130,
+                    height: 130,
+                    backgroundImage: `url(${sp.photo})`,
+                    backgroundPosition: sp.photoPosition ?? "center",
+                    boxShadow: "0 0 0 3px #fff, 0 12px 24px rgba(0,0,0,.3)",
+                  }}
+                />
+                <div className="display font-bold text-[22px] leading-[1.1] mt-3">
+                  {sp.name}
+                </div>
+                <div className="text-[11px] tracking-[.06em] text-white/70 mt-1.5">
+                  {sp.role}
+                </div>
+                <div className="display font-semibold text-[14px] leading-[1.3] mt-2 text-center">
+                  {sp.org.map((line, i) => (
+                    <div key={i}>{line}</div>
+                  ))}
+                </div>
+              </a>
               {idx < event.fireside.speakers.length - 1 && (
                 <div
                   className="display italic text-[28px] mt-6"

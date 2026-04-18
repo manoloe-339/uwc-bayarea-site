@@ -109,7 +109,13 @@ export default function DesktopFlyer() {
 
             <div className="relative z-10 flex gap-[30px] justify-start pl-10">
               {event.speakers.map((sp) => (
-                <div key={sp.name} className="text-center">
+                <a
+                  key={sp.name}
+                  href={sp.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-center text-white no-underline transition hover:opacity-90 hover:-translate-y-0.5"
+                >
                   <div
                     className="rounded-full bg-cover bg-center"
                     style={{
@@ -126,7 +132,7 @@ export default function DesktopFlyer() {
                   <div className="text-[10px] tracking-[.14em] uppercase text-white/70 mt-0.5">
                     {sp.role}
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           </div>
@@ -251,10 +257,25 @@ function FiresidePerson({
     org: readonly string[];
     photo: string;
     photoPosition?: string;
+    linkedin?: string;
   };
 }) {
+  const Wrapper = ({ children }: { children: React.ReactNode }) =>
+    speaker.linkedin ? (
+      <a
+        href={speaker.linkedin}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex flex-col items-center text-center text-white no-underline transition hover:opacity-90 hover:-translate-y-0.5"
+      >
+        {children}
+      </a>
+    ) : (
+      <div className="flex flex-col items-center text-center">{children}</div>
+    );
+
   return (
-    <div className="flex flex-col items-center text-center">
+    <Wrapper>
       <div
         className="rounded-full bg-cover"
         style={{
@@ -275,7 +296,7 @@ function FiresidePerson({
           <div key={i}>{line}</div>
         ))}
       </div>
-    </div>
+    </Wrapper>
   );
 }
 
