@@ -24,3 +24,12 @@ h1, h2, h3, .display { font-family: Fraunces, Georgia, serif; }
   transition: background .2s, color .2s;
 }
 .link-underline:hover { background: var(--navy); color: #fff; }
+
+/* Urgency ribbon dot pulse */
+@keyframes urgency-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .4; transform: scale(.7); }
+}
+.urgency-dot {
+  animation: urgency-pulse 1.6s ease-in-out infinite;
+}

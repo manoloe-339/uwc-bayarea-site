@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: `${event.hero.title} ${event.hero.titleItalic}. ${event.time} · ${event.venue}.`,
   openGraph: {
     title: `UWC Bay Area · ${event.dateShort} · ${event.city}`,
-    description: `${event.hero.title} ${event.hero.titleItalic} — with ${event.featured.name}, ${event.featured.role}, ${event.featured.org}.`,
+    description: `${event.hero.title} ${event.hero.titleItalic} — fireside chat with ${event.fireside.speakers.map((s) => s.name).join(" & ")}.`,
     images: ["/og-image.png"],
     type: "website",
   },
