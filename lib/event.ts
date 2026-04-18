@@ -33,7 +33,7 @@ export const event = {
   },
   price: "$10",
   priceNote: "Limited capacity",
-  ticketUrl: "https://example.com/tickets", // TODO: replace with real purchase link
+  ticketUrl: "https://buy.stripe.com/aFaeVddbsdMF3dmbC98Ra03",
   contactEmail: "manoloe@gmail.com",
   refreshments: "Light fare served",
 } as const;
