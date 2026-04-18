@@ -5,8 +5,12 @@
 :root {
   --navy: #0265A8;
   --navy-2: #01488A;
+  --navy-ink: #0B2545;
   --ivory: #F4EFE3;
   --ivory-2: #EFE8D6;
+  --ivory-3: #E7DFC8;
+  --rule: rgba(11, 37, 69, 0.16);
+  --muted: rgba(11, 37, 69, 0.62);
 }
 
 html, body { background: var(--ivory); color: #0b2545; }

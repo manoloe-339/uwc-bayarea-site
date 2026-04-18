@@ -3,18 +3,17 @@ import { event } from "@/lib/event";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://uwcbayarea.org"),
   title: `${event.title} · ${event.city}`,
   description: `${event.hero.title} ${event.hero.titleItalic}. ${event.time} · ${event.venue}.`,
   openGraph: {
     title: `UWC Bay Area · ${event.dateShort} · ${event.city}`,
     description: `${event.hero.title} ${event.hero.titleItalic} — fireside chat with ${event.fireside.speakers.map((s) => s.name).join(" & ")}.`,
-    images: ["/og-image.png"],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: `UWC Bay Area · ${event.dateShort}`,
-    images: ["/og-image.png"],
   },
 };
 
