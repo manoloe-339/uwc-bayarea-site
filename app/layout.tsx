@@ -1,19 +1,23 @@
 import type { Metadata } from "next";
-import { event } from "@/lib/event";
 import "./globals.css";
+
+const SITE_TITLE = "UWC Bay Area · Alumni & Friends";
+const SITE_DESCRIPTION =
+  "Alumni and friends of the United World Colleges in the Bay Area. See upcoming events and sign up for our mailing list.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://uwcbayarea.org"),
-  title: `${event.title} · ${event.city}`,
-  description: `${event.hero.title} ${event.hero.titleItalic}. ${event.time} · ${event.venue}.`,
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
   openGraph: {
-    title: `UWC Bay Area · ${event.dateShort} · ${event.city}`,
-    description: `${event.hero.title} ${event.hero.titleItalic} — fireside chat with ${event.fireside.speakers.map((s) => s.name).join(" & ")}.`,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: `UWC Bay Area · ${event.dateShort}`,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
   },
 };
 
