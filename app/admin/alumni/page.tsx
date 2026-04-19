@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { COLLEGES } from "@/lib/uwc-colleges";
 import { searchAlumni, countAlumni, type AlumniFilters } from "@/lib/alumni-query";
+import YearFilter from "@/components/admin/YearFilter";
 
 export const dynamic = "force-dynamic";
 
@@ -69,8 +70,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         </Select>
         <Field label="Origin contains" name="origin" defaultValue={filters.origin} placeholder="e.g. Brazil" />
         <Field label="City contains" name="city" defaultValue={filters.city} placeholder="e.g. San Francisco" />
-        <Field label="Grad year ≥" name="yearFrom" defaultValue={filters.yearFrom?.toString()} placeholder="2010" type="number" />
-        <Field label="Grad year ≤" name="yearTo" defaultValue={filters.yearTo?.toString()} placeholder="2020" type="number" />
+        <YearFilter initialFrom={filters.yearFrom} initialTo={filters.yearTo} />
         <Field label="Help tag contains" name="help" defaultValue={filters.help} placeholder="e.g. events" />
         <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
           <button
