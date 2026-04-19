@@ -10,6 +10,7 @@ export type AlumniFilters = {
   yearTo?: number;
   help?: string;
   includeNonAlums?: boolean;
+  includeMovedOut?: boolean;
 };
 
 export type AlumniRow = {
@@ -58,6 +59,9 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
   if (f.city) push((n) => `lower(current_city) LIKE $${n}`, `%${f.city.toLowerCase()}%`);
   if (!f.includeNonAlums) {
     parts.push(`(affiliation IS NULL OR affiliation ILIKE '%alum%')`);
+  }
+  if (!f.includeMovedOut) {
+    parts.push(`(moved_out IS NOT TRUE)`);
   }
   if (typeof f.yearFrom === "number") push((n) => `grad_year >= $${n}`, f.yearFrom);
   if (typeof f.yearTo === "number") push((n) => `grad_year <= $${n}`, f.yearTo);

@@ -33,6 +33,7 @@ type AlumRecord = {
   studying: string | null;
   working: string | null;
   attended_event: boolean | null;
+  moved_out: boolean | null;
   sources: string[] | null;
   flags: string[] | null;
   imported_at: string | null;
@@ -91,19 +92,13 @@ async function updateAlumnus(id: number, formData: FormData) {
       studying           = ${get("studying")},
       working            = ${get("working")},
       attended_event     = ${formData.get("attended_event") === "on"},
+      moved_out          = ${formData.get("moved_out") === "on"},
       updated_at         = NOW()
     WHERE id = ${id}
   `;
   revalidatePath(`/admin/alumni/${id}`);
   revalidatePath("/admin/alumni");
   redirect(`/admin/alumni/${id}?saved=1`);
-}
-
-async function deleteAlumnus(id: number) {
-  "use server";
-  await sql`DELETE FROM alumni WHERE id = ${id}`;
-  revalidatePath("/admin/alumni");
-  redirect("/admin/alumni?deleted=1");
 }
 
 export default async function AlumnusPage({
@@ -123,7 +118,6 @@ export default async function AlumnusPage({
   const name = [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email;
 
   const update = updateAlumnus.bind(null, numericId);
-  const del = deleteAlumnus.bind(null, numericId);
 
   return (
     <div className="max-w-[1000px]">
@@ -200,10 +194,16 @@ export default async function AlumnusPage({
         </Section>
 
         <Section title="Engagement">
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input type="checkbox" name="attended_event" defaultChecked={r.attended_event ?? false} />
-            Attended a past event
-          </label>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="attended_event" defaultChecked={r.attended_event ?? false} />
+              Attended a past event
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="moved_out" defaultChecked={r.moved_out ?? false} />
+              No longer in the Bay Area (hide from default search)
+            </label>
+          </div>
         </Section>
 
         <div className="flex items-center justify-between pt-4 border-t border-[color:var(--rule)]">
@@ -217,16 +217,6 @@ export default async function AlumnusPage({
             </button>
           </div>
         </div>
-      </form>
-
-      <form action={del} className="mt-6">
-        <button
-          type="submit"
-          className="text-xs text-red-700 hover:underline"
-          formNoValidate
-        >
-          Delete this record
-        </button>
       </form>
     </div>
   );

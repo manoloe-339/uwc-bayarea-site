@@ -33,6 +33,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     yearTo: pickNum(sp, "yearTo"),
     help: pickStr(sp, "help"),
     includeNonAlums: pickStr(sp, "includeNonAlums") === "1",
+    includeMovedOut: pickStr(sp, "includeMovedOut") === "1",
   };
 
   const [rows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
@@ -95,6 +96,15 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             defaultChecked={filters.includeNonAlums}
           />
           Include friends &amp; parents
+        </label>
+        <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] sm:col-span-2">
+          <input
+            type="checkbox"
+            name="includeMovedOut"
+            value="1"
+            defaultChecked={filters.includeMovedOut}
+          />
+          Include alumni who moved out of the Bay Area
         </label>
         <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
           <button

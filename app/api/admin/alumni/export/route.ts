@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
     yearTo: numParam(sp, "yearTo"),
     help: sp.get("help") ?? undefined,
     includeNonAlums: sp.get("includeNonAlums") === "1",
+    includeMovedOut: sp.get("includeMovedOut") === "1",
   };
 
   const rows = await searchAlumni(filters, 10_000);
