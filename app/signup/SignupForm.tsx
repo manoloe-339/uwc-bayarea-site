@@ -85,7 +85,21 @@ export default function SignupForm() {
               </span>
             )}
           </label>
-          <Field label="Mobile (optional)" name="mobile" type="tel" autoComplete="tel" full placeholder="+1 415 555 0123" />
+          <label className="block sm:col-span-2">
+            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+              Mobile (optional)
+            </span>
+            <input
+              name="mobile"
+              type="tel"
+              autoComplete="tel"
+              placeholder="+1 415 555 0123"
+              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            />
+            <span className="block mt-1 text-xs text-[color:var(--muted)]">
+              We occasionally organize things via WhatsApp, so a mobile helps.
+            </span>
+          </label>
         </Grid>
       </Section>
 
