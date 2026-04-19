@@ -11,6 +11,7 @@ const HELP_OPTIONS = [
   "Communication & marketing",
   "Host / cook",
   "Introductions & fundraising",
+  "Volunteer with a National Committee",
 ];
 
 type Affiliation = "Alum" | "Friend" | "Parent";
@@ -199,7 +200,7 @@ export default function SignupForm() {
           ))}
         </div>
         <Field
-          label="On a UWC National Committee? Which?"
+          label="Do you currently volunteer on a National Committee? If so, which?"
           name="national_committee"
           placeholder="e.g. Polish NC"
           full
