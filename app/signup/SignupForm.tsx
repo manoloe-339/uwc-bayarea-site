@@ -209,7 +209,7 @@ export default function SignupForm() {
 
       <Section title="Anything else? (optional)">
         <Textarea label="Something about you" name="about" />
-        <Textarea label="Questions" name="questions" />
+        <Textarea label="Any questions for us?" name="questions" />
       </Section>
 
       <Section title="Stay in touch">
