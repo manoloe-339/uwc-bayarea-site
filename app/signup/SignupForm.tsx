@@ -130,6 +130,14 @@ export default function SignupForm() {
             { value: "Parent", label: "Parent of a UWC alum or student" },
           ]}
         />
+        <div className="mt-4">
+          <Field
+            label="Do you currently volunteer on a National Committee? If so, which?"
+            name="national_committee"
+            placeholder="e.g. Polish NC"
+            full
+          />
+        </div>
       </Section>
 
       {showUwcFields && (
@@ -199,12 +207,6 @@ export default function SignupForm() {
             </label>
           ))}
         </div>
-        <Field
-          label="Do you currently volunteer on a National Committee? If so, which?"
-          name="national_committee"
-          placeholder="e.g. Polish NC"
-          full
-        />
       </Section>
 
       <Section title="Anything else? (optional)">
