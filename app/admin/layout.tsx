@@ -18,6 +18,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <Link href="/admin" className="hover:text-navy">Overview</Link>
             <Link href="/admin/alumni" className="hover:text-navy">Alumni</Link>
             <Link href="/admin/import" className="hover:text-navy">Import</Link>
+            <Link href="/admin/unsubscribes" className="hover:text-navy">Unsubscribes</Link>
           </nav>
           <Link href="/" className="ml-auto text-[12px] tracking-[.2em] uppercase text-[color:var(--muted)] hover:text-navy">
             ← Site

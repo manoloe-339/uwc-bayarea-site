@@ -5,6 +5,8 @@ import { sql } from "@/lib/db";
 import { COLLEGES, normalizeCollege, isPearson } from "@/lib/uwc-colleges";
 import { parseGradYear } from "@/lib/gradyear";
 import { cityToRegion, REGIONS } from "@/lib/region";
+import { reasonLabel } from "@/lib/unsubscribe-reasons";
+import { resubscribe } from "@/app/unsubscribe/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +36,10 @@ type AlumRecord = {
   working: string | null;
   attended_event: boolean | null;
   moved_out: boolean | null;
+  subscribed: boolean | null;
+  unsubscribed_at: string | null;
+  unsubscribe_reason: string | null;
+  unsubscribe_note: string | null;
   sources: string[] | null;
   flags: string[] | null;
   imported_at: string | null;
@@ -119,6 +125,14 @@ export default async function AlumnusPage({
 
   const update = updateAlumnus.bind(null, numericId);
 
+  async function doResubscribe() {
+    "use server";
+    await resubscribe(numericId);
+    revalidatePath(`/admin/alumni/${numericId}`);
+    revalidatePath("/admin/alumni");
+    redirect(`/admin/alumni/${numericId}?saved=1`);
+  }
+
   return (
     <div className="max-w-[1000px]">
       <div className="mb-4 text-sm">
@@ -137,6 +151,25 @@ export default async function AlumnusPage({
       {saved && (
         <div className="mb-5 p-3 bg-ivory-2 border-l-4 border-navy rounded-[2px] text-sm">
           Saved.
+        </div>
+      )}
+
+      {r.subscribed === false && (
+        <div className="mb-5 p-4 bg-red-50 border-l-4 border-red-600 rounded-[2px] text-sm">
+          <div className="font-semibold text-red-900 mb-1">Unsubscribed</div>
+          <div className="text-red-900/80">
+            {r.unsubscribed_at ? `On ${new Date(r.unsubscribed_at).toLocaleDateString()}` : "Date unknown"}
+            {" · "}Reason: {reasonLabel(r.unsubscribe_reason)}
+            {r.unsubscribe_note ? <><br />Note: <span className="italic">{r.unsubscribe_note}</span></> : null}
+          </div>
+          <form action={doResubscribe} className="mt-3">
+            <button
+              type="submit"
+              className="bg-navy text-white px-4 py-2 rounded text-xs font-semibold tracking-wide"
+            >
+              Resubscribe
+            </button>
+          </form>
         </div>
       )}
 

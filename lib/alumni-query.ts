@@ -1,5 +1,7 @@
 import { sql } from "./db";
 
+export type SubscriptionFilter = "subscribed" | "unsubscribed" | "any";
+
 export type AlumniFilters = {
   q?: string;
   college?: string;
@@ -11,6 +13,7 @@ export type AlumniFilters = {
   help?: string;
   includeNonAlums?: boolean;
   includeMovedOut?: boolean;
+  subscription?: SubscriptionFilter;
 };
 
 export type AlumniRow = {
@@ -32,6 +35,7 @@ export type AlumniRow = {
   questions: string | null;
   studying: string | null;
   working: string | null;
+  subscribed: boolean | null;
   sources: string[] | null;
   flags: string[];
 };
@@ -63,6 +67,12 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
   if (!f.includeMovedOut) {
     parts.push(`(moved_out IS NOT TRUE)`);
   }
+  if (f.subscription === "unsubscribed") {
+    parts.push(`subscribed = FALSE`);
+  } else if (f.subscription !== "any") {
+    // default: subscribed only
+    parts.push(`subscribed IS NOT FALSE`);
+  }
   if (typeof f.yearFrom === "number") push((n) => `grad_year >= $${n}`, f.yearFrom);
   if (typeof f.yearTo === "number") push((n) => `grad_year <= $${n}`, f.yearTo);
   if (f.help) push((n) => `lower(help_tags) LIKE $${n}`, `%${f.help.toLowerCase()}%`);
@@ -76,7 +86,8 @@ export async function searchAlumni(f: AlumniFilters, limit = 500): Promise<Alumn
   const query = `
     SELECT id, first_name, last_name, email, mobile, origin, uwc_college,
            grad_year, current_city, region, affiliation, company, help_tags,
-           national_committee, about, questions, studying, working, sources, flags
+           national_committee, about, questions, studying, working, subscribed,
+           sources, flags
     FROM alumni
     ${where}
     ORDER BY grad_year DESC NULLS LAST, last_name ASC NULLS LAST, first_name ASC NULLS LAST

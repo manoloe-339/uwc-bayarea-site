@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
     help: sp.get("help") ?? undefined,
     includeNonAlums: sp.get("includeNonAlums") === "1",
     includeMovedOut: sp.get("includeMovedOut") === "1",
+    subscription: (sp.get("subscription") as "subscribed" | "unsubscribed" | "any") ?? "subscribed",
   };
 
   const rows = await searchAlumni(filters, 10_000);

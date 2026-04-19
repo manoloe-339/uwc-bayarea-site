@@ -34,6 +34,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     help: pickStr(sp, "help"),
     includeNonAlums: pickStr(sp, "includeNonAlums") === "1",
     includeMovedOut: pickStr(sp, "includeMovedOut") === "1",
+    subscription: (pickStr(sp, "subscription") as AlumniFilters["subscription"]) ?? "subscribed",
   };
 
   const [rows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
@@ -88,6 +89,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         <Field label="City contains" name="city" defaultValue={filters.city} placeholder="e.g. San Francisco" />
         <YearFilter initialFrom={filters.yearFrom} initialTo={filters.yearTo} />
         <Field label="Help tag contains" name="help" defaultValue={filters.help} placeholder="e.g. events" />
+        <Select label="Subscription" name="subscription" defaultValue={filters.subscription}>
+          <option value="subscribed">Subscribed only</option>
+          <option value="unsubscribed">Unsubscribed only</option>
+          <option value="any">Any</option>
+        </Select>
         <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] sm:col-span-2">
           <input
             type="checkbox"
