@@ -14,6 +14,8 @@ export type AlumniFilters = {
   includeNonAlums?: boolean;
   includeMovedOut?: boolean;
   subscription?: SubscriptionFilter;
+  /** Explicit recipient IDs (bypasses other filters during send). */
+  ids?: number[];
 };
 
 export type AlumniRow = {
@@ -101,4 +103,19 @@ export async function countAlumni(f: AlumniFilters): Promise<number> {
   const { where, params } = buildWhere(f);
   const rows = await sql.query(`SELECT COUNT(*)::int AS n FROM alumni ${where}`, params);
   return (rows[0] as { n: number }).n;
+}
+
+export async function getAlumniByIds(ids: number[]): Promise<AlumniRow[]> {
+  if (ids.length === 0) return [];
+  const rows = await sql.query(
+    `SELECT id, first_name, last_name, email, mobile, origin, uwc_college,
+            grad_year, current_city, region, affiliation, company, help_tags,
+            national_committee, about, questions, studying, working, subscribed,
+            sources, flags
+     FROM alumni
+     WHERE id = ANY($1) AND subscribed IS NOT FALSE
+     ORDER BY last_name ASC NULLS LAST, first_name ASC NULLS LAST`,
+    [ids]
+  );
+  return rows as AlumniRow[];
 }

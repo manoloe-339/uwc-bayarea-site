@@ -1,12 +1,16 @@
 import { sql } from "./db";
 import { getResend, fromAddress, replyToAddress } from "./resend";
 import { renderEmailHtml, renderEmailText } from "./email";
-import { searchAlumni, type AlumniFilters, type AlumniRow } from "./alumni-query";
+import { searchAlumni, getAlumniByIds, type AlumniFilters, type AlumniRow } from "./alumni-query";
 
 const BATCH_SIZE = 100;
 const MAX_RECIPIENTS = 5000; // safety cap
 
 export async function getRecipients(filters: AlumniFilters): Promise<AlumniRow[]> {
+  if (filters.ids && filters.ids.length > 0) {
+    const rows = await getAlumniByIds(filters.ids);
+    return rows.filter((r) => r.email && r.email.includes("@"));
+  }
   const safe: AlumniFilters = { ...filters, subscription: "subscribed" };
   const rows = await searchAlumni(safe, MAX_RECIPIENTS);
   return rows.filter((r) => r.email && r.email.includes("@"));

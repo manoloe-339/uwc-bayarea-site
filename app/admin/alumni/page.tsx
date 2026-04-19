@@ -3,6 +3,7 @@ import { COLLEGES } from "@/lib/uwc-colleges";
 import { REGIONS } from "@/lib/region";
 import { searchAlumni, countAlumni, type AlumniFilters } from "@/lib/alumni-query";
 import YearFilter from "@/components/admin/YearFilter";
+import { SelectAllCheckbox, SelectedCountLink } from "@/components/admin/AlumniSelection";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,21 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
   }
   const exportHref = `/api/admin/alumni/export?${qs.toString()}`;
 
+  // A "search" is considered active when the admin set any filter beyond
+  // the defaults (subscription=subscribed is the landing state).
+  const hasActiveSearch =
+    !!filters.q ||
+    !!filters.college ||
+    !!filters.region ||
+    !!filters.origin ||
+    !!filters.city ||
+    filters.yearFrom != null ||
+    filters.yearTo != null ||
+    !!filters.help ||
+    !!filters.includeNonAlums ||
+    !!filters.includeMovedOut ||
+    (filters.subscription && filters.subscription !== "subscribed");
+
   return (
     <div>
       <div className="flex items-end justify-between mb-6">
@@ -55,20 +71,12 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             {rows.length < total ? ` · showing first ${rows.length}` : ""}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/admin/email?${qs.toString()}`}
-            className="text-sm font-semibold text-white bg-navy px-4 py-2 rounded"
-          >
-            Send email to these →
-          </Link>
-          <a
-            href={exportHref}
-            className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
-          >
-            Export CSV
-          </a>
-        </div>
+        <a
+          href={exportHref}
+          className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
+        >
+          Export CSV
+        </a>
       </div>
 
       <form
@@ -133,62 +141,94 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         </div>
       </form>
 
-      <div className="bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-ivory-2 text-[11px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)]">
-            <tr>
-              <Th>Name</Th>
-              <Th>College</Th>
-              <Th>Year</Th>
-              <Th>Origin</Th>
-              <Th>City</Th>
-              <Th>Region</Th>
-              <Th>Company</Th>
-              <Th>Email</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={8} className="p-8 text-center text-[color:var(--muted)]">
-                  No matches.
-                </td>
-              </tr>
-            )}
-            {rows.map((r) => (
-              <tr key={r.id} className="border-t border-[color:var(--rule)] hover:bg-ivory">
-                <Td>
-                  <Link
-                    href={`/admin/alumni/${r.id}`}
-                    className="font-semibold text-navy hover:underline"
-                  >
-                    {[r.first_name, r.last_name].filter(Boolean).join(" ") || r.email}
-                  </Link>
-                  {r.affiliation && r.affiliation !== "Alum" && (
-                    <span className="ml-2 text-[10px] text-[color:var(--muted)] uppercase tracking-wider">
-                      {r.affiliation}
-                    </span>
-                  )}
-                  {r.flags?.length > 0 && (
-                    <span className="ml-2 text-[10px] text-orange-700 uppercase tracking-wider">
-                      {r.flags.join(", ")}
-                    </span>
-                  )}
-                </Td>
-                <Td>{r.uwc_college ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
-                <Td>{r.grad_year ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
-                <Td>{r.origin ?? "—"}</Td>
-                <Td>{r.current_city ?? "—"}</Td>
-                <Td>{r.region ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
-                <Td>{r.company ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
-                <Td>
-                  <a href={`mailto:${r.email}`} className="text-navy hover:underline">{r.email}</a>
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="flex items-center justify-end gap-6 mb-3 text-sm">
+        <SelectedCountLink formId="alumni-select-form" />
+        {hasActiveSearch ? (
+          <Link
+            href={`/admin/email?${qs.toString()}`}
+            className="text-navy hover:underline font-semibold"
+          >
+            Send to all matching ({total}) →
+          </Link>
+        ) : (
+          <span
+            className="text-[color:var(--muted)] cursor-not-allowed"
+            title="Set at least one filter to enable sending to all matching results"
+          >
+            Send to all matching
+          </span>
+        )}
       </div>
+
+      <form id="alumni-select-form" method="GET" action="/admin/email">
+        <div className="bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-ivory-2 text-[11px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)]">
+              <tr>
+                <Th>
+                  <SelectAllCheckbox formId="alumni-select-form" />
+                </Th>
+                <Th>Name</Th>
+                <Th>College</Th>
+                <Th>Year</Th>
+                <Th>Origin</Th>
+                <Th>City</Th>
+                <Th>Region</Th>
+                <Th>Company</Th>
+                <Th>Email</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="p-8 text-center text-[color:var(--muted)]">
+                    No matches.
+                  </td>
+                </tr>
+              )}
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t border-[color:var(--rule)] hover:bg-ivory">
+                  <Td>
+                    <input
+                      type="checkbox"
+                      name="ids"
+                      value={r.id}
+                      aria-label={`Select ${[r.first_name, r.last_name].filter(Boolean).join(" ") || r.email}`}
+                    />
+                  </Td>
+                  <Td>
+                    <Link
+                      href={`/admin/alumni/${r.id}`}
+                      className="font-semibold text-navy hover:underline"
+                    >
+                      {[r.first_name, r.last_name].filter(Boolean).join(" ") || r.email}
+                    </Link>
+                    {r.affiliation && r.affiliation !== "Alum" && (
+                      <span className="ml-2 text-[10px] text-[color:var(--muted)] uppercase tracking-wider">
+                        {r.affiliation}
+                      </span>
+                    )}
+                    {r.flags?.length > 0 && (
+                      <span className="ml-2 text-[10px] text-orange-700 uppercase tracking-wider">
+                        {r.flags.join(", ")}
+                      </span>
+                    )}
+                  </Td>
+                  <Td>{r.uwc_college ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
+                  <Td>{r.grad_year ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
+                  <Td>{r.origin ?? "—"}</Td>
+                  <Td>{r.current_city ?? "—"}</Td>
+                  <Td>{r.region ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
+                  <Td>{r.company ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
+                  <Td>
+                    <a href={`mailto:${r.email}`} className="text-navy hover:underline">{r.email}</a>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </form>
     </div>
   );
 }
