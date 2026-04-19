@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
       company: r.company,
       email: r.email,
       mobile: r.mobile,
+      linkedin_url: r.linkedin_url,
       help_tags: r.help_tags,
       national_committee: r.national_committee,
       studying: r.studying,

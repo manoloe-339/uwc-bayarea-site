@@ -30,6 +30,7 @@ export type AlumniRow = {
   last_name: string | null;
   email: string;
   mobile: string | null;
+  linkedin_url: string | null;
   origin: string | null;
   uwc_college: string | null;
   grad_year: number | null;
@@ -107,10 +108,10 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
 export async function searchAlumni(f: AlumniFilters, limit = 500): Promise<AlumniRow[]> {
   const { where, params } = buildWhere(f);
   const query = `
-    SELECT id, first_name, last_name, email, mobile, origin, uwc_college,
-           grad_year, current_city, region, affiliation, company, help_tags,
-           national_committee, about, questions, studying, working, subscribed,
-           sources, flags
+    SELECT id, first_name, last_name, email, mobile, linkedin_url, origin,
+           uwc_college, grad_year, current_city, region, affiliation, company,
+           help_tags, national_committee, about, questions, studying, working,
+           subscribed, sources, flags
     FROM alumni
     ${where}
     ORDER BY grad_year DESC NULLS LAST, last_name ASC NULLS LAST, first_name ASC NULLS LAST
@@ -129,10 +130,10 @@ export async function countAlumni(f: AlumniFilters): Promise<number> {
 export async function getAlumniByIds(ids: number[]): Promise<AlumniRow[]> {
   if (ids.length === 0) return [];
   const rows = await sql.query(
-    `SELECT id, first_name, last_name, email, mobile, origin, uwc_college,
-            grad_year, current_city, region, affiliation, company, help_tags,
-            national_committee, about, questions, studying, working, subscribed,
-            sources, flags
+    `SELECT id, first_name, last_name, email, mobile, linkedin_url, origin,
+            uwc_college, grad_year, current_city, region, affiliation, company,
+            help_tags, national_committee, about, questions, studying, working,
+            subscribed, sources, flags
      FROM alumni
      WHERE id = ANY($1) AND subscribed IS NOT FALSE
      ORDER BY last_name ASC NULLS LAST, first_name ASC NULLS LAST`,
