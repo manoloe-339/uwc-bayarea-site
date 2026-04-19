@@ -60,7 +60,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         </a>
       </div>
 
-      <form method="GET" className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <form
+        method="GET"
+        key={JSON.stringify(filters)}
+        className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+      >
         <Field label="Search (name, city, bio, work…)" name="q" defaultValue={filters.q} placeholder="e.g. finance" span="lg:col-span-2" />
         <Select label="College" name="college" defaultValue={filters.college}>
           <option value="">Any</option>
