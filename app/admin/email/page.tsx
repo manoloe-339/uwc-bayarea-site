@@ -120,11 +120,6 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
     }).filter(([, v]) => v !== undefined && v !== "") as [string, string][]
   ).toString();
 
-  const hasAnyFilter = Object.entries(filters).some(([k, v]) => {
-    if (k === "subscription") return false;
-    return v !== undefined && v !== "" && v !== false;
-  });
-
   return (
     <div className="max-w-[820px]">
       <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">Send email</h1>
