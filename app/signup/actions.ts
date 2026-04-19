@@ -172,6 +172,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
       body: confirmation,
       salutation: "Hi",
       includeFirstName: true,
+      firstName,
     }).then((r) => {
       if (!r.ok) console.warn(`[signup] confirmation email failed: ${r.error}`);
     }),

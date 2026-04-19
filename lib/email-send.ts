@@ -36,6 +36,7 @@ export async function sendTestEmail(params: {
   body: string;
   salutation?: string;
   includeFirstName?: boolean;
+  firstName?: string | null;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
     const resend = getResend();
@@ -43,7 +44,7 @@ export async function sendTestEmail(params: {
       body: params.body,
       salutation: params.salutation,
       includeFirstName: params.includeFirstName,
-      firstName: null,
+      firstName: params.firstName ?? null,
     });
     const html = renderEmailHtml(finalBody, null);
     const text = renderEmailText(finalBody, null);
