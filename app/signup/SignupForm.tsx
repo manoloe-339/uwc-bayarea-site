@@ -17,13 +17,21 @@ type Affiliation = "Alum" | "Friend" | "Parent";
 
 export default function SignupForm() {
   const [affiliation, setAffiliation] = useState<Affiliation | "">("");
+  const [email, setEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [pending, startTransition] = useTransition();
 
   const showUwcFields = affiliation === "Alum";
+  const emailsMatch =
+    !confirmEmail || email.trim().toLowerCase() === confirmEmail.trim().toLowerCase();
+  const canSubmit = !pending && emailsMatch && !!email && !!confirmEmail;
 
   return (
     <form
-      action={(fd) => startTransition(() => submitSignup(fd))}
+      action={(fd) => {
+        if (!emailsMatch) return;
+        startTransition(() => submitSignup(fd));
+      }}
       className="space-y-7"
       noValidate
     >
@@ -39,7 +47,44 @@ export default function SignupForm() {
         <Grid>
           <Field label="First name" name="first_name" required autoComplete="given-name" />
           <Field label="Last name" name="last_name" required autoComplete="family-name" />
-          <Field label="Email" name="email" type="email" required autoComplete="email" full />
+          <label className="block sm:col-span-2">
+            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+              Email *
+            </span>
+            <input
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+              Confirm email *
+            </span>
+            <input
+              type="email"
+              required
+              autoComplete="off"
+              value={confirmEmail}
+              onChange={(e) => setConfirmEmail(e.target.value)}
+              onPaste={(e) => {
+                // Discourage paste so typos don't slip through both fields.
+                e.preventDefault();
+              }}
+              className={`w-full border rounded px-3 py-2 text-sm bg-white ${
+                emailsMatch ? "border-[color:var(--rule)]" : "border-red-500"
+              }`}
+            />
+            {!emailsMatch && (
+              <span className="block mt-1 text-xs text-red-600">
+                The two email addresses don't match.
+              </span>
+            )}
+          </label>
           <Field label="Mobile (optional)" name="mobile" type="tel" autoComplete="tel" full placeholder="+1 415 555 0123" />
         </Grid>
       </Section>
@@ -150,7 +195,7 @@ export default function SignupForm() {
       <div className="pt-4 border-t border-[color:var(--rule)]">
         <button
           type="submit"
-          disabled={pending}
+          disabled={!canSubmit}
           className="bg-navy text-white px-6 py-3 rounded text-sm font-semibold tracking-wide disabled:opacity-50"
         >
           {pending ? "Sending…" : "Sign me up"}
