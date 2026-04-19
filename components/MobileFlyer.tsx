@@ -1,4 +1,5 @@
 import { event } from "@/lib/event";
+import TicketButton from "./TicketButton";
 
 export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { seatsRemaining?: number }) {
   return (
@@ -53,16 +54,14 @@ export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { sea
             {event.priceQualifier}
           </span>
         </div>
-        <a
+        <TicketButton
           href={event.ticketUrl}
-          target="_blank"
-          rel="noopener noreferrer"
           className="inline-flex items-center gap-2.5 text-white no-underline rounded-full text-[12px] font-bold tracking-[.2em] uppercase transition hover:brightness-110 active:scale-[.97]"
           style={{ background: "var(--navy)", padding: "14px 26px" }}
         >
           Get tickets
           <span aria-hidden>→</span>
-        </a>
+        </TicketButton>
         <div
           className="basis-full text-center text-[10px] tracking-[.24em] uppercase font-semibold"
           style={{ color: "rgba(11,37,69,.55)" }}

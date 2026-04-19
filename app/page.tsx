@@ -2,6 +2,7 @@ import DesktopFlyer from "@/components/DesktopFlyer";
 import MobileFlyer from "@/components/MobileFlyer";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import PageviewBeacon from "@/components/analytics/PageviewBeacon";
 import { getSeatsRemaining } from "@/lib/live";
 
 export const revalidate = 30;
@@ -11,6 +12,7 @@ export default async function Home() {
 
   return (
     <>
+      <PageviewBeacon path="/" />
       <SiteHeader active="events" />
       <main className="bg-ivory">
         {/* Mobile: stacked single column */}

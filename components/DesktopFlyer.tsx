@@ -1,4 +1,5 @@
 import { event } from "@/lib/event";
+import TicketButton from "./TicketButton";
 
 export default function DesktopFlyer({ seatsRemaining = event.totalSeats }: { seatsRemaining?: number }) {
   return (
@@ -66,16 +67,14 @@ export default function DesktopFlyer({ seatsRemaining = event.totalSeats }: { se
               {event.priceQualifier}
             </span>
           </div>
-          <a
+          <TicketButton
             href={event.ticketUrl}
-            target="_blank"
-            rel="noopener noreferrer"
             className="inline-flex items-center gap-2.5 text-white no-underline rounded-full text-[13px] font-bold tracking-[.2em] uppercase transition hover:brightness-110 active:scale-[.97]"
             style={{ background: "var(--navy)", padding: "16px 32px" }}
           >
             Get tickets
             <span aria-hidden>→</span>
-          </a>
+          </TicketButton>
           <div
             className="text-[11px] tracking-[.28em] uppercase font-semibold"
             style={{ color: "rgba(11,37,69,.55)" }}

@@ -1,0 +1,30 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+
+export const metadata = {
+  title: "Admin · UWC Bay Area",
+  robots: { index: false, follow: false },
+};
+
+export default function AdminLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-screen bg-ivory">
+      <header className="border-b border-[color:var(--rule)] bg-white/60">
+        <div className="max-w-[1200px] mx-auto px-5 sm:px-7 py-4 flex items-center gap-8">
+          <Link href="/admin" className="font-sans font-bold text-navy text-[15px] tracking-tight">
+            UWC · Admin
+          </Link>
+          <nav className="flex items-center gap-5 text-[13px] tracking-[.12em] uppercase font-semibold text-[color:var(--navy-ink)]">
+            <Link href="/admin" className="hover:text-navy">Overview</Link>
+            <Link href="/admin/alumni" className="hover:text-navy">Alumni</Link>
+            <Link href="/admin/import" className="hover:text-navy">Import</Link>
+          </nav>
+          <Link href="/" className="ml-auto text-[12px] tracking-[.2em] uppercase text-[color:var(--muted)] hover:text-navy">
+            ← Site
+          </Link>
+        </div>
+      </header>
+      <main className="max-w-[1200px] mx-auto px-5 sm:px-7 py-10">{children}</main>
+    </div>
+  );
+}

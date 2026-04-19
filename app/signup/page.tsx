@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import PageviewBeacon from "@/components/analytics/PageviewBeacon";
 import { signup } from "@/lib/signup";
 
 export const metadata: Metadata = {
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 export default function SignupPage() {
   return (
     <>
+      <PageviewBeacon path="/signup" />
       <SiteHeader active="signup" />
 
       <section className="max-w-[1040px] mx-auto px-5 sm:px-7 pt-14 sm:pt-[88px] pb-10">
