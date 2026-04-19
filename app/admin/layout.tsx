@@ -17,6 +17,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <nav className="flex items-center gap-5 text-[13px] tracking-[.12em] uppercase font-semibold text-[color:var(--navy-ink)]">
             <Link href="/admin" className="hover:text-navy">Overview</Link>
             <Link href="/admin/alumni" className="hover:text-navy">Alumni</Link>
+            <Link href="/admin/email" className="hover:text-navy">Email</Link>
             <Link href="/admin/import" className="hover:text-navy">Import</Link>
             <Link href="/admin/unsubscribes" className="hover:text-navy">Unsubscribes</Link>
           </nav>

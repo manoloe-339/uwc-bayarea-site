@@ -55,12 +55,20 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             {rows.length < total ? ` · showing first ${rows.length}` : ""}
           </p>
         </div>
-        <a
-          href={exportHref}
-          className="text-sm font-semibold text-white bg-navy px-4 py-2 rounded"
-        >
-          Export CSV
-        </a>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/admin/email?${qs.toString()}`}
+            className="text-sm font-semibold text-white bg-navy px-4 py-2 rounded"
+          >
+            Send email to these →
+          </Link>
+          <a
+            href={exportHref}
+            className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
+          >
+            Export CSV
+          </a>
+        </div>
       </div>
 
       <form
