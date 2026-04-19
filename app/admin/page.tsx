@@ -46,7 +46,7 @@ export default async function AdminHome() {
     homePv,
     signupPv,
     ticketClicks,
-    signupClicks,
+    signupSubmits,
     totalAlumni,
     topCities,
     colleges,
@@ -67,9 +67,10 @@ export default async function AdminHome() {
       <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">Overview</h1>
       <p className="text-[color:var(--muted)] text-sm mb-8">Last 7 days (Pacific time).</p>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-8">
         <Tile label="Home views" value={sum(homePv)} series={homePv} />
         <Tile label="/signup views" value={sum(signupPv)} series={signupPv} />
+        <Tile label="Signups" value={sum(signupSubmits)} series={signupSubmits} />
         <Tile label="Ticket clicks" value={sum(ticketClicks)} series={ticketClicks} />
         <Tile label="Total alumni" value={totalAlumni} />
       </div>

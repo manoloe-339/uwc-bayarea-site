@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import PageviewBeacon from "@/components/analytics/PageviewBeacon";
+import SignupForm from "./SignupForm";
 import { signup } from "@/lib/signup";
 
 export const metadata: Metadata = {
@@ -9,7 +10,23 @@ export const metadata: Metadata = {
   description: signup.lede,
 };
 
-export default function SignupPage() {
+const ERROR_MESSAGES: Record<string, string> = {
+  missing_required:
+    "Please fill in the required fields (name, email, and how you're connected to UWC).",
+  consent_required:
+    "We need your consent to send you UWC Bay Area emails before we can add you.",
+  rate_limit:
+    "We've received a lot of submissions from this network. Please try again in a little while.",
+};
+
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const sp = await searchParams;
+  const errorMsg = sp.error ? ERROR_MESSAGES[sp.error] ?? "Something went wrong. Please try again." : null;
+
   return (
     <>
       <PageviewBeacon path="/signup" />
@@ -58,13 +75,18 @@ export default function SignupPage() {
         <div className="h-px bg-[color:var(--rule)]" />
       </div>
 
-      <section className="max-w-[1040px] mx-auto px-5 sm:px-7 pt-9 pb-20">
+      <section className="max-w-[680px] mx-auto px-5 sm:px-7 pt-9 pb-20">
         <div className="flex flex-wrap items-baseline justify-between gap-6 mb-[18px]">
           <div className="text-[11px] tracking-[.28em] uppercase font-bold text-[color:var(--muted)]">
             {signup.formEyebrow}
           </div>
-          <div className="text-[13px] italic text-[color:var(--muted)]">{signup.formTip}</div>
         </div>
+
+        {errorMsg && (
+          <div className="mb-5 p-4 border-l-4 border-red-600 bg-red-50 text-sm text-red-900 rounded-[2px]">
+            {errorMsg}
+          </div>
+        )}
 
         <div
           className="relative bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden
@@ -72,30 +94,10 @@ export default function SignupPage() {
             before:content-[''] before:absolute before:inset-x-0 before:top-0 before:h-1
             before:bg-[linear-gradient(90deg,var(--navy)_0%,var(--navy-2)_100%)] before:z-[2]"
         >
-          <iframe
-            src={signup.formEmbedUrl}
-            title="UWC Bay Area member sign-up form"
-            loading="lazy"
-            allow="clipboard-write"
-            referrerPolicy="no-referrer-when-downgrade"
-            className="block w-full border-0 bg-white"
-            style={{ height: signup.formHeight }}
-          >
-            Loading…
-          </iframe>
+          <div className="p-6 sm:p-8">
+            <SignupForm />
+          </div>
         </div>
-
-        <p className="mt-[18px] text-center text-sm text-[color:var(--muted)]">
-          {signup.fallbackText}{" "}
-          <a
-            href={signup.formDirectUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-navy font-semibold no-underline border-b border-navy hover:bg-navy hover:text-white"
-          >
-            {signup.fallbackLinkText}
-          </a>
-        </p>
       </section>
 
       <SiteFooter />
