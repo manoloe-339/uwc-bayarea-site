@@ -46,21 +46,6 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
   }
   const exportHref = `/api/admin/alumni/export?${qs.toString()}`;
 
-  // A "search" is considered active when the admin set any filter beyond
-  // the defaults (subscription=subscribed is the landing state).
-  const hasActiveSearch =
-    !!filters.q ||
-    !!filters.college ||
-    !!filters.region ||
-    !!filters.origin ||
-    !!filters.city ||
-    filters.yearFrom != null ||
-    filters.yearTo != null ||
-    !!filters.help ||
-    !!filters.includeNonAlums ||
-    !!filters.includeMovedOut ||
-    (filters.subscription && filters.subscription !== "subscribed");
-
   return (
     <div>
       <div className="flex items-end justify-between mb-6">
@@ -141,23 +126,8 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         </div>
       </form>
 
-      <div className="flex items-center justify-end gap-6 mb-3 text-sm">
+      <div className="flex items-center justify-end mb-3 text-sm">
         <SelectedCountLink formId="alumni-select-form" />
-        {hasActiveSearch ? (
-          <Link
-            href={`/admin/email?${qs.toString()}`}
-            className="text-navy hover:underline font-semibold"
-          >
-            Send to all matching ({total}) →
-          </Link>
-        ) : (
-          <span
-            className="text-[color:var(--muted)] cursor-not-allowed"
-            title="Set at least one filter to enable sending to all matching results"
-          >
-            Send to all matching
-          </span>
-        )}
       </div>
 
       <form id="alumni-select-form" method="GET" action="/admin/email">
