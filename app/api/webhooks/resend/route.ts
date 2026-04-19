@@ -1,11 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import crypto from "node:crypto";
+import { Webhook } from "svix";
 import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Supported Resend event types we persist.
 const HANDLED_EVENTS = new Set([
   "email.delivered",
   "email.opened",
@@ -23,45 +22,35 @@ type ResendEvent = {
   };
 };
 
-function verifySignature(rawBody: string, header: string | null): boolean {
-  const secret = process.env.RESEND_WEBHOOK_SECRET;
-  if (!secret) return true; // TODO: reject when secret is set
-  if (!header) return false;
-
-  // Resend uses Svix-style headers when the secret is set (t=timestamp, v1=signature).
-  const parts = Object.fromEntries(header.split(",").map((p) => p.split("=") as [string, string]));
-  const timestamp = parts.t;
-  const signature = parts.v1;
-  if (!timestamp || !signature) return false;
-
-  const signed = `${timestamp}.${rawBody}`;
-  const expected = crypto.createHmac("sha256", secret).update(signed).digest("hex");
-  try {
-    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
-  } catch {
-    return false;
-  }
-}
-
 export async function POST(req: NextRequest) {
   const body = await req.text();
-  const sig = req.headers.get("svix-signature") ?? req.headers.get("resend-signature");
-  if (!verifySignature(body, sig)) {
-    console.warn("[resend webhook] signature verification failed");
-    return NextResponse.json({ error: "invalid signature" }, { status: 401 });
-  }
 
+  const headers = {
+    "svix-id": req.headers.get("svix-id") ?? "",
+    "svix-timestamp": req.headers.get("svix-timestamp") ?? "",
+    "svix-signature": req.headers.get("svix-signature") ?? "",
+  };
+
+  const secret = process.env.RESEND_WEBHOOK_SECRET;
   let event: ResendEvent;
-  try {
-    event = JSON.parse(body) as ResendEvent;
-  } catch {
-    return NextResponse.json({ error: "invalid json" }, { status: 400 });
-  }
 
-  if (!process.env.RESEND_WEBHOOK_SECRET) {
+  if (secret) {
+    try {
+      const wh = new Webhook(secret);
+      event = wh.verify(body, headers) as ResendEvent;
+    } catch (err) {
+      console.warn("[resend webhook] signature verification failed:", err);
+      return NextResponse.json({ error: "invalid signature" }, { status: 401 });
+    }
+  } else {
     console.warn(
-      "[resend webhook] RESEND_WEBHOOK_SECRET not set — accepting event without signature check. Set the secret and re-enable verification."
+      "[resend webhook] RESEND_WEBHOOK_SECRET not set — accepting event without signature check."
     );
+    try {
+      event = JSON.parse(body) as ResendEvent;
+    } catch {
+      return NextResponse.json({ error: "invalid json" }, { status: 400 });
+    }
   }
 
   const messageId = event.data?.email_id;
@@ -84,5 +73,6 @@ export async function POST(req: NextRequest) {
     await sql`UPDATE email_sends SET status = 'complained' WHERE resend_message_id = ${messageId}`;
   }
 
+  console.log(`[resend webhook] applied ${event.type} to message ${messageId}`);
   return NextResponse.json({ ok: true });
 }
