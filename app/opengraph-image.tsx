@@ -2,8 +2,10 @@ import { ImageResponse } from "next/og";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { event } from "@/lib/event";
+import { getSeatsRemaining } from "@/lib/live";
 
 export const runtime = "nodejs";
+export const revalidate = 60;
 export const alt = `${event.title} · ${event.city}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -27,6 +29,7 @@ export default async function OpenGraphImage() {
   const gil = imgDataUrl("gil.jpg");
   const faith = imgDataUrl("faith.jpg");
 
+  const seatsRemaining = await getSeatsRemaining();
   const [fireside1, fireside2] = event.fireside.speakers;
 
   return new ImageResponse(
@@ -92,7 +95,7 @@ export default async function OpenGraphImage() {
               <div style={{ width: 8, height: 8, borderRadius: "999px", background: "white" }} />
               <span>{`SELLING QUICKLY · `}</span>
               <span style={{ fontStyle: "italic", fontWeight: 500, textTransform: "none", letterSpacing: "0.02em" }}>
-                {`only ${event.seatsRemaining} seats remain`}
+                {`only ${seatsRemaining} seats remain`}
               </span>
             </div>
           </div>

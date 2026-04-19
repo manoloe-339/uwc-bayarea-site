@@ -1,6 +1,6 @@
 import { event } from "@/lib/event";
 
-export default function MobileFlyer() {
+export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { seatsRemaining?: number }) {
   return (
     <div className="w-full max-w-[520px] mx-auto bg-ivory text-[#0b2545]">
       {/* HEADER */}
@@ -34,7 +34,7 @@ export default function MobileFlyer() {
         <span>
           Selling quickly —{" "}
           <span className="display italic font-semibold text-[13px] tracking-[.02em] normal-case">
-            only {event.seatsRemaining} seats remain
+            only {seatsRemaining} seats remain
           </span>
         </span>
       </div>

@@ -65,7 +65,7 @@ export const event = {
       },
     ] as FiresideSpeaker[],
   },
-  seatsRemaining: 20,
+  totalSeats: 20,
   price: "$10",
   priceQualifier: "min",
   priceNote: "Limited capacity",

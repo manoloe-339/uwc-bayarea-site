@@ -1,6 +1,6 @@
 import { event } from "@/lib/event";
 
-export default function DesktopFlyer() {
+export default function DesktopFlyer({ seatsRemaining = event.totalSeats }: { seatsRemaining?: number }) {
   return (
     <div className="w-full max-w-[1100px] mx-auto">
       <div
@@ -48,7 +48,7 @@ export default function DesktopFlyer() {
           <span className="urgency-dot w-2 h-2 rounded-full bg-white inline-block" />
           Selling quickly —{" "}
           <span className="display italic font-semibold text-[14px] tracking-[.02em] normal-case">
-            only {event.seatsRemaining} seats remain
+            only {seatsRemaining} seats remain
           </span>
         </div>
 
