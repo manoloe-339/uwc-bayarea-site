@@ -19,6 +19,7 @@ type AlumRecord = {
   last_name: string | null;
   email: string;
   mobile: string | null;
+  linkedin_url: string | null;
   origin: string | null;
   uwc_college: string | null;
   uwc_college_raw: string | null;
@@ -82,6 +83,7 @@ async function updateAlumnus(id: number, formData: FormData) {
       last_name          = ${get("last_name")},
       email              = ${email.toLowerCase()},
       mobile             = ${get("mobile")},
+      linkedin_url       = ${get("linkedin_url")},
       origin             = ${get("origin")},
       uwc_college        = ${uwcCollege},
       uwc_college_raw    = ${uwcCollegeRaw},
@@ -200,6 +202,7 @@ export default async function AlumnusPage({
             <Field label="Last name" name="last_name" defaultValue={r.last_name} />
             <Field label="Email" name="email" type="email" defaultValue={r.email} required />
             <Field label="Mobile" name="mobile" defaultValue={r.mobile} />
+            <Field label="LinkedIn URL" name="linkedin_url" defaultValue={r.linkedin_url} />
             <SelectField label="Affiliation" name="affiliation" defaultValue={r.affiliation} options={[{ value: "", label: "—" }, ...AFFILIATIONS.map((a) => ({ value: a, label: a }))]} />
           </Grid>
         </Section>

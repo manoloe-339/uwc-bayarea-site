@@ -81,6 +81,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
   const currentCity = s(formData.get("current_city"));
   const region = cityToRegion(currentCity);
   const mobile = s(formData.get("mobile"));
+  const linkedinUrl = s(formData.get("linkedin_url"));
   const origin = s(formData.get("origin"));
   const company = s(formData.get("company"));
   const working = s(formData.get("working"));
@@ -96,13 +97,13 @@ export async function submitSignup(formData: FormData): Promise<void> {
   // by a later signup. We use COALESCE on UPDATE to only fill nulls.
   const upserted = (await sql`
     INSERT INTO alumni (
-      first_name, last_name, email, mobile, origin,
+      first_name, last_name, email, mobile, linkedin_url, origin,
       uwc_college, uwc_college_raw, grad_year, grad_year_raw,
       current_city, region, affiliation, company,
       help_tags, national_committee, about, questions,
       studying, working, subscribed, sources, flags, imported_at, updated_at
     ) VALUES (
-      ${firstName}, ${lastName}, ${email}, ${mobile}, ${origin},
+      ${firstName}, ${lastName}, ${email}, ${mobile}, ${linkedinUrl}, ${origin},
       ${uwcCollege}, ${uwcCollegeRaw}, ${gradYear}, ${gradYearRaw},
       ${currentCity}, ${region}, ${affiliation}, ${company},
       ${helpTags}, ${nationalCommittee}, ${about}, ${questions},
@@ -112,6 +113,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
       first_name         = COALESCE(alumni.first_name, EXCLUDED.first_name),
       last_name          = COALESCE(alumni.last_name, EXCLUDED.last_name),
       mobile             = COALESCE(alumni.mobile, EXCLUDED.mobile),
+      linkedin_url       = COALESCE(alumni.linkedin_url, EXCLUDED.linkedin_url),
       origin             = COALESCE(alumni.origin, EXCLUDED.origin),
       uwc_college        = COALESCE(alumni.uwc_college, EXCLUDED.uwc_college),
       uwc_college_raw    = COALESCE(alumni.uwc_college_raw, EXCLUDED.uwc_college_raw),

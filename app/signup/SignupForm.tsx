@@ -100,6 +100,21 @@ export default function SignupForm() {
               We occasionally organize things via WhatsApp, so a mobile helps.
             </span>
           </label>
+          <label className="block sm:col-span-2">
+            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+              LinkedIn profile URL (optional, preferred)
+            </span>
+            <input
+              name="linkedin_url"
+              type="url"
+              inputMode="url"
+              placeholder="https://linkedin.com/in/yourname"
+              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            />
+            <span className="block mt-1 text-xs text-[color:var(--muted)]">
+              Helps us recognize you and connect alumni with similar backgrounds.
+            </span>
+          </label>
         </Grid>
       </Section>
 
