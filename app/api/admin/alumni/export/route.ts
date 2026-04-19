@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
   const filters: AlumniFilters = {
     q: sp.get("q") ?? undefined,
     college: sp.get("college") ?? undefined,
+    region: sp.get("region") ?? undefined,
     origin: sp.get("origin") ?? undefined,
     city: sp.get("city") ?? undefined,
     yearFrom: numParam(sp, "yearFrom"),
@@ -33,6 +34,7 @@ export async function GET(req: NextRequest) {
       grad_year: r.grad_year,
       origin: r.origin,
       current_city: r.current_city,
+      region: r.region,
       email: r.email,
       mobile: r.mobile,
       help_tags: r.help_tags,

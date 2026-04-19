@@ -5,6 +5,7 @@ export type AlumniFilters = {
   college?: string;
   origin?: string;
   city?: string;
+  region?: string;
   yearFrom?: number;
   yearTo?: number;
   help?: string;
@@ -20,6 +21,7 @@ export type AlumniRow = {
   uwc_college: string | null;
   grad_year: number | null;
   current_city: string | null;
+  region: string | null;
   help_tags: string | null;
   national_committee: string | null;
   about: string | null;
@@ -47,6 +49,7 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
     );
   }
   if (f.college) push((n) => `uwc_college = $${n}`, f.college);
+  if (f.region) push((n) => `region = $${n}`, f.region);
   if (f.origin) push((n) => `lower(origin) LIKE $${n}`, `%${f.origin.toLowerCase()}%`);
   if (f.city) push((n) => `lower(current_city) LIKE $${n}`, `%${f.city.toLowerCase()}%`);
   if (typeof f.yearFrom === "number") push((n) => `grad_year >= $${n}`, f.yearFrom);
@@ -61,8 +64,8 @@ export async function searchAlumni(f: AlumniFilters, limit = 500): Promise<Alumn
   const { where, params } = buildWhere(f);
   const query = `
     SELECT id, first_name, last_name, email, mobile, origin, uwc_college,
-           grad_year, current_city, help_tags, national_committee, about,
-           questions, studying, working, flags
+           grad_year, current_city, region, help_tags, national_committee,
+           about, questions, studying, working, flags
     FROM alumni
     ${where}
     ORDER BY grad_year DESC NULLS LAST, last_name ASC NULLS LAST, first_name ASC NULLS LAST

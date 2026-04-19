@@ -24,14 +24,14 @@ export async function POST(req: NextRequest) {
       INSERT INTO alumni (
         submitted_at, first_name, last_name, email, mobile, origin,
         uwc_college, uwc_college_raw, grad_year, grad_year_raw,
-        current_city, help_tags, national_committee, about, questions,
+        current_city, region, help_tags, national_committee, about, questions,
         studying, working, flags, imported_at, updated_at
       ) VALUES (
         ${r.submitted_at}, ${r.first_name}, ${r.last_name}, ${r.email},
         ${r.mobile}, ${r.origin}, ${r.uwc_college}, ${r.uwc_college_raw},
-        ${r.grad_year}, ${r.grad_year_raw}, ${r.current_city}, ${r.help_tags},
-        ${r.national_committee}, ${r.about}, ${r.questions}, ${r.studying},
-        ${r.working}, ${r.flags}, NOW(), NOW()
+        ${r.grad_year}, ${r.grad_year_raw}, ${r.current_city}, ${r.region},
+        ${r.help_tags}, ${r.national_committee}, ${r.about}, ${r.questions},
+        ${r.studying}, ${r.working}, ${r.flags}, NOW(), NOW()
       )
       ON CONFLICT (email) DO UPDATE SET
         submitted_at       = EXCLUDED.submitted_at,
@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
         grad_year          = EXCLUDED.grad_year,
         grad_year_raw      = EXCLUDED.grad_year_raw,
         current_city       = EXCLUDED.current_city,
+        region             = EXCLUDED.region,
         help_tags          = EXCLUDED.help_tags,
         national_committee = EXCLUDED.national_committee,
         about              = EXCLUDED.about,

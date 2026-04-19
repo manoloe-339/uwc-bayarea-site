@@ -31,6 +31,16 @@ async function getCollegeBreakdown(limit = 6): Promise<{ uwc_college: string; n:
   return rows as { uwc_college: string; n: number }[];
 }
 
+async function getRegionBreakdown(): Promise<{ region: string; n: number }[]> {
+  const rows = await sql`
+    SELECT COALESCE(region, 'Unknown') AS region, COUNT(*)::int AS n
+    FROM alumni
+    GROUP BY region
+    ORDER BY n DESC
+  `;
+  return rows as { region: string; n: number }[];
+}
+
 export default async function AdminHome() {
   const [
     homePv,
@@ -40,6 +50,7 @@ export default async function AdminHome() {
     totalAlumni,
     topCities,
     colleges,
+    regions,
   ] = await Promise.all([
     getPageviews("/", 7),
     getPageviews("/signup", 7),
@@ -48,6 +59,7 @@ export default async function AdminHome() {
     getTotalAlumni(),
     getTopCities(5),
     getCollegeBreakdown(8),
+    getRegionBreakdown(),
   ]);
 
   return (
@@ -62,7 +74,21 @@ export default async function AdminHome() {
         <Tile label="Total alumni" value={totalAlumni} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card title="By region">
+          {regions.length === 0 ? (
+            <Empty />
+          ) : (
+            <ul>
+              {regions.map((r) => (
+                <li key={r.region} className="flex justify-between py-1.5 border-b border-[color:var(--rule)] last:border-0">
+                  <span>{r.region}</span>
+                  <span className="font-semibold">{r.n}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
         <Card title="Top cities">
           {topCities.length === 0 ? (
             <Empty />

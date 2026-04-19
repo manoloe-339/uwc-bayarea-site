@@ -1,6 +1,7 @@
 import Papa from "papaparse";
 import { normalizeCollege, isPearson } from "./uwc-colleges";
 import { parseGradYear } from "./gradyear";
+import { cityToRegion } from "./region";
 
 export type ImportRow = {
   submitted_at: Date | null;
@@ -14,6 +15,7 @@ export type ImportRow = {
   grad_year: number | null;
   grad_year_raw: string | null;
   current_city: string | null;
+  region: string | null;
   help_tags: string | null;
   national_committee: string | null;
   about: string | null;
@@ -118,6 +120,7 @@ export function parseCsv(text: string): ImportReport {
       grad_year: gradYear,
       grad_year_raw: rec.grad_year_raw ?? null,
       current_city: rec.current_city ?? null,
+      region: cityToRegion(rec.current_city ?? null),
       help_tags: rec.help_tags ?? null,
       national_committee: rec.national_committee ?? null,
       about: rec.about ?? null,

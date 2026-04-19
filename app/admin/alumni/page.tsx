@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { COLLEGES } from "@/lib/uwc-colleges";
+import { REGIONS } from "@/lib/region";
 import { searchAlumni, countAlumni, type AlumniFilters } from "@/lib/alumni-query";
 import YearFilter from "@/components/admin/YearFilter";
 
@@ -25,6 +26,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
   const filters: AlumniFilters = {
     q: pickStr(sp, "q"),
     college: pickStr(sp, "college"),
+    region: pickStr(sp, "region"),
     origin: pickStr(sp, "origin"),
     city: pickStr(sp, "city"),
     yearFrom: pickNum(sp, "yearFrom"),
@@ -68,6 +70,14 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             </option>
           ))}
         </Select>
+        <Select label="Region" name="region" defaultValue={filters.region}>
+          <option value="">Any</option>
+          {REGIONS.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </Select>
         <Field label="Origin contains" name="origin" defaultValue={filters.origin} placeholder="e.g. Brazil" />
         <Field label="City contains" name="city" defaultValue={filters.city} placeholder="e.g. San Francisco" />
         <YearFilter initialFrom={filters.yearFrom} initialTo={filters.yearTo} />
@@ -94,13 +104,14 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
               <Th>Year</Th>
               <Th>Origin</Th>
               <Th>City</Th>
+              <Th>Region</Th>
               <Th>Email</Th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-[color:var(--muted)]">
+                <td colSpan={7} className="p-8 text-center text-[color:var(--muted)]">
                   No matches.
                 </td>
               </tr>
@@ -119,6 +130,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                 <Td>{r.grad_year ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
                 <Td>{r.origin ?? "—"}</Td>
                 <Td>{r.current_city ?? "—"}</Td>
+                <Td>{r.region ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
                 <Td>
                   <a href={`mailto:${r.email}`} className="text-navy hover:underline">{r.email}</a>
                 </Td>
