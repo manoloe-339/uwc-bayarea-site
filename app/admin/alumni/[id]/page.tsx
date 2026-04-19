@@ -123,6 +123,26 @@ export default async function AlumnusPage({
   const r = rows[0];
   const name = [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email;
 
+  const emailHistory = (await sql`
+    SELECT
+      s.id, s.status, s.sent_at, s.opened_at, s.clicked_at, s.bounced_at, s.error,
+      c.id AS campaign_id, c.subject
+    FROM email_sends s
+    LEFT JOIN email_campaigns c ON c.id = s.campaign_id
+    WHERE s.alumni_id = ${numericId}
+    ORDER BY s.created_at DESC
+  `) as {
+    id: string;
+    status: string;
+    sent_at: string | null;
+    opened_at: string | null;
+    clicked_at: string | null;
+    bounced_at: string | null;
+    error: string | null;
+    campaign_id: string | null;
+    subject: string | null;
+  }[];
+
   const update = updateAlumnus.bind(null, numericId);
 
   async function doResubscribe() {
@@ -253,6 +273,67 @@ export default async function AlumnusPage({
           </div>
         </div>
       </form>
+
+      {emailHistory.length > 0 && (
+        <section className="mt-8 bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">
+          <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-navy px-5 py-4 border-b border-[color:var(--rule)]">
+            Email history ({emailHistory.length})
+          </h2>
+          <table className="w-full text-sm">
+            <thead className="bg-ivory-2 text-[11px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)]">
+              <tr>
+                <th className="text-left px-4 py-2">Campaign</th>
+                <th className="text-left px-4 py-2">Status</th>
+                <th className="text-left px-4 py-2">Sent</th>
+                <th className="text-left px-4 py-2">Opened</th>
+                <th className="text-left px-4 py-2">Clicked</th>
+              </tr>
+            </thead>
+            <tbody>
+              {emailHistory.map((h) => (
+                <tr key={h.id} className="border-t border-[color:var(--rule)]">
+                  <td className="px-4 py-2">
+                    {h.campaign_id ? (
+                      <Link href={`/admin/email/${h.campaign_id}`} className="text-navy hover:underline">
+                        {h.subject ?? "(untitled)"}
+                      </Link>
+                    ) : (
+                      <span className="text-[color:var(--muted)]">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2">
+                    <span
+                      className={`text-[10px] uppercase tracking-wider ${
+                        h.status === "sent"
+                          ? "text-green-800"
+                          : h.status === "bounced"
+                            ? "text-red-700"
+                            : h.status === "failed"
+                              ? "text-red-700"
+                              : "text-[color:var(--muted)]"
+                      }`}
+                    >
+                      {h.status}
+                    </span>
+                    {h.error ? (
+                      <span className="ml-2 text-[10px] text-red-700">({h.error})</span>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-2 text-xs">
+                    {h.sent_at ? new Date(h.sent_at).toLocaleDateString() : "—"}
+                  </td>
+                  <td className="px-4 py-2 text-xs">
+                    {h.opened_at ? new Date(h.opened_at).toLocaleDateString() : "—"}
+                  </td>
+                  <td className="px-4 py-2 text-xs">
+                    {h.clicked_at ? new Date(h.clicked_at).toLocaleDateString() : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
     </div>
   );
 }

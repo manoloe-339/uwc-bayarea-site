@@ -36,6 +36,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     includeNonAlums: pickStr(sp, "includeNonAlums") === "1",
     includeMovedOut: pickStr(sp, "includeMovedOut") === "1",
     subscription: (pickStr(sp, "subscription") as AlumniFilters["subscription"]) ?? "subscribed",
+    engagement: pickStr(sp, "engagement") as AlumniFilters["engagement"],
   };
 
   const [rows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
@@ -94,6 +95,13 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <option value="subscribed">Subscribed only</option>
           <option value="unsubscribed">Unsubscribed only</option>
           <option value="any">Any</option>
+        </Select>
+        <Select label="Email engagement" name="engagement" defaultValue={filters.engagement ?? ""}>
+          <option value="">Any</option>
+          <option value="opened_any">Opened any email</option>
+          <option value="clicked_any">Clicked any link</option>
+          <option value="never_opened">Received, never opened</option>
+          <option value="never_received">Never received an email</option>
         </Select>
         <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] sm:col-span-2">
           <input

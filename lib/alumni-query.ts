@@ -1,6 +1,11 @@
 import { sql } from "./db";
 
 export type SubscriptionFilter = "subscribed" | "unsubscribed" | "any";
+export type EngagementFilter =
+  | "opened_any"
+  | "clicked_any"
+  | "never_opened"
+  | "never_received";
 
 export type AlumniFilters = {
   q?: string;
@@ -14,6 +19,7 @@ export type AlumniFilters = {
   includeNonAlums?: boolean;
   includeMovedOut?: boolean;
   subscription?: SubscriptionFilter;
+  engagement?: EngagementFilter;
   /** Explicit recipient IDs (bypasses other filters during send). */
   ids?: number[];
 };
@@ -74,6 +80,21 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
   } else if (f.subscription !== "any") {
     // default: subscribed only
     parts.push(`subscribed IS NOT FALSE`);
+  }
+  if (f.engagement === "opened_any") {
+    parts.push(
+      `EXISTS (SELECT 1 FROM email_sends WHERE alumni_id = alumni.id AND opened_at IS NOT NULL)`
+    );
+  } else if (f.engagement === "clicked_any") {
+    parts.push(
+      `EXISTS (SELECT 1 FROM email_sends WHERE alumni_id = alumni.id AND clicked_at IS NOT NULL)`
+    );
+  } else if (f.engagement === "never_opened") {
+    parts.push(
+      `EXISTS (SELECT 1 FROM email_sends WHERE alumni_id = alumni.id AND status = 'sent') AND NOT EXISTS (SELECT 1 FROM email_sends WHERE alumni_id = alumni.id AND opened_at IS NOT NULL)`
+    );
+  } else if (f.engagement === "never_received") {
+    parts.push(`NOT EXISTS (SELECT 1 FROM email_sends WHERE alumni_id = alumni.id)`);
   }
   if (typeof f.yearFrom === "number") push((n) => `grad_year >= $${n}`, f.yearFrom);
   if (typeof f.yearTo === "number") push((n) => `grad_year <= $${n}`, f.yearTo);
