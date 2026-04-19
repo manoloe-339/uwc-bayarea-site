@@ -128,7 +128,9 @@ export default async function AlumnusPage({
       </div>
       <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">{name}</h1>
       <p className="text-[color:var(--muted)] text-sm mb-6">
-        Record #{r.id} · imported {r.imported_at ? new Date(r.imported_at).toLocaleDateString() : "—"}
+        Record #{r.id}
+        {r.submitted_at ? ` · submitted ${new Date(r.submitted_at).toLocaleDateString()}` : ""}
+        {r.imported_at ? ` · imported ${new Date(r.imported_at).toLocaleDateString()}` : ""}
         {r.updated_at ? ` · updated ${new Date(r.updated_at).toLocaleDateString()}` : ""}
       </p>
 
