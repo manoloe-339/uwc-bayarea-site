@@ -41,6 +41,28 @@ async function getRegionBreakdown(): Promise<{ region: string; n: number }[]> {
   return rows as { region: string; n: number }[];
 }
 
+type RecentSignup = {
+  id: number;
+  first_name: string | null;
+  last_name: string | null;
+  email: string;
+  uwc_college: string | null;
+  grad_year: number | null;
+  current_city: string | null;
+  updated_at: string;
+};
+
+async function getRecentSignups(limit = 10): Promise<RecentSignup[]> {
+  const rows = await sql`
+    SELECT id, first_name, last_name, email, uwc_college, grad_year, current_city, updated_at
+    FROM alumni
+    WHERE 'signup_form' = ANY(sources)
+    ORDER BY updated_at DESC
+    LIMIT ${limit}
+  `;
+  return rows as RecentSignup[];
+}
+
 export default async function AdminHome() {
   const [
     homePv,
@@ -51,6 +73,7 @@ export default async function AdminHome() {
     topCities,
     colleges,
     regions,
+    recentSignups,
   ] = await Promise.all([
     getPageviews("/", 7),
     getPageviews("/signup", 7),
@@ -60,6 +83,7 @@ export default async function AdminHome() {
     getTopCities(5),
     getCollegeBreakdown(8),
     getRegionBreakdown(),
+    getRecentSignups(10),
   ]);
 
   return (
@@ -118,6 +142,62 @@ export default async function AdminHome() {
             </ul>
           )}
         </Card>
+      </div>
+
+      <div className="mt-8 bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">
+        <div className="flex items-baseline justify-between px-5 py-4 border-b border-[color:var(--rule)]">
+          <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">Recent signups</h2>
+          <a
+            href="/admin/alumni?q=&engagement="
+            className="text-xs text-[color:var(--muted)] hover:text-navy"
+          >
+            See all →
+          </a>
+        </div>
+        {recentSignups.length === 0 ? (
+          <div className="px-5 py-6 text-sm text-[color:var(--muted)]">
+            No signups via the form yet.
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-ivory-2 text-[11px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)]">
+              <tr>
+                <th className="text-left px-4 py-2">Name</th>
+                <th className="text-left px-4 py-2">College</th>
+                <th className="text-left px-4 py-2">Year</th>
+                <th className="text-left px-4 py-2">City</th>
+                <th className="text-left px-4 py-2">Email</th>
+                <th className="text-left px-4 py-2">When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentSignups.map((s) => (
+                <tr key={s.id} className="border-t border-[color:var(--rule)] hover:bg-ivory">
+                  <td className="px-4 py-2">
+                    <a
+                      href={`/admin/alumni/${s.id}`}
+                      className="font-semibold text-navy hover:underline"
+                    >
+                      {[s.first_name, s.last_name].filter(Boolean).join(" ") || s.email}
+                    </a>
+                  </td>
+                  <td className="px-4 py-2">{s.uwc_college ?? <span className="text-[color:var(--muted)]">—</span>}</td>
+                  <td className="px-4 py-2">{s.grad_year ?? <span className="text-[color:var(--muted)]">—</span>}</td>
+                  <td className="px-4 py-2">{s.current_city ?? "—"}</td>
+                  <td className="px-4 py-2 text-xs text-[color:var(--muted)]">{s.email}</td>
+                  <td className="px-4 py-2 text-xs text-[color:var(--muted)] whitespace-nowrap">
+                    {new Date(s.updated_at).toLocaleString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {totalAlumni === 0 && (
