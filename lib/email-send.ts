@@ -16,15 +16,37 @@ export async function getRecipients(filters: AlumniFilters): Promise<AlumniRow[]
   return rows.filter((r) => r.email && r.email.includes("@"));
 }
 
+function buildBody(params: {
+  body: string;
+  salutation?: string;
+  includeFirstName?: boolean;
+  firstName?: string | null;
+}): string {
+  const sal = (params.salutation ?? "").trim();
+  if (!sal) return params.body;
+  const name = params.includeFirstName
+    ? ` ${params.firstName && params.firstName.trim() ? params.firstName.trim() : "there"}`
+    : "";
+  return `${sal}${name},\n\n${params.body}`;
+}
+
 export async function sendTestEmail(params: {
   to: string;
   subject: string;
   body: string;
+  salutation?: string;
+  includeFirstName?: boolean;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
     const resend = getResend();
-    const html = renderEmailHtml(params.body, null);
-    const text = renderEmailText(params.body, null);
+    const finalBody = buildBody({
+      body: params.body,
+      salutation: params.salutation,
+      includeFirstName: params.includeFirstName,
+      firstName: null,
+    });
+    const html = renderEmailHtml(finalBody, null);
+    const text = renderEmailText(finalBody, null);
     const result = await resend.emails.send({
       from: fromAddress(),
       to: params.to,
@@ -56,6 +78,8 @@ export async function sendCampaign(params: {
   filters: AlumniFilters;
   subject: string;
   body: string;
+  salutation?: string;
+  includeFirstName?: boolean;
   createdBy?: string;
 }): Promise<{
   campaignId: string;
@@ -90,21 +114,30 @@ export async function sendCampaign(params: {
 
   for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
     const chunk = recipients.slice(i, i + BATCH_SIZE);
-    const items: BatchItem[] = chunk.map((r) => ({
+    const personalized = chunk.map((r) => ({
+      recipient: r,
+      body: buildBody({
+        body: params.body,
+        salutation: params.salutation,
+        includeFirstName: params.includeFirstName,
+        firstName: r.first_name,
+      }),
+    }));
+    const items: BatchItem[] = personalized.map(({ recipient, body }) => ({
       from,
-      to: r.email,
+      to: recipient.email,
       replyTo,
       subject: params.subject,
-      html: renderEmailHtml(params.body, r.id),
-      text: renderEmailText(params.body, r.id),
+      html: renderEmailHtml(body, recipient.id),
+      text: renderEmailText(body, recipient.id),
     }));
 
     try {
       const result = await resend.batch.send(items);
       if ("error" in result && result.error) {
         // Whole batch failed — mark every row as failed.
-        for (const r of chunk) {
-          await insertSendRow(campaignId, r, params.subject, params.body, {
+        for (const p of personalized) {
+          await insertSendRow(campaignId, p.recipient, params.subject, p.body, {
             status: "failed",
             error: result.error.message ?? "batch_failed",
           });
@@ -117,18 +150,18 @@ export async function sendCampaign(params: {
         "data" in result && result.data
           ? ((result.data as { data?: { id: string }[] }).data ?? [])
           : [];
-      for (let j = 0; j < chunk.length; j++) {
-        const r = chunk[j];
+      for (let j = 0; j < personalized.length; j++) {
+        const { recipient, body } = personalized[j];
         const messageId = data[j]?.id ?? null;
         if (messageId) {
-          await insertSendRow(campaignId, r, params.subject, params.body, {
+          await insertSendRow(campaignId, recipient, params.subject, body, {
             status: "sent",
             resend_message_id: messageId,
             sent_at: new Date(),
           });
           sent++;
         } else {
-          await insertSendRow(campaignId, r, params.subject, params.body, {
+          await insertSendRow(campaignId, recipient, params.subject, body, {
             status: "failed",
             error: "no_message_id",
           });
@@ -136,8 +169,8 @@ export async function sendCampaign(params: {
         }
       }
     } catch (err) {
-      for (const r of chunk) {
-        await insertSendRow(campaignId, r, params.subject, params.body, {
+      for (const p of personalized) {
+        await insertSendRow(campaignId, p.recipient, params.subject, p.body, {
           status: "failed",
           error: err instanceof Error ? err.message : "unknown",
         });

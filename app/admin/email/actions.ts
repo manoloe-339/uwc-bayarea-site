@@ -15,8 +15,10 @@ export async function sendTest(
   const to = String(formData.get("to") ?? "").trim();
   const subject = String(formData.get("subject") ?? "").trim();
   const body = String(formData.get("body") ?? "");
+  const salutation = String(formData.get("salutation") ?? "").trim();
+  const includeFirstName = formData.get("includeFirstName") === "1";
   if (!to || !subject || !body) return { ok: false, error: "Missing to/subject/body" };
-  const result = await sendTestEmail({ to, subject, body });
+  const result = await sendTestEmail({ to, subject, body, salutation, includeFirstName });
   if (!result.ok) return { ok: false, error: result.error };
   return { ok: true, id: result.id };
 }
@@ -24,6 +26,8 @@ export async function sendTest(
 export async function sendToAll(formData: FormData): Promise<void> {
   const subject = String(formData.get("subject") ?? "").trim();
   const body = String(formData.get("body") ?? "");
+  const salutation = String(formData.get("salutation") ?? "").trim();
+  const includeFirstName = formData.get("includeFirstName") === "1";
   const filtersJson = String(formData.get("filters") ?? "{}");
   if (!subject || !body) {
     throw new Error("Subject and body are required");
@@ -43,7 +47,7 @@ export async function sendToAll(formData: FormData): Promise<void> {
 
   let campaignId: string | null = null;
   try {
-    const result = await sendCampaign({ filters, subject, body, createdBy: "admin" });
+    const result = await sendCampaign({ filters, subject, body, salutation, includeFirstName, createdBy: "admin" });
     campaignId = result.campaignId;
   } finally {
     await releaseSendLock();

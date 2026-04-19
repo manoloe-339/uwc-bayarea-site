@@ -13,12 +13,21 @@ export default function ComposeForm({
 }) {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [salutation, setSalutation] = useState("Hi");
+  const [includeFirstName, setIncludeFirstName] = useState(true);
   const [testTo, setTestTo] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [sending, startSending] = useTransition();
   const [testState, testAction] = useActionState<SendTestResult | null, FormData>(sendTest, null);
 
   const disabled = !subject.trim() || !body.trim();
+
+  const previewSalutation = (() => {
+    const sal = salutation.trim();
+    if (!sal) return "";
+    const name = includeFirstName ? " Manolo" : "";
+    return `${sal}${name},`;
+  })();
 
   return (
     <div className="space-y-6">
@@ -33,6 +42,32 @@ export default function ComposeForm({
             placeholder="e.g. UWC Bay Area meetup · Friday May 1"
           />
         </label>
+
+        <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end mb-4">
+          <label className="block">
+            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">Salutation</span>
+            <input
+              value={salutation}
+              onChange={(e) => setSalutation(e.target.value)}
+              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+              placeholder="Hi"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] pb-2.5">
+            <input
+              type="checkbox"
+              checked={includeFirstName}
+              onChange={(e) => setIncludeFirstName(e.target.checked)}
+            />
+            Include first name
+          </label>
+        </div>
+        <p className="mb-4 text-xs text-[color:var(--muted)]">
+          Preview per recipient: <span className="font-mono bg-ivory-2 px-2 py-0.5 rounded">{previewSalutation || "(no salutation)"}</span>
+          {" "}
+          <span className="italic">(if a record has no first name, we fall back to "there")</span>
+        </p>
+
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">Body (plain text — line breaks preserved, URLs auto-linked)</span>
           <textarea
@@ -40,7 +75,7 @@ export default function ComposeForm({
             onChange={(e) => setBody(e.target.value)}
             rows={14}
             className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white font-sans"
-            placeholder={"Hi {first_name} — (templating TBD, plain for now)\n\nWe're hosting a casual gathering on..."}
+            placeholder={"We're hosting a casual gathering on Friday May 1..."}
           />
         </label>
         <p className="mt-2 text-xs text-[color:var(--muted)]">
@@ -53,6 +88,8 @@ export default function ComposeForm({
         <form action={testAction} className="flex flex-col sm:flex-row gap-2 sm:items-end">
           <input type="hidden" name="subject" value={subject} />
           <input type="hidden" name="body" value={body} />
+          <input type="hidden" name="salutation" value={salutation} />
+          <input type="hidden" name="includeFirstName" value={includeFirstName ? "1" : ""} />
           <label className="flex-1 block">
             <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">Test recipient</span>
             <input
@@ -103,6 +140,8 @@ export default function ComposeForm({
             action={(fd) => {
               fd.set("subject", subject);
               fd.set("body", body);
+              fd.set("salutation", salutation);
+              fd.set("includeFirstName", includeFirstName ? "1" : "");
               fd.set("filters", JSON.stringify(filters));
               startSending(() => sendToAll(fd));
             }}
