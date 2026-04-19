@@ -230,9 +230,6 @@ export default function SignupForm() {
         >
           {pending ? "Sending…" : "Sign me up"}
         </button>
-        <p className="mt-3 text-xs text-[color:var(--muted)]">
-          Your details live in our alumni database. We don't share them outside UWC Bay Area.
-        </p>
       </div>
     </form>
   );
