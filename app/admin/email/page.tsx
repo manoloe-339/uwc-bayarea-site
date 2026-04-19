@@ -55,6 +55,53 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
       includeMovedOut: pickStr(sp, "includeMovedOut") === "1",
       subscription: "subscribed",
     };
+    recipientCount = 0; // compute only if filters are set — see guard below
+  }
+
+  // Safety gate: require an explicit recipient selection before showing the compose form.
+  const hasIds = idList.length > 0;
+  const hasAnyFilter = !hasIds && (
+    !!filters.q ||
+    !!filters.college ||
+    !!filters.region ||
+    !!filters.origin ||
+    !!filters.city ||
+    filters.yearFrom != null ||
+    filters.yearTo != null ||
+    !!filters.help ||
+    !!filters.includeNonAlums ||
+    !!filters.includeMovedOut
+  );
+
+  if (!hasIds && !hasAnyFilter) {
+    return (
+      <div className="max-w-[720px]">
+        <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-2">Send email</h1>
+        <p className="text-[color:var(--muted)] text-sm mb-8">
+          Pick recipients first — sending to every alumnus at once shouldn't be the default path.
+        </p>
+
+        <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-7 shadow-[0_2px_0_var(--ivory-3)]">
+          <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-3">Two ways to select recipients</h2>
+          <ol className="space-y-3 text-sm text-[color:var(--navy-ink)] list-decimal pl-5">
+            <li>
+              Go to <Link href="/admin/alumni" className="text-navy underline font-semibold">Alumni</Link>, tick the
+              specific rows you want, and use "Send to selected".
+            </li>
+            <li>
+              Or apply filters on <Link href="/admin/alumni" className="text-navy underline font-semibold">Alumni</Link>,
+              use "Select all" for that filtered set, and use "Send to selected".
+            </li>
+          </ol>
+          <p className="mt-5 text-xs text-[color:var(--muted)]">
+            Past campaigns: <Link href="/admin/email/history" className="text-navy underline">view history →</Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasAnyFilter) {
     recipientCount = await countAlumni(filters);
   }
 
