@@ -197,7 +197,7 @@ function buildConfirmationBody(_firstName: string): string {
 
 We've saved your details. You'll hear from us when we're organizing events or have news worth sharing — usually not more than once or twice a month.
 
-You can reply to this email any time (it'll reach Manolo directly), and every message we send has an unsubscribe link at the bottom.
+You can reply to this email any time (it'll reach our team directly), and every message we send has an unsubscribe link at the bottom.
 
 Looking forward to connecting,
 UWC Bay Area`;

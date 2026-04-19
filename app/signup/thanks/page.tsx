@@ -30,7 +30,7 @@ export default function SignupThanksPage() {
             </p>
             <p className="text-[15px] leading-[1.55] text-[color:var(--navy-ink)] mb-6 max-w-[56ch]">
               We've also sent a confirmation to your inbox. Reply to it any time — it reaches
-              Manolo directly.
+              our team directly.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
