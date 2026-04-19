@@ -20,6 +20,8 @@ export default function SignupForm() {
   const [affiliation, setAffiliation] = useState<Affiliation | "">("");
   const [email, setEmail] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
+  const [isWorking, setIsWorking] = useState(false);
+  const [isStudying, setIsStudying] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const showUwcFields = affiliation === "Alum";
@@ -186,11 +188,41 @@ export default function SignupForm() {
       </Section>
 
       <Section title="Work & study (optional)">
-        <Grid>
-          <Field label="Company" name="company" placeholder="e.g. Google" />
-          <Field label="Role / work" name="working" placeholder="e.g. Product manager" />
-          <Field label="Studying" name="studying" full placeholder="e.g. Stanford MBA '26" />
-        </Grid>
+        <div className="flex flex-wrap gap-5 mb-4 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={isWorking}
+              onChange={(e) => setIsWorking(e.target.checked)}
+            />
+            I'm currently working
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={isStudying}
+              onChange={(e) => setIsStudying(e.target.checked)}
+            />
+            I'm currently studying
+          </label>
+        </div>
+
+        {isWorking && (
+          <Grid>
+            <Field label="Company" name="company" placeholder="best company ever" />
+            <Field label="Role" name="working" placeholder="chief vibe officer" />
+          </Grid>
+        )}
+        {isStudying && (
+          <div className="mt-4">
+            <Field
+              label="Where & what are you studying?"
+              name="studying"
+              full
+              placeholder="best uni ever"
+            />
+          </div>
+        )}
       </Section>
 
       <Section title="How would you like to help? (optional)">
