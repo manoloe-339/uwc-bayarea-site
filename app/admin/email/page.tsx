@@ -30,15 +30,16 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
 
   let filters: AlumniFilters;
   let recipientCount: number;
-  let selectedNames: string[] = [];
+  let selectedRecipients: { name: string; email: string }[] = [];
 
   if (idList.length > 0) {
     const rows = await getAlumniByIds(idList);
     filters = { ids: rows.map((r) => r.id) };
     recipientCount = rows.length;
-    selectedNames = rows.map(
-      (r) => [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email
-    );
+    selectedRecipients = rows.map((r) => ({
+      name: [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email,
+      email: r.email,
+    }));
   } else {
     // Inherit the alumni search filter shape, but force subscription=subscribed.
     filters = {
@@ -100,7 +101,7 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
       </p>
 
       {idList.length > 0 ? (
-        <SelectedSummary names={selectedNames} count={recipientCount} />
+        <SelectedSummary recipients={selectedRecipients} count={recipientCount} />
       ) : (
         <FilterSummary filters={filters} count={recipientCount} />
       )}
@@ -112,7 +113,15 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
   );
 }
 
-function SelectedSummary({ names, count }: { names: string[]; count: number }) {
+function SelectedSummary({
+  recipients,
+  count,
+}: {
+  recipients: { name: string; email: string }[];
+  count: number;
+}) {
+  const shown = recipients.slice(0, 30);
+  const extra = recipients.length - shown.length;
   return (
     <div className="bg-ivory-2 border border-[color:var(--rule)] rounded-[6px] p-4 text-sm">
       <div className="flex items-baseline justify-between gap-4 flex-wrap">
@@ -123,20 +132,23 @@ function SelectedSummary({ names, count }: { names: string[]; count: number }) {
           Hand-selected — unsubscribed rows silently dropped.
         </div>
       </div>
-      {names.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {names.slice(0, 30).map((n, i) => (
-            <span
-              key={`${n}-${i}`}
-              className="text-[11px] text-[color:var(--navy-ink)] bg-white border border-[color:var(--rule)] rounded-full px-2.5 py-0.5"
+      {shown.length > 0 && (
+        <ul className="mt-3 divide-y divide-[color:var(--rule)] bg-white border border-[color:var(--rule)] rounded-[6px]">
+          {shown.map((r, i) => (
+            <li
+              key={`${r.email}-${i}`}
+              className="flex items-baseline justify-between gap-4 px-3 py-1.5 text-[13px]"
             >
-              {n}
-            </span>
+              <span className="font-semibold text-[color:var(--navy-ink)]">{r.name}</span>
+              <span className="text-[color:var(--muted)] text-xs">{r.email}</span>
+            </li>
           ))}
-          {names.length > 30 && (
-            <span className="text-[11px] text-[color:var(--muted)]">+ {names.length - 30} more</span>
+          {extra > 0 && (
+            <li className="px-3 py-1.5 text-xs text-[color:var(--muted)] italic">
+              + {extra} more
+            </li>
           )}
-        </div>
+        </ul>
       )}
     </div>
   );
