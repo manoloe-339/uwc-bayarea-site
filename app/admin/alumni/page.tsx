@@ -32,6 +32,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     yearFrom: pickNum(sp, "yearFrom"),
     yearTo: pickNum(sp, "yearTo"),
     help: pickStr(sp, "help"),
+    includeNonAlums: pickStr(sp, "includeNonAlums") === "1",
   };
 
   const [rows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
@@ -86,6 +87,15 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         <Field label="City contains" name="city" defaultValue={filters.city} placeholder="e.g. San Francisco" />
         <YearFilter initialFrom={filters.yearFrom} initialTo={filters.yearTo} />
         <Field label="Help tag contains" name="help" defaultValue={filters.help} placeholder="e.g. events" />
+        <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] sm:col-span-2">
+          <input
+            type="checkbox"
+            name="includeNonAlums"
+            value="1"
+            defaultChecked={filters.includeNonAlums}
+          />
+          Include friends &amp; parents
+        </label>
         <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
           <button
             type="submit"
@@ -109,13 +119,14 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
               <Th>Origin</Th>
               <Th>City</Th>
               <Th>Region</Th>
+              <Th>Company</Th>
               <Th>Email</Th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-[color:var(--muted)]">
+                <td colSpan={8} className="p-8 text-center text-[color:var(--muted)]">
                   No matches.
                 </td>
               </tr>
@@ -123,7 +134,17 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             {rows.map((r) => (
               <tr key={r.id} className="border-t border-[color:var(--rule)] hover:bg-ivory">
                 <Td>
-                  <span className="font-semibold">{[r.first_name, r.last_name].filter(Boolean).join(" ")}</span>
+                  <Link
+                    href={`/admin/alumni/${r.id}`}
+                    className="font-semibold text-navy hover:underline"
+                  >
+                    {[r.first_name, r.last_name].filter(Boolean).join(" ") || r.email}
+                  </Link>
+                  {r.affiliation && r.affiliation !== "Alum" && (
+                    <span className="ml-2 text-[10px] text-[color:var(--muted)] uppercase tracking-wider">
+                      {r.affiliation}
+                    </span>
+                  )}
                   {r.flags?.length > 0 && (
                     <span className="ml-2 text-[10px] text-orange-700 uppercase tracking-wider">
                       {r.flags.join(", ")}
@@ -135,6 +156,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                 <Td>{r.origin ?? "—"}</Td>
                 <Td>{r.current_city ?? "—"}</Td>
                 <Td>{r.region ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
+                <Td>{r.company ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
                 <Td>
                   <a href={`mailto:${r.email}`} className="text-navy hover:underline">{r.email}</a>
                 </Td>

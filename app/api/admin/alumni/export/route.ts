@@ -23,6 +23,7 @@ export async function GET(req: NextRequest) {
     yearFrom: numParam(sp, "yearFrom"),
     yearTo: numParam(sp, "yearTo"),
     help: sp.get("help") ?? undefined,
+    includeNonAlums: sp.get("includeNonAlums") === "1",
   };
 
   const rows = await searchAlumni(filters, 10_000);
@@ -35,6 +36,8 @@ export async function GET(req: NextRequest) {
       origin: r.origin,
       current_city: r.current_city,
       region: r.region,
+      affiliation: r.affiliation,
+      company: r.company,
       email: r.email,
       mobile: r.mobile,
       help_tags: r.help_tags,
