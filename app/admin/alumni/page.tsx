@@ -181,6 +181,18 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                     >
                       {[r.first_name, r.last_name].filter(Boolean).join(" ") || r.email}
                     </Link>
+                    {r.linkedin_url && (
+                      <a
+                        href={r.linkedin_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="LinkedIn profile"
+                        title="Open LinkedIn profile"
+                        className="ml-1.5 inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#0A66C2] text-white text-[10px] font-bold align-middle hover:brightness-110"
+                      >
+                        in
+                      </a>
+                    )}
                     {r.affiliation && r.affiliation !== "Alum" && (
                       <span className="ml-2 text-[10px] text-[color:var(--muted)] uppercase tracking-wider">
                         {r.affiliation}
