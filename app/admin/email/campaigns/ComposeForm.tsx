@@ -137,10 +137,11 @@ export default function ComposeForm({
     startPending(async () => {
       const result = await scheduleAction({ draft });
       if (result.ok) {
-        setTestMsg(`Scheduled. Cron runs every 5 min and will pick it up.`);
         setDirty(false);
-        if (result.id && isNew) router.replace(`/admin/email/campaigns/${result.id}/edit`);
-        else router.refresh();
+        // Send the admin to the campaigns list so the scheduled campaign is
+        // surfaced among its peers with its "Scheduled <date>" row.
+        router.push("/admin/email/campaigns");
+        router.refresh();
       } else {
         setTestMsg(`Error: ${result.error}`);
       }
