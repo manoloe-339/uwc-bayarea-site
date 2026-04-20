@@ -34,7 +34,12 @@ type PreviewSettings = {
   foodiesDefaultCtaUrl?: string;
 };
 
-type RecipientPreviewEntry = { id: number; name: string; email: string };
+type RecipientPreviewEntry = {
+  id: number;
+  name: string;
+  email: string;
+  firstName?: string | null;
+};
 
 export default function ComposeForm({
   initial,
@@ -142,6 +147,9 @@ export default function ComposeForm({
     });
   }
 
+  const previewFirstName =
+    (recipientPreview?.[0]?.firstName ?? "").trim() || "Sarah";
+
   const previewProps = useMemo<AlumniNewsletterProps | null>(() => {
     if (draft.format !== "newsletter") return null;
     const nl = draft.newsletter;
@@ -150,7 +158,7 @@ export default function ComposeForm({
       logoUrl: settings.logoUrl,
       physicalAddress: settings.physicalAddress,
       footerTagline: settings.footerTagline,
-      recipientFirstName: "Sarah",
+      recipientFirstName: previewFirstName,
       unsubscribeUrl: "https://uwcbayarea.org/unsubscribe?token=PREVIEW",
       preheader: draft.preheader || undefined,
       mode: nl.mode,
@@ -189,7 +197,7 @@ export default function ComposeForm({
   const [previewHtml, setPreviewHtml] = useState("<p>rendering…</p>");
   useEffect(() => {
     if (!previewProps) {
-      setPreviewHtml(quickNoteHtml(draft, settings));
+      setPreviewHtml(quickNoteHtml(draft, settings, previewFirstName));
       return;
     }
     let cancelled = false;
@@ -304,7 +312,7 @@ export default function ComposeForm({
               </p>
             )}
             <p className="mt-2 text-xs text-[color:var(--muted)]">
-              Uses placeholder <code>firstName = "Sarah"</code>. Subject is prefixed <code>[TEST]</code>.
+              If the test email matches a recipient, uses their real first name; otherwise uses the first recipient's (or "Sarah" if the list is empty). Subject is prefixed <code>[TEST]</code>.
             </p>
           </FormCard>
         )}
@@ -426,7 +434,7 @@ export default function ComposeForm({
           }}
         />
         <p className="mt-2 text-xs text-[color:var(--muted)]">
-          Preview uses placeholder <code>firstName = "Sarah"</code>. Real sends get each recipient's first name (or empty).
+          Preview shows <code>{previewFirstName}</code>{recipientPreview?.[0]?.firstName ? " (first recipient's first name)" : " (placeholder — no recipients yet)"}. Real sends personalize per recipient.
         </p>
       </div>
     </div>
@@ -1030,11 +1038,11 @@ function Textarea({
   );
 }
 
-function quickNoteHtml(draft: CampaignDraft, settings: PreviewSettings): string {
+function quickNoteHtml(draft: CampaignDraft, settings: PreviewSettings, firstName: string): string {
   const body = draft.quickNote?.body ?? "";
   const sal = draft.quickNote?.salutation?.trim();
   const include = draft.quickNote?.includeFirstName;
-  const prefix = sal ? `${sal}${include ? " Sarah" : ""},\n\n` : "";
+  const prefix = sal ? `${sal}${include ? ` ${firstName}` : ""},\n\n` : "";
   const full = prefix + body;
   const html = full
     .replace(/&/g, "&amp;")

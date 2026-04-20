@@ -66,6 +66,7 @@ export default async function EditCampaignPage({
     id: r.id,
     name: [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email,
     email: r.email,
+    firstName: r.first_name,
   }));
 
   return (
