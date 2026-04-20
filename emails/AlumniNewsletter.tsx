@@ -336,16 +336,55 @@ export default function AlumniNewsletter(props: AlumniNewsletterProps): JSX.Elem
   return (
     <Html lang="en">
       <Head>
-        {/* Defend against email clients' aggressive dark-mode auto-inversion. */}
-        <meta name="color-scheme" content="light" />
-        <meta name="supported-color-schemes" content="light" />
+        {/* ---------------------------------------------------------------
+             Dark-mode defense
+             Three layers, because no single one is enough:
+             1. Meta tags tell well-behaved clients (Apple Mail, Gmail)
+                to render in light mode only.
+             2. @media (prefers-color-scheme: dark) rules re-force colors
+                on clients that respect media queries (Apple Mail, Outlook
+                on Mac, newer Gmail).
+             3. [data-ogsc] selectors target Outlook.com specifically, the
+                only way to control its forced inversion.
+             Samsung Email / some Android dark-mode overlays ignore all of
+             the above; those we cannot fully defend against.
+             --------------------------------------------------------- */}
+        <meta name="color-scheme" content="only light" />
+        <meta name="supported-color-schemes" content="only light" />
         <meta httpEquiv="Content-Type" content="text/html; charset=UTF-8" />
+        <style
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{
+            __html: `
+              :root { color-scheme: only light; supported-color-schemes: only light; }
+              u + .body .dark-force-white { background-color: #ffffff !important; }
+              u + .body .dark-force-card { background-color: #fafafa !important; color: #111111 !important; }
+              u + .body .dark-force-logo-bg { background-color: #3E639A !important; }
+              u + .body .dark-force-footer { background-color: #111111 !important; color: #ffffff !important; }
+              u + .body .dark-force-footer a { color: #ffffff !important; }
+              @media (prefers-color-scheme: dark) {
+                .dark-force-white { background-color: #ffffff !important; }
+                .dark-force-card { background-color: #fafafa !important; color: #111111 !important; }
+                .dark-force-logo-bg { background-color: #3E639A !important; }
+                .dark-force-footer { background-color: #111111 !important; color: #ffffff !important; }
+                .dark-force-footer a { color: #ffffff !important; }
+                .dark-force-ink { color: #111111 !important; }
+                .dark-force-ink-muted { color: #5a6477 !important; }
+              }
+              [data-ogsc] .dark-force-white { background-color: #ffffff !important; }
+              [data-ogsc] .dark-force-card { background-color: #fafafa !important; color: #111111 !important; }
+              [data-ogsc] .dark-force-logo-bg { background-color: #3E639A !important; }
+              [data-ogsc] .dark-force-footer { background-color: #111111 !important; color: #ffffff !important; }
+              [data-ogsc] .dark-force-footer a { color: #ffffff !important; }
+            `,
+          }}
+        />
       </Head>
       {preheader ? <Preview>{preheader}</Preview> : null}
-      <Body style={bodyStyle}>
+      <Body style={bodyStyle} className="body">
         <Container style={containerStyle}>
           <HeaderBlock logoUrl={logoUrl} />
-          <div style={cardStyle}>
+          <div style={cardStyle} className="dark-force-card">
             {renderHero({ mode, event, announcementKicker, reminderTag, update, recipientFirstName })}
             {renderMain({ mode, event, update, recipientFirstName })}
           </div>
@@ -376,6 +415,7 @@ function HeaderBlock({ logoUrl }: { logoUrl?: string }): JSX.Element {
   const LOGO_HEIGHT = 56;
   return (
     <Section
+      className={logoUrl ? "dark-force-logo-bg" : undefined}
       style={{
         backgroundColor: logoUrl ? COLORS.logoBg : COLORS.surface,
         // A little room above the logo and a bit more below so the banner
@@ -741,6 +781,7 @@ function FooterBlock({
 }): JSX.Element {
   return (
     <Section
+      className="dark-force-footer"
       style={{
         backgroundColor: COLORS.footerBg,
         color: COLORS.footerInk,
