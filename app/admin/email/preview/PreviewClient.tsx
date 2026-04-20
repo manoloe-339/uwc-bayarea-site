@@ -99,7 +99,10 @@ export default function PreviewClient({
       // preset didn't include one (e.g. user kept an announcement preset and
       // flipped the mode radio manually).
       reminderTag: mode === "reminder" ? (sample.reminderTag ?? "This Saturday!") : undefined,
-      update: mode === "update" ? sample.update : undefined,
+      // Same safety net for update mode: if the selected preset didn't carry an
+      // update payload (e.g. user kept a reminder preset and flipped the mode),
+      // fall back to the hardcoded sample so the preview always renders.
+      update: mode === "update" ? (sample.update ?? HARDCODED_UPDATE) : undefined,
       whatsNext: showWhatsNext
         ? {
             show: true,
