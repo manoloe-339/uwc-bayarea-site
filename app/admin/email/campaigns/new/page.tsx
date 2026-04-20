@@ -52,16 +52,22 @@ export default async function NewCampaignPage({
 
   const draft: CampaignDraft = { ...emptyDraft(), filters };
 
-  const [{ count }, settings] = await Promise.all([
+  const [recipientsResult, settings] = await Promise.all([
     (async () => {
       try {
         return await import("@/lib/recipients").then((m) => m.getFilteredRecipients(filters));
       } catch {
-        return { count: 0 } as { count: number };
+        return { list: [], count: 0, deduped: 0, skipped: 0 };
       }
     })(),
     getSiteSettings(),
   ]);
+  const { list, count } = recipientsResult;
+  const preview = list.slice(0, 20).map((r) => ({
+    id: r.id,
+    name: [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email,
+    email: r.email,
+  }));
 
   return (
     <div>
@@ -69,6 +75,7 @@ export default async function NewCampaignPage({
       <ComposeForm
         initial={draft}
         recipientCount={count}
+        recipientPreview={preview}
         settings={{
           logoUrl: settings.logo_url ?? undefined,
           physicalAddress: settings.physical_address ?? undefined,

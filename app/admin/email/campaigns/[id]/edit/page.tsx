@@ -58,10 +58,15 @@ export default async function EditCampaignPage({
         : base.newsletter,
   };
 
-  const [{ count }, settings] = await Promise.all([
+  const [{ list, count }, settings] = await Promise.all([
     getFilteredRecipients(draft.filters),
     getSiteSettings(),
   ]);
+  const preview = list.slice(0, 20).map((r) => ({
+    id: r.id,
+    name: [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email,
+    email: r.email,
+  }));
 
   return (
     <div>
@@ -74,6 +79,7 @@ export default async function EditCampaignPage({
       <ComposeForm
         initial={draft}
         recipientCount={count}
+        recipientPreview={preview}
         settings={{
           logoUrl: settings.logo_url ?? undefined,
           physicalAddress: settings.physical_address ?? undefined,

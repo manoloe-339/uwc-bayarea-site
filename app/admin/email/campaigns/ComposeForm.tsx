@@ -34,14 +34,18 @@ type PreviewSettings = {
   foodiesDefaultCtaUrl?: string;
 };
 
+type RecipientPreviewEntry = { id: number; name: string; email: string };
+
 export default function ComposeForm({
   initial,
   settings,
   recipientCount,
+  recipientPreview,
 }: {
   initial: CampaignDraft;
   settings: PreviewSettings;
   recipientCount: number;
+  recipientPreview?: RecipientPreviewEntry[];
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<CampaignDraft>(initial);
@@ -259,7 +263,12 @@ export default function ComposeForm({
           <NewsletterSection draft={draft} setDraft={setDraft} setDirty={setDirty} disabled={isLocked} />
         )}
 
-        <RecipientsCard filters={draft.filters} recipientCount={recipientCount} disabled={isLocked} />
+        <RecipientsCard
+          filters={draft.filters}
+          recipientCount={recipientCount}
+          recipientPreview={recipientPreview}
+          disabled={isLocked}
+        />
 
         <ScheduleCard
           sendMode={draft.sendMode}
@@ -830,10 +839,12 @@ function NewsletterSection({
 function RecipientsCard({
   filters,
   recipientCount,
+  recipientPreview,
   disabled: _disabled,
 }: {
   filters: AlumniFilters;
   recipientCount: number;
+  recipientPreview?: RecipientPreviewEntry[];
   disabled: boolean;
 }) {
   const chips: string[] = [];
@@ -848,6 +859,8 @@ function RecipientsCard({
   if (filters.help) chips.push(`Help: ${filters.help}`);
   if (filters.includeNonAlums) chips.push("+ friends/parents");
   if (filters.includeMovedOut) chips.push("+ moved out");
+  const preview = recipientPreview ?? [];
+  const remainder = Math.max(0, recipientCount - preview.length);
   return (
     <FormCard title="Recipients">
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
@@ -868,6 +881,30 @@ function RecipientsCard({
           ))}
         </div>
       )}
+
+      {preview.length > 0 && (
+        <ul className="mt-3 divide-y divide-[color:var(--rule)] border border-[color:var(--rule)] rounded text-sm">
+          {preview.map((r) => (
+            <li key={r.id} className="flex justify-between gap-3 px-3 py-2">
+              <Link
+                href={`/admin/alumni/${r.id}`}
+                className="text-navy hover:underline truncate max-w-[50%]"
+              >
+                {r.name}
+              </Link>
+              <span className="text-[color:var(--muted)] truncate max-w-[50%] text-right">
+                {r.email}
+              </span>
+            </li>
+          ))}
+          {remainder > 0 && (
+            <li className="px-3 py-2 text-xs text-[color:var(--muted)] italic">
+              …and {remainder.toLocaleString()} more
+            </li>
+          )}
+        </ul>
+      )}
+
       <p className="mt-3 text-xs text-[color:var(--muted)]">
         Filters come from the Alumni search page. To change recipients, go to{" "}
         <Link href="/admin/alumni" className="text-navy underline">
