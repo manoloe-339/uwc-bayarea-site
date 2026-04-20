@@ -1,5 +1,6 @@
 import { sql } from "@/lib/db";
 import { getPageviews, getClicks, sum, type DailyCount } from "@/lib/analytics";
+import { fmtDateTimeShort } from "@/lib/admin-time";
 
 export const dynamic = "force-dynamic";
 
@@ -186,12 +187,7 @@ export default async function AdminHome() {
                   <td className="px-4 py-2">{s.current_city ?? "—"}</td>
                   <td className="px-4 py-2 text-xs text-[color:var(--muted)]">{s.email}</td>
                   <td className="px-4 py-2 text-xs text-[color:var(--muted)] whitespace-nowrap">
-                    {new Date(s.updated_at).toLocaleString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
+                    {fmtDateTimeShort(s.updated_at)}
                   </td>
                 </tr>
               ))}

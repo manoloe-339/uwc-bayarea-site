@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { sql } from "@/lib/db";
+import { fmtDateTime } from "@/lib/admin-time";
 
 export const dynamic = "force-dynamic";
 
@@ -28,16 +29,7 @@ const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   cancelled:  { label: "Cancelled", bg: "#F3F4F6", fg: "#6B7280" },
 };
 
-function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
+const fmtDate = fmtDateTime;
 
 export default async function CampaignsListPage({
   searchParams,

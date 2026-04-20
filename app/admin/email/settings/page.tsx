@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSiteSettings } from "@/lib/settings";
 import { saveSiteSettings } from "./actions";
 import LogoPreview from "./LogoPreview";
+import { fmtDate } from "@/lib/admin-time";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ function timeAgo(iso: string): string {
   if (m < 60) return `${m}m ago`;
   const h = Math.round(m / 60);
   if (h < 24) return `${h}h ago`;
-  return new Date(iso).toLocaleDateString();
+  return fmtDate(iso);
 }
 
 export default async function SettingsPage({

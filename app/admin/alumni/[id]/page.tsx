@@ -7,6 +7,7 @@ import { parseGradYear } from "@/lib/gradyear";
 import { cityToRegion, REGIONS } from "@/lib/region";
 import { reasonLabel } from "@/lib/unsubscribe-reasons";
 import { resubscribe } from "@/app/unsubscribe/actions";
+import { fmtDate } from "@/lib/admin-time";
 
 export const dynamic = "force-dynamic";
 
@@ -165,9 +166,9 @@ export default async function AlumnusPage({
       <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">{name}</h1>
       <p className="text-[color:var(--muted)] text-sm mb-6">
         Record #{r.id}
-        {r.submitted_at ? ` · submitted ${new Date(r.submitted_at).toLocaleDateString()}` : ""}
-        {r.imported_at ? ` · imported ${new Date(r.imported_at).toLocaleDateString()}` : ""}
-        {r.updated_at ? ` · updated ${new Date(r.updated_at).toLocaleDateString()}` : ""}
+        {r.submitted_at ? ` · submitted ${fmtDate(r.submitted_at)}` : ""}
+        {r.imported_at ? ` · imported ${fmtDate(r.imported_at)}` : ""}
+        {r.updated_at ? ` · updated ${fmtDate(r.updated_at)}` : ""}
       </p>
 
       {saved && (
@@ -180,7 +181,7 @@ export default async function AlumnusPage({
         <div className="mb-5 p-4 bg-red-50 border-l-4 border-red-600 rounded-[2px] text-sm">
           <div className="font-semibold text-red-900 mb-1">Unsubscribed</div>
           <div className="text-red-900/80">
-            {r.unsubscribed_at ? `On ${new Date(r.unsubscribed_at).toLocaleDateString()}` : "Date unknown"}
+            {r.unsubscribed_at ? `On ${fmtDate(r.unsubscribed_at)}` : "Date unknown"}
             {" · "}Reason: {reasonLabel(r.unsubscribe_reason)}
             {r.unsubscribe_note ? <><br />Note: <span className="italic">{r.unsubscribe_note}</span></> : null}
           </div>
@@ -323,13 +324,13 @@ export default async function AlumnusPage({
                     ) : null}
                   </td>
                   <td className="px-4 py-2 text-xs">
-                    {h.sent_at ? new Date(h.sent_at).toLocaleDateString() : "—"}
+                    {h.sent_at ? fmtDate(h.sent_at) : "—"}
                   </td>
                   <td className="px-4 py-2 text-xs">
-                    {h.opened_at ? new Date(h.opened_at).toLocaleDateString() : "—"}
+                    {h.opened_at ? fmtDate(h.opened_at) : "—"}
                   </td>
                   <td className="px-4 py-2 text-xs">
-                    {h.clicked_at ? new Date(h.clicked_at).toLocaleDateString() : "—"}
+                    {h.clicked_at ? fmtDate(h.clicked_at) : "—"}
                   </td>
                 </tr>
               ))}

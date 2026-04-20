@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { sql } from "@/lib/db";
 import { reasonLabel } from "@/lib/unsubscribe-reasons";
+import { fmtDate } from "@/lib/admin-time";
 
 export const dynamic = "force-dynamic";
 
@@ -112,7 +113,7 @@ export default async function UnsubscribesPage() {
             )}
             {events.map((e) => (
               <tr key={e.id} className="border-t border-[color:var(--rule)]">
-                <Td>{new Date(e.created_at).toLocaleDateString()}</Td>
+                <Td>{fmtDate(e.created_at)}</Td>
                 <Td>
                   <span className={`text-[10px] uppercase tracking-wider ${e.event_type === "resubscribe" ? "text-green-700" : "text-[color:var(--muted)]"}`}>
                     {e.event_type.replace("_", " ")}

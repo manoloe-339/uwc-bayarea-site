@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { sql } from "@/lib/db";
+import { fmtDateTime, fmtDateTimeShort } from "@/lib/admin-time";
 
 export const dynamic = "force-dynamic";
 
@@ -42,19 +43,8 @@ type SendListRow = {
   last_name: string | null;
 };
 
-function fmt(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString(undefined, {
-    month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit",
-  });
-}
-
-function fmtShort(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString(undefined, {
-    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-  });
-}
+const fmt = fmtDateTime;
+const fmtShort = fmtDateTimeShort;
 
 export default async function CampaignDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
