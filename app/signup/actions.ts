@@ -185,7 +185,18 @@ export async function submitSignup(formData: FormData): Promise<void> {
       salutation: "",
       includeFirstName: false,
     }).then((r) => {
-      if (!r.ok) console.warn(`[signup] admin notification failed: ${r.error}`);
+      if (!r.ok) console.warn(`[signup] admin notification (workspace) failed: ${r.error}`);
+    }),
+    sendTestEmail({
+      to: "manoloe@gmail.com",
+      subject: wasNew
+        ? `New UWC Bay Area signup: ${firstName} ${lastName}`
+        : `Updated UWC Bay Area signup: ${firstName} ${lastName}`,
+      body: adminBody,
+      salutation: "",
+      includeFirstName: false,
+    }).then((r) => {
+      if (!r.ok) console.warn(`[signup] admin notification (gmail) failed: ${r.error}`);
     }),
   ]);
 
