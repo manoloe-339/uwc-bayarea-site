@@ -371,8 +371,6 @@ function QuickLinks({ email, mobile }: { email: string; mobile: string | null })
           aria-label="Message on WhatsApp"
           title="Message on WhatsApp"
           className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#25D366] text-white hover:brightness-110"
-          // Prevent the (future) row-click from firing; this link is its own action.
-          onClick={(e) => e.stopPropagation()}
         >
           <WaIcon />
         </a>
