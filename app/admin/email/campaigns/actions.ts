@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import type { CampaignDraft } from "@/lib/campaign-content";
-import { sendCampaignNow, sendCampaignTest, MAX_RECIPIENTS_PER_CAMPAIGN } from "@/lib/campaign-send";
+import { sendCampaignNow, sendCampaignTest, retryFailedSends, MAX_RECIPIENTS_PER_CAMPAIGN } from "@/lib/campaign-send";
 import { countFilteredRecipients, getFilteredRecipients } from "@/lib/recipients";
 import type { AlumniFilters } from "@/lib/alumni-query";
 
@@ -85,6 +85,21 @@ export async function cancelScheduled(id: string): Promise<void> {
   `;
   revalidatePath("/admin/email/campaigns");
   revalidatePath(`/admin/email/campaigns/${id}`);
+}
+
+export async function retryFailedAction(
+  id: string
+): Promise<{ ok: boolean; retried?: number; sent?: number; failed?: number; error?: string }> {
+  const result = await retryFailedSends(id);
+  revalidatePath(`/admin/email/campaigns/${id}`);
+  revalidatePath(`/admin/email/campaigns`);
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, retried: result.retried, sent: result.sent, failed: result.failed };
+}
+
+export async function duplicateAndRedirect(sourceId: string): Promise<void> {
+  const newId = await duplicateCampaign(sourceId);
+  redirect(`/admin/email/campaigns/${newId}/edit`);
 }
 
 export async function duplicateCampaign(sourceId: string): Promise<string> {

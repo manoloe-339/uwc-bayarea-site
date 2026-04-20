@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { sql } from "@/lib/db";
 import { fmtDateTime, fmtDateTimeShort } from "@/lib/admin-time";
+import DetailActions from "./DetailActions";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +141,7 @@ export default async function CampaignDetail({ params }: { params: Promise<{ id:
                 <Th>Sent</Th>
                 <Th>Opened</Th>
                 <Th>Clicked</Th>
+                <Th>{""}</Th>
               </tr>
             </thead>
             <tbody>
@@ -185,6 +187,18 @@ export default async function CampaignDetail({ params }: { params: Promise<{ id:
                     <Td>{fmtShort(r.sent_at)}</Td>
                     <Td>{fmtShort(r.opened_at)}</Td>
                     <Td>{fmtShort(r.clicked_at)}</Td>
+                    <Td>
+                      {r.alumni_id != null && (
+                        <a
+                          href={`/admin/email/campaigns/${id}/preview?alumni_id=${r.alumni_id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-navy hover:underline"
+                        >
+                          View
+                        </a>
+                      )}
+                    </Td>
                   </tr>
                 );
               })}
@@ -193,16 +207,11 @@ export default async function CampaignDetail({ params }: { params: Promise<{ id:
         )}
       </section>
 
-      <div className="flex gap-3">
-        {(c.status === "draft" || c.status === "scheduled") && (
-          <Link
-            href={`/admin/email/campaigns/${c.id}/edit`}
-            className="text-sm font-semibold text-white bg-navy px-4 py-2 rounded"
-          >
-            Edit →
-          </Link>
-        )}
-      </div>
+      <DetailActions
+        campaignId={c.id}
+        failedCount={t.failed}
+        canEdit={c.status === "draft" || c.status === "scheduled"}
+      />
     </div>
   );
 }

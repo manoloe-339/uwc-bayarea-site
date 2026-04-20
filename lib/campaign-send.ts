@@ -254,6 +254,153 @@ export async function sendCampaignNow(
 }
 
 /**
+ * Retry only the failed rows of a campaign. Uses the same batch + upsert path
+ * as a full send but restricts the recipient list to alumni whose previous
+ * email_sends row is `failed`. Safe to call on a 'sent' or 'failed' campaign —
+ * we'll recompute tallies at the end.
+ */
+export async function retryFailedSends(
+  campaignId: string
+): Promise<{ ok: true; retried: number; sent: number; failed: number } | { ok: false; error: string }> {
+  const locked = await acquireCampaignLock(campaignId);
+  if (!locked) return { ok: false, error: "Another send is already running for this campaign." };
+  try {
+    const campaign = await loadCampaign(campaignId);
+    if (!campaign) return { ok: false, error: "Campaign not found" };
+
+    const failedRows = (await sql`
+      SELECT s.alumni_id, s.email, a.first_name, a.last_name
+      FROM email_sends s
+      JOIN alumni a ON a.id = s.alumni_id
+      WHERE s.campaign_id = ${campaignId}
+        AND s.status = 'failed'
+        AND s.is_test IS NOT TRUE
+        AND a.email_invalid IS NOT TRUE
+        AND a.subscribed = TRUE
+    `) as {
+      alumni_id: number;
+      email: string;
+      first_name: string | null;
+      last_name: string | null;
+    }[];
+
+    if (failedRows.length === 0) {
+      return { ok: true, retried: 0, sent: 0, failed: 0 };
+    }
+
+    const recipients: Recipient[] = failedRows.map((r) => ({
+      id: r.alumni_id,
+      email: r.email,
+      first_name: r.first_name,
+      last_name: r.last_name,
+    }));
+
+    await sql`UPDATE email_campaigns SET status = 'sending' WHERE id = ${campaignId}`;
+
+    const settings = await getSiteSettings();
+    const renderSettings = toSettingsForRender(settings);
+    const resend = getResend();
+    const from = fromWithName(campaign.from_name);
+    const replyTo = replyToAddress();
+
+    let sent = 0;
+    let failed = 0;
+
+    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+      const chunk = recipients.slice(i, i + BATCH_SIZE);
+      const rendered = await Promise.all(
+        chunk.map(async (r) => {
+          const ctx: RecipientCtx = {
+            alumniId: r.id,
+            email: r.email,
+            firstName: r.first_name,
+          };
+          const e = await renderCampaign(campaign, ctx, renderSettings);
+          return { r, e };
+        })
+      );
+      const items = rendered.map(({ r, e }) => ({
+        from,
+        to: r.email,
+        replyTo,
+        subject: e.subject,
+        html: e.html,
+        text: e.text,
+        headers: {
+          "List-Unsubscribe": `<${e.unsubscribeUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+      }));
+      try {
+        const result = await resend.batch.send(items);
+        if ("error" in result && result.error) {
+          for (const { r, e } of rendered) {
+            await upsertSendRow(campaignId, r, e.subject, e.text, {
+              status: "failed",
+              error: result.error.message ?? "batch_failed",
+            });
+            failed++;
+          }
+          continue;
+        }
+        const data =
+          "data" in result && result.data
+            ? ((result.data as { data?: { id: string }[] }).data ?? [])
+            : [];
+        for (let j = 0; j < rendered.length; j++) {
+          const { r, e } = rendered[j];
+          const messageId = data[j]?.id ?? null;
+          if (messageId) {
+            await upsertSendRow(campaignId, r, e.subject, e.text, {
+              status: "sent",
+              resend_message_id: messageId,
+              sent_at: new Date(),
+            });
+            sent++;
+          } else {
+            await upsertSendRow(campaignId, r, e.subject, e.text, {
+              status: "failed",
+              error: "no_message_id",
+            });
+            failed++;
+          }
+        }
+      } catch (err) {
+        for (const { r, e } of rendered) {
+          await upsertSendRow(campaignId, r, e.subject, e.text, {
+            status: "failed",
+            error: err instanceof Error ? err.message : "unknown",
+          });
+          failed++;
+        }
+      }
+    }
+
+    // Recompute final tallies from the canonical table.
+    const [total] = (await sql`
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'sent' AND is_test IS NOT TRUE)::int AS sent,
+        COUNT(*) FILTER (WHERE status = 'failed' AND is_test IS NOT TRUE)::int AS failed
+      FROM email_sends WHERE campaign_id = ${campaignId}
+    `) as { sent: number; failed: number }[];
+
+    const finalStatus = total.failed === 0 ? "sent" : total.sent === 0 ? "failed" : "sent";
+    await sql`
+      UPDATE email_campaigns
+      SET status = ${finalStatus}, sent_count = ${total.sent}, failed_count = ${total.failed}
+      WHERE id = ${campaignId}
+    `;
+
+    console.log(
+      `[retryFailedSends] campaign=${campaignId} retried=${recipients.length} sent=${sent} failed=${failed}`
+    );
+    return { ok: true, retried: recipients.length, sent, failed };
+  } finally {
+    await releaseCampaignLock(campaignId);
+  }
+}
+
+/**
  * Idempotent upsert keyed on (campaign_id, alumni_id). If the row already
  * exists (e.g. partial-send retry), we only overwrite status when we now have
  * something better than 'pending' — keeps previous delivery/open timestamps.
