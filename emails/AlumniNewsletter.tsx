@@ -416,6 +416,10 @@ function HeaderBlock({ logoUrl }: { logoUrl?: string }): JSX.Element {
   return (
     <Section
       className={logoUrl ? "dark-force-logo-bg" : undefined}
+      // The bgcolor HTML attribute (not just CSS) is the single most
+      // client-resistant way to keep this banner blue in dark mode —
+      // Gmail iOS / Outlook often strip CSS backgrounds but honor bgcolor.
+      bgcolor={logoUrl ? COLORS.logoBg : undefined}
       style={{
         backgroundColor: logoUrl ? COLORS.logoBg : COLORS.surface,
         // A little room above the logo and a bit more below so the banner
