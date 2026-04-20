@@ -27,7 +27,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   return {
     id: "fallback",
     logo_url: null,
-    footer_tagline: "A UWC Initiative",
+    footer_tagline: "A UWCx Initiative",
     physical_address: null,
     whatsapp_url: null,
     whatsapp_default_headline: "Join the WhatsApp community",

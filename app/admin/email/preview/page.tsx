@@ -33,9 +33,10 @@ export default async function PreviewPage() {
   const settings = await getSiteSettings();
   const liveEvent = liveEventDetails();
 
-  const baseProps: Pick<AlumniNewsletterProps, "logoUrl" | "physicalAddress" | "unsubscribeUrl" | "recipientFirstName"> = {
+  const baseProps: Pick<AlumniNewsletterProps, "logoUrl" | "physicalAddress" | "footerTagline" | "unsubscribeUrl" | "recipientFirstName"> = {
     logoUrl: settings.logo_url ?? undefined,
     physicalAddress: settings.physical_address ?? undefined,
+    footerTagline: settings.footer_tagline ?? undefined,
     unsubscribeUrl: "https://uwcbayarea.org/unsubscribe?token=PREVIEW",
     recipientFirstName: "Sarah",
   };

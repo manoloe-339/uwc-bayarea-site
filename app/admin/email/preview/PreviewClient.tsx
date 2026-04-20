@@ -18,7 +18,7 @@ type Preset =
 
 type BaseProps = Pick<
   AlumniNewsletterProps,
-  "logoUrl" | "physicalAddress" | "unsubscribeUrl" | "recipientFirstName"
+  "logoUrl" | "physicalAddress" | "footerTagline" | "unsubscribeUrl" | "recipientFirstName"
 >;
 
 type Defaults = {

@@ -102,6 +102,7 @@ export interface AlumniNewsletterProps {
   preheader?: string;
   logoUrl?: string;
   physicalAddress?: string;
+  footerTagline?: string;
   recipientFirstName?: string;
   mode: Mode;
 
@@ -316,6 +317,7 @@ export default function AlumniNewsletter(props: AlumniNewsletterProps): JSX.Elem
     preheader,
     logoUrl,
     physicalAddress,
+    footerTagline,
     recipientFirstName,
     mode,
     event,
@@ -353,6 +355,7 @@ export default function AlumniNewsletter(props: AlumniNewsletterProps): JSX.Elem
 
           <FooterBlock
             physicalAddress={physicalAddress}
+            footerTagline={footerTagline}
             unsubscribeUrl={unsubscribeUrl}
           />
         </Container>
@@ -715,9 +718,11 @@ function FoodiesBlock(p: NonNullable<AlumniNewsletterProps["foodies"]>): JSX.Ele
 
 function FooterBlock({
   physicalAddress,
+  footerTagline,
   unsubscribeUrl,
 }: {
   physicalAddress?: string;
+  footerTagline?: string;
   unsubscribeUrl: string;
 }): JSX.Element {
   return (
@@ -750,7 +755,7 @@ function FooterBlock({
           margin: `0 0 ${SPACING.s16} 0`,
         }}
       >
-        A UWC Initiative
+        {footerTagline ?? "A UWCx Initiative"}
       </Text>
       <Hr style={{ borderColor: "rgba(255,255,255,0.1)", margin: `0 0 ${SPACING.s16} 0` }} />
       <Text
