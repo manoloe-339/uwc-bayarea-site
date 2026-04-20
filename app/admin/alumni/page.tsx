@@ -194,6 +194,9 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                         in
                       </a>
                     )}
+                    <span className="ml-1.5">
+                      <QuickLinks email={r.email} mobile={r.mobile} />
+                    </span>
                     {r.affiliation && r.affiliation !== "Alum" && (
                       <span className="ml-2 text-[10px] text-[color:var(--muted)] uppercase tracking-wider">
                         {r.affiliation}
@@ -266,6 +269,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                         in
                       </a>
                     )}
+                    <QuickLinks email={r.email} mobile={r.mobile} />
                     {r.affiliation && r.affiliation !== "Alum" && (
                       <span className="text-[10px] text-[color:var(--muted)] uppercase tracking-wider">
                         {r.affiliation}
@@ -340,6 +344,65 @@ function Select({ label, name, defaultValue, children }: {
         {children}
       </select>
     </label>
+  );
+}
+
+/**
+ * Turn a stored phone number into a wa.me URL. wa.me only accepts digits —
+ * no +, dashes, spaces, or parens. Returns null if there aren't enough
+ * digits to be a real number.
+ */
+function whatsappUrl(mobile: string | null | undefined): string | null {
+  if (!mobile) return null;
+  const digits = mobile.replace(/\D/g, "");
+  if (digits.length < 7) return null;
+  return `https://wa.me/${digits}`;
+}
+
+function QuickLinks({ email, mobile }: { email: string; mobile: string | null }) {
+  const wa = whatsappUrl(mobile);
+  return (
+    <span className="inline-flex items-center gap-1 align-middle">
+      {wa && (
+        <a
+          href={wa}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Message on WhatsApp"
+          title="Message on WhatsApp"
+          className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#25D366] text-white hover:brightness-110"
+          // Prevent the (future) row-click from firing; this link is its own action.
+          onClick={(e) => e.stopPropagation()}
+        >
+          <WaIcon />
+        </a>
+      )}
+      <a
+        href={`mailto:${email}`}
+        aria-label={`Quick email to ${email}`}
+        title={`Quick email to ${email}`}
+        className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[color:var(--navy)] text-white hover:brightness-110"
+      >
+        <MailIcon />
+      </a>
+    </span>
+  );
+}
+
+function WaIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12.04 2a9.94 9.94 0 00-8.49 15.06L2 22l5.1-1.33A9.94 9.94 0 1012.04 2zm0 18.16a8.12 8.12 0 01-4.14-1.13l-.3-.18-3.03.79.81-2.95-.2-.31a8.15 8.15 0 1114.06 5.26 8.1 8.1 0 01-7.2.52zm4.47-6.1c-.25-.12-1.45-.72-1.67-.8-.22-.08-.38-.12-.55.12-.16.25-.63.8-.77.97-.14.16-.28.18-.53.06-.25-.12-1.04-.38-1.99-1.22-.74-.66-1.23-1.47-1.37-1.72-.14-.25-.02-.39.1-.51.11-.11.25-.28.37-.42.12-.14.16-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.55-1.34-.76-1.83-.2-.48-.4-.41-.55-.42h-.47c-.16 0-.42.06-.64.31s-.85.83-.85 2.02.87 2.35.99 2.51c.12.17 1.7 2.59 4.12 3.64.57.25 1.02.4 1.37.51.57.18 1.1.16 1.51.1.46-.07 1.45-.59 1.65-1.17.2-.58.2-1.08.14-1.17-.06-.1-.22-.16-.47-.28z"/>
+    </svg>
+  );
+}
+
+function MailIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7l9 6 9-6" />
+    </svg>
   );
 }
 
