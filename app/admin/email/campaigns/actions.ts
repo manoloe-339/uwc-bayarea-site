@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import type { CampaignDraft } from "@/lib/campaign-content";
+import { sendCampaignNow, sendCampaignTest, MAX_RECIPIENTS_PER_CAMPAIGN } from "@/lib/campaign-send";
+import { countFilteredRecipients } from "@/lib/recipients";
+import type { AlumniFilters } from "@/lib/alumni-query";
 
 type Row = { id: string };
 
@@ -104,6 +107,77 @@ export async function duplicateCampaign(sourceId: string): Promise<string> {
   const newId = rows[0].id;
   revalidatePath("/admin/email/campaigns");
   return newId;
+}
+
+export async function sendTestAction(input: {
+  draft: CampaignDraft;
+  toEmail: string;
+}): Promise<{ ok: boolean; error?: string; id?: string }> {
+  if (!input.toEmail || !input.toEmail.includes("@")) {
+    return { ok: false, error: "Enter a valid test email." };
+  }
+  // Save-then-send — guarantees the renderer reads the current draft.
+  const campaignId = await saveDraft(input.draft);
+  const result = await sendCampaignTest({
+    campaignId,
+    toEmail: input.toEmail,
+    firstName: "Sarah", // placeholder for tests; matches preview
+  });
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath(`/admin/email/campaigns/${campaignId}/edit`);
+  return { ok: true, id: result.id };
+}
+
+export async function sendNowAction(input: {
+  draft: CampaignDraft;
+}): Promise<
+  { ok: true; recipients: number; sent: number; failed: number; id: string }
+  | { ok: false; error: string; id?: string }
+> {
+  if (!input.draft.subject.trim()) return { ok: false, error: "Subject is required." };
+  // Save first so we send the exact content the UI shows.
+  const campaignId = await saveDraft({ ...input.draft, sendMode: "now" });
+  const result = await sendCampaignNow(campaignId);
+  revalidatePath(`/admin/email/campaigns`);
+  revalidatePath(`/admin/email/campaigns/${campaignId}`);
+  revalidatePath(`/admin/email/campaigns/${campaignId}/edit`);
+  if (!result.ok) return { ok: false, error: result.error, id: campaignId };
+  return {
+    ok: true,
+    id: campaignId,
+    recipients: result.recipients,
+    sent: result.sent,
+    failed: result.failed,
+  };
+}
+
+export async function scheduleAction(input: {
+  draft: CampaignDraft;
+}): Promise<{ ok: boolean; error?: string; id?: string }> {
+  if (!input.draft.subject.trim()) return { ok: false, error: "Subject is required." };
+  if (!input.draft.scheduledFor) return { ok: false, error: "Pick a send time." };
+  const when = new Date(input.draft.scheduledFor);
+  if (!Number.isFinite(when.getTime())) return { ok: false, error: "Invalid date." };
+  if (when.getTime() < Date.now() + 60_000) {
+    return { ok: false, error: "Schedule at least 1 minute in the future." };
+  }
+  const campaignId = await saveDraft({
+    ...input.draft,
+    sendMode: "scheduled",
+    status: "scheduled",
+  });
+  revalidatePath(`/admin/email/campaigns`);
+  revalidatePath(`/admin/email/campaigns/${campaignId}/edit`);
+  return { ok: true, id: campaignId };
+}
+
+export async function recipientCapAction(filters: AlumniFilters): Promise<{
+  count: number;
+  cap: number;
+  overCap: boolean;
+}> {
+  const count = await countFilteredRecipients(filters);
+  return { count, cap: MAX_RECIPIENTS_PER_CAMPAIGN, overCap: count > MAX_RECIPIENTS_PER_CAMPAIGN };
 }
 
 function splitContent(draft: CampaignDraft): { id?: string; newContent: unknown } {

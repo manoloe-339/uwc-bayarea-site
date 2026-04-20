@@ -11,7 +11,14 @@ import type { CampaignDraft } from "@/lib/campaign-content";
 import type { AlumniFilters } from "@/lib/alumni-query";
 import { COLLEGES } from "@/lib/uwc-colleges";
 import { REGIONS } from "@/lib/region";
-import { saveDraftAction, deleteCampaign, cancelScheduled } from "./actions";
+import {
+  saveDraftAction,
+  deleteCampaign,
+  cancelScheduled,
+  sendTestAction,
+  sendNowAction,
+  scheduleAction,
+} from "./actions";
 
 type PreviewSettings = {
   logoUrl?: string;
@@ -39,8 +46,14 @@ export default function ComposeForm({
   const router = useRouter();
   const [draft, setDraft] = useState<CampaignDraft>(initial);
   const [saving, startSave] = useTransition();
+  const [pending, startPending] = useTransition();
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [testTo, setTestTo] = useState("");
+  const [testMsg, setTestMsg] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+  const [sendResult, setSendResult] = useState<string | null>(null);
   const isNew = !initial.id;
   const isLocked =
     draft.status === "sending" ||
@@ -70,6 +83,58 @@ export default function ComposeForm({
       setDirty(false);
       if (isNew) router.replace(`/admin/email/campaigns/${id}/edit`);
       router.refresh();
+    });
+  }
+
+  function sendTest() {
+    setTestMsg(null);
+    startPending(async () => {
+      const result = await sendTestAction({ draft, toEmail: testTo });
+      if (result.ok) {
+        setTestMsg(`Test sent to ${testTo}.`);
+        setDirty(false);
+        setSavedAt(new Date().toLocaleTimeString());
+      } else {
+        setTestMsg(`Error: ${result.error}`);
+      }
+    });
+  }
+
+  function openConfirm() {
+    setSendResult(null);
+    setConfirmText("");
+    setConfirmOpen(true);
+  }
+
+  function sendNow() {
+    startPending(async () => {
+      const result = await sendNowAction({ draft });
+      if (result.ok) {
+        setSendResult(
+          `Sent: ${result.sent} · Failed: ${result.failed} · Recipients: ${result.recipients}`
+        );
+        setConfirmOpen(false);
+        setDirty(false);
+        if (result.id && isNew) router.replace(`/admin/email/campaigns/${result.id}`);
+        else if (result.id) router.push(`/admin/email/campaigns/${result.id}`);
+      } else {
+        setSendResult(`Error: ${result.error}`);
+      }
+    });
+  }
+
+  function schedule() {
+    setTestMsg(null);
+    startPending(async () => {
+      const result = await scheduleAction({ draft });
+      if (result.ok) {
+        setTestMsg(`Scheduled. Cron runs every 5 min and will pick it up.`);
+        setDirty(false);
+        if (result.id && isNew) router.replace(`/admin/email/campaigns/${result.id}/edit`);
+        else router.refresh();
+      } else {
+        setTestMsg(`Error: ${result.error}`);
+      }
     });
   }
 
@@ -204,15 +269,69 @@ export default function ComposeForm({
           disabled={isLocked}
         />
 
+        {/* Test-send strip */}
+        {!isLocked && (
+          <FormCard title="Send test">
+            <div className="flex flex-wrap gap-2 items-center">
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={testTo}
+                onChange={(e) => setTestTo(e.target.value)}
+                className="flex-1 min-w-[220px] border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+              />
+              <button
+                type="button"
+                onClick={sendTest}
+                disabled={pending || !testTo || !draft.subject.trim()}
+                className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white disabled:opacity-50"
+              >
+                {pending ? "Sending…" : "Send test"}
+              </button>
+            </div>
+            {testMsg && (
+              <p className={`mt-2 text-xs ${testMsg.startsWith("Error") ? "text-red-700" : "text-green-700"}`}>
+                {testMsg}
+              </p>
+            )}
+            <p className="mt-2 text-xs text-[color:var(--muted)]">
+              Uses placeholder <code>firstName = "Sarah"</code>. Subject is prefixed <code>[TEST]</code>.
+            </p>
+          </FormCard>
+        )}
+
         <div className="sticky bottom-0 z-10 bg-ivory border-t border-[color:var(--rule)] py-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={save}
             disabled={saving || !draft.subject.trim() || isLocked}
-            className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold disabled:opacity-50"
+            className="bg-white border border-navy text-navy px-5 py-2.5 rounded text-sm font-semibold disabled:opacity-50"
           >
             {saving ? "Saving…" : savedAt && !dirty ? `Saved at ${savedAt}` : "Save draft"}
           </button>
+
+          {!isLocked && draft.sendMode === "now" && (
+            <button
+              type="button"
+              onClick={openConfirm}
+              disabled={pending || !draft.subject.trim() || recipientCount === 0}
+              className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold disabled:opacity-50"
+              title={recipientCount === 0 ? "No recipients" : `Send to ${recipientCount}`}
+            >
+              Send now →
+            </button>
+          )}
+
+          {!isLocked && draft.sendMode === "scheduled" && (
+            <button
+              type="button"
+              onClick={schedule}
+              disabled={pending || !draft.subject.trim() || !draft.scheduledFor}
+              className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold disabled:opacity-50"
+            >
+              {pending ? "Scheduling…" : "Schedule →"}
+            </button>
+          )}
 
           {draft.status === "scheduled" && draft.id && (
             <button
@@ -254,6 +373,28 @@ export default function ComposeForm({
             ← Campaigns
           </Link>
         </div>
+
+        {sendResult && !confirmOpen && (
+          <p
+            className={`text-sm ${sendResult.startsWith("Error") ? "text-red-700" : "text-green-700"}`}
+          >
+            {sendResult}
+          </p>
+        )}
+
+        {confirmOpen && (
+          <ConfirmSendModal
+            subject={draft.subject}
+            recipientCount={recipientCount}
+            format={draft.format}
+            confirmText={confirmText}
+            setConfirmText={setConfirmText}
+            onCancel={() => setConfirmOpen(false)}
+            onConfirm={sendNow}
+            pending={pending}
+            error={sendResult && sendResult.startsWith("Error") ? sendResult : null}
+          />
+        )}
       </div>
 
       {/* --- Preview column --- */}
@@ -876,6 +1017,87 @@ function quickNoteHtml(draft: CampaignDraft, settings: PreviewSettings): string 
       </div>
     </div>
   </body></html>`;
+}
+
+function ConfirmSendModal({
+  subject, recipientCount, format, confirmText, setConfirmText,
+  onCancel, onConfirm, pending, error,
+}: {
+  subject: string;
+  recipientCount: number;
+  format: "quick_note" | "newsletter";
+  confirmText: string;
+  setConfirmText: (v: string) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+  pending: boolean;
+  error: string | null;
+}) {
+  const expected = `SEND ${recipientCount}`;
+  const matches = confirmText.trim() === expected;
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+      <div className="bg-white rounded-[10px] border border-[color:var(--rule)] w-full max-w-md p-6 shadow-xl">
+        <h2 className="font-sans text-xl font-bold text-[color:var(--navy-ink)] mb-2">
+          Send campaign now?
+        </h2>
+        <p className="text-sm text-[color:var(--muted)] mb-4">
+          This is the real send. You cannot recall it once it leaves.
+        </p>
+        <dl className="text-sm border border-[color:var(--rule)] rounded p-3 mb-4 space-y-1">
+          <div className="flex justify-between gap-3">
+            <dt className="text-[color:var(--muted)]">Format</dt>
+            <dd className="text-[color:var(--navy-ink)] text-right">
+              {format === "newsletter" ? "Newsletter" : "Quick note"}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-[color:var(--muted)]">Subject</dt>
+            <dd className="text-[color:var(--navy-ink)] text-right font-semibold">
+              {subject || "(empty)"}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-[color:var(--muted)]">Recipients</dt>
+            <dd className="text-[color:var(--navy-ink)] text-right font-bold">
+              {recipientCount.toLocaleString()}
+            </dd>
+          </div>
+        </dl>
+        <label className="block mb-4 text-sm">
+          <span className="block mb-1 text-[color:var(--navy-ink)]">
+            Type <code className="bg-ivory-2 px-1 font-mono">{expected}</code> to confirm:
+          </span>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            autoFocus
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          />
+        </label>
+        {error && <p className="text-sm text-red-700 mb-3">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={pending}
+            className="text-sm text-[color:var(--muted)] hover:text-navy px-4 py-2"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={pending || !matches}
+            className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold disabled:opacity-50"
+          >
+            {pending ? "Sending…" : `Send to ${recipientCount}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function toLocalInput(iso: string): string {
