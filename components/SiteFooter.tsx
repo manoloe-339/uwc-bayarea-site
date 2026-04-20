@@ -9,7 +9,7 @@ export default function SiteFooter() {
       <div className="max-w-[1200px] mx-auto px-7 py-7 flex flex-wrap items-center justify-between gap-4 text-[13px]">
         <Link href="/" className="flex items-center text-white no-underline" aria-label="UWC Bay Area home">
           <img
-            src="/uwc-bay-area-logo.jpg"
+            src="/uwc-bay-area-logo.png"
             alt="UWC Bay Area · Alumni & Friends"
             className="h-9 w-auto block rounded-sm"
           />

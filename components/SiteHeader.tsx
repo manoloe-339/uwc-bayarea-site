@@ -21,7 +21,7 @@ export default function SiteHeader({ active }: { active?: NavKey }) {
       <div className="max-w-[1200px] mx-auto flex items-center justify-between gap-6 px-5 sm:px-7 py-[14px] sm:py-[18px]">
         <Link href="/" className="flex items-center text-white no-underline" aria-label="UWC Bay Area home">
           <img
-            src="/uwc-bay-area-logo.jpg"
+            src="/uwc-bay-area-logo.png"
             alt="UWC Bay Area · Alumni & Friends"
             className="h-[46px] sm:h-[52px] w-auto block rounded-sm"
           />
