@@ -22,6 +22,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <Link href="/admin/email/settings" className="hover:text-navy text-[11px] text-[color:var(--muted)]">Settings</Link>
             <Link href="/admin/import" className="hover:text-navy">Import</Link>
             <Link href="/admin/unsubscribes" className="hover:text-navy">Unsubscribes</Link>
+            <Link href="/admin/analytics" className="hover:text-navy">Analytics</Link>
           </nav>
           <Link href="/" className="ml-auto text-[12px] tracking-[.2em] uppercase text-[color:var(--muted)] hover:text-navy">
             ← Site
