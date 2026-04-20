@@ -139,7 +139,8 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
       </div>
 
       <form id="alumni-select-form" method="GET" action="/admin/email/campaigns/new">
-        <div className="bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">
+        {/* ── Desktop: table view (md and up) ────────────────────────────── */}
+        <div className="hidden md:block bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-ivory-2 text-[11px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)]">
               <tr>
@@ -218,6 +219,91 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             </tbody>
           </table>
         </div>
+
+        {/* ── Mobile: stacked cards (below md) ───────────────────────────── */}
+        <div className="md:hidden space-y-3">
+          {rows.length === 0 && (
+            <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-6 text-center text-sm text-[color:var(--muted)]">
+              No matches.
+            </div>
+          )}
+          {rows.length > 0 && (
+            <label className="flex items-center gap-2 text-xs text-[color:var(--muted)] px-1">
+              <SelectAllCheckbox formId="alumni-select-form" />
+              Select all on this page
+            </label>
+          )}
+          {rows.map((r) => {
+            const fullName = [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email;
+            return (
+              <div
+                key={r.id}
+                className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 flex gap-3 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  name="ids"
+                  value={r.id}
+                  aria-label={`Select ${fullName}`}
+                  className="mt-1 shrink-0 w-4 h-4"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-1">
+                    <Link
+                      href={`/admin/alumni/${r.id}`}
+                      className="font-semibold text-navy hover:underline"
+                    >
+                      {fullName}
+                    </Link>
+                    {r.linkedin_url && (
+                      <a
+                        href={r.linkedin_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="LinkedIn profile"
+                        className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#0A66C2] text-white text-[10px] font-bold"
+                      >
+                        in
+                      </a>
+                    )}
+                    {r.affiliation && r.affiliation !== "Alum" && (
+                      <span className="text-[10px] text-[color:var(--muted)] uppercase tracking-wider">
+                        {r.affiliation}
+                      </span>
+                    )}
+                    {r.flags?.length > 0 && (
+                      <span className="text-[10px] text-orange-700 uppercase tracking-wider">
+                        {r.flags.join(", ")}
+                      </span>
+                    )}
+                  </div>
+                  <MetaLine
+                    pairs={[
+                      ["College", r.uwc_college],
+                      ["Year", r.grad_year ?? undefined],
+                    ]}
+                  />
+                  <MetaLine
+                    pairs={[
+                      ["Origin", r.origin],
+                      ["City", r.current_city],
+                      ["Region", r.region],
+                    ]}
+                  />
+                  <MetaLine pairs={[["Company", r.company]]} />
+                  <div className="mt-1.5">
+                    <a
+                      href={`mailto:${r.email}`}
+                      className="text-navy hover:underline break-all text-xs"
+                    >
+                      {r.email}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </form>
     </div>
   );
@@ -262,4 +348,22 @@ function Th({ children }: { children: React.ReactNode }) {
 }
 function Td({ children }: { children: React.ReactNode }) {
   return <td className="px-4 py-2.5 align-top">{children}</td>;
+}
+
+// Mobile-only row of "Label: value · Label: value" that gracefully hides any
+// pair whose value is blank.
+function MetaLine({ pairs }: { pairs: [string, string | number | null | undefined][] }) {
+  const filled = pairs.filter(([, v]) => v !== null && v !== undefined && v !== "");
+  if (filled.length === 0) return null;
+  return (
+    <div className="text-xs text-[color:var(--muted)] leading-relaxed">
+      {filled.map(([label, value], i) => (
+        <span key={label}>
+          {i > 0 && <span className="mx-1.5 opacity-60">·</span>}
+          <span className="uppercase tracking-wider text-[10px] mr-1">{label}:</span>
+          <span className="text-[color:var(--navy-ink)]">{value}</span>
+        </span>
+      ))}
+    </div>
+  );
 }
