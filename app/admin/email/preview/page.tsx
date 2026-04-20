@@ -17,6 +17,8 @@ function liveEventDetails() {
   ];
   return {
     title: event.hero.title + " " + event.hero.titleItalic,
+    imageUrl: "https://uwcbayarea.org/waterford-bg.jpg",
+    imageAlt: "UWC Waterford Kamhlaba campus",
     dateline: `${dateShort} · ${event.time}`,
     location: event.venue,
     locationNote: event.venueNeighborhood,
@@ -48,7 +50,9 @@ export default async function PreviewPage() {
     headline: settings.foodies_default_headline ?? undefined,
     body: settings.foodies_default_body ?? undefined,
     ctaLabel: settings.foodies_default_cta_label ?? undefined,
-    ctaUrl: settings.foodies_default_cta_url ?? undefined,
+    // Fall back to the homepage so the preview always shows the CTA even if
+    // the admin hasn't set a dedicated Foodies URL yet.
+    ctaUrl: settings.foodies_default_cta_url ?? "https://uwcbayarea.org",
   };
 
   return (

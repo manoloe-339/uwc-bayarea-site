@@ -32,6 +32,9 @@ type Defaults = {
 
 const HARDCODED_ANNOUNCEMENT: EventDetails = {
   title: "Hear the fascinating history of eSwatini",
+  imageUrl:
+    "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=1200&auto=format&fit=crop&q=70",
+  imageAlt: "Hillside landscape in Southern Africa",
   dateline: "Friday, May 1, 2026 · 6:30 – 8:30 PM",
   location: "530 Hampshire St #306",
   locationNote: "San Francisco · Mission District · look for the red awning",
@@ -50,7 +53,9 @@ const HARDCODED_UPDATE = {
   headline: "Welcome to our new committee members",
   body:
     "We're excited to introduce four new UWC Bay Area committee members joining us this spring. They bring a range of UWC backgrounds — Atlantic '05, Pearson '12, USA '18, and Dilijan '21 — and a shared commitment to building a stronger alumni community here in the Bay.\n\nYou'll see their names attached to upcoming events and programs. Reach out if you'd like to connect.",
-  imageUrl: undefined,
+  imageUrl:
+    "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&auto=format&fit=crop&q=70",
+  imageAlt: "Alumni gathered at a table",
 };
 
 export default function PreviewClient({
@@ -97,6 +102,10 @@ export default function PreviewClient({
             dateline: "Saturday, May 15 · 7:00 PM · Bernal Heights",
             description:
               "A casual dinner hosted by Nadia and Sam. BYOB, bring a side if you can.",
+            imageUrl:
+              "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=1200&auto=format&fit=crop&q=70",
+            imageAlt: "Plate of Afghan food on a wooden table",
+            imageCaption: "Afghan spread at last month's foodies dinner",
             cta: { label: "Details", url: "https://uwcbayarea.org" },
           }
         : undefined,
@@ -105,6 +114,9 @@ export default function PreviewClient({
             show: true,
             headline: whatsappDefaults.headline,
             body: whatsappDefaults.body,
+            imageUrl:
+              "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&auto=format&fit=crop&q=70",
+            imageAlt: "Group of people around a laptop",
             ctaLabel: whatsappDefaults.ctaLabel,
             ctaUrl: whatsappDefaults.ctaUrl,
           }
@@ -114,6 +126,10 @@ export default function PreviewClient({
             show: true,
             headline: foodiesDefaults.headline,
             body: foodiesDefaults.body,
+            imageUrl:
+              "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&auto=format&fit=crop&q=70",
+            imageAlt: "Dinner table with shared dishes",
+            imageCaption: "Bay Area Foodies in action",
             ctaLabel: foodiesDefaults.ctaLabel,
             ctaUrl: foodiesDefaults.ctaUrl,
           }

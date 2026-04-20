@@ -105,6 +105,7 @@ export interface AlumniNewsletterProps {
   mode: Mode;
 
   event?: EventDetails;
+  announcementKicker?: string;   // hero label for announcement mode (default "Save the date")
   reminderTag?: string;
 
   update?: {
@@ -304,6 +305,7 @@ export default function AlumniNewsletter(props: AlumniNewsletterProps): JSX.Elem
     recipientFirstName,
     mode,
     event,
+    announcementKicker,
     reminderTag,
     update,
     whatsNext,
@@ -327,7 +329,7 @@ export default function AlumniNewsletter(props: AlumniNewsletterProps): JSX.Elem
         <Container style={containerStyle}>
           <HeaderBlock logoUrl={logoUrl} />
           <div style={cardStyle}>
-            {renderHero({ mode, event, reminderTag, update, recipientFirstName })}
+            {renderHero({ mode, event, announcementKicker, reminderTag, update, recipientFirstName })}
             {renderMain({ mode, event, update, recipientFirstName })}
           </div>
 
@@ -389,28 +391,32 @@ function HeaderBlock({ logoUrl }: { logoUrl?: string }): JSX.Element {
 function renderHero(args: {
   mode: Mode;
   event?: EventDetails;
+  announcementKicker?: string;
   reminderTag?: string;
   update?: AlumniNewsletterProps["update"];
   recipientFirstName?: string;
 }): JSX.Element | null {
-  const { mode, event, reminderTag, update, recipientFirstName } = args;
+  const { mode, event, announcementKicker, reminderTag, update, recipientFirstName } = args;
 
+  // Announcement mode: kicker + optional greeting (NO event title — that lives in the event card below).
   if (mode === "announcement") {
     if (!event) {
       warn("announcement mode requires an `event` prop");
       return null;
     }
+    const kicker = announcementKicker ?? "Save the date";
     return (
-      <Section style={{ marginBottom: SPACING.s24 }}>
-        {recipientFirstName ? <Text style={bodyTextStyle}>Hi {recipientFirstName},</Text> : null}
-        <Heading as="h1" style={h1Style}>
-          {event.title}
-        </Heading>
-        {event.dateline ? <Text style={metaStyle}>{event.dateline}</Text> : null}
+      <Section style={{ marginBottom: SPACING.s16 }}>
+        <Text style={tagStyle}>{kicker}</Text>
+        {recipientFirstName ? (
+          <Text style={{ ...bodyTextStyle, margin: 0 }}>Hi {recipientFirstName},</Text>
+        ) : null}
       </Section>
     );
   }
 
+  // Reminder mode: urgency tag + reminderTag as the h1 (NO event title here — card below skips title).
+  // No greeting; reminders are short and urgent.
   if (mode === "reminder") {
     if (!event) {
       warn("reminder mode requires an `event` prop");
@@ -418,22 +424,15 @@ function renderHero(args: {
     }
     return (
       <Section style={{ marginBottom: SPACING.s24 }}>
-        <Text
-          style={{
-            ...tagStyle,
-            color: COLORS.brandDeep,
-          }}
-        >
-          Reminder
-        </Text>
+        <Text style={{ ...tagStyle, color: COLORS.brandDeep }}>Reminder</Text>
         <Heading as="h1" style={{ ...h1Style, fontSize: "28px" }}>
-          {reminderTag ?? event.title}
+          {reminderTag ?? "Coming up"}
         </Heading>
-        {reminderTag ? <Text style={metaStyle}>{event.title}</Text> : null}
       </Section>
     );
   }
 
+  // Update mode: source tag + update headline + greeting.
   if (mode === "update") {
     if (!update) {
       warn("update mode requires an `update` prop");
@@ -474,14 +473,17 @@ function renderMain(args: {
 
 function EventCard({ event, condensed }: { event: EventDetails; condensed: boolean }): JSX.Element {
   return (
-    <Section style={{ marginBottom: SPACING.s16 }}>
+    <Section style={{ marginBottom: SPACING.s16, textAlign: "left" }}>
       {event.imageUrl ? (
         <div style={{ marginBottom: SPACING.s16 }}>{img(event.imageUrl, event.imageAlt)}</div>
       ) : null}
 
-      <Heading as="h2" style={h2Style}>
-        {event.title}
-      </Heading>
+      {/* Reminder mode skips the title — the reminderTag in the hero already implies the event. */}
+      {!condensed ? (
+        <Heading as="h2" style={h2Style}>
+          {event.title}
+        </Heading>
+      ) : null}
       {event.dateline ? <Text style={metaStyle}>{event.dateline}</Text> : null}
       {event.location ? (
         <Text style={metaStyle}>
@@ -490,13 +492,15 @@ function EventCard({ event, condensed }: { event: EventDetails; condensed: boole
         </Text>
       ) : null}
 
-      {event.description ? <Text style={bodyTextStyle}>{event.description}</Text> : null}
+      {event.description ? (
+        <Text style={{ ...bodyTextStyle, textAlign: "left" }}>{event.description}</Text>
+      ) : null}
 
       {!condensed && event.speakers && event.speakers.length > 0 ? (
         <Section style={{ marginTop: SPACING.s16, marginBottom: SPACING.s16 }}>
           {event.speakers.map((s, i) => (
             <Row key={`${s.name}-${i}`} style={{ marginBottom: SPACING.s8 }}>
-              <Column style={{ width: "52px", verticalAlign: "middle" }}>
+              <Column style={{ width: "52px", verticalAlign: "middle", textAlign: "left" }}>
                 {s.photoUrl ? (
                   <Img
                     src={s.photoUrl}
@@ -513,12 +517,24 @@ function EventCard({ event, condensed }: { event: EventDetails; condensed: boole
                   />
                 ) : null}
               </Column>
-              <Column style={{ verticalAlign: "middle" }}>
-                <Text style={{ ...bodyTextStyle, margin: 0, fontSize: "14px", fontWeight: 600 }}>
+              <Column style={{ verticalAlign: "middle", textAlign: "left" }}>
+                <Text
+                  style={{
+                    ...bodyTextStyle,
+                    margin: 0,
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    textAlign: "left",
+                  }}
+                >
                   {s.name}
                 </Text>
                 {s.title ? (
-                  <Text style={{ ...metaStyle, margin: 0, fontSize: "12px" }}>{s.title}</Text>
+                  <Text
+                    style={{ ...metaStyle, margin: 0, fontSize: "12px", textAlign: "left" }}
+                  >
+                    {s.title}
+                  </Text>
                 ) : null}
               </Column>
             </Row>
@@ -652,7 +668,9 @@ function FoodiesBlock(p: NonNullable<AlumniNewsletterProps["foodies"]>): JSX.Ele
       <Heading as="h3" style={h3Style}>
         {p.headline ?? "UWC Foodies"}
       </Heading>
-      {p.body ? <Text style={bodyTextStyle}>{p.body}</Text> : null}
+      {p.body ? (
+        <Text style={{ ...bodyTextStyle, textAlign: "left" }}>{p.body}</Text>
+      ) : null}
       {p.ctaUrl ? (
         <Link href={p.ctaUrl} style={textLinkStyle}>
           {p.ctaLabel ?? "Learn more"} →
