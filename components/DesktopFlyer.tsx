@@ -47,10 +47,23 @@ export default function DesktopFlyer({ seatsRemaining = event.totalSeats }: { se
           style={{ background: "#B8341F" }}
         >
           <span className="urgency-dot w-2 h-2 rounded-full bg-white inline-block" />
-          Selling quickly —{" "}
-          <span className="display italic font-semibold text-[14px] tracking-[.02em] normal-case">
-            only {seatsRemaining} seats remain
-          </span>
+          {event.earlyBirdStatus === "sold_out" ? (
+            <>
+              Early Bird Sold Out · {event.currentPrice.display} tickets available —{" "}
+              <span className="display italic font-semibold text-[14px] tracking-[.02em] normal-case">
+                {seatsRemaining <= event.lowSeatsThreshold
+                  ? `last chance — only ${seatsRemaining} seats left`
+                  : `only ${seatsRemaining} seats remain`}
+              </span>
+            </>
+          ) : (
+            <>
+              {seatsRemaining <= event.lowSeatsThreshold ? "Last chance —" : "Selling quickly —"}{" "}
+              <span className="display italic font-semibold text-[14px] tracking-[.02em] normal-case">
+                only {seatsRemaining} seats remain
+              </span>
+            </>
+          )}
         </div>
 
         {/* TICKET CTA BAND */}
@@ -59,13 +72,7 @@ export default function DesktopFlyer({ seatsRemaining = event.totalSeats }: { se
           style={{ color: "var(--navy)" }}
         >
           <div className="display font-bold leading-none text-[40px]">
-            {event.price}{" "}
-            <span
-              className="display italic font-medium text-[20px]"
-              style={{ color: "rgba(11,37,69,.6)", marginLeft: "2px" }}
-            >
-              {event.priceQualifier}
-            </span>
+            {event.currentPrice.display}
           </div>
           <TicketButton
             href={event.ticketUrl}

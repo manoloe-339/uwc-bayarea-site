@@ -93,9 +93,15 @@ export default async function OpenGraphImage() {
               }}
             >
               <div style={{ width: 8, height: 8, borderRadius: "999px", background: "white" }} />
-              <span>{`SELLING QUICKLY · `}</span>
+              <span>
+                {event.earlyBirdStatus === "sold_out"
+                  ? `EARLY BIRD SOLD OUT · `
+                  : `SELLING QUICKLY · `}
+              </span>
               <span style={{ fontStyle: "italic", fontWeight: 500, textTransform: "none", letterSpacing: "0.02em" }}>
-                {`only ${seatsRemaining} seats remain`}
+                {seatsRemaining <= event.lowSeatsThreshold
+                  ? `last chance — only ${seatsRemaining} seats left`
+                  : `only ${seatsRemaining} seats remain`}
               </span>
             </div>
           </div>
@@ -235,7 +241,7 @@ export default async function OpenGraphImage() {
           >
             <span>RESERVE YOUR SEAT ·</span>
             <span style={{ fontStyle: "italic", fontFamily: "serif", textTransform: "none", letterSpacing: "0.02em", fontWeight: 600 }}>
-              {`${event.price} ${event.priceQualifier}`}
+              {event.currentPrice.display}
             </span>
           </div>
         </div>

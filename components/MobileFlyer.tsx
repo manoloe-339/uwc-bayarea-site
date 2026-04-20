@@ -33,10 +33,23 @@ export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { sea
       >
         <span className="urgency-dot w-2 h-2 rounded-full bg-white inline-block shrink-0" />
         <span>
-          Selling quickly —{" "}
-          <span className="display italic font-semibold text-[13px] tracking-[.02em] normal-case">
-            only {seatsRemaining} seats remain
-          </span>
+          {event.earlyBirdStatus === "sold_out" ? (
+            <>
+              Early Bird Sold Out ·{" "}
+              <span className="display italic font-semibold text-[13px] tracking-[.02em] normal-case">
+                {seatsRemaining <= event.lowSeatsThreshold
+                  ? `last chance — only ${seatsRemaining} seats left`
+                  : `only ${seatsRemaining} seats remain`}
+              </span>
+            </>
+          ) : (
+            <>
+              {seatsRemaining <= event.lowSeatsThreshold ? "Last chance —" : "Selling quickly —"}{" "}
+              <span className="display italic font-semibold text-[13px] tracking-[.02em] normal-case">
+                only {seatsRemaining} seats remain
+              </span>
+            </>
+          )}
         </span>
       </div>
 
@@ -46,13 +59,7 @@ export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { sea
         style={{ color: "var(--navy)" }}
       >
         <div className="display font-bold leading-none text-[32px]">
-          {event.price}{" "}
-          <span
-            className="display italic font-medium text-[16px]"
-            style={{ color: "rgba(11,37,69,.6)" }}
-          >
-            {event.priceQualifier}
-          </span>
+          {event.currentPrice.display}
         </div>
         <TicketButton
           href={event.ticketUrl}

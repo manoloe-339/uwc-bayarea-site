@@ -75,8 +75,16 @@ const _event = {
     ] as FiresideSpeaker[],
   },
   totalSeats: 35,
-  price: "$10",
-  priceQualifier: "min",
+  // Pricing lives on the event so each event sets its own. `currentPrice` is
+  // what the ticket page/button shows today; `earlyBirdPrice` is kept for
+  // historical messaging ("early bird sold out"). Stripe's hosted Payment
+  // Link owns the real charged price — keep these in sync manually when you
+  // update the link in the Stripe dashboard.
+  currentPrice: { display: "$20", amountCents: 2000 },
+  earlyBirdPrice: { display: "$10", amountCents: 1000 },
+  earlyBirdStatus: "sold_out" as const, // "available" | "sold_out"
+  /** Below this remaining count, urgency copy swaps to 'last chance'. */
+  lowSeatsThreshold: 10,
   priceNote: "Limited capacity",
   ticketUrl: "https://buy.stripe.com/aFaeVddbsdMF3dmbC98Ra03",
   contactEmail: "manoloe@gmail.com",
@@ -121,6 +129,6 @@ export function toNewsletterEvent(e: Event): {
     locationNote: e.venueNeighborhood,
     description: e.hero.body,
     speakers,
-    cta: { label: `Get tickets · ${e.price}`, url: e.ticketUrl },
+    cta: { label: `Get tickets · ${e.currentPrice.display}`, url: e.ticketUrl },
   };
 }
