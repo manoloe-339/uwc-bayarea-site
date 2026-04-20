@@ -736,7 +736,7 @@ function FooterBlock({
         You're receiving this because you're part of the UWC Bay Area alumni community.
         {" "}
         <Link href={unsubscribeUrl} style={{ color: COLORS.footerInk, textDecoration: "underline" }}>
-          Unsubscribe or update preferences
+          Unsubscribe
         </Link>
         .
       </Text>

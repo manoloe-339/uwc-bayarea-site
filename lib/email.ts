@@ -48,7 +48,7 @@ export function renderEmailHtml(body: string, alumniId: number | null): string {
             <tr>
               <td style="padding:18px 32px 24px;border-top:1px solid rgba(11,37,69,0.12);font-size:12px;line-height:1.5;color:rgba(11,37,69,0.62);">
                 You're receiving this because you're part of the ${escapeHtml(GROUP_NAME)} alumni network.<br>
-                <a href="${unsubscribeLink}" style="color:#0265A8;text-decoration:underline;">Unsubscribe or update preferences</a>
+                <a href="${unsubscribeLink}" style="color:#0265A8;text-decoration:underline;">Unsubscribe</a>
               </td>
             </tr>
           </table>
