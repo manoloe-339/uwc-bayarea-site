@@ -32,6 +32,7 @@ type Defaults = {
 
 const HARDCODED_ANNOUNCEMENT: EventDetails = {
   title: "Hear the fascinating history of eSwatini",
+  heroHeadline: "Our next event: eSwatini's story",
   imageUrl:
     "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=1200&auto=format&fit=crop&q=70",
   imageAlt: "Hillside landscape in Southern Africa",
@@ -52,10 +53,12 @@ const HARDCODED_ANNOUNCEMENT: EventDetails = {
 const HARDCODED_UPDATE = {
   headline: "Welcome to our new committee members",
   body:
-    "We're excited to introduce four new UWC Bay Area committee members joining us this spring. They bring a range of UWC backgrounds — Atlantic '05, Pearson '12, USA '18, and Dilijan '21 — and a shared commitment to building a stronger alumni community here in the Bay.\n\nYou'll see their names attached to upcoming events and programs. Reach out if you'd like to connect.",
+    "We're excited to introduce four new UWC Bay Area committee members joining us this spring. They bring UWC backgrounds spanning Atlantic '05, Pearson '12, USA '18, and Dilijan '21, and a shared commitment to building a stronger alumni community here in the Bay.\n\nYou'll see their names attached to upcoming events and programs. Reach out if you'd like to connect or collaborate.",
   imageUrl:
     "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&auto=format&fit=crop&q=70",
   imageAlt: "Alumni gathered at a table",
+  imageCaption: "New committee members at the April welcome dinner",
+  cta: { label: "Meet the team →", url: "https://uwcbayarea.org" },
 };
 
 export default function PreviewClient({
@@ -92,7 +95,10 @@ export default function PreviewClient({
       preheader: preheaderFor(mode, sample),
       mode,
       event: mode !== "update" ? sample.event : undefined,
-      reminderTag: mode === "reminder" ? sample.reminderTag : undefined,
+      // Guarantee a reminderTag whenever mode is reminder, even if the selected
+      // preset didn't include one (e.g. user kept an announcement preset and
+      // flipped the mode radio manually).
+      reminderTag: mode === "reminder" ? (sample.reminderTag ?? "This Saturday!") : undefined,
       update: mode === "update" ? sample.update : undefined,
       whatsNext: showWhatsNext
         ? {
@@ -117,6 +123,7 @@ export default function PreviewClient({
             imageUrl:
               "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&auto=format&fit=crop&q=70",
             imageAlt: "Group of people around a laptop",
+            imageCaption: "Our community at a recent meetup",
             ctaLabel: whatsappDefaults.ctaLabel,
             ctaUrl: whatsappDefaults.ctaUrl,
           }

@@ -17,6 +17,7 @@ function liveEventDetails() {
   ];
   return {
     title: event.hero.title + " " + event.hero.titleItalic,
+    heroHeadline: "Our next event: eSwatini's story",
     imageUrl: "https://uwcbayarea.org/waterford-bg.jpg",
     imageAlt: "UWC Waterford Kamhlaba campus",
     dateline: `${dateShort} · ${event.time}`,
@@ -24,7 +25,7 @@ function liveEventDetails() {
     locationNote: event.venueNeighborhood,
     description: event.hero.body,
     speakers,
-    cta: { label: "Get tickets", url: event.ticketUrl },
+    cta: { label: `Get tickets · ${event.price}`, url: event.ticketUrl },
   };
 }
 

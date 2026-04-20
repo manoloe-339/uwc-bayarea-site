@@ -89,6 +89,7 @@ export interface EventDetails {
   imageUrl?: string;
   imageAlt?: string;
   title: string;
+  heroHeadline?: string;  // short deck/standfirst shown in announcement hero
   dateline?: string;
   location?: string;
   locationNote?: string;
@@ -113,6 +114,7 @@ export interface AlumniNewsletterProps {
     body: string;
     imageUrl?: string;
     imageAlt?: string;
+    imageCaption?: string;
     cta?: CTA;
   };
 
@@ -134,6 +136,7 @@ export interface AlumniNewsletterProps {
     body?: string;
     imageUrl?: string;
     imageAlt?: string;
+    imageCaption?: string;
     ctaLabel?: string;
     ctaUrl: string;
   };
@@ -204,6 +207,17 @@ const h3Style: CSSProperties = {
   lineHeight: 1.3,
   fontWeight: 700,
   margin: `0 0 ${SPACING.s8} 0`,
+};
+
+// Magazine-deck/standfirst style — slightly smaller than the event title that
+// appears in the card below, medium weight, tightened leading.
+const heroDeckStyle: CSSProperties = {
+  color: COLORS.ink,
+  fontFamily: FONT_STACK,
+  fontSize: "19px",
+  lineHeight: 1.35,
+  fontWeight: 500,
+  margin: `${SPACING.s8} 0 0 0`,
 };
 
 const bodyTextStyle: CSSProperties = {
@@ -398,7 +412,8 @@ function renderHero(args: {
 }): JSX.Element | null {
   const { mode, event, announcementKicker, reminderTag, update, recipientFirstName } = args;
 
-  // Announcement mode: kicker + optional greeting (NO event title — that lives in the event card below).
+  // Announcement mode: kicker + greeting + magazine-style deck. NO event title —
+  // that lives in the event card below.
   if (mode === "announcement") {
     if (!event) {
       warn("announcement mode requires an `event` prop");
@@ -406,10 +421,17 @@ function renderHero(args: {
     }
     const kicker = announcementKicker ?? "Save the date";
     return (
-      <Section style={{ marginBottom: SPACING.s16 }}>
+      <Section style={{ marginBottom: SPACING.s24 }}>
         <Text style={tagStyle}>{kicker}</Text>
         {recipientFirstName ? (
-          <Text style={{ ...bodyTextStyle, margin: 0 }}>Hi {recipientFirstName},</Text>
+          <Text
+            style={{ ...bodyTextStyle, margin: `0 0 ${SPACING.s8} 0` }}
+          >
+            Hi {recipientFirstName},
+          </Text>
+        ) : null}
+        {event.heroHeadline ? (
+          <Text style={heroDeckStyle}>{event.heroHeadline}</Text>
         ) : null}
       </Section>
     );
@@ -422,6 +444,7 @@ function renderHero(args: {
       warn("reminder mode requires an `event` prop");
       return null;
     }
+    if (!reminderTag) warn("reminder mode without reminderTag — falling back to 'Coming up'");
     return (
       <Section style={{ marginBottom: SPACING.s24 }}>
         <Text style={{ ...tagStyle, color: COLORS.brandDeep }}>Reminder</Text>
@@ -432,7 +455,7 @@ function renderHero(args: {
     );
   }
 
-  // Update mode: source tag + update headline + greeting.
+  // Update mode: kicker → greeting → headline. Body + image + CTA follow in the main block.
   if (mode === "update") {
     if (!update) {
       warn("update mode requires an `update` prop");
@@ -440,13 +463,15 @@ function renderHero(args: {
     }
     return (
       <Section style={{ marginBottom: SPACING.s24 }}>
-        <Text style={tagStyle}>From the UWC Bay Area team</Text>
+        <Text style={tagStyle}>Community news</Text>
+        {recipientFirstName ? (
+          <Text style={{ ...bodyTextStyle, margin: `0 0 ${SPACING.s8} 0` }}>
+            Hi {recipientFirstName},
+          </Text>
+        ) : null}
         <Heading as="h1" style={h1Style}>
           {update.headline}
         </Heading>
-        {recipientFirstName ? (
-          <Text style={bodyTextStyle}>Hi {recipientFirstName},</Text>
-        ) : null}
       </Section>
     );
   }
@@ -555,20 +580,23 @@ function EventCard({ event, condensed }: { event: EventDetails; condensed: boole
 
 function UpdateBody({ update }: { update: NonNullable<AlumniNewsletterProps["update"]> }): JSX.Element {
   return (
-    <Section style={{ marginBottom: SPACING.s16 }}>
+    <Section style={{ marginBottom: SPACING.s16, textAlign: "left" }}>
       {update.imageUrl ? (
-        <div style={{ marginBottom: SPACING.s16 }}>{img(update.imageUrl, update.imageAlt)}</div>
+        <div style={{ marginBottom: SPACING.s16 }}>
+          {img(update.imageUrl, update.imageAlt)}
+          {update.imageCaption ? <Text style={captionStyle}>{update.imageCaption}</Text> : null}
+        </div>
       ) : null}
       {update.body.split(/\n\n+/).map((para, i) => (
-        <Text key={i} style={bodyTextStyle}>
+        <Text key={i} style={{ ...bodyTextStyle, textAlign: "left" }}>
           {para}
         </Text>
       ))}
       {update.cta ? (
         <div style={{ marginTop: SPACING.s8 }}>
-          <Button href={update.cta.url} style={buttonStyle}>
+          <Link href={update.cta.url} style={textLinkStyle}>
             {update.cta.label}
-          </Button>
+          </Link>
         </div>
       ) : null}
     </Section>
@@ -636,9 +664,10 @@ function WhatsappBlock(p: NonNullable<AlumniNewsletterProps["whatsapp"]>): JSX.E
       {p.imageUrl ? (
         <div style={{ marginTop: SPACING.s8, marginBottom: SPACING.s16, maxWidth: "400px" }}>
           {img(p.imageUrl, p.imageAlt, 200)}
+          {p.imageCaption ? <Text style={captionStyle}>{p.imageCaption}</Text> : null}
         </div>
       ) : null}
-      {p.body ? <Text style={bodyTextStyle}>{p.body}</Text> : null}
+      {p.body ? <Text style={{ ...bodyTextStyle, textAlign: "left" }}>{p.body}</Text> : null}
       <Button href={p.ctaUrl} style={outlineButtonStyle}>
         {p.ctaLabel ?? "Join WhatsApp"}
       </Button>
