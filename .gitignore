@@ -6,3 +6,9 @@ out/
 .DS_Store
 *.log
 *.tsbuildinfo
+
+# LinkedIn enrichment workflow — all contain PII, never commit
+alumni_export.json
+linkedin_results.json
+review_needed.json
+review_approved.json
