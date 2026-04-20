@@ -138,7 +138,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         <SelectedCountLink formId="alumni-select-form" />
       </div>
 
-      <form id="alumni-select-form" method="GET" action="/admin/email">
+      <form id="alumni-select-form" method="GET" action="/admin/email/campaigns/new">
         <div className="bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-ivory-2 text-[11px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)]">
