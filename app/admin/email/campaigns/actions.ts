@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import type { CampaignDraft } from "@/lib/campaign-content";
 import { sendCampaignNow, sendCampaignTest, MAX_RECIPIENTS_PER_CAMPAIGN } from "@/lib/campaign-send";
-import { countFilteredRecipients } from "@/lib/recipients";
+import { countFilteredRecipients, getFilteredRecipients } from "@/lib/recipients";
 import type { AlumniFilters } from "@/lib/alumni-query";
 
 type Row = { id: string };
@@ -118,10 +118,20 @@ export async function sendTestAction(input: {
   }
   // Save-then-send — guarantees the renderer reads the current draft.
   const campaignId = await saveDraft(input.draft);
+
+  // Prefer the actual recipient's first name when we can: if the test email
+  // matches someone in the filter, use their name; otherwise use the first
+  // recipient's name (gives hand-picked sends the right preview); fall back
+  // to 'Sarah' when the filter set is empty.
+  const { list } = await getFilteredRecipients(input.draft.filters);
+  const toLower = input.toEmail.trim().toLowerCase();
+  const match = list.find((r) => r.email.toLowerCase() === toLower);
+  const firstName = match?.first_name ?? list[0]?.first_name ?? "Sarah";
+
   const result = await sendCampaignTest({
     campaignId,
     toEmail: input.toEmail,
-    firstName: "Sarah", // placeholder for tests; matches preview
+    firstName,
   });
   if (!result.ok) return { ok: false, error: result.error };
   revalidatePath(`/admin/email/campaigns/${campaignId}/edit`);
