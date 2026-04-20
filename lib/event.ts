@@ -1,5 +1,8 @@
-// Single source of truth for event content.
-// Edit this file to update all copy/links site-wide.
+// Single source of truth for event content across the public site AND email
+// campaigns. Today we have one event; the file is structured as an array so
+// we can add upcoming events without touching call sites. To add an event,
+// append to `events` and set `featured: true` on whichever one should drive
+// the homepage/OG image/etc. Only one event should be marked `featured`.
 
 type FiresideSpeaker = {
   name: string;
@@ -10,7 +13,13 @@ type FiresideSpeaker = {
   linkedin?: string;
 };
 
-export const event = {
+const _event = {
+  id: "may-1-eswatini",
+  label: "May 1 · eSwatini fireside",
+  featured: true,
+  newsletterHeroHeadline: "Our next event: eSwatini's story",
+  newsletterImageUrl: "https://uwcbayarea.org/waterford-bg.jpg",
+  newsletterImageAlt: "UWC Waterford Kamhlaba campus",
   title: "UWC Bay Area · May 1",
   dateShort: "May 1",
   dayOfWeek: "FRIDAY",
@@ -73,3 +82,45 @@ export const event = {
   contactEmail: "manoloe@gmail.com",
   refreshments: "Light fare served",
 } as const;
+
+export type Event = typeof _event;
+
+/** Array of all events. Append here to add a new one. */
+export const events: readonly Event[] = [_event] as const;
+
+/** Featured event — used by the public site + OG image + default newsletter fill. */
+export const event: Event = events.find((e) => e.featured) ?? events[0];
+
+/** Convert a site event into the shape the newsletter template expects. */
+export function toNewsletterEvent(e: Event): {
+  title: string;
+  heroHeadline?: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  dateline?: string;
+  location?: string;
+  locationNote?: string;
+  description?: string;
+  speakers?: { name: string; title?: string }[];
+  cta?: { label: string; url: string };
+} {
+  const speakers = [
+    ...e.speakers.map((s) => ({ name: s.name, title: s.role })),
+    ...(e.fireside?.speakers ?? []).map((s) => ({
+      name: s.name,
+      title: `${s.role} · ${s.org.join(", ")}`,
+    })),
+  ];
+  return {
+    title: `${e.hero.title} ${e.hero.titleItalic}`,
+    heroHeadline: e.newsletterHeroHeadline,
+    imageUrl: e.newsletterImageUrl,
+    imageAlt: e.newsletterImageAlt,
+    dateline: `${e.dateShort} · ${e.time}`,
+    location: e.venue,
+    locationNote: e.venueNeighborhood,
+    description: e.hero.body,
+    speakers,
+    cta: { label: `Get tickets · ${e.price}`, url: e.ticketUrl },
+  };
+}

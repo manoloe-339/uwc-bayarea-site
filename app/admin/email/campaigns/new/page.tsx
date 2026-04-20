@@ -1,6 +1,7 @@
 import { getSiteSettings } from "@/lib/settings";
 import { emptyDraft, type CampaignDraft } from "@/lib/campaign-content";
 import { countFilteredRecipients } from "@/lib/recipients";
+import { events, toNewsletterEvent } from "@/lib/event";
 import ComposeForm from "../ComposeForm";
 import type { AlumniFilters } from "@/lib/alumni-query";
 
@@ -77,6 +78,12 @@ export default async function NewCampaignPage({
         initial={draft}
         recipientCount={count}
         recipientPreview={preview}
+        events={events.map((e) => ({
+          id: e.id,
+          label: e.label,
+          featured: !!e.featured,
+          newsletterDetails: toNewsletterEvent(e),
+        }))}
         settings={{
           logoUrl: settings.logo_url ?? undefined,
           physicalAddress: settings.physical_address ?? undefined,

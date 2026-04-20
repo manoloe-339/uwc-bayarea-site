@@ -41,16 +41,25 @@ type RecipientPreviewEntry = {
   firstName?: string | null;
 };
 
+type EventOption = {
+  id: string;
+  label: string;
+  featured: boolean;
+  newsletterDetails: NonNullable<AlumniNewsletterProps["event"]>;
+};
+
 export default function ComposeForm({
   initial,
   settings,
   recipientCount,
   recipientPreview,
+  events,
 }: {
   initial: CampaignDraft;
   settings: PreviewSettings;
   recipientCount: number;
   recipientPreview?: RecipientPreviewEntry[];
+  events?: EventOption[];
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<CampaignDraft>(initial);
@@ -269,7 +278,30 @@ export default function ComposeForm({
         {draft.format === "quick_note" ? (
           <QuickNoteSection draft={draft} setDraft={setDraft} setDirty={setDirty} disabled={isLocked} />
         ) : (
-          <NewsletterSection draft={draft} setDraft={setDraft} setDirty={setDirty} disabled={isLocked} />
+          <>
+            {events && events.length > 0 && (
+              <EventPickerCard
+                events={events}
+                disabled={isLocked}
+                onFill={(ev) => {
+                  setDraft((d) => ({
+                    ...d,
+                    newsletter: {
+                      ...(d.newsletter ?? {
+                        mode: "announcement",
+                        whatsNext: { show: true, title: "" },
+                        whatsapp: { show: true },
+                        foodies: { show: true },
+                      }),
+                      event: ev.newsletterDetails,
+                    },
+                  }));
+                  setDirty(true);
+                }}
+              />
+            )}
+            <NewsletterSection draft={draft} setDraft={setDraft} setDirty={setDirty} disabled={isLocked} />
+          </>
         )}
 
         <RecipientsCard
@@ -484,6 +516,53 @@ function QuickNoteSection({
         disabled={disabled}
         hint="Plain text — line breaks preserved, URLs auto-linked. Supports {{firstName}}."
       />
+    </FormCard>
+  );
+}
+
+function EventPickerCard({
+  events, disabled, onFill,
+}: {
+  events: EventOption[];
+  disabled: boolean;
+  onFill: (ev: EventOption) => void;
+}) {
+  const featured = events.find((e) => e.featured) ?? events[0];
+  const [selectedId, setSelectedId] = useState<string>(featured.id);
+  const selected = events.find((e) => e.id === selectedId) ?? featured;
+  return (
+    <FormCard title="Start from event">
+      <p className="text-xs text-[color:var(--muted)] mb-3">
+        Pull event details from the site into this newsletter. Edits you make after filling in stay local to this draft.
+      </p>
+      <div className="flex flex-wrap gap-2 items-end">
+        <label className="flex-1 min-w-[220px] block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+            Event
+          </span>
+          <select
+            value={selectedId}
+            onChange={(e) => setSelectedId(e.target.value)}
+            disabled={disabled}
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          >
+            {events.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.label}
+                {e.featured ? " (featured)" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => onFill(selected)}
+          disabled={disabled}
+          className="text-sm font-semibold text-white bg-navy px-4 py-2 rounded disabled:opacity-50"
+        >
+          Fill in from event →
+        </button>
+      </div>
     </FormCard>
   );
 }

@@ -1,37 +1,13 @@
 import { getSiteSettings } from "@/lib/settings";
-import { event } from "@/lib/event";
+import { event, toNewsletterEvent } from "@/lib/event";
 import PreviewClient from "./PreviewClient";
-import type { AlumniNewsletterProps, Speaker } from "@/emails/AlumniNewsletter";
+import type { AlumniNewsletterProps } from "@/emails/AlumniNewsletter";
 
 export const dynamic = "force-dynamic";
 
-/** Convert the live event from lib/event.ts into newsletter event props. */
-function liveEventDetails() {
-  const dateShort = "Friday, May 1, 2026";
-  const speakers: Speaker[] = [
-    ...event.speakers.map((s) => ({ name: s.name, title: s.role })),
-    ...(event.fireside?.speakers ?? []).map((s) => ({
-      name: s.name,
-      title: `${s.role} · ${s.org.join(", ")}`,
-    })),
-  ];
-  return {
-    title: event.hero.title + " " + event.hero.titleItalic,
-    heroHeadline: "Our next event: eSwatini's story",
-    imageUrl: "https://uwcbayarea.org/waterford-bg.jpg",
-    imageAlt: "UWC Waterford Kamhlaba campus",
-    dateline: `${dateShort} · ${event.time}`,
-    location: event.venue,
-    locationNote: event.venueNeighborhood,
-    description: event.hero.body,
-    speakers,
-    cta: { label: `Get tickets · ${event.price}`, url: event.ticketUrl },
-  };
-}
-
 export default async function PreviewPage() {
   const settings = await getSiteSettings();
-  const liveEvent = liveEventDetails();
+  const liveEvent = toNewsletterEvent(event);
 
   const baseProps: Pick<AlumniNewsletterProps, "logoUrl" | "physicalAddress" | "footerTagline" | "unsubscribeUrl" | "recipientFirstName"> = {
     logoUrl: settings.logo_url ?? undefined,
