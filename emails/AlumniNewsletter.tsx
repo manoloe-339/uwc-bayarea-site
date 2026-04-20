@@ -47,6 +47,7 @@ const COLORS = {
   bg: "#fafafa",            // off-white page — survives dark-mode inversion
   surface: "#ffffff",       // card surface
   rule: "rgba(17,17,17,0.10)",
+  logoBg: "#3E639A",        // matches the blue baked into the logo image
   tintWhatsapp: "#f0fdf4",  // soft green tint
   tintFoodies: "#fef9f3",   // warm tint
   footerBg: "#111111",
@@ -369,19 +370,29 @@ export default function AlumniNewsletter(props: AlumniNewsletterProps): JSX.Elem
 // ---------------------------------------------------------------------------
 
 function HeaderBlock({ logoUrl }: { logoUrl?: string }): JSX.Element {
+  // The logo image has a baked-in blue background (#3E639A). Wrapping it in a
+  // stripe of the same color at the same height makes the logo visually fuse
+  // into a full-width header banner instead of floating as a blue tile.
+  const LOGO_HEIGHT = 56;
   return (
     <Section
       style={{
-        backgroundColor: COLORS.surface,
-        padding: `${SPACING.s24} ${SPACING.s24} 0 ${SPACING.s24}`,
+        backgroundColor: logoUrl ? COLORS.logoBg : COLORS.surface,
+        padding: 0,
+        margin: 0,
       }}
     >
       {logoUrl ? (
         <Img
           src={logoUrl}
-          alt="UWC Bay Area"
-          height="40"
-          style={{ height: "40px", width: "auto", display: "block" }}
+          alt="UWC Bay Area · Alumni & Friends"
+          height={LOGO_HEIGHT}
+          style={{
+            height: `${LOGO_HEIGHT}px`,
+            width: "auto",
+            display: "block",
+            margin: "0 auto",
+          }}
         />
       ) : (
         <Text
@@ -392,6 +403,7 @@ function HeaderBlock({ logoUrl }: { logoUrl?: string }): JSX.Element {
             fontWeight: 700,
             letterSpacing: "0.04em",
             margin: 0,
+            padding: `${SPACING.s24} ${SPACING.s24} 0 ${SPACING.s24}`,
           }}
         >
           UWC Bay Area
