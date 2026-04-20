@@ -378,7 +378,9 @@ function HeaderBlock({ logoUrl }: { logoUrl?: string }): JSX.Element {
     <Section
       style={{
         backgroundColor: logoUrl ? COLORS.logoBg : COLORS.surface,
-        padding: 0,
+        // A little room above the logo and a bit more below so the banner
+        // doesn't feel cramped against the hero block.
+        padding: logoUrl ? "10px 0 18px 0" : 0,
         margin: 0,
       }}
     >
