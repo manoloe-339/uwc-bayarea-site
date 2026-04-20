@@ -159,15 +159,15 @@ export default function PreviewClient({
               onChange={(e) => applyPreset(e.target.value as Preset)}
               className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
             >
-              <option value="live-announcement">May 1 eSwatini · announcement (from lib/event.ts)</option>
-              <option value="live-reminder">May 1 reminder (from lib/event.ts)</option>
-              <option value="preset-announcement">May 1 eSwatini · announcement (hardcoded)</option>
-              <option value="preset-reminder">May 1 reminder (hardcoded)</option>
-              <option value="preset-update">Update: welcome new committee members</option>
-              <option value="blank">Blank</option>
+              <option value="live-announcement">May 1 · announcement (live site)</option>
+              <option value="live-reminder">May 1 · reminder (live site)</option>
+              <option value="preset-announcement">May 1 · announcement (sample)</option>
+              <option value="preset-reminder">May 1 · reminder (sample)</option>
+              <option value="preset-update">Update · welcome new committee members</option>
+              <option value="blank">Blank (empty state)</option>
             </select>
             <p className="mt-1.5 text-[11px] text-[color:var(--muted)]">
-              "Live" presets mirror <code>lib/event.ts</code>; switch to hardcoded to iterate on the template without moving the sample.
+              <strong>Live site</strong> pulls real data from <code>lib/event.ts</code> (updates when you edit the site). <strong>Sample</strong> is a static preset that stays stable while you iterate on the template.
             </p>
           </div>
 
