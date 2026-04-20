@@ -191,6 +191,10 @@ export async function scheduleAction(input: {
     sendMode: "scheduled",
     status: "scheduled",
   });
+  // Populate recipient_count so the campaigns list shows the real size, not 0.
+  // Cron re-computes at send time anyway, so drift is fine.
+  const count = await countFilteredRecipients(input.draft.filters);
+  await sql`UPDATE email_campaigns SET recipient_count = ${count} WHERE id = ${campaignId}`;
   revalidatePath(`/admin/email/campaigns`);
   revalidatePath(`/admin/email/campaigns/${campaignId}/edit`);
   return { ok: true, id: campaignId };
