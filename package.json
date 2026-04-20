@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.0.7",
     "@upstash/redis": "^1.37.0",
     "next": "^15.0.0",
     "papaparse": "^5.5.3",

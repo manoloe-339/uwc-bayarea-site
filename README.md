@@ -57,6 +57,44 @@ public/
   og-image.png   — TODO: generate 1200×630 for social sharing
 ```
 
+## Newsletter template
+
+The alumni newsletter is a React Email component at `emails/AlumniNewsletter.tsx`.
+A live preview is available at `/admin/email/preview` (password-gated); settings that
+feed the template (logo URL, physical address, WhatsApp / Foodies defaults) live in
+`/admin/email/settings` backed by the `site_settings` table.
+
+### Customizing
+
+- **Brand color:** `COLORS.brand` at the top of `emails/AlumniNewsletter.tsx`. Default
+  `#0265A8` (UWC navy, WCAG AA on white). If you change it, re-check contrast for the
+  CTA buttons.
+- **Spacing scale:** `SPACING.s{8,16,24,32,48}`. Stay on the scale for vertical rhythm.
+- **Section tints:** `COLORS.tintWhatsapp` (soft green) and `COLORS.tintFoodies` (warm
+  beige). Kept very soft so inbox clients don't fight them.
+- **All styles are inline.** Tailwind / utility classes do not survive email-client
+  rendering; don't be tempted. Use the `style` prop with CSS values.
+
+### Sample data (preview page)
+
+Sample presets live in `app/admin/email/preview/PreviewClient.tsx`. The "live"
+presets pull from `lib/event.ts`; "hardcoded" presets are stable strings you can
+edit in that file. The preview iframe renders via React Email's `render()` so what
+you see is what will ship.
+
+### Known email-client quirks
+
+- **Outlook (Windows):** ignores flexbox; use React Email's `Row` / `Column` primitives
+  which render as tables. Already done throughout the template.
+- **Gmail:** clips messages over 102KB (message is truncated with "View entire message"
+  link). Keep large images hosted externally, not inlined as base64.
+- **Dark-mode inversion:** iOS Mail + some Outlook versions auto-invert; we use off-white
+  (`#fafafa`) rather than pure white and ship `<meta name="color-scheme" content="light">`
+  in the head. Keep all background colors explicit — never `transparent`.
+- **Same-domain From→To:** Google Workspace treats email from your own domain sent via an
+  external provider (Resend) with extra scrutiny. Admin notifications fire to both the
+  Workspace mailbox and a Gmail fallback to route around this.
+
 ## TODO before going live
 
 - [ ] Replace `ticketUrl` placeholder in `lib/event.ts` with real purchase link
