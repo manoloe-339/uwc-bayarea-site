@@ -21,6 +21,29 @@ export default function SiteFooter() {
           <FooterLink href={CONTACT_MAILTO}>{CONTACT_EMAIL}</FooterLink>
         </div>
       </div>
+
+      {/* UWC parent-org credit. Mission wording is the official UWC phrasing
+          from uwc.org — keep 'people, nations and cultures' without the
+          Oxford comma. */}
+      <div className="max-w-[1200px] mx-auto px-7 pb-7">
+        <div className="border-t border-white/15 pt-5 text-[12px] leading-relaxed text-white/60 max-w-3xl">
+          <p>
+            UWC Bay Area is part of United World Colleges, a global education
+            movement founded in 1962 that makes education a force to unite
+            people, nations and cultures for peace and a sustainable future.
+          </p>
+          <p className="mt-2">
+            <a
+              href="https://www.uwc.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white/85 hover:text-white underline underline-offset-2 decoration-white/30 hover:decoration-white"
+            >
+              Learn more about UWC →
+            </a>
+          </p>
+        </div>
+      </div>
     </footer>
   );
 }
