@@ -19,14 +19,12 @@ export default function SiteHeader({ active }: { active?: NavKey }) {
         after:bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,.35)_20%,rgba(255,255,255,.35)_80%,transparent_100%)]"
     >
       <div className="max-w-[1200px] mx-auto flex items-center justify-between gap-6 px-5 sm:px-7 py-[14px] sm:py-[18px]">
-        <Link href="/" className="flex items-center gap-3 text-white no-underline" aria-label="UWC Bay Area home">
-          <img src="/uwc-logo-white.png" alt="" className="h-[34px] w-auto block" />
-          <span className="flex flex-col leading-none">
-            <span className="font-display font-semibold text-[18px] tracking-[-.01em]">UWC Bay Area</span>
-            <span className="hidden sm:block mt-[3px] text-[10.5px] tracking-[.26em] uppercase font-semibold text-white/70">
-              Alumni &amp; Friends
-            </span>
-          </span>
+        <Link href="/" className="flex items-center text-white no-underline" aria-label="UWC Bay Area home">
+          <img
+            src="/uwc-bay-area-logo.jpg"
+            alt="UWC Bay Area · Alumni & Friends"
+            className="h-[46px] sm:h-[52px] w-auto block rounded-sm"
+          />
         </Link>
 
         <div className="flex items-center gap-1">

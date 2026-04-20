@@ -7,9 +7,12 @@ export default function SiteFooter() {
   return (
     <footer className="bg-navy text-white/85">
       <div className="max-w-[1200px] mx-auto px-7 py-7 flex flex-wrap items-center justify-between gap-4 text-[13px]">
-        <Link href="/" className="flex items-center gap-2.5 text-white no-underline" aria-label="UWC Bay Area home">
-          <img src="/uwc-logo-white.png" alt="" className="h-7 w-auto block" />
-          <span className="font-display font-semibold text-[15px] tracking-[-.01em]">UWC Bay Area</span>
+        <Link href="/" className="flex items-center text-white no-underline" aria-label="UWC Bay Area home">
+          <img
+            src="/uwc-bay-area-logo.jpg"
+            alt="UWC Bay Area · Alumni & Friends"
+            className="h-9 w-auto block rounded-sm"
+          />
         </Link>
         <div className="flex flex-wrap gap-4 sm:gap-[18px]">
           <FooterLink href="/">Home</FooterLink>
