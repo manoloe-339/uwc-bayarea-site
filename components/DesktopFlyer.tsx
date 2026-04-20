@@ -246,7 +246,6 @@ export default function DesktopFlyer({ seatsRemaining = event.totalSeats }: { se
                 Reach out
               </a>
             }
-            sub={event.contactEmail.toUpperCase()}
           />
         </footer>
       </div>

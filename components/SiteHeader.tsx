@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 type NavKey = "home" | "events" | "signup" | "contact";
 
-const CONTACT_MAILTO = "mailto:manoloe@gmail.com?subject=UWC%20Bay%20Area%20help";
+const CONTACT_MAILTO = "mailto:manolo@uwcbayarea.org?subject=UWC%20Bay%20Area%20help";
 
 // Sign Up is promoted to a standalone CTA on mobile; the rest live in the
 // hamburger drawer. Desktop renders every link inline, as today.

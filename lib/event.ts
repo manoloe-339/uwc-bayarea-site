@@ -87,7 +87,7 @@ const _event = {
   lowSeatsThreshold: 10,
   priceNote: "Limited capacity",
   ticketUrl: "https://buy.stripe.com/aFaeVddbsdMF3dmbC98Ra03",
-  contactEmail: "manoloe@gmail.com",
+  contactEmail: "manolo@uwcbayarea.org",
   refreshments: "Light fare served",
 } as const;
 

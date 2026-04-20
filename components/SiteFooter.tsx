@@ -1,7 +1,8 @@
 import Link from "next/link";
 
-const CONTACT_EMAIL = "manoloe@gmail.com";
-const CONTACT_MAILTO = `mailto:${CONTACT_EMAIL}?subject=UWC%20Bay%20Area%20help`;
+// Displayed link label is "Contact" — we deliberately don't render the email
+// address in page text to avoid spam scrapers.
+const CONTACT_MAILTO = "mailto:manolo@uwcbayarea.org?subject=UWC%20Bay%20Area%20help";
 
 export default function SiteFooter() {
   return (
@@ -18,7 +19,7 @@ export default function SiteFooter() {
           <FooterLink href="/">Home</FooterLink>
           <FooterLink href="/">Events</FooterLink>
           <FooterLink href="/signup">Sign up</FooterLink>
-          <FooterLink href={CONTACT_MAILTO}>{CONTACT_EMAIL}</FooterLink>
+          <FooterLink href={CONTACT_MAILTO}>Contact</FooterLink>
         </div>
       </div>
 

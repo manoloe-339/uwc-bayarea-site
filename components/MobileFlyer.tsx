@@ -265,7 +265,6 @@ export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { sea
               Reach out
             </a>
           }
-          sub={event.contactEmail}
         />
       </footer>
     </div>
