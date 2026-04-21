@@ -92,6 +92,8 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     engagement: pickStr(sp, "engagement") as AlumniFilters["engagement"],
   };
 
+  const showPhotos = pickStr(sp, "showPhotos") === "1";
+
   const [rows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
 
   const qs = new URLSearchParams();
@@ -187,6 +189,16 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] sm:col-span-2">
           <input
             type="checkbox"
+            name="showPhotos"
+            value="1"
+            defaultChecked={showPhotos}
+          />
+          Show photos in results
+        </label>
+        <div className="hidden sm:block sm:col-span-2" />
+        <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] sm:col-span-2">
+          <input
+            type="checkbox"
             name="includeNonAlums"
             value="1"
             defaultChecked={filters.includeNonAlums}
@@ -263,6 +275,9 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                     />
                   </Td>
                   <Td>
+                    <div className="flex items-start gap-2.5">
+                      {showPhotos && <Thumb url={r.photo_url} firstName={r.first_name} email={r.email} size={40} />}
+                      <div className="flex-1 min-w-0">
                     <Link
                       href={`/admin/alumni/${r.id}`}
                       className="font-semibold text-navy hover:underline block"
@@ -293,6 +308,8 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                           {r.flags.join(", ")}
                         </span>
                       )}
+                    </div>
+                      </div>
                     </div>
                   </Td>
                   <Td>{r.uwc_college ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
@@ -350,6 +367,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                   aria-label={`Select ${fullName}`}
                   className="mt-1 shrink-0 w-4 h-4"
                 />
+                {showPhotos && <Thumb url={r.photo_url} firstName={r.first_name} email={r.email} size={44} />}
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-1">
                     <Link
@@ -527,6 +545,37 @@ function Td({ children }: { children: React.ReactNode }) {
 
 // Mobile-only row of "Label: value · Label: value" that gracefully hides any
 // pair whose value is blank.
+function Thumb({
+  url, firstName, email, size,
+}: {
+  url: string | null;
+  firstName: string | null;
+  email: string;
+  size: number;
+}) {
+  const letter = (firstName?.[0] ?? email[0] ?? "?").toUpperCase();
+  const common = "rounded-full border border-[color:var(--rule)] shrink-0 overflow-hidden";
+  const style: React.CSSProperties = { width: size, height: size };
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt=""
+        className={`${common} object-cover bg-ivory-2`}
+        style={style}
+      />
+    );
+  }
+  return (
+    <div
+      className={`${common} bg-ivory-2 flex items-center justify-center text-[color:var(--muted)] font-sans font-bold`}
+      style={{ ...style, fontSize: Math.round(size * 0.42) }}
+    >
+      {letter}
+    </div>
+  );
+}
+
 function IndustrySelect({
   options, selected,
 }: {
