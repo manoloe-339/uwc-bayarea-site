@@ -175,7 +175,10 @@ export async function searchAlumni(f: AlumniFilters, limit = 500): Promise<Alumn
     SELECT id, first_name, last_name, email, mobile, linkedin_url, origin,
            uwc_college, grad_year, current_city, region, affiliation, company,
            help_tags, national_committee, about, questions, studying, working,
-           subscribed, sources, flags
+           subscribed, sources, flags,
+           headline, photo_url, current_title, current_company,
+           current_company_industry, uwc_verified, total_experience_years,
+           location_city, location_country
     FROM alumni
     ${where}
     ORDER BY grad_year DESC NULLS LAST, last_name ASC NULLS LAST, first_name ASC NULLS LAST

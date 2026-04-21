@@ -209,7 +209,13 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         </div>
       </form>
 
-      <div className="flex items-center justify-end mb-3 text-sm">
+      <div className="flex items-center justify-between mb-3 text-sm">
+        <p className="font-sans font-semibold text-[color:var(--navy-ink)]">
+          {total.toLocaleString()} {total === 1 ? "match" : "matches"}
+          {rows.length < total ? (
+            <span className="font-normal text-[color:var(--muted)]"> · showing first {rows.length}</span>
+          ) : null}
+        </p>
         <SelectedCountLink formId="alumni-select-form" />
       </div>
 
