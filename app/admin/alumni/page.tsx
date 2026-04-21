@@ -178,35 +178,35 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                   <Td>
                     <Link
                       href={`/admin/alumni/${r.id}`}
-                      className="font-semibold text-navy hover:underline"
+                      className="font-semibold text-navy hover:underline block"
                     >
                       {[r.first_name, r.last_name].filter(Boolean).join(" ") || r.email}
                     </Link>
-                    {r.linkedin_url && (
-                      <a
-                        href={r.linkedin_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="LinkedIn profile"
-                        title="Open LinkedIn profile"
-                        className="ml-1.5 inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#0A66C2] text-white text-[10px] font-bold align-middle hover:brightness-110"
-                      >
-                        in
-                      </a>
-                    )}
-                    <span className="ml-1.5">
+                    <div className="mt-1 flex items-center gap-1.5">
+                      {r.linkedin_url && (
+                        <a
+                          href={r.linkedin_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label="LinkedIn profile"
+                          title="Open LinkedIn profile"
+                          className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#0A66C2] text-white text-[10px] font-bold hover:brightness-110"
+                        >
+                          in
+                        </a>
+                      )}
                       <QuickLinks email={r.email} mobile={r.mobile} />
-                    </span>
-                    {r.affiliation && r.affiliation !== "Alum" && (
-                      <span className="ml-2 text-[10px] text-[color:var(--muted)] uppercase tracking-wider">
-                        {r.affiliation}
-                      </span>
-                    )}
-                    {r.flags?.length > 0 && (
-                      <span className="ml-2 text-[10px] text-orange-700 uppercase tracking-wider">
-                        {r.flags.join(", ")}
-                      </span>
-                    )}
+                      {r.affiliation && r.affiliation !== "Alum" && (
+                        <span className="ml-1 text-[10px] text-[color:var(--muted)] uppercase tracking-wider">
+                          {r.affiliation}
+                        </span>
+                      )}
+                      {r.flags?.length > 0 && (
+                        <span className="ml-1 text-[10px] text-orange-700 uppercase tracking-wider">
+                          {r.flags.join(", ")}
+                        </span>
+                      )}
+                    </div>
                   </Td>
                   <Td>{r.uwc_college ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
                   <Td>{r.grad_year ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
