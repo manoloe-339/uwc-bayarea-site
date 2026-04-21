@@ -89,6 +89,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     expBand: pickStr(sp, "expBand") as ExperienceBand | undefined,
     uwcVerified: pickStr(sp, "uwcVerified") as AlumniFilters["uwcVerified"],
     hasPhoto: pickStr(sp, "hasPhoto") === "1",
+    engagement: pickStr(sp, "engagement") as AlumniFilters["engagement"],
   };
 
   const [rows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
@@ -174,7 +175,13 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <input type="checkbox" name="hasPhoto" value="1" defaultChecked={filters.hasPhoto} />
           Has photo
         </label>
-        <div /> {/* spacer to keep the grid aligned */}
+        <Select label="Email engagement" name="engagement" defaultValue={filters.engagement ?? ""}>
+          <option value="">Any</option>
+          <option value="opened_any">Opened any email</option>
+          <option value="clicked_any">Clicked any link</option>
+          <option value="never_opened">Received, never opened</option>
+          <option value="never_received">Never received an email</option>
+        </Select>
 
         {/* Include-rows */}
         <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] sm:col-span-2">
