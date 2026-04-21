@@ -47,6 +47,28 @@ type AlumRecord = {
   imported_at: string | null;
   updated_at: string | null;
   photo_url: string | null;
+  // LinkedIn enrichment
+  linkedin_alternate_email: string | null;
+  headline: string | null;
+  linkedin_about: string | null;
+  location_full: string | null;
+  location_city: string | null;
+  location_country: string | null;
+  current_title: string | null;
+  current_company: string | null;
+  current_company_id: string | null;
+  current_company_linkedin: string | null;
+  current_company_industry: string | null;
+  current_company_size: string | null;
+  current_company_website: string | null;
+  current_location: string | null;
+  current_since: string | null;
+  uwc_verified: boolean | null;
+  uwc_school_matched: string | null;
+  total_experience_years: string | number | null;
+  first_role_year: number | null;
+  enriched_at: string | null;
+  enrichment_source: string | null;
 };
 
 async function updateAlumnus(id: number, formData: FormData) {
@@ -177,7 +199,23 @@ export default async function AlumnusPage({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">{name}</h1>
+          <div className="flex items-center flex-wrap gap-2 mb-1">
+            <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">{name}</h1>
+            {r.uwc_verified === true && (
+              <span
+                title="LinkedIn education history includes UWC attendance"
+                className="inline-flex items-center gap-1 text-[11px] tracking-[.12em] uppercase font-bold text-green-800 bg-green-50 border border-green-200 rounded-full px-2 py-0.5"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                UWC verified
+              </span>
+            )}
+          </div>
+          {r.headline && (
+            <p className="text-[color:var(--navy-ink)] italic text-sm mb-1">{r.headline}</p>
+          )}
           <p className="text-[color:var(--muted)] text-sm">
             Record #{r.id}
             {r.submitted_at ? ` · submitted ${fmtDate(r.submitted_at)}` : ""}
@@ -263,10 +301,74 @@ export default async function AlumnusPage({
         <Section title="Other">
           <Grid>
             <Field label="How would you like to help? (tags)" name="help_tags" defaultValue={r.help_tags} full />
-            <Textarea label="Something about you" name="about" defaultValue={r.about} />
+            <Textarea label="Something about you (self-reported)" name="about" defaultValue={r.about} />
             <Textarea label="Any questions?" name="questions" defaultValue={r.questions} />
           </Grid>
         </Section>
+
+        {hasAnyLinkedInData(r) && (
+          <Section title="LinkedIn — current role">
+            {r.current_title || r.current_company ? (
+              <Grid>
+                <ReadOnly label="Title" value={r.current_title} />
+                <ReadOnly
+                  label="Company"
+                  value={r.current_company}
+                  href={r.current_company_linkedin ?? undefined}
+                />
+                <ReadOnly label="Industry" value={r.current_company_industry} />
+                <ReadOnly label="Company size" value={r.current_company_size} />
+                <ReadOnly label="Started" value={formatMonthYear(r.current_since)} />
+                <ReadOnly label="Location" value={r.current_location} />
+                {r.current_company_website && (
+                  <ReadOnly
+                    label="Company website"
+                    value={r.current_company_website}
+                    href={r.current_company_website}
+                    full
+                  />
+                )}
+              </Grid>
+            ) : (
+              <p className="text-sm text-[color:var(--muted)] italic">
+                No current role on their public LinkedIn profile.
+              </p>
+            )}
+          </Section>
+        )}
+
+        {hasAnyLinkedInData(r) && (
+          <Section title="LinkedIn — profile">
+            <Grid>
+              <ReadOnly label="Headline" value={r.headline} full />
+              <ReadOnly
+                label="LinkedIn location"
+                value={r.location_full}
+                hint="Parsed from their public profile; may differ from the self-reported city above."
+                full
+              />
+              <ReadOnly label="Alternate email (from LinkedIn)" value={r.linkedin_alternate_email} />
+              <ReadOnly
+                label="Experience"
+                value={
+                  r.total_experience_years != null
+                    ? `${Number(r.total_experience_years).toFixed(1)} years${
+                        r.first_role_year ? ` · first role ${r.first_role_year}` : ""
+                      }`
+                    : null
+                }
+              />
+              <ReadOnlyTextarea
+                label="LinkedIn about"
+                value={r.linkedin_about}
+                full
+              />
+              {r.uwc_school_matched && (
+                <ReadOnly label="UWC match (LinkedIn)" value={r.uwc_school_matched} full />
+              )}
+            </Grid>
+          </Section>
+        )}
 
         <Section title="Engagement">
           <div className="space-y-2">
@@ -283,8 +385,13 @@ export default async function AlumnusPage({
 
         <div className="flex items-center justify-between pt-4 border-t border-[color:var(--rule)]">
           <div className="text-[11px] tracking-[.22em] uppercase text-[color:var(--muted)]">
-            {r.sources?.length ? `Sources: ${r.sources.join(", ")}` : "No source tagged"}
+            Sources: {sourcesLabel(r.sources, r.enrichment_source)}
             {r.flags?.length ? ` · flags: ${r.flags.join(", ")}` : ""}
+            {r.enriched_at && (
+              <span className="ml-3 normal-case tracking-normal text-[11px]">
+                Last enriched {fmtDate(r.enriched_at)}
+              </span>
+            )}
           </div>
           <div className="flex gap-2">
             <button type="submit" className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold">
@@ -354,6 +461,91 @@ export default async function AlumnusPage({
           </table>
         </section>
       )}
+    </div>
+  );
+}
+
+function hasAnyLinkedInData(r: AlumRecord): boolean {
+  return !!(
+    r.headline ||
+    r.linkedin_about ||
+    r.current_title ||
+    r.current_company ||
+    r.location_full ||
+    r.linkedin_alternate_email ||
+    r.total_experience_years ||
+    r.enriched_at
+  );
+}
+
+function formatMonthYear(v: string | null | undefined): string | null {
+  // Enrichment stores "M-YYYY" (e.g. "2-2024"). Render as "February 2024".
+  if (!v) return null;
+  const m = /^(\d{1,2})-(\d{4})$/.exec(v);
+  if (!m) return v;
+  const month = Number(m[1]);
+  const year = m[2];
+  const names = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+  if (month < 1 || month > 12) return v;
+  return `${names[month - 1]} ${year}`;
+}
+
+function sourcesLabel(sources: string[] | null, enrichmentSource: string | null): string {
+  const parts: string[] = sources ?? [];
+  if (enrichmentSource && !parts.some((p) => p.toLowerCase().includes("linkedin"))) {
+    parts.push("LINKEDIN_ENRICHMENT");
+  }
+  return parts.length > 0 ? parts.join(", ") : "No source tagged";
+}
+
+function ReadOnly({
+  label, value, href, hint, full,
+}: {
+  label: string;
+  value: string | null | undefined;
+  href?: string;
+  hint?: string;
+  full?: boolean;
+}) {
+  if (!value) return null;
+  return (
+    <div className={`${full ? "sm:col-span-2" : ""}`}>
+      <div className="text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+        {label}
+      </div>
+      <div className="text-sm text-[color:var(--navy-ink)] bg-ivory-2 border border-[color:var(--rule)] rounded px-3 py-2 min-h-[2.25rem]">
+        {href ? (
+          <a href={href} target="_blank" rel="noreferrer" className="text-navy hover:underline break-all">
+            {value}
+          </a>
+        ) : (
+          value
+        )}
+      </div>
+      {hint && <div className="mt-1 text-xs text-[color:var(--muted)]">{hint}</div>}
+    </div>
+  );
+}
+
+function ReadOnlyTextarea({
+  label, value, full,
+}: {
+  label: string;
+  value: string | null | undefined;
+  full?: boolean;
+}) {
+  if (!value) return null;
+  return (
+    <div className={`${full ? "sm:col-span-2" : ""}`}>
+      <div className="text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+        {label}
+      </div>
+      <div className="text-sm text-[color:var(--navy-ink)] bg-ivory-2 border border-[color:var(--rule)] rounded px-3 py-2 whitespace-pre-wrap leading-relaxed max-h-[260px] overflow-auto">
+        {value}
+      </div>
     </div>
   );
 }

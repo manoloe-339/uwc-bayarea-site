@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { COLLEGES } from "@/lib/uwc-colleges";
 import { REGIONS } from "@/lib/region";
-import { searchAlumni, countAlumni, type AlumniFilters } from "@/lib/alumni-query";
+import { sql } from "@/lib/db";
+import { searchAlumni, countAlumni, type AlumniFilters, type ExperienceBand } from "@/lib/alumni-query";
 import YearFilter from "@/components/admin/YearFilter";
 import { SelectAllCheckbox, SelectedCountLink } from "@/components/admin/AlumniSelection";
 
@@ -14,7 +15,12 @@ function pickStr(sp: SP, key: string): string | undefined {
   const s = Array.isArray(v) ? v[0] : v;
   return s && s.trim() ? s.trim() : undefined;
 }
-
+function pickAll(sp: SP, key: string): string[] {
+  const v = sp[key];
+  if (v == null) return [];
+  const arr = Array.isArray(v) ? v : [v];
+  return arr.filter((x): x is string => typeof x === "string" && x.trim().length > 0);
+}
 function pickNum(sp: SP, key: string): number | undefined {
   const s = pickStr(sp, key);
   if (!s) return undefined;
@@ -22,8 +28,46 @@ function pickNum(sp: SP, key: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+type IndustryOption = { value: string; count: number };
+type CompanyOption = { name: string; id: string | null; count: number };
+
+async function loadFilterOptions(): Promise<{ industries: IndustryOption[]; companies: CompanyOption[] }> {
+  const [indRows, compRows] = await Promise.all([
+    sql`
+      SELECT current_company_industry AS value, COUNT(*)::int AS count
+      FROM alumni
+      WHERE current_company_industry IS NOT NULL
+      GROUP BY current_company_industry
+      ORDER BY count DESC, current_company_industry ASC
+    `,
+    sql`
+      SELECT current_company AS name,
+             MIN(current_company_id) AS id,
+             COUNT(*)::int AS count
+      FROM alumni
+      WHERE current_company IS NOT NULL
+      GROUP BY current_company
+      ORDER BY count DESC, current_company ASC
+    `,
+  ]);
+  return {
+    industries: indRows as IndustryOption[],
+    companies: compRows as CompanyOption[],
+  };
+}
+
 export default async function AlumniPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
+
+  // Load industry + company option lists up-front so we can (a) populate the
+  // form widgets and (b) resolve the typed-company string to its stable
+  // current_company_id for accurate matching.
+  const { industries, companies } = await loadFilterOptions();
+  const companyIdMap: Record<string, string> = {};
+  for (const c of companies) {
+    if (c.id) companyIdMap[c.name.toLowerCase()] = c.id;
+  }
+
   const filters: AlumniFilters = {
     q: pickStr(sp, "q"),
     college: pickStr(sp, "college"),
@@ -35,8 +79,16 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     help: pickStr(sp, "help"),
     includeNonAlums: pickStr(sp, "includeNonAlums") === "1",
     includeMovedOut: pickStr(sp, "includeMovedOut") === "1",
-    subscription: (pickStr(sp, "subscription") as AlumniFilters["subscription"]) ?? "subscribed",
-    engagement: pickStr(sp, "engagement") as AlumniFilters["engagement"],
+    // Subscription / engagement removed from UI but kept as filter-API defaults
+    // so the send pipeline (which reuses this filter shape) still excludes
+    // unsubscribed alumni by default.
+    subscription: "any",
+    industries: pickAll(sp, "industries"),
+    company: pickStr(sp, "company"),
+    companyIdMap,
+    expBand: pickStr(sp, "expBand") as ExperienceBand | undefined,
+    uwcVerified: pickStr(sp, "uwcVerified") as AlumniFilters["uwcVerified"],
+    hasPhoto: pickStr(sp, "hasPhoto") === "1",
   };
 
   const [rows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
@@ -70,7 +122,16 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         key={JSON.stringify(filters)}
         className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
-        <Field label="Search (name, city, bio, work…)" name="q" defaultValue={filters.q} placeholder="e.g. finance" span="lg:col-span-2" />
+        {/* Row 1 — full-width free-text search */}
+        <Field
+          label="Search (name, city, bio, work…)"
+          name="q"
+          defaultValue={filters.q}
+          placeholder="e.g. finance"
+          span="sm:col-span-2 lg:col-span-4"
+        />
+
+        {/* Row 2 — college / region / year / industry */}
         <Select label="College" name="college" defaultValue={filters.college}>
           <option value="">Any</option>
           {COLLEGES.map((c) => (
@@ -87,22 +148,35 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             </option>
           ))}
         </Select>
+        <YearFilter initialFrom={filters.yearFrom} initialTo={filters.yearTo} />
+        <IndustrySelect options={industries} selected={filters.industries ?? []} />
+
+        {/* Row 3 — origin / city / current company / experience */}
         <Field label="Origin contains" name="origin" defaultValue={filters.origin} placeholder="e.g. Brazil" />
         <Field label="City contains" name="city" defaultValue={filters.city} placeholder="e.g. San Francisco" />
-        <YearFilter initialFrom={filters.yearFrom} initialTo={filters.yearTo} />
-        <Field label="Help tag contains" name="help" defaultValue={filters.help} placeholder="e.g. events" />
-        <Select label="Subscription" name="subscription" defaultValue={filters.subscription}>
-          <option value="subscribed">Subscribed only</option>
-          <option value="unsubscribed">Unsubscribed only</option>
-          <option value="any">Any</option>
-        </Select>
-        <Select label="Email engagement" name="engagement" defaultValue={filters.engagement ?? ""}>
+        <CompanyField options={companies} value={filters.company} />
+        <Select label="Experience" name="expBand" defaultValue={filters.expBand ?? ""}>
           <option value="">Any</option>
-          <option value="opened_any">Opened any email</option>
-          <option value="clicked_any">Clicked any link</option>
-          <option value="never_opened">Received, never opened</option>
-          <option value="never_received">Never received an email</option>
+          <option value="0-3">0–3 years</option>
+          <option value="3-7">3–7 years</option>
+          <option value="7-15">7–15 years</option>
+          <option value="15+">15+ years</option>
         </Select>
+
+        {/* Row 4 — help tag / uwc verified / has photo */}
+        <Field label="Help tag contains" name="help" defaultValue={filters.help} placeholder="e.g. events" />
+        <Select label="UWC verified" name="uwcVerified" defaultValue={filters.uwcVerified ?? ""}>
+          <option value="">Any</option>
+          <option value="verified">Verified only</option>
+          <option value="unverified">Unverified only</option>
+        </Select>
+        <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] mt-auto pb-2">
+          <input type="checkbox" name="hasPhoto" value="1" defaultChecked={filters.hasPhoto} />
+          Has photo
+        </label>
+        <div /> {/* spacer to keep the grid aligned */}
+
+        {/* Include-rows */}
         <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] sm:col-span-2">
           <input
             type="checkbox"
@@ -121,6 +195,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           />
           Include alumni who moved out of the Bay Area
         </label>
+
         <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
           <button
             type="submit"
@@ -152,15 +227,14 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                 <Th>Year</Th>
                 <Th>Origin</Th>
                 <Th>City</Th>
-                <Th>Region</Th>
-                <Th>Company</Th>
-                <Th>Email</Th>
+                <Th>Current title</Th>
+                <Th>Current company</Th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-[color:var(--muted)]">
+                  <td colSpan={8} className="p-8 text-center text-[color:var(--muted)]">
                     No matches.
                   </td>
                 </tr>
@@ -211,11 +285,24 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                   <Td>{r.uwc_college ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
                   <Td>{r.grad_year ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
                   <Td>{r.origin ?? "—"}</Td>
-                  <Td>{r.current_city ?? "—"}</Td>
-                  <Td>{r.region ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
-                  <Td>{r.company ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
+                  <Td>{r.current_city ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
                   <Td>
-                    <a href={`mailto:${r.email}`} className="text-navy hover:underline">{r.email}</a>
+                    {r.current_title ? (
+                      <span className="block max-w-[220px] truncate" title={r.current_title}>
+                        {r.current_title}
+                      </span>
+                    ) : (
+                      <span className="text-[color:var(--muted)]">—</span>
+                    )}
+                  </Td>
+                  <Td>
+                    {r.current_company ? (
+                      <span className="block max-w-[180px] truncate" title={r.current_company}>
+                        {r.current_company}
+                      </span>
+                    ) : (
+                      <span className="text-[color:var(--muted)]">—</span>
+                    )}
                   </Td>
                 </tr>
               ))}
@@ -281,10 +368,22 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                       </span>
                     )}
                   </div>
+                  {r.headline && (
+                    <div className="text-xs italic text-[color:var(--muted)] mb-1 line-clamp-2">
+                      {r.headline}
+                    </div>
+                  )}
                   <MetaLine
                     pairs={[
                       ["College", r.uwc_college],
                       ["Year", r.grad_year ?? undefined],
+                    ]}
+                  />
+                  <MetaLine
+                    pairs={[
+                      ["Current", r.current_title && r.current_company
+                        ? `${r.current_title} @ ${r.current_company}`
+                        : r.current_title || r.current_company || undefined],
                     ]}
                   />
                   <MetaLine
@@ -294,7 +393,6 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                       ["Region", r.region],
                     ]}
                   />
-                  <MetaLine pairs={[["Company", r.company]]} />
                   <div className="mt-1.5">
                     <a
                       href={`mailto:${r.email}`}
@@ -416,6 +514,63 @@ function Td({ children }: { children: React.ReactNode }) {
 
 // Mobile-only row of "Label: value · Label: value" that gracefully hides any
 // pair whose value is blank.
+function IndustrySelect({
+  options, selected,
+}: {
+  options: IndustryOption[];
+  selected: string[];
+}) {
+  const set = new Set(selected);
+  // Native multiple <select> — holding Cmd / Ctrl to select several. Options
+  // are pre-sorted by frequency on the server.
+  return (
+    <label className="block">
+      <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+        Industry
+      </span>
+      <select
+        name="industries"
+        multiple
+        defaultValue={selected}
+        className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-xs bg-white h-[92px]"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value} selected={set.has(o.value)}>
+            {o.value} ({o.count})
+          </option>
+        ))}
+      </select>
+      <span className="block mt-1 text-[10px] text-[color:var(--muted)]">
+        Hold ⌘ / Ctrl to pick multiple.
+      </span>
+    </label>
+  );
+}
+
+function CompanyField({ options, value }: { options: CompanyOption[]; value?: string }) {
+  return (
+    <label className="block">
+      <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+        Current company
+      </span>
+      <input
+        list="alumni-company-list"
+        name="company"
+        defaultValue={value ?? ""}
+        placeholder="e.g. Google"
+        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+      />
+      <datalist id="alumni-company-list">
+        {options.map((o) => (
+          <option key={`${o.name}|${o.id ?? ""}`} value={o.name}>
+            {o.count} alum{o.count === 1 ? "" : "s"}
+          </option>
+        ))}
+      </datalist>
+    </label>
+  );
+}
+
 function MetaLine({ pairs }: { pairs: [string, string | number | null | undefined][] }) {
   const filled = pairs.filter(([, v]) => v !== null && v !== undefined && v !== "");
   if (filled.length === 0) return null;
