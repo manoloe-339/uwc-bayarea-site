@@ -526,9 +526,9 @@ function IndustrySelect({
   options: IndustryOption[];
   selected: string[];
 }) {
-  const set = new Set(selected);
-  // Native multiple <select> — holding Cmd / Ctrl to select several. Options
-  // are pre-sorted by frequency on the server.
+  // Single-select dropdown. The underlying filter API still accepts an array
+  // (industries[]) but the UI only submits one value at a time.
+  const current = selected[0] ?? "";
   return (
     <label className="block">
       <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
@@ -536,19 +536,16 @@ function IndustrySelect({
       </span>
       <select
         name="industries"
-        multiple
-        defaultValue={selected}
-        className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-xs bg-white h-[92px]"
+        defaultValue={current}
+        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
       >
+        <option value="">Any</option>
         {options.map((o) => (
-          <option key={o.value} value={o.value} selected={set.has(o.value)}>
+          <option key={o.value} value={o.value}>
             {o.value} ({o.count})
           </option>
         ))}
       </select>
-      <span className="block mt-1 text-[10px] text-[color:var(--muted)]">
-        Hold ⌘ / Ctrl to pick multiple.
-      </span>
     </label>
   );
 }
