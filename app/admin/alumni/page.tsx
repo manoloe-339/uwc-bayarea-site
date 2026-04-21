@@ -294,7 +294,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                   <Td>{r.current_city ?? <span className="text-[color:var(--muted)]">—</span>}</Td>
                   <Td>
                     {r.current_title ? (
-                      <span className="block max-w-[220px] truncate" title={r.current_title}>
+                      <span className="block max-w-[240px] break-words leading-snug">
                         {r.current_title}
                       </span>
                     ) : (
@@ -303,7 +303,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                   </Td>
                   <Td>
                     {r.current_company ? (
-                      <span className="block max-w-[180px] truncate" title={r.current_company}>
+                      <span className="block max-w-[180px] break-words leading-snug">
                         {r.current_company}
                       </span>
                     ) : (
