@@ -13,6 +13,7 @@
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.0.7",
     "@upstash/redis": "^1.37.0",
+    "@vercel/blob": "^2.3.3",
     "@vercel/functions": "^3.4.3",
     "next": "^15.0.0",
     "papaparse": "^5.5.3",

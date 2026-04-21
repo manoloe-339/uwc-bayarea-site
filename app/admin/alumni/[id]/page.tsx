@@ -46,6 +46,7 @@ type AlumRecord = {
   flags: string[] | null;
   imported_at: string | null;
   updated_at: string | null;
+  photo_url: string | null;
 };
 
 async function updateAlumnus(id: number, formData: FormData) {
@@ -163,13 +164,28 @@ export default async function AlumnusPage({
           ← Back to alumni
         </Link>
       </div>
-      <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">{name}</h1>
-      <p className="text-[color:var(--muted)] text-sm mb-6">
-        Record #{r.id}
-        {r.submitted_at ? ` · submitted ${fmtDate(r.submitted_at)}` : ""}
-        {r.imported_at ? ` · imported ${fmtDate(r.imported_at)}` : ""}
-        {r.updated_at ? ` · updated ${fmtDate(r.updated_at)}` : ""}
-      </p>
+      <div className="flex items-start gap-4 mb-6">
+        {r.photo_url ? (
+          <img
+            src={r.photo_url}
+            alt={name}
+            className="w-20 h-20 rounded-full object-cover bg-ivory-2 border border-[color:var(--rule)] shrink-0"
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-full bg-ivory-2 border border-[color:var(--rule)] flex items-center justify-center text-[color:var(--muted)] text-xl font-sans font-bold shrink-0">
+            {(r.first_name?.[0] ?? r.email[0] ?? "?").toUpperCase()}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">{name}</h1>
+          <p className="text-[color:var(--muted)] text-sm">
+            Record #{r.id}
+            {r.submitted_at ? ` · submitted ${fmtDate(r.submitted_at)}` : ""}
+            {r.imported_at ? ` · imported ${fmtDate(r.imported_at)}` : ""}
+            {r.updated_at ? ` · updated ${fmtDate(r.updated_at)}` : ""}
+          </p>
+        </div>
+      </div>
 
       {saved && (
         <div className="mb-5 p-3 bg-ivory-2 border-l-4 border-navy rounded-[2px] text-sm">
