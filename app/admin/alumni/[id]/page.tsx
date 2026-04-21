@@ -257,7 +257,25 @@ export default async function AlumnusPage({
             <Field label="Last name" name="last_name" defaultValue={r.last_name} />
             <Field label="Email" name="email" type="email" defaultValue={r.email} required />
             <Field label="Mobile" name="mobile" defaultValue={r.mobile} />
-            <Field label="LinkedIn URL" name="linkedin_url" defaultValue={r.linkedin_url} />
+            <Field
+              label="LinkedIn URL"
+              name="linkedin_url"
+              defaultValue={r.linkedin_url}
+              labelAddon={
+                r.linkedin_url ? (
+                  <a
+                    href={r.linkedin_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Open LinkedIn profile"
+                    title="Open LinkedIn profile"
+                    className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#0A66C2] text-white text-[10px] font-bold hover:brightness-110 normal-case tracking-normal"
+                  >
+                    in
+                  </a>
+                ) : null
+              }
+            />
             <SelectField label="Affiliation" name="affiliation" defaultValue={r.affiliation} options={[{ value: "", label: "—" }, ...AFFILIATIONS.map((a) => ({ value: a, label: a }))]} />
           </Grid>
         </Section>
@@ -564,13 +582,17 @@ function Grid({ children }: { children: React.ReactNode }) {
 }
 
 function Field({
-  label, name, defaultValue, type = "text", required, full,
+  label, name, defaultValue, type = "text", required, full, labelAddon,
 }: {
   label: string; name: string; defaultValue?: string | null; type?: string; required?: boolean; full?: boolean;
+  labelAddon?: React.ReactNode;
 }) {
   return (
     <label className={`block ${full ? "sm:col-span-2" : ""}`}>
-      <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">{label}</span>
+      <span className="flex items-center gap-2 text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+        <span>{label}</span>
+        {labelAddon}
+      </span>
       <input
         name={name}
         type={type}
