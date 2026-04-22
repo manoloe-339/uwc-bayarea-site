@@ -113,7 +113,7 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
     const q = `%${f.q.toLowerCase()}%`;
     push(
       (n) =>
-        `(lower(first_name) LIKE $${n} OR lower(last_name) LIKE $${n} OR lower(current_city) LIKE $${n} OR lower(about) LIKE $${n} OR lower(working) LIKE $${n} OR lower(studying) LIKE $${n} OR lower(help_tags) LIKE $${n} OR lower(company) LIKE $${n})`,
+        `(lower(first_name) LIKE $${n} OR lower(last_name) LIKE $${n} OR lower(current_city) LIKE $${n} OR lower(about) LIKE $${n} OR lower(working) LIKE $${n} OR lower(studying) LIKE $${n} OR lower(help_tags) LIKE $${n} OR lower(company) LIKE $${n} OR lower(current_company) LIKE $${n} OR lower(current_title) LIKE $${n} OR lower(headline) LIKE $${n} OR lower(linkedin_about) LIKE $${n})`,
       q
     );
   }
