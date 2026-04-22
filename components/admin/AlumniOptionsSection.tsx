@@ -8,6 +8,7 @@ type Props = {
   includeNonAlums: boolean;
   includeMovedOut: boolean;
   eventMode: boolean;
+  searchNL: boolean;
   rankByEngagement: boolean;
   rankByDiversity: boolean;
   rankByRecency: boolean;
@@ -16,6 +17,21 @@ type Props = {
 
 export function AlumniOptionsSection(p: Props) {
   const [eventMode, setEventMode] = useState(p.eventMode);
+  const [searchNL, setSearchNL] = useState(p.searchNL);
+
+  // Mutual exclusion: switching one of the two modes on navigates to a clean
+  // URL (clearing any stale widget filters) with only the new mode set.
+  const switchMode = (mode: "event" | "search", on: boolean) => {
+    const params = new URLSearchParams();
+    if (mode === "event" && on) params.set("eventMode", "1");
+    else if (mode === "search" && on) params.set("searchNL", "1");
+    const qs = params.toString();
+    window.location.href = "/admin/alumni" + (qs ? "?" + qs : "");
+  };
+
+  const eventDisabled = searchNL;
+  const searchDisabled = eventMode;
+
   return (
     <div className="sm:col-span-2 lg:col-span-4 border-t border-[color:var(--rule)] pt-4 mt-1">
       <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-2">Options</div>
@@ -36,13 +52,38 @@ export function AlumniOptionsSection(p: Props) {
           <input type="checkbox" name="includeMovedOut" value="1" defaultChecked={p.includeMovedOut} />
           Include alumni who moved out of the Bay Area
         </label>
-        <label className="flex items-center gap-2">
+        <label
+          className={`flex items-center gap-2 ${searchDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          title={searchDisabled ? "Turn off Natural language search to use Event planning mode" : undefined}
+        >
+          <input
+            type="checkbox"
+            name="searchNL"
+            value="1"
+            checked={searchNL}
+            disabled={searchDisabled}
+            onChange={(e) => {
+              setSearchNL(e.target.checked);
+              switchMode("search", e.target.checked);
+            }}
+          />
+          Natural language search
+          <span className="text-xs text-[color:var(--muted)]">— describe what you&rsquo;re looking for</span>
+        </label>
+        <label
+          className={`flex items-center gap-2 ${eventDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          title={eventDisabled ? "Turn off Natural language search to use Event planning mode" : undefined}
+        >
           <input
             type="checkbox"
             name="eventMode"
             value="1"
             checked={eventMode}
-            onChange={(e) => setEventMode(e.target.checked)}
+            disabled={eventDisabled}
+            onChange={(e) => {
+              setEventMode(e.target.checked);
+              switchMode("event", e.target.checked);
+            }}
           />
           Event planning mode
           <span className="text-xs text-[color:var(--muted)]">— score &amp; rank for events</span>

@@ -51,6 +51,8 @@ export type AlumniFilters = {
   linkedin?: LinkedinFilter;
   followup?: FollowupFilter;
   companySizeBand?: CompanySizeBand;
+  /** Matches non-UWC education rows (undergrad / grad school). ILIKE search. */
+  university?: string;
 
   /** Explicit recipient IDs (bypasses other filters during send). */
   ids?: number[];
@@ -211,6 +213,15 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
   if (f.companySizeBand) {
     const sizes = COMPANY_SIZE_BANDS[f.companySizeBand];
     push((n) => `current_company_size = ANY($${n})`, sizes);
+  }
+
+  // University (non-UWC education) — ILIKE match against alumni_education.school
+  if (f.university && f.university.trim()) {
+    push(
+      (n) =>
+        `EXISTS (SELECT 1 FROM alumni_education e WHERE e.alumni_id = alumni.id AND e.is_uwc IS NOT TRUE AND lower(e.school) LIKE $${n})`,
+      `%${f.university.toLowerCase().trim()}%`
+    );
   }
 
   // Follow-up flag (admin)

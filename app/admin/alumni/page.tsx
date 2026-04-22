@@ -5,7 +5,7 @@ import { sql } from "@/lib/db";
 import { searchAlumni, countAlumni, FOLLOWUP_REASONS, FOLLOWUP_REASON_LABELS, type AlumniFilters, type ExperienceBand } from "@/lib/alumni-query";
 import { INDUSTRY_GROUPS, INDUSTRY_TO_GROUP, industriesInGroup, type IndustryGroup } from "@/lib/industry-groups";
 import { loadEngagement, scoreAlumni, splitEventResults, scoreAsPercent, type ScoredAlum, type DiversityDimension } from "@/lib/event-ranking";
-import { parseEventQuery, type ParsedEventQuery } from "@/lib/event-nl-parser";
+import { parseEventQuery, parseSearchQuery, type ParsedEventQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser";
 import YearFilter from "@/components/admin/YearFilter";
 import { SelectAllCheckbox, SelectedCountLink } from "@/components/admin/AlumniSelection";
 import { AlumniOptionsSection } from "@/components/admin/AlumniOptionsSection";
@@ -89,6 +89,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     subscription: "any",
     industryGroup: (pickStr(sp, "industryGroup") as IndustryGroup | undefined) || undefined,
     company: pickStr(sp, "company"),
+    university: pickStr(sp, "university"),
     companyIdMap,
     expBand: pickStr(sp, "expBand") as ExperienceBand | undefined,
     uwcVerified: pickStr(sp, "uwcVerified") as AlumniFilters["uwcVerified"],
@@ -99,7 +100,8 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
   };
 
   const showPhotos = pickStr(sp, "showPhotos") === "1";
-  const eventMode = pickStr(sp, "eventMode") === "1";
+  const searchNL = pickStr(sp, "searchNL") === "1";
+  const eventMode = !searchNL && pickStr(sp, "eventMode") === "1";
   const rankByEngagementWidget = pickStr(sp, "rankByEngagement") === "1";
   const rankByDiversityWidget = pickStr(sp, "rankByDiversity") === "1";
   const rankByRecencyWidget = pickStr(sp, "rankByRecency") === "1";
@@ -121,6 +123,65 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     const result = await parseEventQuery(filters.q);
     if (result.ok) parsed = result.parsed;
     else parseError = result.error;
+  }
+
+  // Phase 3.5: Natural-language search mode — simpler parser, no event
+  // scoring. When on, widget filters are ignored; we use only what the
+  // parser extracts plus the options-section checkboxes (photo, etc.).
+  let searchParsed: ParsedSearchQuery | null = null;
+  let searchParseError: string | null = null;
+  if (searchNL && filters.q) {
+    const result = await parseSearchQuery(filters.q);
+    if (result.ok) searchParsed = result.parsed;
+    else searchParseError = result.error;
+  }
+  if (searchNL && searchParsed) {
+    const widgetSafe: AlumniFilters = {
+      // Keep only options-section flags from the widgets; wipe every
+      // structured filter so parser output is authoritative.
+      companyIdMap,
+      subscription: "any",
+      includeNonAlums: filters.includeNonAlums,
+      includeMovedOut: filters.includeMovedOut,
+      hasPhoto: filters.hasPhoto,
+    };
+    if (searchParsed.industryGroups.length > 0) {
+      const expanded = searchParsed.industryGroups.flatMap((g) => industriesInGroup(g));
+      widgetSafe.industries = Array.from(new Set(expanded));
+    }
+    if (searchParsed.city) widgetSafe.city = searchParsed.city;
+    if (searchParsed.region) widgetSafe.region = searchParsed.region;
+    if (searchParsed.minGradYear != null) widgetSafe.yearFrom = searchParsed.minGradYear;
+    if (searchParsed.maxGradYear != null) widgetSafe.yearTo = searchParsed.maxGradYear;
+    if (searchParsed.companyName) widgetSafe.company = searchParsed.companyName;
+    if (searchParsed.companySizeBand) widgetSafe.companySizeBand = searchParsed.companySizeBand;
+    if (searchParsed.college) widgetSafe.college = searchParsed.college;
+    if (searchParsed.university) widgetSafe.university = searchParsed.university;
+    if (searchParsed.origin) widgetSafe.origin = searchParsed.origin;
+    widgetSafe.q = searchParsed.keywords.length > 0 ? searchParsed.keywords.join(" ") : undefined;
+    // Replace the filters object entirely.
+    Object.assign(filters, {
+      // wipe everything first
+      q: undefined,
+      college: undefined,
+      region: undefined,
+      origin: undefined,
+      city: undefined,
+      yearFrom: undefined,
+      yearTo: undefined,
+      help: undefined,
+      industryGroup: undefined,
+      industries: undefined,
+      company: undefined,
+      university: undefined,
+      companySizeBand: undefined,
+      expBand: undefined,
+      uwcVerified: undefined,
+      linkedin: undefined,
+      followup: undefined,
+      engagement: undefined,
+    });
+    Object.assign(filters, widgetSafe);
   }
 
   // Apply parser output on top of widget-driven filters (parser wins per field).
@@ -237,6 +298,33 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         </div>
       )}
 
+      {searchNL && searchParsed && (
+        <div className="mb-5 p-3 bg-ivory-2 border-l-4 border-navy rounded-[2px] text-sm">
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1.5">What I understood</div>
+          <div className="flex flex-wrap gap-1.5">
+            {searchParsed.industryGroups.map((g) => (
+              <ParseChip key={g} label={g} />
+            ))}
+            {searchParsed.city && <ParseChip label={`City: ${searchParsed.city}`} />}
+            {searchParsed.region && <ParseChip label={`Region: ${searchParsed.region}`} />}
+            {searchParsed.minGradYear != null && <ParseChip label={`Grad ≥ ${searchParsed.minGradYear}`} />}
+            {searchParsed.maxGradYear != null && <ParseChip label={`Grad ≤ ${searchParsed.maxGradYear}`} />}
+            {searchParsed.companyName && <ParseChip label={`Company: ${searchParsed.companyName}`} />}
+            {searchParsed.companySizeBand && <ParseChip label={`Size: ${searchParsed.companySizeBand}`} />}
+            {searchParsed.college && <ParseChip label={`UWC: ${searchParsed.college}`} />}
+            {searchParsed.university && <ParseChip label={`University: ${searchParsed.university}`} />}
+            {searchParsed.origin && <ParseChip label={`Origin: ${searchParsed.origin}`} />}
+            {searchParsed.keywords.length > 0 && <ParseChip label={`Keywords: ${searchParsed.keywords.join(", ")}`} />}
+          </div>
+        </div>
+      )}
+      {searchNL && searchParseError && filters.q && (
+        <div className="mb-5 p-3 bg-orange-50 border-l-4 border-orange-400 rounded-[2px] text-sm">
+          <span className="font-semibold text-orange-800">Couldn&rsquo;t parse the query</span>
+          <span className="text-orange-800"> — falling back to fuzzy keyword search. ({searchParseError})</span>
+        </div>
+      )}
+
       <form
         method="GET"
         key={JSON.stringify({ ...filters, eventMode, rankByEngagement, rankByDiversityWidget, rankByRecency, eventSize })}
@@ -244,17 +332,26 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
       >
         {/* Row 1 — full-width free-text search */}
         <Field
-          label={eventMode ? "Describe your event (natural language)" : "Search (name, city, bio, work…)"}
+          label={
+            eventMode
+              ? "Describe your event (natural language)"
+              : searchNL
+                ? "Describe who you're looking for (natural language)"
+                : "Search (name, city, bio, work…)"
+          }
           name="q"
           defaultValue={pickStr(sp, "q")}
           placeholder={
             eventMode
               ? "e.g. Tech dinner, 20 people, good mix of origins and ages, high engagement"
-              : "e.g. finance"
+              : searchNL
+                ? "e.g. tech people in SF who graduated after 2015, working at startups"
+                : "e.g. finance"
           }
           span="sm:col-span-2 lg:col-span-4"
         />
 
+        {!searchNL && <>
         {/* Row 2 — college / region / year / industry */}
         <Select label="College" name="college" defaultValue={filters.college}>
           <option value="">Any</option>
@@ -278,10 +375,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           selected={filters.industryGroup}
         />
 
-        {/* Row 3 — origin / city / current company / experience */}
+        {/* Row 3 — origin / city / current company / experience + university */}
         <Field label="Origin contains" name="origin" defaultValue={filters.origin} placeholder="e.g. Brazil" />
         <Field label="City contains" name="city" defaultValue={filters.city} placeholder="e.g. San Francisco" />
         <CompanyField options={companies} value={filters.company} />
+        <Field label="University contains" name="university" defaultValue={filters.university} placeholder="e.g. Stanford" />
         <Select label="Experience" name="expBand" defaultValue={filters.expBand ?? ""}>
           <option value="">Any</option>
           <option value="0-3">0–3 years</option>
@@ -321,6 +419,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <option value="never_opened">Received, never opened</option>
           <option value="never_received">Never received an email</option>
         </Select>
+        </>}
 
         {/* Options — grouped checkboxes (client component: Event ranking reveals on-click) */}
         <AlumniOptionsSection
@@ -329,6 +428,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           includeNonAlums={!!filters.includeNonAlums}
           includeMovedOut={!!filters.includeMovedOut}
           eventMode={eventMode}
+          searchNL={searchNL}
           rankByEngagement={rankByEngagementWidget}
           rankByDiversity={rankByDiversityWidget}
           rankByRecency={rankByRecencyWidget}
