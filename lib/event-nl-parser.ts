@@ -44,7 +44,31 @@ export type SearchParseResult =
   | { ok: true; parsed: ParsedSearchQuery }
   | { ok: false; error: string };
 
-const SYSTEM_PROMPT = `You are an event planning assistant for a UWC Bay Area alumni network. Parse the user's event description into structured JSON.
+function ageRules(thisYear: number): string {
+  // Pre-compute several reference points so Claude doesn't have to reason
+  // arithmetically — it's unreliable at that. The math: UWC graduation age
+  // ≈ 18, so grad_year = today - age + 18 (a 30-year-old graduated UWC 12
+  // years ago, not 30 years ago).
+  const forAge = (a: number) => thisYear - a + 18;
+  return `- Age is in YEARS OLD; the database stores GRADUATION YEAR. UWC alumni graduate at ~18, so a 30-year-old graduated ~12 years ago (not 30). Use these EXACT mappings — do NOT re-derive arithmetically:
+  * age 25 → grad_year ${forAge(25)}
+  * age 30 → grad_year ${forAge(30)}
+  * age 35 → grad_year ${forAge(35)}
+  * age 40 → grad_year ${forAge(40)}
+  * age 45 → grad_year ${forAge(45)}
+  * age 50 → grad_year ${forAge(50)}
+- "older than N" / "over N" / "N+" → max_grad_year = the value from the table above for age N (or N+5 for safety)
+- "younger than N" / "under N" → min_grad_year = value for age N
+- "around N" / "about N years old" → min_grad_year = value(N+3), max_grad_year = value(N-3)
+- "senior alumni", "experienced", "older" without a number → max_grad_year 2010
+- "recent grads", "younger" without a number → min_grad_year 2018
+- COMMON MISTAKE: DO NOT compute grad_year as (today - age). That misses the +18 offset and lands 18 years too early. Always use the table.
+- Do NOT emit max_grad_year below 1990 — the database has no one older. Clip.
+- Age filter and age diversity are MUTUALLY EXCLUSIVE — never both.`;
+}
+
+function eventSystemPrompt(thisYear: number): string {
+  return `You are an event planning assistant for a UWC Bay Area alumni network. Parse the user's event description into structured JSON.
 
 Return ONLY a JSON object. No prose, no markdown fences — just the object.
 
@@ -76,9 +100,8 @@ Mapping rules:
 - "healthcare", "medical", "pharma" → include "Healthcare"
 - "SF" / "San Francisco" → city "San Francisco"; "East Bay" → region; multiple locations → pick the most specific; "Bay Area" → leave city and region null
 - "international" / "abroad" → international true
-- "senior", "40+", "experienced", "older", "before 2010" → max_grad_year 2010
-- "skew older around 40+" → max_grad_year 2012 (loose)
-- "recent grads", "younger", "under 30", "after 2018" → min_grad_year 2018
+${ageRules(thisYear)}
+- "skew older around 40+" → max_grad_year ${thisYear - 40 + 18} (approximate, slight loosening OK)
 - "age diversity", "mix of ages", "different generations" → include "age" in diversity_dimensions, leave min/max_grad_year null
 - Age filter ("skew older") and age diversity are MUTUALLY EXCLUSIVE — never both
 - "good mix", "diverse group", "variety", "balanced" → include ALL of ["origin", "school", "region", "company", "age"] (minus any dimensions explicitly filtered like age if user said "40+")
@@ -96,6 +119,7 @@ Mapping rules:
 - If nothing professional remains after stripping event-format words and generic quantifiers, return an empty keywords array.
 
 Do NOT invent filters not supported by the input. When in doubt, leave null / empty.`;
+}
 
 function isJsonParsable(text: string): string | null {
   // Strip markdown fences / leading prose, find the first JSON object.
@@ -173,7 +197,8 @@ function normalize(raw: unknown): ParseResult {
   };
 }
 
-const SEARCH_SYSTEM_PROMPT = `You are an alumni search assistant for a UWC Bay Area alumni network. Parse the user's free-text search query into structured filters.
+function searchSystemPrompt(thisYear: number): string {
+  return `You are an alumni search assistant for a UWC Bay Area alumni network. Parse the user's free-text search query into structured filters.
 
 Return ONLY a JSON object. No prose, no markdown fences.
 
@@ -202,8 +227,9 @@ Rules:
 - "healthcare"/"medical" → include "Healthcare"
 - "or" / "and" between industries → include both (e.g. "finance or consulting" → both groups)
 - "SF"/"San Francisco" → city; "East Bay" → region; don't set city if user said "Bay Area" generically
-- "recent grads"/"after 2020" → min_grad_year
-- "older"/"40+"/"before 2010" → max_grad_year
+${ageRules(thisYear)}
+- "non-tech" / "not in tech" / "except tech" → the COMPLEMENT of the named group: emit all OTHER industry groups. Same for any "non-X" phrasing.
+- Do NOT emit both city and region for the same location. Pick one: city if user named a specific city ("San Francisco"); region if they used a Bay Area bucket ("East Bay").
 - "startup"/"early-stage" → company_size_band "startup"
 - "big tech"/"large company" → company_size_band "large"
 - UWC school names → college (only set if user specifically mentions a UWC school)
@@ -212,6 +238,7 @@ Rules:
 - Keywords capture ONLY substantive professional terms (e.g. "product management", "impact investing"). Never emit as keywords: generic quantity words ("people", "alumni", "folks", "professionals", "leaders") or event-format words ("dinner", "meetup", "event", "networking").
 
 Do NOT invent filters unsupported by the input. When in doubt, leave null / empty.`;
+}
 
 function normalizeSearch(raw: unknown): SearchParseResult {
   if (!raw || typeof raw !== "object") {
@@ -275,7 +302,7 @@ export async function parseSearchQuery(query: string): Promise<SearchParseResult
     const resp = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 600,
-      system: SEARCH_SYSTEM_PROMPT,
+      system: searchSystemPrompt(new Date().getFullYear()),
       messages: [{ role: "user", content: `Parse this search query: "${trimmed}"` }],
     });
     const text = resp.content
@@ -308,7 +335,7 @@ export async function parseEventQuery(query: string): Promise<ParseResult> {
     const resp = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 800,
-      system: SYSTEM_PROMPT,
+      system: eventSystemPrompt(new Date().getFullYear()),
       messages: [{ role: "user", content: `Parse this event description: "${trimmed}"` }],
     });
     const text = resp.content
