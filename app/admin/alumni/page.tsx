@@ -3,6 +3,7 @@ import { COLLEGES } from "@/lib/uwc-colleges";
 import { REGIONS } from "@/lib/region";
 import { sql } from "@/lib/db";
 import { searchAlumni, countAlumni, FOLLOWUP_REASONS, FOLLOWUP_REASON_LABELS, type AlumniFilters, type ExperienceBand } from "@/lib/alumni-query";
+import { INDUSTRY_GROUPS, INDUSTRY_TO_GROUP, type IndustryGroup } from "@/lib/industry-groups";
 import YearFilter from "@/components/admin/YearFilter";
 import { SelectAllCheckbox, SelectedCountLink } from "@/components/admin/AlumniSelection";
 
@@ -83,7 +84,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     // so the send pipeline (which reuses this filter shape) still excludes
     // unsubscribed alumni by default.
     subscription: "any",
-    industries: pickAll(sp, "industries"),
+    industryGroup: (pickStr(sp, "industryGroup") as IndustryGroup | undefined) || undefined,
     company: pickStr(sp, "company"),
     companyIdMap,
     expBand: pickStr(sp, "expBand") as ExperienceBand | undefined,
@@ -154,7 +155,10 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           ))}
         </Select>
         <YearFilter initialFrom={filters.yearFrom} initialTo={filters.yearTo} />
-        <IndustrySelect options={industries} selected={filters.industries ?? []} />
+        <IndustryGroupSelect
+          industryCounts={industries}
+          selected={filters.industryGroup}
+        />
 
         {/* Row 3 — origin / city / current company / experience */}
         <Field label="Origin contains" name="origin" defaultValue={filters.origin} placeholder="e.g. Brazil" />
@@ -617,29 +621,35 @@ function Thumb({
   );
 }
 
-function IndustrySelect({
-  options, selected,
+function IndustryGroupSelect({
+  industryCounts, selected,
 }: {
-  options: IndustryOption[];
-  selected: string[];
+  industryCounts: IndustryOption[];
+  selected: IndustryGroup | undefined;
 }) {
-  // Single-select dropdown. The underlying filter API still accepts an array
-  // (industries[]) but the UI only submits one value at a time.
-  const current = selected[0] ?? "";
+  // Compute per-group counts by summing the counts of each LinkedIn industry
+  // that maps into that group. Industries with no mapping fall into "Other".
+  const counts: Record<IndustryGroup, number> = Object.fromEntries(
+    INDUSTRY_GROUPS.map((g) => [g, 0])
+  ) as Record<IndustryGroup, number>;
+  for (const { value, count } of industryCounts) {
+    const g = INDUSTRY_TO_GROUP[value] ?? "Other";
+    counts[g] += count;
+  }
   return (
     <label className="block">
       <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
         Industry
       </span>
       <select
-        name="industries"
-        defaultValue={current}
+        name="industryGroup"
+        defaultValue={selected ?? ""}
         className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
       >
         <option value="">Any</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.value} ({o.count})
+        {INDUSTRY_GROUPS.map((g) => (
+          <option key={g} value={g}>
+            {g} ({counts[g]})
           </option>
         ))}
       </select>

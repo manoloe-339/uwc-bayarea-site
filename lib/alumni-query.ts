@@ -1,4 +1,5 @@
 import { sql } from "./db";
+import { industriesInGroup, type IndustryGroup } from "./industry-groups";
 
 export type SubscriptionFilter = "subscribed" | "unsubscribed" | "any";
 export type EngagementFilter =
@@ -36,6 +37,7 @@ export type AlumniFilters = {
 
   // LinkedIn-enrichment filters
   industries?: string[];         // any-of match against current_company_industry
+  industryGroup?: IndustryGroup; // grouped category; expands to industries[] at query time
   company?: string;              // typeahead input; matches id first, else ILIKE name
   companyIdMap?: Record<string, string>; // page-provided: normalized name → current_company_id for exact-match lookup
   expBand?: ExperienceBand;
@@ -139,6 +141,14 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
   // Industry multi-select (any-of)
   if (f.industries && f.industries.length > 0) {
     push((n) => `current_company_industry = ANY($${n})`, f.industries);
+  }
+
+  // Industry group: expand to the list of industries in that bucket.
+  if (f.industryGroup) {
+    const expanded = industriesInGroup(f.industryGroup);
+    if (expanded.length > 0) {
+      push((n) => `current_company_industry = ANY($${n})`, expanded);
+    }
   }
 
   // Company: exact-id match when the typed string resolves to a known company
