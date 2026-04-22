@@ -9,6 +9,7 @@ import { parseEventQuery, parseSearchQuery, type ParsedEventQuery, type ParsedSe
 import YearFilter from "@/components/admin/YearFilter";
 import { SelectAllCheckbox, SelectedCountLink } from "@/components/admin/AlumniSelection";
 import { AlumniOptionsSection } from "@/components/admin/AlumniOptionsSection";
+import { SearchNLToggle } from "@/components/admin/SearchNLToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -341,26 +342,32 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         key={JSON.stringify({ ...filters, eventMode, rankByEngagement, rankByDiversityWidget, rankByRecency, eventSize })}
         className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
-        {/* Row 1 — full-width free-text search */}
-        <Field
-          label={
-            eventMode
-              ? "Describe your event (natural language)"
-              : searchNL
-                ? "Describe who you're looking for (natural language)"
-                : "Search (name, city, bio, work…)"
-          }
-          name="q"
-          defaultValue={pickStr(sp, "q")}
-          placeholder={
-            eventMode
-              ? "e.g. Tech dinner, 20 people, good mix of origins and ages, high engagement"
-              : searchNL
-                ? "e.g. tech people in SF who graduated after 2015, working at startups"
-                : "e.g. finance"
-          }
-          span="sm:col-span-2 lg:col-span-4"
-        />
+        {/* Row 1 — full-width free-text search + inline NL toggle */}
+        <label className="block sm:col-span-2 lg:col-span-4">
+          <span className="flex items-center justify-between mb-1">
+            <span className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
+              {eventMode
+                ? "Describe your event (natural language)"
+                : searchNL
+                  ? "Describe who you're looking for (natural language)"
+                  : "Search (name, city, bio, work…)"}
+            </span>
+            {!eventMode && <SearchNLToggle on={searchNL} />}
+          </span>
+          <input
+            name="q"
+            type="text"
+            defaultValue={pickStr(sp, "q") ?? ""}
+            placeholder={
+              eventMode
+                ? "e.g. Tech dinner, 20 people, good mix of origins and ages, high engagement"
+                : searchNL
+                  ? "e.g. tech people in SF who graduated after 2015, working at startups"
+                  : "e.g. finance"
+            }
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          />
+        </label>
 
         {!searchNL && <>
         {/* Row 2 — college / region / year / industry */}
