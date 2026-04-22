@@ -12,6 +12,7 @@ import YearFilter from "@/components/admin/YearFilter";
 import { SelectAllCheckbox, SelectedCountLink } from "@/components/admin/AlumniSelection";
 import { AlumniOptionsSection } from "@/components/admin/AlumniOptionsSection";
 import { SearchNLToggle } from "@/components/admin/SearchNLToggle";
+import { FilterFormWithLoading } from "@/components/admin/FilterFormWithLoading";
 
 export const dynamic = "force-dynamic";
 
@@ -424,9 +425,8 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         </div>
       )}
 
-      <form
-        method="GET"
-        key={JSON.stringify({ ...filters, eventMode, rankByEngagement, rankByDiversityWidget, rankByRecency, eventSize })}
+      <FilterFormWithLoading
+        formKey={JSON.stringify({ ...filters, eventMode, rankByEngagement, rankByDiversityWidget, rankByRecency, eventSize })}
         className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         {/* Row 1 — full-width free-text search + inline NL toggle */}
@@ -575,7 +575,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             Clear
           </Link>
         </div>
-      </form>
+      </FilterFormWithLoading>
 
       <div className="flex items-center justify-between mb-3 text-sm">
         <p className="font-sans font-semibold text-[color:var(--navy-ink)]">

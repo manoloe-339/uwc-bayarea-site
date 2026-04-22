@@ -13,8 +13,11 @@ export type AiFilterResult =
 
 const MODEL = "claude-haiku-4-5-20251001";
 
-// Hard cap so a loose filter doesn't send thousands of companies at once.
-const MAX_COMPANIES_PER_CALL = 150;
+// Claude's JSON output reliability drops with very long arrays (we've seen
+// it truncate mid-array at ~150 objects). Chunk the input and parallelize
+// to keep each response small and robust.
+const BATCH_SIZE = 50;
+const MAX_BATCHES = 8; // sanity cap — 400 companies max per filter call
 
 function systemPrompt(): string {
   const today = new Date().toISOString().slice(0, 10);
@@ -58,43 +61,27 @@ function extractJson(text: string): string | null {
   return text.slice(start, end + 1);
 }
 
-/**
- * Ask Claude which companies in the given list match the user's free-text
- * criterion. Single call for the whole batch; Claude returns per-company
- * match + reason. On failure, returns ok:false and the caller should fall
- * back to not applying the filter.
- */
-export async function runAiFilter(
+async function runOneBatch(
+  client: Anthropic,
   question: string,
-  companies: CompanyMeta[]
-): Promise<AiFilterResult> {
-  const q = question.trim();
-  if (!q) return { ok: false, error: "Empty question" };
-  if (companies.length === 0) return { ok: true, matches: new Set(), reasoning: new Map() };
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return { ok: false, error: "ANTHROPIC_API_KEY not set" };
-
-  // Truncate if over cap — prioritizing keeping the order as received
-  // (typically sorted by alumni count desc, so popular companies stay).
-  const batch = companies.slice(0, MAX_COMPANIES_PER_CALL);
-
+  batch: CompanyMeta[]
+): Promise<{ matches: Set<string>; reasoning: Map<string, string> } | { error: string }> {
   try {
-    const client = new Anthropic({ apiKey });
     const resp = await client.messages.create({
       model: MODEL,
-      max_tokens: 4000,
+      max_tokens: 3000,
       system: systemPrompt(),
-      messages: [{ role: "user", content: userMessage(q, batch) }],
+      messages: [{ role: "user", content: userMessage(question, batch) }],
     });
     const text = resp.content
       .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
       .map((b) => b.text)
       .join("\n");
     const slice = extractJson(text);
-    if (!slice) return { ok: false, error: "No JSON in response" };
+    if (!slice) return { error: "No JSON in response" };
     const raw = JSON.parse(slice);
     const arr = Array.isArray(raw?.matches) ? raw.matches : null;
-    if (!arr) return { ok: false, error: "No 'matches' array" };
+    if (!arr) return { error: "No 'matches' array" };
 
     const matches = new Set<string>();
     const reasoning = new Map<string, string>();
@@ -107,8 +94,51 @@ export async function runAiFilter(
       if (isMatch) matches.add(key);
       if (reason) reasoning.set(key, reason);
     }
-    return { ok: true, matches, reasoning };
+    return { matches, reasoning };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "ai filter failed" };
+    return { error: err instanceof Error ? err.message : "batch failed" };
   }
+}
+
+/**
+ * Ask Claude which companies in the given list match the user's free-text
+ * criterion. Splits large inputs into parallel batches of 50 so Claude's
+ * JSON output stays within a reliable-length window per call. On any batch
+ * failure, returns the first error; partial results aren't merged.
+ */
+export async function runAiFilter(
+  question: string,
+  companies: CompanyMeta[]
+): Promise<AiFilterResult> {
+  const q = question.trim();
+  if (!q) return { ok: false, error: "Empty question" };
+  if (companies.length === 0) return { ok: true, matches: new Set(), reasoning: new Map() };
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return { ok: false, error: "ANTHROPIC_API_KEY not set" };
+
+  // Chunk into BATCH_SIZE groups, sanity-capped at MAX_BATCHES total.
+  const usable = companies.slice(0, BATCH_SIZE * MAX_BATCHES);
+  const batches: CompanyMeta[][] = [];
+  for (let i = 0; i < usable.length; i += BATCH_SIZE) {
+    batches.push(usable.slice(i, i + BATCH_SIZE));
+  }
+
+  const client = new Anthropic({ apiKey });
+  const results = await Promise.all(batches.map((b) => runOneBatch(client, q, b)));
+
+  const matches = new Set<string>();
+  const reasoning = new Map<string, string>();
+  const errs: string[] = [];
+  for (const r of results) {
+    if ("error" in r) {
+      errs.push(r.error);
+      continue;
+    }
+    for (const k of r.matches) matches.add(k);
+    for (const [k, v] of r.reasoning) reasoning.set(k, v);
+  }
+  if (errs.length === results.length) {
+    return { ok: false, error: errs[0] };
+  }
+  return { ok: true, matches, reasoning };
 }
