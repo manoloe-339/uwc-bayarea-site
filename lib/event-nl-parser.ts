@@ -70,7 +70,10 @@ Mapping rules:
 - "big tech" / "large company" / "enterprise" → company_size_band "large"
 - "engaged" / "active" / "opens emails" / "responsive" / "high engagement" → rank_by_engagement true
 - "up-to-date" / "recently updated" / "recent profiles" / "current info" → rank_by_recency true
-- Everything else specific (e.g. "product management", "climate tech", "impact investing") → keywords
+- Keywords capture ONLY substantive professional terms that describe what someone works on or has expertise in — e.g. "product management", "climate tech", "impact investing", "machine learning", "UX design", "developer relations".
+- Never emit these as keywords (they describe the event, not the person): "dinner", "lunch", "breakfast", "brunch", "reception", "mixer", "meetup", "happy hour", "gathering", "gala", "panel", "workshop", "conference", "fireside", "roundtable", "event", "session", "networking", "party", "drinks". These are format words, not search terms.
+- Never emit as keywords: generic quantity or group words ("people", "alumni", "folks", "individuals", "professionals", "leaders", "crowd", "group"). "Senior leaders" → use age filter, not keywords.
+- If nothing professional remains after stripping event-format words and generic quantifiers, return an empty keywords array.
 
 Do NOT invent filters not supported by the input. When in doubt, leave null / empty.`;
 

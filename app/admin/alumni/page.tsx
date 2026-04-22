@@ -138,13 +138,10 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     if (parsed.maxGradYear != null) filters.yearTo = parsed.maxGradYear;
     if (parsed.companyName) filters.company = parsed.companyName;
     if (parsed.companySizeBand) filters.companySizeBand = parsed.companySizeBand;
-    // Keywords → append to `q` fuzzy search
-    if (parsed.keywords.length > 0) {
-      filters.q = [filters.q, ...parsed.keywords].filter(Boolean).join(" ").trim();
-    } else {
-      // Clear q so the NL query itself doesn't ILIKE-match literally
-      filters.q = undefined;
-    }
+    // Replace the NL query with only parser-extracted keywords (if any).
+    // Leaving the raw NL query would ILIKE-match literal phrases like
+    // "tech dinner, 20 people" against bio/title — matches nothing.
+    filters.q = parsed.keywords.length > 0 ? parsed.keywords.join(" ") : undefined;
     eventSize = parsed.eventSize;
   }
 
