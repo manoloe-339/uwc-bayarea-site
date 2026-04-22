@@ -23,8 +23,13 @@ export function AlumniOptionsSection(p: Props) {
 
   const toggleEventMode = (on: boolean) => {
     setEventMode(on);
+    // Preserve the typed query across mode switch (but drop every other
+    // filter — that's the intended "fresh start" semantics).
+    const qInput = document.querySelector<HTMLInputElement>('input[name="q"]');
+    const q = qInput?.value.trim() ?? "";
     const params = new URLSearchParams();
     if (on) params.set("eventMode", "1");
+    if (q) params.set("q", q);
     const qs = params.toString();
     window.location.href = "/admin/alumni" + (qs ? "?" + qs : "");
   };
