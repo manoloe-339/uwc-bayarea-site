@@ -167,42 +167,6 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         key={JSON.stringify({ ...filters, eventMode, rankByEngagement, rankByDiversity, rankByRecency, eventSize })}
         className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
-        {/* Event planning mode toggle — always visible at the top */}
-        <div className="sm:col-span-2 lg:col-span-4 border-b border-[color:var(--rule)] pb-4 space-y-3">
-          <label className="flex items-center gap-2 text-sm font-semibold text-[color:var(--navy-ink)]">
-            <input type="checkbox" name="eventMode" value="1" defaultChecked={eventMode} />
-            Event planning mode
-            <span className="font-normal text-xs text-[color:var(--muted)]">— score, rank, and pick a target list size</span>
-          </label>
-          {eventMode && (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 pl-6">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="rankByEngagement" value="1" defaultChecked={rankByEngagement} />
-                Prioritize email engagement
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="rankByDiversity" value="1" defaultChecked={rankByDiversity} />
-                Prioritize company diversity
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="rankByRecency" value="1" defaultChecked={rankByRecency} />
-                Prioritize recent profile updates
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <span>Event size</span>
-                <input
-                  type="number"
-                  name="eventSize"
-                  min={1}
-                  max={100}
-                  defaultValue={eventSize}
-                  className="w-20 border border-[color:var(--rule)] rounded px-2 py-1 text-sm"
-                />
-              </label>
-            </div>
-          )}
-        </div>
-
         {/* Row 1 — full-width free-text search */}
         <Field
           label="Search (name, city, bio, work…)"
@@ -299,7 +263,42 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
               <input type="checkbox" name="includeMovedOut" value="1" defaultChecked={filters.includeMovedOut} />
               Include alumni who moved out of the Bay Area
             </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="eventMode" value="1" defaultChecked={eventMode} />
+              Event planning mode
+              <span className="text-xs text-[color:var(--muted)]">— score &amp; rank for events</span>
+            </label>
           </div>
+          {eventMode && (
+            <div className="mt-4 pt-3 border-t border-[color:var(--rule)]">
+              <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-2">Event ranking</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-[color:var(--navy-ink)]">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" name="rankByEngagement" value="1" defaultChecked={rankByEngagement} />
+                  Prioritize email engagement
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" name="rankByDiversity" value="1" defaultChecked={rankByDiversity} />
+                  Prioritize company diversity
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" name="rankByRecency" value="1" defaultChecked={rankByRecency} />
+                  Prioritize recent profile updates
+                </label>
+                <label className="flex items-center gap-2">
+                  <span>Event size</span>
+                  <input
+                    type="number"
+                    name="eventSize"
+                    min={1}
+                    max={100}
+                    defaultValue={eventSize}
+                    className="w-20 border border-[color:var(--rule)] rounded px-2 py-1 text-sm"
+                  />
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
