@@ -9,6 +9,7 @@ export type EngagementFilter =
 
 export type ExperienceBand = "0-3" | "3-7" | "7-15" | "15+";
 export type UwcVerifiedFilter = "verified" | "unverified" | "any";
+export type LinkedinFilter = "has" | "missing";
 
 export type AlumniFilters = {
   q?: string;
@@ -31,6 +32,7 @@ export type AlumniFilters = {
   expBand?: ExperienceBand;
   uwcVerified?: UwcVerifiedFilter;
   hasPhoto?: boolean;
+  linkedin?: LinkedinFilter;
 
   /** Explicit recipient IDs (bypasses other filters during send). */
   ids?: number[];
@@ -163,6 +165,13 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
   // Has photo
   if (f.hasPhoto) {
     parts.push(`photo_url IS NOT NULL`);
+  }
+
+  // LinkedIn URL presence
+  if (f.linkedin === "has") {
+    parts.push(`(linkedin_url IS NOT NULL AND linkedin_url <> '')`);
+  } else if (f.linkedin === "missing") {
+    parts.push(`(linkedin_url IS NULL OR linkedin_url = '')`);
   }
 
   const where = parts.length > 0 ? `WHERE ${parts.join(" AND ")}` : "";

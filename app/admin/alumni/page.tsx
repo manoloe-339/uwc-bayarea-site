@@ -89,6 +89,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     expBand: pickStr(sp, "expBand") as ExperienceBand | undefined,
     uwcVerified: pickStr(sp, "uwcVerified") as AlumniFilters["uwcVerified"],
     hasPhoto: pickStr(sp, "hasPhoto") === "1",
+    linkedin: pickStr(sp, "linkedin") as AlumniFilters["linkedin"],
     engagement: pickStr(sp, "engagement") as AlumniFilters["engagement"],
   };
 
@@ -172,6 +173,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <option value="">Any</option>
           <option value="verified">Verified only</option>
           <option value="unverified">Unverified only</option>
+        </Select>
+        <Select label="LinkedIn" name="linkedin" defaultValue={filters.linkedin ?? ""}>
+          <option value="">Any</option>
+          <option value="has">Has LinkedIn URL</option>
+          <option value="missing">No LinkedIn URL</option>
         </Select>
         <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] mt-auto pb-2">
           <input type="checkbox" name="hasPhoto" value="1" defaultChecked={filters.hasPhoto} />
