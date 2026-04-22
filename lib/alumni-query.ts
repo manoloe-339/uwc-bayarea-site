@@ -84,6 +84,7 @@ export type AlumniRow = {
   location_city: string | null;
   location_country: string | null;
   followup_reason: string | null;
+  enriched_at: string | null;
 };
 
 export function buildWhere(f: AlumniFilters): { where: string; params: unknown[] } {
@@ -222,7 +223,7 @@ export async function searchAlumni(f: AlumniFilters, limit = 500): Promise<Alumn
            subscribed, sources, flags,
            headline, photo_url, current_title, current_company,
            current_company_industry, uwc_verified, total_experience_years,
-           location_city, location_country, followup_reason
+           location_city, location_country, followup_reason, enriched_at
     FROM alumni
     ${where}
     ORDER BY grad_year DESC NULLS LAST, last_name ASC NULLS LAST, first_name ASC NULLS LAST
@@ -247,7 +248,7 @@ export async function getAlumniByIds(ids: number[]): Promise<AlumniRow[]> {
             subscribed, sources, flags,
             headline, photo_url, current_title, current_company,
             current_company_industry, uwc_verified, total_experience_years,
-            location_city, location_country, followup_reason
+            location_city, location_country, followup_reason, enriched_at
      FROM alumni
      WHERE id = ANY($1) AND subscribed IS NOT FALSE
      ORDER BY last_name ASC NULLS LAST, first_name ASC NULLS LAST`,

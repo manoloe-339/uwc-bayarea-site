@@ -4,6 +4,7 @@ import { REGIONS } from "@/lib/region";
 import { sql } from "@/lib/db";
 import { searchAlumni, countAlumni, FOLLOWUP_REASONS, FOLLOWUP_REASON_LABELS, type AlumniFilters, type ExperienceBand } from "@/lib/alumni-query";
 import { INDUSTRY_GROUPS, INDUSTRY_TO_GROUP, type IndustryGroup } from "@/lib/industry-groups";
+import { loadEngagement, scoreAlumni, splitEventResults, type ScoredAlum } from "@/lib/event-ranking";
 import YearFilter from "@/components/admin/YearFilter";
 import { SelectAllCheckbox, SelectedCountLink } from "@/components/admin/AlumniSelection";
 
@@ -96,6 +97,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
   };
 
   const showPhotos = pickStr(sp, "showPhotos") === "1";
+  const eventMode = pickStr(sp, "eventMode") === "1";
+  const rankByEngagement = pickStr(sp, "rankByEngagement") === "1";
+  const rankByDiversity = pickStr(sp, "rankByDiversity") === "1";
+  const rankByRecency = pickStr(sp, "rankByRecency") === "1";
+  const eventSize = Math.max(1, Math.min(100, pickNum(sp, "eventSize") ?? 20));
   const addToList = pickStr(sp, "addToList") || null;
   let addToListName: string | null = null;
   if (addToList) {
@@ -105,6 +111,19 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
   }
 
   const [rows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
+
+  let scored: ScoredAlum[] = [];
+  let topRanked: ScoredAlum[] = [];
+  let honorable: ScoredAlum[] = [];
+  if (eventMode) {
+    const engagement = rankByEngagement
+      ? await loadEngagement(rows.map((r) => r.id))
+      : new Map();
+    scored = scoreAlumni(rows, { rankByEngagement, rankByDiversity, rankByRecency }, engagement);
+    const split = splitEventResults(scored, eventSize);
+    topRanked = split.top;
+    honorable = split.honorable;
+  }
 
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(filters)) {
@@ -145,9 +164,45 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
 
       <form
         method="GET"
-        key={JSON.stringify(filters)}
+        key={JSON.stringify({ ...filters, eventMode, rankByEngagement, rankByDiversity, rankByRecency, eventSize })}
         className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
+        {/* Event planning mode toggle — always visible at the top */}
+        <div className="sm:col-span-2 lg:col-span-4 border-b border-[color:var(--rule)] pb-4 space-y-3">
+          <label className="flex items-center gap-2 text-sm font-semibold text-[color:var(--navy-ink)]">
+            <input type="checkbox" name="eventMode" value="1" defaultChecked={eventMode} />
+            Event planning mode
+            <span className="font-normal text-xs text-[color:var(--muted)]">— score, rank, and pick a target list size</span>
+          </label>
+          {eventMode && (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 pl-6">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="rankByEngagement" value="1" defaultChecked={rankByEngagement} />
+                Prioritize email engagement
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="rankByDiversity" value="1" defaultChecked={rankByDiversity} />
+                Prioritize company diversity
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="rankByRecency" value="1" defaultChecked={rankByRecency} />
+                Prioritize recent profile updates
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <span>Event size</span>
+                <input
+                  type="number"
+                  name="eventSize"
+                  min={1}
+                  max={100}
+                  defaultValue={eventSize}
+                  className="w-20 border border-[color:var(--rule)] rounded px-2 py-1 text-sm"
+                />
+              </label>
+            </div>
+          )}
+        </div>
+
         {/* Row 1 — full-width free-text search */}
         <Field
           label="Search (name, city, bio, work…)"
@@ -263,7 +318,12 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
       <div className="flex items-center justify-between mb-3 text-sm">
         <p className="font-sans font-semibold text-[color:var(--navy-ink)]">
           {total.toLocaleString()} {total === 1 ? "match" : "matches"}
-          {rows.length < total ? (
+          {eventMode ? (
+            <span className="font-normal text-[color:var(--muted)]">
+              {" · ranking top "}{topRanked.length}
+              {honorable.length > 0 ? ` · ${honorable.length} honorable mentions` : ""}
+            </span>
+          ) : rows.length < total ? (
             <span className="font-normal text-[color:var(--muted)]"> · showing first {rows.length}</span>
           ) : null}
         </p>
@@ -286,6 +346,106 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
       </div>
 
       <form id="alumni-select-form" method="GET" action="/admin/email/campaigns/new">
+        {eventMode && (
+          <div className="bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden mb-4">
+            <table className="w-full text-sm">
+              <thead className="bg-ivory-2 text-[11px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)]">
+                <tr>
+                  <Th><SelectAllCheckbox formId="alumni-select-form" /></Th>
+                  <Th>Name</Th>
+                  <Th>Role</Th>
+                  <Th>Score</Th>
+                  <Th>Why they fit</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {topRanked.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-[color:var(--muted)]">
+                      No candidates match these filters. Loosen something up top.
+                    </td>
+                  </tr>
+                )}
+                {topRanked.map((r) => (
+                  <tr key={r.id} className="border-t border-[color:var(--rule)] hover:bg-ivory align-top">
+                    <Td>
+                      <input
+                        type="checkbox"
+                        name="ids"
+                        value={r.id}
+                        aria-label={`Select ${[r.first_name, r.last_name].filter(Boolean).join(" ") || r.email}`}
+                      />
+                    </Td>
+                    <Td>
+                      <div className="flex items-start gap-2.5">
+                        {showPhotos && <Thumb url={r.photo_url} firstName={r.first_name} email={r.email} size={40} />}
+                        <div className="flex-1 min-w-0">
+                          <Link href={`/admin/alumni/${r.id}`} className="font-semibold text-navy hover:underline block">
+                            {[r.first_name, r.last_name].filter(Boolean).join(" ") || r.email}
+                          </Link>
+                          <div className="mt-0.5 text-xs text-[color:var(--muted)]">
+                            {r.uwc_college ?? "—"}
+                            {r.grad_year ? ` · ${r.grad_year}` : ""}
+                            {r.location_city ? ` · ${r.location_city}` : ""}
+                          </div>
+                          <div className="mt-1 flex items-center gap-1.5">
+                            {r.linkedin_url && (
+                              <a
+                                href={r.linkedin_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                aria-label="LinkedIn profile"
+                                className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#0A66C2] text-white text-[10px] font-bold hover:brightness-110"
+                              >
+                                in
+                              </a>
+                            )}
+                            <QuickLinks email={r.email} mobile={r.mobile} />
+                            {r.followup_reason && (
+                              <span
+                                title={`Needs follow-up — ${followupLabel(r.followup_reason)}`}
+                                className="ml-1 text-orange-700 text-base leading-none"
+                              >
+                                ⚑
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Td>
+                    <Td>
+                      <span className="block max-w-[260px] break-words leading-snug">
+                        {r.current_title || <span className="text-[color:var(--muted)]">—</span>}
+                        {r.current_company ? (
+                          <span className="block text-xs text-[color:var(--muted)]">@ {r.current_company}</span>
+                        ) : null}
+                      </span>
+                    </Td>
+                    <Td>
+                      <span className="inline-flex items-center justify-center min-w-[44px] px-2 py-1 rounded bg-ivory-2 border border-[color:var(--rule)] text-sm font-semibold text-navy">
+                        {r.score}
+                      </span>
+                    </Td>
+                    <Td>
+                      {r.reasons.length > 0 ? (
+                        <ul className="space-y-0.5 text-xs text-[color:var(--navy-ink)]">
+                          {r.reasons.map((reason, i) => (
+                            <li key={i}>{reason}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span className="text-[color:var(--muted)]">—</span>
+                      )}
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {!eventMode && (
+          <>
         {/* ── Desktop: table view (md and up) ────────────────────────────── */}
         <div className="hidden md:block bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">
           <table className="w-full text-sm">
@@ -502,7 +662,36 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             );
           })}
         </div>
+          </>
+        )}
       </form>
+
+      {eventMode && honorable.length > 0 && (
+        <section className="mt-6 bg-white border border-[color:var(--rule)] rounded-[10px] p-5">
+          <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-3">
+            Honorable mentions <span className="text-[color:var(--muted)] font-normal normal-case tracking-normal">— close to making the cut</span>
+          </h2>
+          <ul className="space-y-2">
+            {honorable.map((r) => {
+              const name = [r.first_name, r.last_name].filter(Boolean).join(" ") || r.email;
+              const role = [r.current_title, r.current_company].filter(Boolean).join(" @ ");
+              return (
+                <li key={r.id} className="flex items-center justify-between gap-3 text-sm">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="inline-flex items-center justify-center min-w-[40px] px-2 py-0.5 rounded bg-ivory-2 border border-[color:var(--rule)] text-xs font-semibold text-navy shrink-0">
+                      {r.score}
+                    </span>
+                    <Link href={`/admin/alumni/${r.id}`} className="font-semibold text-navy hover:underline truncate">
+                      {name}
+                    </Link>
+                    <span className="text-xs text-[color:var(--muted)] truncate">{role || "—"}</span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
