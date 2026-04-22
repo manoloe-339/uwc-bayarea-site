@@ -495,23 +495,13 @@ export default async function AlumnusPage({
               {emailHistory.map((h) => (
                 <tr key={h.id} className="border-t border-[color:var(--rule)]">
                   <td className="px-4 py-2">
-                    <div className="flex items-center gap-2">
-                      {h.campaign_id ? (
-                        <Link href={`/admin/email/${h.campaign_id}`} className="text-navy hover:underline">
-                          {h.subject ?? "(untitled)"}
-                        </Link>
-                      ) : (
-                        <span className="text-[color:var(--navy-ink)]">{h.subject ?? "(untitled)"}</span>
-                      )}
-                      {h.kind === "ad_hoc" && (
-                        <span
-                          title="Ad-hoc 1:1 send from the admin compose view"
-                          className="text-[10px] font-bold uppercase tracking-wider text-navy bg-ivory-2 border border-[color:var(--rule)] rounded px-1.5 py-0.5"
-                        >
-                          Ad-hoc
-                        </span>
-                      )}
-                    </div>
+                    {h.campaign_id ? (
+                      <Link href={`/admin/email/${h.campaign_id}`} className="text-navy hover:underline">
+                        {h.subject ?? "(untitled)"}
+                      </Link>
+                    ) : (
+                      <span className="text-[color:var(--navy-ink)]">{h.subject ?? "(untitled)"}</span>
+                    )}
                   </td>
                   <td className="px-4 py-2">
                     <span
