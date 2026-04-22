@@ -38,118 +38,182 @@ export async function loadEngagement(
   return out;
 }
 
-function daysSince(iso: string | null): number | null {
+function daysSince(iso: string | null | undefined): number | null {
   if (!iso) return null;
   const t = Date.parse(iso);
   if (!Number.isFinite(t)) return null;
   return (Date.now() - t) / (1000 * 60 * 60 * 24);
 }
 
+function seniorityDescriptor(gradYear: number | null | undefined): string | null {
+  if (!gradYear) return null;
+  if (gradYear < 2010) return "Senior alum perspective";
+  if (gradYear <= 2018) return "Mid-career voice";
+  return "Recent grad perspective";
+}
+
 /**
- * Compute a composite 0–100-ish score and a short "why they fit" rationale
- * for each alumnus. The scoring is deliberately coarse — enough to order
- * plausible candidates meaningfully, not a precise ranking system.
+ * Pack a priority-ordered list of short phrases into a concise reason list,
+ * capped at maxCount items and maxChars total (counting ", " separators).
+ */
+function packReasons(candidates: string[], maxChars: number, maxCount: number): string[] {
+  const out: string[] = [];
+  let len = 0;
+  for (const c of candidates) {
+    if (out.length >= maxCount) break;
+    const add = out.length > 0 ? c.length + 2 : c.length;
+    if (len + add > maxChars) break;
+    out.push(c);
+    len += add;
+  }
+  return out;
+}
+
+function norm(s: string | null | undefined): string {
+  return (s ?? "").trim().toLowerCase();
+}
+
+/**
+ * Score and rank a candidate pool for event planning, generating a concise
+ * "why they fit" rationale for each. Reasons focus on what this person ADDS
+ * to the pool (diversity, engagement, recency) plus a seniority descriptor
+ * — they do not duplicate the visible Name / Role columns.
  */
 export function scoreAlumni(
   rows: AlumniRow[],
   opts: ScoringOptions,
   engagement: Map<number, EngagementStats>
 ): ScoredAlum[] {
+  // Pass 1: base scores (scoring concern only, no reasons yet)
   const scored: ScoredAlum[] = rows.map((r) => {
-    let score = 50; // baseline for matching the filters
-    const reasons: string[] = [];
+    let score = 50;
 
-    // Profile completeness
     if (r.photo_url) score += 5;
     if (r.headline) score += 5;
 
-    // Recent enrichment (only if the user asked for it)
     if (opts.rankByRecency) {
-      const days = daysSince(r.enriched_at ?? null);
+      const days = daysSince(r.enriched_at);
       if (days != null) {
-        if (days <= 30) {
-          score += 10;
-          reasons.push("Profile updated this month");
-        } else if (days <= 90) {
-          score += 5;
-          reasons.push("Profile updated recently");
-        } else if (days >= 180) {
-          score -= 5;
-          reasons.push("Profile may be stale");
-        }
+        if (days <= 30) score += 10;
+        else if (days <= 90) score += 5;
+        else if (days >= 180) score -= 5;
       }
     }
 
-    // Email engagement
     if (opts.rankByEngagement) {
       const e = engagement.get(r.id);
       if (e && e.sent > 0) {
-        if (e.opened >= 5) {
-          score += 35;
-          reasons.push(`Opened ${e.opened} of ${e.sent} emails`);
-        } else if (e.opened >= 3) {
-          score += 25;
-          reasons.push(`Opened ${e.opened} of ${e.sent} emails`);
-        } else if (e.opened === 2) {
-          score += 15;
-          reasons.push(`Opened 2 of ${e.sent} emails`);
-        } else if (e.opened === 1) {
-          score += 5;
-          reasons.push(`Opened 1 of ${e.sent} emails`);
-        } else {
-          score -= 10;
-          reasons.push(`Hasn't opened ${e.sent} prior email${e.sent === 1 ? "" : "s"}`);
-        }
+        if (e.opened >= 5) score += 35;
+        else if (e.opened >= 3) score += 25;
+        else if (e.opened === 2) score += 15;
+        else if (e.opened === 1) score += 5;
+        else score -= 10;
       }
     }
 
-    // Surface role info whenever we have it — useful standalone context
-    if (r.current_title && r.current_company) {
-      reasons.unshift(`${r.current_title} @ ${r.current_company}`);
-    } else if (r.current_company) {
-      reasons.unshift(`At ${r.current_company}`);
-    }
-
-    return { ...r, score, reasons };
+    return { ...r, score, reasons: [] };
   });
 
-  // Initial sort by score desc, then by name
-  scored.sort((a, b) => {
+  // Pass 2: initial sort by score
+  const byScoreDesc = (a: ScoredAlum, b: ScoredAlum) => {
     if (b.score !== a.score) return b.score - a.score;
     const la = (a.last_name ?? "").toLowerCase();
     const lb = (b.last_name ?? "").toLowerCase();
     return la.localeCompare(lb);
-  });
+  };
+  scored.sort(byScoreDesc);
 
-  // Diversity pass: soft penalty per repeated company in sort order
+  // Pass 3: diversity penalty (score-only, if enabled) — uses current order
   if (opts.rankByDiversity) {
     const seen = new Map<string, number>();
     for (const s of scored) {
-      const key = (s.current_company ?? "").toLowerCase().trim();
+      const key = norm(s.current_company);
       if (!key) continue;
       const n = seen.get(key) ?? 0;
       if (n === 1) s.score -= 10;
       else if (n === 2) s.score -= 20;
       else if (n >= 3) s.score -= 30;
-      if (n >= 1) s.reasons.push(`${n + 1}${ordSuffix(n + 1)} pick from ${s.current_company}`);
       seen.set(key, n + 1);
     }
-    // Re-sort after diversity penalties
-    scored.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      const la = (a.last_name ?? "").toLowerCase();
-      const lb = (b.last_name ?? "").toLowerCase();
-      return la.localeCompare(lb);
-    });
+    scored.sort(byScoreDesc);
+  }
+
+  // Pass 4: compute reasons based on final sort order
+  const seenOrigin = new Map<string, number>();
+  const seenRegion = new Map<string, number>();
+  const seenSchool = new Map<string, number>();
+  const seenCompany = new Map<string, number>();
+
+  for (const s of scored) {
+    const diversity: string[] = [];
+
+    const origin = (s.origin ?? "").trim();
+    if (origin) {
+      const n = seenOrigin.get(norm(origin)) ?? 0;
+      if (n === 0) diversity.push(`Adds ${origin} diversity`);
+      seenOrigin.set(norm(origin), n + 1);
+    }
+
+    const region = (s.region ?? "").trim();
+    if (region) {
+      const n = seenRegion.get(norm(region)) ?? 0;
+      if (n === 0) diversity.push(`${region} representation`);
+      seenRegion.set(norm(region), n + 1);
+    }
+
+    const school = (s.uwc_college ?? "").trim();
+    if (school) {
+      const n = seenSchool.get(norm(school)) ?? 0;
+      if (n === 0) diversity.push("Different UWC background");
+      seenSchool.set(norm(school), n + 1);
+    }
+
+    const company = (s.current_company ?? "").trim();
+    if (company) {
+      const n = seenCompany.get(norm(company)) ?? 0;
+      if (n === 0) diversity.push("Unique company background");
+      seenCompany.set(norm(company), n + 1);
+    }
+
+    // Engagement phrase (positive only — never negative in reasons)
+    let engagementReason: string | null = null;
+    if (opts.rankByEngagement) {
+      const e = engagement.get(s.id);
+      if (e && e.sent > 0) {
+        if (e.opened >= 5) engagementReason = "High engagement";
+        else if (e.opened >= 3) engagementReason = "Opens emails";
+        else if (e.opened >= 1) engagementReason = "Active profile";
+      }
+    }
+
+    // Recency phrase
+    let recencyReason: string | null = null;
+    if (opts.rankByRecency) {
+      const days = daysSince(s.enriched_at);
+      if (days != null) {
+        if (days <= 30) recencyReason = "Recently updated";
+        else if (days <= 90) recencyReason = "Current profile";
+      }
+    }
+
+    const seniority = seniorityDescriptor(s.grad_year);
+
+    // Priority: diversity additions > engagement > recency > seniority
+    const candidates = [
+      ...diversity,
+      engagementReason,
+      recencyReason,
+      seniority,
+    ].filter((v): v is string => !!v);
+
+    s.reasons = packReasons(candidates, 60, 3);
+    // Fallback: every row gets at least the seniority descriptor
+    if (s.reasons.length === 0 && seniority) {
+      s.reasons = [seniority];
+    }
   }
 
   return scored;
-}
-
-function ordSuffix(n: number): string {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return s[(v - 20) % 10] ?? s[v] ?? s[0];
 }
 
 /**

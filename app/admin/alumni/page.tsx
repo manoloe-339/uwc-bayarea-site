@@ -383,11 +383,9 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                     </Td>
                     <Td>
                       {r.reasons.length > 0 ? (
-                        <ul className="space-y-0.5 text-xs text-[color:var(--navy-ink)]">
-                          {r.reasons.map((reason, i) => (
-                            <li key={i}>{reason}</li>
-                          ))}
-                        </ul>
+                        <span className="text-xs text-[color:var(--navy-ink)]">
+                          {r.reasons.join(", ")}
+                        </span>
                       ) : (
                         <span className="text-[color:var(--muted)]">—</span>
                       )}
