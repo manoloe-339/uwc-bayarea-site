@@ -327,10 +327,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                       )}
                       {r.followup_reason && (
                         <span
-                          title="Needs follow-up"
-                          className="ml-1 text-[10px] font-bold text-orange-800 bg-orange-100 border border-orange-300 rounded px-1.5 py-0.5 uppercase tracking-wider"
+                          title={`Needs follow-up — ${followupLabel(r.followup_reason)}`}
+                          aria-label={`Needs follow-up — ${followupLabel(r.followup_reason)}`}
+                          className="ml-1 text-orange-700 text-base leading-none"
                         >
-                          ⚑ {followupLabel(r.followup_reason)}
+                          ⚑
                         </span>
                       )}
                     </div>
@@ -425,10 +426,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                     )}
                     {r.followup_reason && (
                       <span
-                        title="Needs follow-up"
-                        className="text-[10px] font-bold text-orange-800 bg-orange-100 border border-orange-300 rounded px-1.5 py-0.5 uppercase tracking-wider"
+                        title={`Needs follow-up — ${followupLabel(r.followup_reason)}`}
+                        aria-label={`Needs follow-up — ${followupLabel(r.followup_reason)}`}
+                        className="text-orange-700 text-base leading-none"
                       >
-                        ⚑ {followupLabel(r.followup_reason)}
+                        ⚑
                       </span>
                     )}
                   </div>
