@@ -307,9 +307,9 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
               <thead className="bg-ivory-2 text-[11px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)]">
                 <tr>
                   <Th><SelectAllCheckbox formId="alumni-select-form" /></Th>
-                  <Th>Name</Th>
-                  <Th>Role</Th>
-                  <Th>Score</Th>
+                  <Th className="w-[240px]">Name</Th>
+                  <Th className="w-[260px]">Role</Th>
+                  <Th className="w-[80px]">Score</Th>
                   <Th>Why they fit</Th>
                 </tr>
               </thead>
@@ -409,11 +409,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                 <Th>
                   <SelectAllCheckbox formId="alumni-select-form" />
                 </Th>
-                <Th>Name</Th>
-                <Th>College</Th>
-                <Th>Year</Th>
-                <Th>Origin</Th>
-                <Th>City</Th>
+                <Th className="w-[240px]">Name</Th>
+                <Th className="w-[140px]">College</Th>
+                <Th className="w-[70px]">Year</Th>
+                <Th className="w-[120px]">Origin</Th>
+                <Th className="w-[140px]">City</Th>
                 <Th>Current title</Th>
                 <Th>Current company</Th>
               </tr>
@@ -749,11 +749,11 @@ function MailIcon() {
   );
 }
 
-function Th({ children }: { children: React.ReactNode }) {
-  return <th className="text-left px-4 py-2.5">{children}</th>;
+function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <th className={`text-left px-4 py-2.5 ${className}`}>{children}</th>;
 }
-function Td({ children }: { children: React.ReactNode }) {
-  return <td className="px-4 py-2.5 align-top">{children}</td>;
+function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <td className={`px-4 py-2.5 align-top ${className}`}>{children}</td>;
 }
 
 // Mobile-only row of "Label: value · Label: value" that gracefully hides any
