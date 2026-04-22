@@ -14,10 +14,11 @@ export type AiFilterResult =
 const MODEL = "claude-haiku-4-5-20251001";
 
 // Claude's JSON output reliability drops with very long arrays (we've seen
-// it truncate mid-array at ~150 objects). Chunk the input and parallelize
-// to keep each response small and robust.
-const BATCH_SIZE = 50;
-const MAX_BATCHES = 8; // sanity cap — 400 companies max per filter call
+// it truncate mid-array at ~150 objects). Chunk the input into small
+// batches and run up to MAX_CONCURRENCY of them in parallel. No hard cap
+// on total companies — we'll process whatever's in the result set.
+const BATCH_SIZE = 40;
+const MAX_CONCURRENCY = 10;
 
 function systemPrompt(): string {
   const today = new Date().toISOString().slice(0, 10);
@@ -116,28 +117,43 @@ export async function runAiFilter(
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { ok: false, error: "ANTHROPIC_API_KEY not set" };
 
-  // Chunk into BATCH_SIZE groups, sanity-capped at MAX_BATCHES total.
-  const usable = companies.slice(0, BATCH_SIZE * MAX_BATCHES);
+  // Chunk into BATCH_SIZE groups. No cap on total companies — process
+  // whatever we got. Run up to MAX_CONCURRENCY batches in parallel so a
+  // 200-company filter finishes in the time of ~one request.
   const batches: CompanyMeta[][] = [];
-  for (let i = 0; i < usable.length; i += BATCH_SIZE) {
-    batches.push(usable.slice(i, i + BATCH_SIZE));
+  for (let i = 0; i < companies.length; i += BATCH_SIZE) {
+    batches.push(companies.slice(i, i + BATCH_SIZE));
   }
 
   const client = new Anthropic({ apiKey });
-  const results = await Promise.all(batches.map((b) => runOneBatch(client, q, b)));
-
   const matches = new Set<string>();
   const reasoning = new Map<string, string>();
   const errs: string[] = [];
-  for (const r of results) {
-    if ("error" in r) {
-      errs.push(r.error);
-      continue;
-    }
-    for (const k of r.matches) matches.add(k);
-    for (const [k, v] of r.reasoning) reasoning.set(k, v);
+
+  // Worker-pool pattern: slide a concurrency window over the batches.
+  let cursor = 0;
+  const next = () => (cursor < batches.length ? batches[cursor++] : null);
+  const workers: Promise<void>[] = [];
+  for (let i = 0; i < Math.min(MAX_CONCURRENCY, batches.length); i++) {
+    workers.push(
+      (async () => {
+        while (true) {
+          const b = next();
+          if (!b) return;
+          const r = await runOneBatch(client, q, b);
+          if ("error" in r) {
+            errs.push(r.error);
+          } else {
+            for (const k of r.matches) matches.add(k);
+            for (const [k, v] of r.reasoning) reasoning.set(k, v);
+          }
+        }
+      })()
+    );
   }
-  if (errs.length === results.length) {
+  await Promise.all(workers);
+
+  if (errs.length === batches.length) {
     return { ok: false, error: errs[0] };
   }
   return { ok: true, matches, reasoning };
