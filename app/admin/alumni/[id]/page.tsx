@@ -97,7 +97,9 @@ async function uploadAlumnusPhoto(id: number, formData: FormData) {
     access: "public",
     contentType: file.type,
     token,
-    allowOverwrite: true,
+    // Unique suffix per upload so browsers/CDN can't serve the cached old
+    // image. The previous blob is deleted below, so storage stays tidy.
+    addRandomSuffix: true,
   });
 
   // Best-effort: if the previous photo used a different key (different
