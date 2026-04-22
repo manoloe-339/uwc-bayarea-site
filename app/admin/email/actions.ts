@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { sendTestEmail, sendCampaign } from "@/lib/email-send";
+import { sendAdHoc, sendCampaign } from "@/lib/email-send";
 import { acquireSendLock, releaseSendLock } from "@/lib/send-lock";
 import type { AlumniFilters } from "@/lib/alumni-query";
 
@@ -18,7 +18,7 @@ export async function sendTest(
   const salutation = String(formData.get("salutation") ?? "").trim();
   const includeFirstName = formData.get("includeFirstName") === "1";
   if (!to || !subject || !body) return { ok: false, error: "Missing to/subject/body" };
-  const result = await sendTestEmail({ to, subject, body, salutation, includeFirstName });
+  const result = await sendAdHoc({ to, subject, body, salutation, includeFirstName });
   if (!result.ok) return { ok: false, error: result.error };
   return { ok: true, id: result.id };
 }

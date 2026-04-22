@@ -165,7 +165,7 @@ export default async function AlumnusPage({
   const emailHistory = (await sql`
     SELECT
       s.id, s.status, s.sent_at, s.opened_at, s.clicked_at, s.bounced_at, s.error,
-      c.id AS campaign_id, c.subject
+      s.kind, c.id AS campaign_id, COALESCE(c.subject, s.subject) AS subject
     FROM email_sends s
     LEFT JOIN email_campaigns c ON c.id = s.campaign_id
     WHERE s.alumni_id = ${numericId}
@@ -178,6 +178,7 @@ export default async function AlumnusPage({
     clicked_at: string | null;
     bounced_at: string | null;
     error: string | null;
+    kind: string | null;
     campaign_id: string | null;
     subject: string | null;
   }[];
@@ -483,7 +484,7 @@ export default async function AlumnusPage({
           <table className="w-full text-sm">
             <thead className="bg-ivory-2 text-[11px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)]">
               <tr>
-                <th className="text-left px-4 py-2">Campaign</th>
+                <th className="text-left px-4 py-2">Subject</th>
                 <th className="text-left px-4 py-2">Status</th>
                 <th className="text-left px-4 py-2">Sent</th>
                 <th className="text-left px-4 py-2">Opened</th>
@@ -494,13 +495,23 @@ export default async function AlumnusPage({
               {emailHistory.map((h) => (
                 <tr key={h.id} className="border-t border-[color:var(--rule)]">
                   <td className="px-4 py-2">
-                    {h.campaign_id ? (
-                      <Link href={`/admin/email/${h.campaign_id}`} className="text-navy hover:underline">
-                        {h.subject ?? "(untitled)"}
-                      </Link>
-                    ) : (
-                      <span className="text-[color:var(--muted)]">—</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {h.campaign_id ? (
+                        <Link href={`/admin/email/${h.campaign_id}`} className="text-navy hover:underline">
+                          {h.subject ?? "(untitled)"}
+                        </Link>
+                      ) : (
+                        <span className="text-[color:var(--navy-ink)]">{h.subject ?? "(untitled)"}</span>
+                      )}
+                      {h.kind === "ad_hoc" && (
+                        <span
+                          title="Ad-hoc 1:1 send from the admin compose view"
+                          className="text-[10px] font-bold uppercase tracking-wider text-navy bg-ivory-2 border border-[color:var(--rule)] rounded px-1.5 py-0.5"
+                        >
+                          Ad-hoc
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-2">
                     <span
