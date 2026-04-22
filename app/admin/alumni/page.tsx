@@ -7,6 +7,7 @@ import { INDUSTRY_GROUPS, INDUSTRY_TO_GROUP, industriesInGroup, type IndustryGro
 import { VALID_SECTORS, SECTOR_LABELS } from "@/lib/company-classifier";
 import { loadEngagement, scoreAlumni, splitEventResults, scoreAsPercent, type ScoredAlum, type DiversityDimension } from "@/lib/event-ranking";
 import { parseEventQuery, parseSearchQuery, type ParsedEventQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser";
+import { runAiFilter, type CompanyMeta } from "@/lib/ai-filter";
 import YearFilter from "@/components/admin/YearFilter";
 import { SelectAllCheckbox, SelectedCountLink } from "@/components/admin/AlumniSelection";
 import { AlumniOptionsSection } from "@/components/admin/AlumniOptionsSection";
@@ -104,6 +105,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
   };
 
   const showPhotos = pickStr(sp, "showPhotos") === "1";
+  const aiFilter = pickStr(sp, "aiFilter") || null;
   const searchNL = pickStr(sp, "searchNL") === "1";
   const eventMode = !searchNL && pickStr(sp, "eventMode") === "1";
   const rankByEngagementWidget = pickStr(sp, "rankByEngagement") === "1";
@@ -223,7 +225,54 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
       ? ["origin", "school", "region", "company", "age"]
       : [];
 
-  const [rows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
+  const [rawRows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
+
+  // Runtime AI filter: after SQL narrowing, ask Claude once whether each
+  // unique company matches the user's free-text criterion. Used for
+  // semantic questions that aren't covered by stored classifications
+  // (e.g. "B corps", "companies building climate tech").
+  let rows = rawRows;
+  let aiFilterError: string | null = null;
+  let aiMatchedCount: number | null = null;
+  if (aiFilter && rawRows.length > 0) {
+    // Pull sector labels (if classified) to give Claude more signal.
+    const companyKeys = Array.from(
+      new Set(
+        rawRows
+          .map((r) => (r.current_company ?? "").trim().toLowerCase())
+          .filter((k) => k)
+      )
+    );
+    const sectorRows = (await sql`
+      SELECT company_key, sector FROM company_classifications WHERE company_key = ANY(${companyKeys})
+    `) as { company_key: string; sector: string | null }[];
+    const sectorByKey = new Map<string, string | null>();
+    for (const s of sectorRows) sectorByKey.set(s.company_key, s.sector);
+
+    const seen = new Set<string>();
+    const companyList: CompanyMeta[] = [];
+    for (const r of rawRows) {
+      const key = (r.current_company ?? "").trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      companyList.push({
+        key,
+        name: r.current_company ?? key,
+        industry: r.current_company_industry,
+        sector: sectorByKey.get(key) ?? null,
+      });
+    }
+    const result = await runAiFilter(aiFilter, companyList);
+    if (result.ok) {
+      rows = rawRows.filter((r) => {
+        const key = (r.current_company ?? "").trim().toLowerCase();
+        return key && result.matches.has(key);
+      });
+      aiMatchedCount = result.matches.size;
+    } else {
+      aiFilterError = result.error;
+    }
+  }
 
   let scored: ScoredAlum[] = [];
   let topRanked: ScoredAlum[] = [];
@@ -358,6 +407,23 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         </div>
       )}
 
+      {aiFilter && aiMatchedCount != null && (
+        <div className="mb-5 p-3 bg-emerald-50 border-l-4 border-emerald-500 rounded-[2px] text-sm">
+          <span className="font-semibold text-emerald-900">AI filter applied:</span>{" "}
+          <span className="text-emerald-900">&ldquo;{aiFilter}&rdquo;</span>
+          <span className="text-emerald-900/80">
+            {" · "}{aiMatchedCount} {aiMatchedCount === 1 ? "company" : "companies"} matched
+            {" · "}narrowed from {rawRows.length} to {rows.length} {rows.length === 1 ? "alum" : "alumni"}
+          </span>
+        </div>
+      )}
+      {aiFilter && aiFilterError && (
+        <div className="mb-5 p-3 bg-orange-50 border-l-4 border-orange-400 rounded-[2px] text-sm">
+          <span className="font-semibold text-orange-800">AI filter failed</span>
+          <span className="text-orange-800"> — showing unfiltered results. ({aiFilterError})</span>
+        </div>
+      )}
+
       <form
         method="GET"
         key={JSON.stringify({ ...filters, eventMode, rankByEngagement, rankByDiversityWidget, rankByRecency, eventSize })}
@@ -472,6 +538,17 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           ))}
         </Select>
         </>}
+
+        {/* Runtime AI filter — asks Claude per-company at query time, so this
+            one adds 2-3s to Apply. Use for long-tail semantic questions that
+            stored classifications don't cover. */}
+        <Field
+          label="Ask AI about companies (optional, adds ~3s)"
+          name="aiFilter"
+          defaultValue={aiFilter ?? undefined}
+          placeholder="e.g. B corps, companies building climate tech, minority-led firms"
+          span="sm:col-span-2 lg:col-span-4"
+        />
 
         {/* Options — grouped checkboxes (client component: Event ranking reveals on-click) */}
         <AlumniOptionsSection
