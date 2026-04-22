@@ -39,6 +39,8 @@ export type ParsedSearchQuery = {
   origin: string | null;
   /** Classification-backed tech/startup filter. Preferred over industry/size when user intent is semantic. */
   companyTag: "tech" | "non_tech" | "startup" | "not_startup" | null;
+  /** Classification-backed sector (e.g. ai_research, fintech, biotech_research). */
+  sector: string | null;
   keywords: string[];
 };
 
@@ -223,6 +225,7 @@ Schema (every field required; use null or [] when absent):
   "university": <string or null — non-UWC undergrad / grad / postgrad like "Berkeley", "Stanford", "MIT", "Harvard", "Brown", "Minerva", "LSE", etc.>,
   "origin": <string or null — country the alumnus is from, e.g. "Brazil", "Singapore">,
   "company_tag": <"tech" | "non_tech" | "startup" | "not_startup" | null — semantic, classification-backed; prefer this over industry_groups/company_size_band when the user's intent is "tech" or "startup" semantically>,
+  "sector": <null OR one of: "ai_research", "enterprise_saas", "consumer_tech", "developer_tools", "fintech", "biotech_research", "healthcare", "consulting", "academic", "government", "nonprofit", "finance", "media", "education", "energy", "industrial", "other" — use when user names a domain like "AI people", "fintech folks", "biotech", "developer tools">,
   "keywords": [<substantive professional terms only — e.g. "product management", "climate tech", "UX design">]
 }
 
@@ -285,6 +288,15 @@ function normalizeSearch(raw: unknown): SearchParseResult {
       ? (r.company_tag as ParsedSearchQuery["companyTag"])
       : null;
 
+  const validSectors = [
+    "ai_research", "enterprise_saas", "consumer_tech", "developer_tools",
+    "fintech", "biotech_research", "healthcare", "consulting", "academic",
+    "government", "nonprofit", "finance", "media", "education", "energy",
+    "industrial", "other",
+  ];
+  const sector =
+    typeof r.sector === "string" && validSectors.includes(r.sector) ? r.sector : null;
+
   const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
   const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 
@@ -302,6 +314,7 @@ function normalizeSearch(raw: unknown): SearchParseResult {
       university: str(r.university),
       origin: str(r.origin),
       companyTag,
+      sector,
       keywords: Array.isArray(r.keywords)
         ? r.keywords.filter((k): k is string => typeof k === "string" && k.trim().length > 0)
         : [],

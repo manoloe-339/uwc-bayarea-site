@@ -76,7 +76,6 @@ export default async function ClassifyPage() {
               <th className="text-left px-3 py-2">LinkedIn industry</th>
               <th className="text-center px-3 py-2">Tech</th>
               <th className="text-center px-3 py-2">Startup</th>
-              <th className="text-center px-3 py-2">Public</th>
               <th className="text-left px-3 py-2">Sector</th>
               <th className="text-left px-3 py-2">Reasoning</th>
               <th className="text-right px-3 py-2"></th>
@@ -90,9 +89,6 @@ export default async function ClassifyPage() {
                 <tr key={c.company_key} className={`border-t border-[color:var(--rule)] align-top ${isLow ? "bg-orange-50/50" : ""}`}>
                   <td className="px-3 py-2">
                     <div className="font-semibold text-navy">{c.company_name}</div>
-                    {c.is_subsidiary && c.parent_company && (
-                      <div className="text-[11px] text-[color:var(--muted)]">Subsidiary of {c.parent_company}</div>
-                    )}
                   </td>
                   <td className="px-3 py-2 text-xs">{c.alumni_count}</td>
                   <td className="px-3 py-2 text-xs text-[color:var(--muted)]">
@@ -101,7 +97,6 @@ export default async function ClassifyPage() {
                   </td>
                   <td className="px-3 py-2 text-center text-xs">{fmtBool(c.is_tech)}</td>
                   <td className="px-3 py-2 text-center text-xs">{fmtBool(c.is_startup)}</td>
-                  <td className="px-3 py-2 text-center text-xs">{fmtBool(c.is_public)}</td>
                   <td className="px-3 py-2 text-xs">{c.sector ?? "—"}</td>
                   <td className="px-3 py-2 text-xs text-[color:var(--navy-ink)] max-w-[280px]">
                     {c.reasoning ? (

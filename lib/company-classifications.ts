@@ -16,9 +16,6 @@ export type CompanyRow = {
   // classification fields (null when not yet classified)
   is_tech: boolean | null;
   is_startup: boolean | null;
-  is_public: boolean | null;
-  is_subsidiary: boolean | null;
-  parent_company: string | null;
   sector: string | null;
   confidence: number | null;
   reasoning: string | null;
@@ -52,8 +49,7 @@ export async function listCompaniesWithClassifications(): Promise<CompanyRow[]> 
     )
     SELECT c.company_name, c.company_key, c.alumni_count, c.industry, c.size,
            c.website, c.linkedin_url,
-           cc.is_tech, cc.is_startup, cc.is_public, cc.is_subsidiary,
-           cc.parent_company, cc.sector, cc.confidence, cc.reasoning,
+           cc.is_tech, cc.is_startup, cc.sector, cc.confidence, cc.reasoning,
            cc.classified_at, COALESCE(cc.needs_review, FALSE) AS needs_review
     FROM companies c
     LEFT JOIN company_classifications cc ON cc.company_key = c.company_key
@@ -82,9 +78,6 @@ export async function upsertClassification(params: {
   companyName: string;
   isTech: boolean;
   isStartup: boolean;
-  isPublic: boolean;
-  isSubsidiary: boolean;
-  parentCompany: string | null;
   sector: string;
   confidence: number;
   reasoning: string;
@@ -93,29 +86,26 @@ export async function upsertClassification(params: {
   const needsReview = params.confidence < 0.6;
   await sql`
     INSERT INTO company_classifications (
-      company_key, company_name, is_tech, is_startup, is_public, is_subsidiary,
-      parent_company, sector, confidence, reasoning, model,
+      company_key, company_name, is_tech, is_startup,
+      sector, confidence, reasoning, model,
       needs_review, classified_at, updated_at
     ) VALUES (
       ${params.companyKey}, ${params.companyName},
-      ${params.isTech}, ${params.isStartup}, ${params.isPublic}, ${params.isSubsidiary},
-      ${params.parentCompany}, ${params.sector}, ${params.confidence}, ${params.reasoning},
+      ${params.isTech}, ${params.isStartup},
+      ${params.sector}, ${params.confidence}, ${params.reasoning},
       ${params.model}, ${needsReview}, NOW(), NOW()
     )
     ON CONFLICT (company_key) DO UPDATE SET
-      company_name   = EXCLUDED.company_name,
-      is_tech        = EXCLUDED.is_tech,
-      is_startup     = EXCLUDED.is_startup,
-      is_public      = EXCLUDED.is_public,
-      is_subsidiary  = EXCLUDED.is_subsidiary,
-      parent_company = EXCLUDED.parent_company,
-      sector         = EXCLUDED.sector,
-      confidence     = EXCLUDED.confidence,
-      reasoning      = EXCLUDED.reasoning,
-      model          = EXCLUDED.model,
-      needs_review   = EXCLUDED.needs_review,
-      classified_at  = NOW(),
-      updated_at     = NOW()
+      company_name  = EXCLUDED.company_name,
+      is_tech       = EXCLUDED.is_tech,
+      is_startup    = EXCLUDED.is_startup,
+      sector        = EXCLUDED.sector,
+      confidence    = EXCLUDED.confidence,
+      reasoning     = EXCLUDED.reasoning,
+      model         = EXCLUDED.model,
+      needs_review  = EXCLUDED.needs_review,
+      classified_at = NOW(),
+      updated_at    = NOW()
   `;
 }
 

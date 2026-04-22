@@ -56,6 +56,8 @@ export type AlumniFilters = {
   university?: string;
   /** Classification-backed tech / startup filter (requires a company_classifications row). */
   companyTag?: CompanyTagFilter;
+  /** Classification-backed sector filter (ai_research, fintech, biotech_research, etc.). */
+  sector?: string;
 
   /** Explicit recipient IDs (bypasses other filters during send). */
   ids?: number[];
@@ -246,6 +248,15 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
   } else if (f.companyTag === "not_startup") {
     parts.push(
       `NOT EXISTS (SELECT 1 FROM company_classifications cc WHERE cc.company_key = lower(trim(alumni.current_company)) AND cc.is_startup = TRUE)`
+    );
+  }
+
+  // Classification-backed sector filter
+  if (f.sector && f.sector.trim()) {
+    push(
+      (n) =>
+        `EXISTS (SELECT 1 FROM company_classifications cc WHERE cc.company_key = lower(trim(alumni.current_company)) AND cc.sector = $${n})`,
+      f.sector.trim()
     );
   }
 

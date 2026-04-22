@@ -4,6 +4,7 @@ import { REGIONS } from "@/lib/region";
 import { sql } from "@/lib/db";
 import { searchAlumni, countAlumni, FOLLOWUP_REASONS, FOLLOWUP_REASON_LABELS, type AlumniFilters, type ExperienceBand } from "@/lib/alumni-query";
 import { INDUSTRY_GROUPS, INDUSTRY_TO_GROUP, industriesInGroup, type IndustryGroup } from "@/lib/industry-groups";
+import { VALID_SECTORS, SECTOR_LABELS } from "@/lib/company-classifier";
 import { loadEngagement, scoreAlumni, splitEventResults, scoreAsPercent, type ScoredAlum, type DiversityDimension } from "@/lib/event-ranking";
 import { parseEventQuery, parseSearchQuery, type ParsedEventQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser";
 import YearFilter from "@/components/admin/YearFilter";
@@ -92,6 +93,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     company: pickStr(sp, "company"),
     university: pickStr(sp, "university"),
     companyTag: pickStr(sp, "companyTag") as AlumniFilters["companyTag"],
+    sector: pickStr(sp, "sector"),
     companyIdMap,
     expBand: pickStr(sp, "expBand") as ExperienceBand | undefined,
     uwcVerified: pickStr(sp, "uwcVerified") as AlumniFilters["uwcVerified"],
@@ -161,6 +163,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     if (searchParsed.university) widgetSafe.university = searchParsed.university;
     if (searchParsed.origin) widgetSafe.origin = searchParsed.origin;
     if (searchParsed.companyTag) widgetSafe.companyTag = searchParsed.companyTag;
+    if (searchParsed.sector) widgetSafe.sector = searchParsed.sector;
     widgetSafe.q = searchParsed.keywords.length > 0 ? searchParsed.keywords.join(" ") : undefined;
     // Replace the filters object entirely.
     Object.assign(filters, {
@@ -179,6 +182,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
       university: undefined,
       companySizeBand: undefined,
       companyTag: undefined,
+      sector: undefined,
       expBand: undefined,
       uwcVerified: undefined,
       linkedin: undefined,
@@ -460,6 +464,12 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <option value="non_tech">Non-tech</option>
           <option value="startup">Startup</option>
           <option value="not_startup">Not a startup</option>
+        </Select>
+        <Select label="Sector" name="sector" defaultValue={filters.sector ?? ""}>
+          <option value="">Any</option>
+          {VALID_SECTORS.map((s) => (
+            <option key={s} value={s}>{SECTOR_LABELS[s]}</option>
+          ))}
         </Select>
         </>}
 

@@ -11,9 +11,6 @@ export type CompanyClassificationInput = {
 export type CompanyClassificationOutput = {
   isTech: boolean;
   isStartup: boolean;
-  isPublic: boolean;
-  isSubsidiary: boolean;
-  parentCompany: string | null;
   sector: string;
   confidence: number;
   reasoning: string;
@@ -25,7 +22,7 @@ export type ClassifyResult =
 
 const MODEL = "claude-haiku-4-5-20251001";
 
-const VALID_SECTORS = [
+export const VALID_SECTORS = [
   "ai_research",
   "enterprise_saas",
   "consumer_tech",
@@ -52,10 +49,7 @@ function systemPrompt(): string {
 Return ONLY JSON, no prose, matching this shape:
 {
   "is_tech": boolean,          // Primary business is building software/hardware products OR the company is culturally "tech". Anthropic=yes, OpenAI=yes, SoFi=yes (fintech is tech), Stripe=yes, Berkeley Lab=no, Bain=no, UNICEF=no.
-  "is_startup": boolean,       // Privately held, generally <10 years old, VC/founder-funded, not a subsidiary of a larger entity, typically under a few hundred employees. Anthropic=yes (Series C-funded AI lab). Google=no (public, decades old). Xbox Media Solutions=no (Microsoft subsidiary). SoFi=no (public since 2021).
-  "is_public": boolean,        // Publicly traded on a stock exchange today.
-  "is_subsidiary": boolean,    // Majority-owned by a larger entity.
-  "parent_company": string|null, // Name of the parent if is_subsidiary=true, else null.
+  "is_startup": boolean,       // Privately held, generally <10 years old, VC/founder-funded, NOT a subsidiary of a larger entity, typically under a few hundred employees. Use your full knowledge of the company here — factor in funding stage, public-trading status, ownership/subsidiary status, age. Anthropic=yes. Google=no. Xbox Media Solutions=no (Microsoft subsidiary). SoFi=no (public since 2021).
   "sector": one of "ai_research"|"enterprise_saas"|"consumer_tech"|"developer_tools"|"fintech"|"biotech_research"|"healthcare"|"consulting"|"academic"|"government"|"nonprofit"|"finance"|"media"|"education"|"energy"|"industrial"|"other",
   "confidence": number 0-1,    // How confident you are. Lower this when the company is obscure or the name is ambiguous.
   "reasoning": string          // One sentence, <200 chars, why you classified it this way.
@@ -125,9 +119,6 @@ export async function classifyCompany(
       data: {
         isTech: r.is_tech === true,
         isStartup: r.is_startup === true,
-        isPublic: r.is_public === true,
-        isSubsidiary: r.is_subsidiary === true,
-        parentCompany: typeof r.parent_company === "string" && r.parent_company.trim() ? r.parent_company.trim() : null,
         sector,
         confidence: conf,
         reasoning: typeof r.reasoning === "string" ? r.reasoning.slice(0, 400) : "",
@@ -139,3 +130,23 @@ export async function classifyCompany(
 }
 
 export const CLASSIFIER_MODEL = MODEL;
+
+export const SECTOR_LABELS: Record<(typeof VALID_SECTORS)[number], string> = {
+  ai_research: "AI research",
+  enterprise_saas: "Enterprise SaaS",
+  consumer_tech: "Consumer tech",
+  developer_tools: "Developer tools",
+  fintech: "Fintech",
+  biotech_research: "Biotech / research",
+  healthcare: "Healthcare",
+  consulting: "Consulting",
+  academic: "Academic / labs",
+  government: "Government",
+  nonprofit: "Non-profit",
+  finance: "Finance",
+  media: "Media",
+  education: "Education",
+  energy: "Energy",
+  industrial: "Industrial",
+  other: "Other",
+};
