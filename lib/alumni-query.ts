@@ -10,6 +10,15 @@ export type EngagementFilter =
 export type ExperienceBand = "0-3" | "3-7" | "7-15" | "15+";
 export type UwcVerifiedFilter = "verified" | "unverified" | "any";
 export type LinkedinFilter = "has" | "missing";
+export const FOLLOWUP_REASONS = ["bad_record", "follow_up", "ask_for_help", "other"] as const;
+export type FollowupReason = (typeof FOLLOWUP_REASONS)[number];
+export const FOLLOWUP_REASON_LABELS: Record<FollowupReason, string> = {
+  bad_record: "Bad record",
+  follow_up: "Follow up",
+  ask_for_help: "Ask for help",
+  other: "Other",
+};
+export type FollowupFilter = "any" | "none" | FollowupReason;
 
 export type AlumniFilters = {
   q?: string;
@@ -33,6 +42,7 @@ export type AlumniFilters = {
   uwcVerified?: UwcVerifiedFilter;
   hasPhoto?: boolean;
   linkedin?: LinkedinFilter;
+  followup?: FollowupFilter;
 
   /** Explicit recipient IDs (bypasses other filters during send). */
   ids?: number[];
@@ -71,6 +81,7 @@ export type AlumniRow = {
   total_experience_years: string | number | null;
   location_city: string | null;
   location_country: string | null;
+  followup_reason: string | null;
 };
 
 export function buildWhere(f: AlumniFilters): { where: string; params: unknown[] } {
@@ -174,6 +185,15 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
     parts.push(`(linkedin_url IS NULL OR linkedin_url = '')`);
   }
 
+  // Follow-up flag (admin)
+  if (f.followup === "any") {
+    parts.push(`followup_reason IS NOT NULL`);
+  } else if (f.followup === "none") {
+    parts.push(`followup_reason IS NULL`);
+  } else if (f.followup && FOLLOWUP_REASONS.includes(f.followup as FollowupReason)) {
+    push((n) => `followup_reason = $${n}`, f.followup);
+  }
+
   const where = parts.length > 0 ? `WHERE ${parts.join(" AND ")}` : "";
   return { where, params };
 }
@@ -187,7 +207,7 @@ export async function searchAlumni(f: AlumniFilters, limit = 500): Promise<Alumn
            subscribed, sources, flags,
            headline, photo_url, current_title, current_company,
            current_company_industry, uwc_verified, total_experience_years,
-           location_city, location_country
+           location_city, location_country, followup_reason
     FROM alumni
     ${where}
     ORDER BY grad_year DESC NULLS LAST, last_name ASC NULLS LAST, first_name ASC NULLS LAST
@@ -212,7 +232,7 @@ export async function getAlumniByIds(ids: number[]): Promise<AlumniRow[]> {
             subscribed, sources, flags,
             headline, photo_url, current_title, current_company,
             current_company_industry, uwc_verified, total_experience_years,
-            location_city, location_country
+            location_city, location_country, followup_reason
      FROM alumni
      WHERE id = ANY($1) AND subscribed IS NOT FALSE
      ORDER BY last_name ASC NULLS LAST, first_name ASC NULLS LAST`,

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { COLLEGES } from "@/lib/uwc-colleges";
 import { REGIONS } from "@/lib/region";
 import { sql } from "@/lib/db";
-import { searchAlumni, countAlumni, type AlumniFilters, type ExperienceBand } from "@/lib/alumni-query";
+import { searchAlumni, countAlumni, FOLLOWUP_REASONS, FOLLOWUP_REASON_LABELS, type AlumniFilters, type ExperienceBand } from "@/lib/alumni-query";
 import YearFilter from "@/components/admin/YearFilter";
 import { SelectAllCheckbox, SelectedCountLink } from "@/components/admin/AlumniSelection";
 
@@ -90,6 +90,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     uwcVerified: pickStr(sp, "uwcVerified") as AlumniFilters["uwcVerified"],
     hasPhoto: pickStr(sp, "hasPhoto") === "1",
     linkedin: pickStr(sp, "linkedin") as AlumniFilters["linkedin"],
+    followup: pickStr(sp, "followup") as AlumniFilters["followup"],
     engagement: pickStr(sp, "engagement") as AlumniFilters["engagement"],
   };
 
@@ -178,6 +179,16 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <option value="">Any</option>
           <option value="has">Has LinkedIn URL</option>
           <option value="missing">No LinkedIn URL</option>
+        </Select>
+        <Select label="Follow-up" name="followup" defaultValue={filters.followup ?? ""}>
+          <option value="">Any</option>
+          <option value="any">Needs follow-up (any reason)</option>
+          {FOLLOWUP_REASONS.map((v) => (
+            <option key={v} value={v}>
+              {FOLLOWUP_REASON_LABELS[v]}
+            </option>
+          ))}
+          <option value="none">No follow-up needed</option>
         </Select>
         <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] mt-auto pb-2">
           <input type="checkbox" name="hasPhoto" value="1" defaultChecked={filters.hasPhoto} />
@@ -314,6 +325,14 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                           {r.flags.join(", ")}
                         </span>
                       )}
+                      {r.followup_reason && (
+                        <span
+                          title="Needs follow-up"
+                          className="ml-1 text-[10px] font-bold text-orange-800 bg-orange-100 border border-orange-300 rounded px-1.5 py-0.5 uppercase tracking-wider"
+                        >
+                          ⚑ {followupLabel(r.followup_reason)}
+                        </span>
+                      )}
                     </div>
                       </div>
                     </div>
@@ -404,6 +423,14 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                         {r.flags.join(", ")}
                       </span>
                     )}
+                    {r.followup_reason && (
+                      <span
+                        title="Needs follow-up"
+                        className="text-[10px] font-bold text-orange-800 bg-orange-100 border border-orange-300 rounded px-1.5 py-0.5 uppercase tracking-wider"
+                      >
+                        ⚑ {followupLabel(r.followup_reason)}
+                      </span>
+                    )}
                   </div>
                   {r.headline && (
                     <div className="text-xs italic text-[color:var(--muted)] mb-1 line-clamp-2">
@@ -480,6 +507,10 @@ function Select({ label, name, defaultValue, children }: {
       </select>
     </label>
   );
+}
+
+function followupLabel(reason: string): string {
+  return (FOLLOWUP_REASON_LABELS as Record<string, string>)[reason] ?? reason;
 }
 
 /**

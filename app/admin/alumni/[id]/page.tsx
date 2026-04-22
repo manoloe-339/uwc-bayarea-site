@@ -8,6 +8,7 @@ import { cityToRegion, REGIONS } from "@/lib/region";
 import { reasonLabel } from "@/lib/unsubscribe-reasons";
 import { resubscribe } from "@/app/unsubscribe/actions";
 import { fmtDate } from "@/lib/admin-time";
+import { FOLLOWUP_REASONS, FOLLOWUP_REASON_LABELS, type FollowupReason } from "@/lib/alumni-query";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,7 @@ type AlumRecord = {
   first_role_year: number | null;
   enriched_at: string | null;
   enrichment_source: string | null;
+  followup_reason: string | null;
 };
 
 async function updateAlumnus(id: number, formData: FormData) {
@@ -101,6 +103,14 @@ async function updateAlumnus(id: number, formData: FormData) {
   const regionChoice = get("region");
   const region = regionChoice ?? cityToRegion(currentCity);
 
+  // Follow-up: checkbox gates the reason. Unchecked → clear reason.
+  const needsFollowup = formData.get("needs_followup") === "on";
+  const followupReasonRaw = get("followup_reason");
+  const followupReason =
+    needsFollowup && followupReasonRaw && FOLLOWUP_REASONS.includes(followupReasonRaw as FollowupReason)
+      ? followupReasonRaw
+      : null;
+
   await sql`
     UPDATE alumni SET
       first_name         = ${get("first_name")},
@@ -125,6 +135,7 @@ async function updateAlumnus(id: number, formData: FormData) {
       working            = ${get("working")},
       attended_event     = ${formData.get("attended_event") === "on"},
       moved_out          = ${formData.get("moved_out") === "on"},
+      followup_reason    = ${followupReason},
       updated_at         = NOW()
     WHERE id = ${id}
   `;
@@ -399,6 +410,34 @@ export default async function AlumnusPage({
               No longer in the Bay Area (hide from default search)
             </label>
           </div>
+        </Section>
+
+        <Section title="Follow-up">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="needs_followup"
+                defaultChecked={!!r.followup_reason}
+              />
+              Needs follow-up
+            </label>
+            <select
+              name="followup_reason"
+              defaultValue={r.followup_reason ?? ""}
+              className="border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white sm:min-w-[220px]"
+            >
+              <option value="">— reason —</option>
+              {FOLLOWUP_REASONS.map((v) => (
+                <option key={v} value={v}>
+                  {FOLLOWUP_REASON_LABELS[v]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="mt-2 text-xs text-[color:var(--muted)]">
+            Uncheck to clear. Filter the search page by &ldquo;Follow-up&rdquo; to work through the queue.
+          </p>
         </Section>
 
         <div className="flex items-center justify-between pt-4 border-t border-[color:var(--rule)]">
