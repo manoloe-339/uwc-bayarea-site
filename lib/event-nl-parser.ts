@@ -68,7 +68,10 @@ function ageRules(thisYear: number): string {
 }
 
 function eventSystemPrompt(thisYear: number): string {
-  return `You are an event planning assistant for a UWC Bay Area alumni network. Parse the user's event description into structured JSON.
+  const today = new Date().toISOString().slice(0, 10);
+  return `TODAY'S DATE IS ${today}. THE CURRENT YEAR IS ${thisYear}. Ignore any training-data default like "2024"; use the year I just gave you for every calculation.
+
+You are an event planning assistant for a UWC Bay Area alumni network. Parse the user's event description into structured JSON.
 
 Return ONLY a JSON object. No prose, no markdown fences — just the object.
 
@@ -198,7 +201,10 @@ function normalize(raw: unknown): ParseResult {
 }
 
 function searchSystemPrompt(thisYear: number): string {
-  return `You are an alumni search assistant for a UWC Bay Area alumni network. Parse the user's free-text search query into structured filters.
+  const today = new Date().toISOString().slice(0, 10);
+  return `TODAY'S DATE IS ${today}. THE CURRENT YEAR IS ${thisYear}. Ignore any training-data default like "2024"; use the year I just gave you for every calculation.
+
+You are an alumni search assistant for a UWC Bay Area alumni network. Parse the user's free-text search query into structured filters.
 
 Return ONLY a JSON object. No prose, no markdown fences.
 
