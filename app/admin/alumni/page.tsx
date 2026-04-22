@@ -236,6 +236,17 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
   }
   const exportHref = `/api/admin/alumni/export?${qs.toString()}`;
 
+  // Preserve the raw URL params so detail-page "Back to alumni" can return
+  // the user to the same filtered list (NL query, event mode, etc. intact).
+  const rawListQs = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    if (typeof v === "string" && v !== "") rawListQs.set(k, v);
+    else if (Array.isArray(v)) for (const vv of v) if (typeof vv === "string" && vv) rawListQs.append(k, vv);
+  }
+  const listFromParam = rawListQs.toString();
+  const detailHref = (id: number) =>
+    `/admin/alumni/${id}${listFromParam ? `?from=${encodeURIComponent(listFromParam)}` : ""}`;
+
   return (
     <div>
       <div className="flex items-end justify-between mb-6">
@@ -513,7 +524,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                       <div className="flex items-start gap-2.5">
                         {showPhotos && <Thumb url={r.photo_url} firstName={r.first_name} email={r.email} size={40} />}
                         <div className="flex-1 min-w-0">
-                          <Link href={`/admin/alumni/${r.id}`} className="font-semibold text-navy hover:underline block">
+                          <Link href={detailHref(r.id)} className="font-semibold text-navy hover:underline block">
                             {[r.first_name, r.last_name].filter(Boolean).join(" ") || r.email}
                           </Link>
                           <div className="mt-0.5 text-xs text-[color:var(--muted)]">
@@ -620,7 +631,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                       {showPhotos && <Thumb url={r.photo_url} firstName={r.first_name} email={r.email} size={40} />}
                       <div className="flex-1 min-w-0">
                     <Link
-                      href={`/admin/alumni/${r.id}`}
+                      href={detailHref(r.id)}
                       className="font-semibold text-navy hover:underline block"
                     >
                       {[r.first_name, r.last_name].filter(Boolean).join(" ") || r.email}
@@ -721,7 +732,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-1">
                     <Link
-                      href={`/admin/alumni/${r.id}`}
+                      href={detailHref(r.id)}
                       className="font-semibold text-navy hover:underline"
                     >
                       {fullName}
@@ -818,7 +829,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                     >
                       {scoreAsPercent(r.score)}
                     </span>
-                    <Link href={`/admin/alumni/${r.id}`} className="font-semibold text-navy hover:underline truncate">
+                    <Link href={detailHref(r.id)} className="font-semibold text-navy hover:underline truncate">
                       {name}
                     </Link>
                     <span className="text-xs text-[color:var(--muted)] truncate">{role || "—"}</span>

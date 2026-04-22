@@ -199,10 +199,13 @@ export default async function AlumnusPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; from?: string }>;
 }) {
   const { id } = await params;
-  const { saved } = await searchParams;
+  const { saved, from } = await searchParams;
+  // `from` carries the original list's URL query string so Back goes
+  // straight to the same filtered results (NL query, event mode, etc.).
+  const backHref = from ? `/admin/alumni?${decodeURIComponent(from)}` : "/admin/alumni";
   const numericId = Number(id);
   if (!Number.isFinite(numericId)) notFound();
   const rows = (await sql`SELECT * FROM alumni WHERE id = ${numericId}`) as AlumRecord[];
@@ -245,7 +248,7 @@ export default async function AlumnusPage({
   return (
     <div className="max-w-[1000px]">
       <div className="mb-4 text-sm">
-        <Link href="/admin/alumni" className="text-[color:var(--muted)] hover:text-navy">
+        <Link href={backHref} className="text-[color:var(--muted)] hover:text-navy">
           ← Back to alumni
         </Link>
       </div>
