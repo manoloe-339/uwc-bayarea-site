@@ -37,6 +37,8 @@ export type ParsedSearchQuery = {
   /** Non-UWC education (undergrad / grad school). */
   university: string | null;
   origin: string | null;
+  /** Classification-backed tech/startup filter. Preferred over industry/size when user intent is semantic. */
+  companyTag: "tech" | "non_tech" | "startup" | "not_startup" | null;
   keywords: string[];
 };
 
@@ -220,6 +222,7 @@ Schema (every field required; use null or [] when absent):
   "college": <string or null — UWC school only: canonical forms like "UWC Atlantic", "UWC Mahindra", "UWC USA", "UWC South East Asia", "UWC Red Cross Nordic", "UWC Adriatic", "UWC Maastricht", "UWC Li Po Chun", "UWC Dilijan", "UWC Costa Rica", "UWC Mostar", "UWC Changshu", "UWC Robert Bosch", "UWC Waterford Kamhlaba", "UWC Pearson", "UWC ISAK Japan", "UWC Thailand", "UWC East Africa", "UWC Mahindra">,
   "university": <string or null — non-UWC undergrad / grad / postgrad like "Berkeley", "Stanford", "MIT", "Harvard", "Brown", "Minerva", "LSE", etc.>,
   "origin": <string or null — country the alumnus is from, e.g. "Brazil", "Singapore">,
+  "company_tag": <"tech" | "non_tech" | "startup" | "not_startup" | null — semantic, classification-backed; prefer this over industry_groups/company_size_band when the user's intent is "tech" or "startup" semantically>,
   "keywords": [<substantive professional terms only — e.g. "product management", "climate tech", "UX design">]
 }
 
@@ -234,9 +237,14 @@ Rules:
 - "or" / "and" between industries → include both (e.g. "finance or consulting" → both groups)
 - "SF"/"San Francisco" → city; "East Bay" → region; don't set city if user said "Bay Area" generically
 ${ageRules(thisYear)}
-- "non-tech" / "not in tech" / "except tech" → the COMPLEMENT of the named group: emit all OTHER industry groups. Same for any "non-X" phrasing.
+- "tech" / "in tech" / "tech people" → company_tag "tech" (use the classification-backed tag, NOT industry_groups). LinkedIn's industry tags misclassify AI companies as "Research Services" and fintechs as "Financial Services", so the semantic tag is more accurate.
+- "non-tech" / "not in tech" / "except tech" / "outside of tech" → company_tag "non_tech". Do NOT use industry_groups for this.
+- "startup" / "early-stage" / "at a startup" → company_tag "startup" (classification-backed, reflects real startup status vs. headcount proxy).
+- "not a startup" / "established company" / "mature company" → company_tag "not_startup".
+- Only fall back to industry_groups when the user names specific domains (e.g. "finance people", "consultants", "educators") that aren't about tech/startup status.
+- "non-X" for other groups (e.g. "non-finance") → emit the COMPLEMENT of that group in industry_groups.
 - Do NOT emit both city and region for the same location. Pick one: city if user named a specific city ("San Francisco"); region if they used a Bay Area bucket ("East Bay").
-- "startup"/"early-stage" → company_size_band "startup"
+- company_size_band remains available as a fallback but prefer company_tag="startup" — it's based on real company facts (funding, subsidiary status, age) rather than just headcount.
 - "big tech"/"large company" → company_size_band "large"
 - UWC school names → college (only set if user specifically mentions a UWC school)
 - Undergrad / grad school names like "Berkeley alumni", "went to Stanford", "MIT grads" → university
@@ -271,6 +279,12 @@ function normalizeSearch(raw: unknown): SearchParseResult {
   const region =
     typeof r.region === "string" && validRegions.includes(r.region) ? r.region : null;
 
+  const validTags: ParsedSearchQuery["companyTag"][] = ["tech", "non_tech", "startup", "not_startup"];
+  const companyTag =
+    typeof r.company_tag === "string" && (validTags as string[]).includes(r.company_tag)
+      ? (r.company_tag as ParsedSearchQuery["companyTag"])
+      : null;
+
   const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
   const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 
@@ -287,6 +301,7 @@ function normalizeSearch(raw: unknown): SearchParseResult {
       college: str(r.college),
       university: str(r.university),
       origin: str(r.origin),
+      companyTag,
       keywords: Array.isArray(r.keywords)
         ? r.keywords.filter((k): k is string => typeof k === "string" && k.trim().length > 0)
         : [],

@@ -16,6 +16,7 @@ const COMPANY_SIZE_BANDS: Record<CompanySizeBand, string[]> = {
   startup: ["1-10", "11-50", "51-200"],
   large: ["1001-5000", "5001-10000", "10001+"],
 };
+export type CompanyTagFilter = "tech" | "non_tech" | "startup" | "not_startup";
 export const FOLLOWUP_REASONS = ["bad_record", "follow_up", "ask_for_help", "other"] as const;
 export type FollowupReason = (typeof FOLLOWUP_REASONS)[number];
 export const FOLLOWUP_REASON_LABELS: Record<FollowupReason, string> = {
@@ -53,6 +54,8 @@ export type AlumniFilters = {
   companySizeBand?: CompanySizeBand;
   /** Matches non-UWC education rows (undergrad / grad school). ILIKE search. */
   university?: string;
+  /** Classification-backed tech / startup filter (requires a company_classifications row). */
+  companyTag?: CompanyTagFilter;
 
   /** Explicit recipient IDs (bypasses other filters during send). */
   ids?: number[];
@@ -221,6 +224,28 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
       (n) =>
         `EXISTS (SELECT 1 FROM alumni_education e WHERE e.alumni_id = alumni.id AND e.is_uwc IS NOT TRUE AND lower(e.school) LIKE $${n})`,
       `%${f.university.toLowerCase().trim()}%`
+    );
+  }
+
+  // Company classification tag — requires company_classifications row.
+  // "tech" / "startup" require a positive classification. "non_tech" /
+  // "not_startup" include both negative-classified rows and unclassified
+  // rows (no classification = don't silently filter them out).
+  if (f.companyTag === "tech") {
+    parts.push(
+      `EXISTS (SELECT 1 FROM company_classifications cc WHERE cc.company_key = lower(trim(alumni.current_company)) AND cc.is_tech = TRUE)`
+    );
+  } else if (f.companyTag === "non_tech") {
+    parts.push(
+      `NOT EXISTS (SELECT 1 FROM company_classifications cc WHERE cc.company_key = lower(trim(alumni.current_company)) AND cc.is_tech = TRUE)`
+    );
+  } else if (f.companyTag === "startup") {
+    parts.push(
+      `EXISTS (SELECT 1 FROM company_classifications cc WHERE cc.company_key = lower(trim(alumni.current_company)) AND cc.is_startup = TRUE)`
+    );
+  } else if (f.companyTag === "not_startup") {
+    parts.push(
+      `NOT EXISTS (SELECT 1 FROM company_classifications cc WHERE cc.company_key = lower(trim(alumni.current_company)) AND cc.is_startup = TRUE)`
     );
   }
 

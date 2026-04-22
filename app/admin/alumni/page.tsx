@@ -91,6 +91,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     industryGroup: (pickStr(sp, "industryGroup") as IndustryGroup | undefined) || undefined,
     company: pickStr(sp, "company"),
     university: pickStr(sp, "university"),
+    companyTag: pickStr(sp, "companyTag") as AlumniFilters["companyTag"],
     companyIdMap,
     expBand: pickStr(sp, "expBand") as ExperienceBand | undefined,
     uwcVerified: pickStr(sp, "uwcVerified") as AlumniFilters["uwcVerified"],
@@ -159,6 +160,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     if (searchParsed.college) widgetSafe.college = searchParsed.college;
     if (searchParsed.university) widgetSafe.university = searchParsed.university;
     if (searchParsed.origin) widgetSafe.origin = searchParsed.origin;
+    if (searchParsed.companyTag) widgetSafe.companyTag = searchParsed.companyTag;
     widgetSafe.q = searchParsed.keywords.length > 0 ? searchParsed.keywords.join(" ") : undefined;
     // Replace the filters object entirely.
     Object.assign(filters, {
@@ -176,6 +178,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
       company: undefined,
       university: undefined,
       companySizeBand: undefined,
+      companyTag: undefined,
       expBand: undefined,
       uwcVerified: undefined,
       linkedin: undefined,
@@ -326,6 +329,20 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             {searchParsed.college && <ParseChip label={`UWC: ${searchParsed.college}`} />}
             {searchParsed.university && <ParseChip label={`University: ${searchParsed.university}`} />}
             {searchParsed.origin && <ParseChip label={`Origin: ${searchParsed.origin}`} />}
+            {searchParsed.companyTag && (
+              <ParseChip
+                label={
+                  searchParsed.companyTag === "tech"
+                    ? "Tech companies"
+                    : searchParsed.companyTag === "non_tech"
+                      ? "Non-tech companies"
+                      : searchParsed.companyTag === "startup"
+                        ? "Startups"
+                        : "Not startups"
+                }
+                tone="diversity"
+              />
+            )}
             {searchParsed.keywords.length > 0 && <ParseChip label={`Keywords: ${searchParsed.keywords.join(", ")}`} />}
           </div>
         </div>
@@ -436,6 +453,13 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <option value="clicked_any">Clicked any link</option>
           <option value="never_opened">Received, never opened</option>
           <option value="never_received">Never received an email</option>
+        </Select>
+        <Select label="Company type" name="companyTag" defaultValue={filters.companyTag ?? ""}>
+          <option value="">Any</option>
+          <option value="tech">Tech company</option>
+          <option value="non_tech">Non-tech</option>
+          <option value="startup">Startup</option>
+          <option value="not_startup">Not a startup</option>
         </Select>
         </>}
 
