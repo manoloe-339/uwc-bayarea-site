@@ -71,6 +71,7 @@ type AlumRecord = {
   enriched_at: string | null;
   enrichment_source: string | null;
   followup_reason: string | null;
+  no_linkedin_confirmed: boolean | null;
 };
 
 async function updateAlumnus(id: number, formData: FormData) {
@@ -136,6 +137,7 @@ async function updateAlumnus(id: number, formData: FormData) {
       attended_event     = ${formData.get("attended_event") === "on"},
       moved_out          = ${formData.get("moved_out") === "on"},
       followup_reason    = ${followupReason},
+      no_linkedin_confirmed = ${formData.get("no_linkedin_confirmed") === "on"},
       updated_at         = NOW()
     WHERE id = ${id}
   `;
@@ -289,6 +291,21 @@ export default async function AlumnusPage({
             />
             <SelectField label="Affiliation" name="affiliation" defaultValue={r.affiliation} options={[{ value: "", label: "—" }, ...AFFILIATIONS.map((a) => ({ value: a, label: a }))]} />
           </Grid>
+          <label className="flex items-start gap-2 text-sm mt-3">
+            <input
+              type="checkbox"
+              name="no_linkedin_confirmed"
+              defaultChecked={r.no_linkedin_confirmed ?? false}
+              className="mt-0.5"
+            />
+            <span>
+              Verified: no LinkedIn profile available
+              <span className="block text-xs text-[color:var(--muted)]">
+                I&rsquo;ve looked and this person doesn&rsquo;t have a discoverable public LinkedIn.
+                Untick if unsure.
+              </span>
+            </span>
+          </label>
         </Section>
 
         <Section title="UWC">

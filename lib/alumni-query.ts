@@ -9,7 +9,7 @@ export type EngagementFilter =
 
 export type ExperienceBand = "0-3" | "3-7" | "7-15" | "15+";
 export type UwcVerifiedFilter = "verified" | "unverified" | "any";
-export type LinkedinFilter = "has" | "missing";
+export type LinkedinFilter = "has" | "missing" | "missing_unverified" | "missing_confirmed";
 export const FOLLOWUP_REASONS = ["bad_record", "follow_up", "ask_for_help", "other"] as const;
 export type FollowupReason = (typeof FOLLOWUP_REASONS)[number];
 export const FOLLOWUP_REASON_LABELS: Record<FollowupReason, string> = {
@@ -178,11 +178,16 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
     parts.push(`photo_url IS NOT NULL`);
   }
 
-  // LinkedIn URL presence
+  // LinkedIn URL presence + admin-verified "no LinkedIn" sub-states.
+  const missingSql = `(linkedin_url IS NULL OR linkedin_url = '')`;
   if (f.linkedin === "has") {
     parts.push(`(linkedin_url IS NOT NULL AND linkedin_url <> '')`);
   } else if (f.linkedin === "missing") {
-    parts.push(`(linkedin_url IS NULL OR linkedin_url = '')`);
+    parts.push(missingSql);
+  } else if (f.linkedin === "missing_unverified") {
+    parts.push(`${missingSql} AND no_linkedin_confirmed IS NOT TRUE`);
+  } else if (f.linkedin === "missing_confirmed") {
+    parts.push(`${missingSql} AND no_linkedin_confirmed IS TRUE`);
   }
 
   // Follow-up flag (admin)

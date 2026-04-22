@@ -178,7 +178,9 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         <Select label="LinkedIn" name="linkedin" defaultValue={filters.linkedin ?? ""}>
           <option value="">Any</option>
           <option value="has">Has LinkedIn URL</option>
-          <option value="missing">No LinkedIn URL</option>
+          <option value="missing">No LinkedIn URL (all)</option>
+          <option value="missing_unverified">No LinkedIn — not yet checked</option>
+          <option value="missing_confirmed">No LinkedIn — confirmed unavailable</option>
         </Select>
         <Select label="Follow-up" name="followup" defaultValue={filters.followup ?? ""}>
           <option value="">Any</option>
