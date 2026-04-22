@@ -96,6 +96,13 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
   };
 
   const showPhotos = pickStr(sp, "showPhotos") === "1";
+  const addToList = pickStr(sp, "addToList") || null;
+  let addToListName: string | null = null;
+  if (addToList) {
+    const { getInviteList } = await import("@/lib/invite-lists");
+    const list = await getInviteList(addToList);
+    addToListName = list?.name ?? null;
+  }
 
   const [rows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
 
@@ -122,6 +129,19 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           Export CSV
         </a>
       </div>
+      {addToList && addToListName && (
+        <div className="mb-5 p-3 bg-ivory-2 border-l-4 border-navy rounded-[2px] text-sm flex items-center justify-between">
+          <span>
+            Adding selections to invite list:{" "}
+            <Link href={`/admin/events/${addToList}`} className="font-semibold text-navy hover:underline">
+              {addToListName}
+            </Link>
+          </span>
+          <Link href="/admin/alumni" className="text-xs text-[color:var(--muted)] hover:text-navy">
+            Cancel
+          </Link>
+        </div>
+      )}
 
       <form
         method="GET"
@@ -247,7 +267,22 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             <span className="font-normal text-[color:var(--muted)]"> · showing first {rows.length}</span>
           ) : null}
         </p>
-        <SelectedCountLink formId="alumni-select-form" />
+        <div className="flex items-center gap-4">
+          {addToList && addToListName ? (
+            <SelectedCountLink
+              formId="alumni-select-form"
+              label={`Add to ${addToListName}`}
+              formAction={`/admin/events/${addToList}/add`}
+            />
+          ) : (
+            <SelectedCountLink
+              formId="alumni-select-form"
+              label="Save as invite list"
+              formAction="/admin/events/new"
+            />
+          )}
+          <SelectedCountLink formId="alumni-select-form" label="Email selected" />
+        </div>
       </div>
 
       <form id="alumni-select-form" method="GET" action="/admin/email/campaigns/new">

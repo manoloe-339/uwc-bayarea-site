@@ -44,9 +44,11 @@ export function SelectAllCheckbox({ formId }: { formId: string }) {
 export function SelectedCountLink({
   formId,
   label = "Send to selected",
+  formAction,
 }: {
   formId: string;
   label?: string;
+  formAction?: string;
 }) {
   const [count, setCount] = useState(0);
 
@@ -69,6 +71,7 @@ export function SelectedCountLink({
     <button
       type="submit"
       form={formId}
+      formAction={formAction}
       disabled={disabled}
       className={`text-sm ${disabled ? "text-[color:var(--muted)] cursor-not-allowed" : "text-navy hover:underline font-semibold"}`}
     >
