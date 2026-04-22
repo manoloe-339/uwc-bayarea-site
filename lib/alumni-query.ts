@@ -11,6 +11,11 @@ export type EngagementFilter =
 export type ExperienceBand = "0-3" | "3-7" | "7-15" | "15+";
 export type UwcVerifiedFilter = "verified" | "unverified" | "any";
 export type LinkedinFilter = "has" | "missing" | "missing_unverified" | "missing_confirmed";
+export type CompanySizeBand = "startup" | "large";
+const COMPANY_SIZE_BANDS: Record<CompanySizeBand, string[]> = {
+  startup: ["1-10", "11-50", "51-200"],
+  large: ["1001-5000", "5001-10000", "10001+"],
+};
 export const FOLLOWUP_REASONS = ["bad_record", "follow_up", "ask_for_help", "other"] as const;
 export type FollowupReason = (typeof FOLLOWUP_REASONS)[number];
 export const FOLLOWUP_REASON_LABELS: Record<FollowupReason, string> = {
@@ -45,6 +50,7 @@ export type AlumniFilters = {
   hasPhoto?: boolean;
   linkedin?: LinkedinFilter;
   followup?: FollowupFilter;
+  companySizeBand?: CompanySizeBand;
 
   /** Explicit recipient IDs (bypasses other filters during send). */
   ids?: number[];
@@ -199,6 +205,12 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
     parts.push(`${missingSql} AND no_linkedin_confirmed IS NOT TRUE`);
   } else if (f.linkedin === "missing_confirmed") {
     parts.push(`${missingSql} AND no_linkedin_confirmed IS TRUE`);
+  }
+
+  // Company size band (Phase 3 NL parser maps "startup"/"large" here)
+  if (f.companySizeBand) {
+    const sizes = COMPANY_SIZE_BANDS[f.companySizeBand];
+    push((n) => `current_company_size = ANY($${n})`, sizes);
   }
 
   // Follow-up flag (admin)

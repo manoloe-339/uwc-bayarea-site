@@ -3,8 +3,9 @@ import { COLLEGES } from "@/lib/uwc-colleges";
 import { REGIONS } from "@/lib/region";
 import { sql } from "@/lib/db";
 import { searchAlumni, countAlumni, FOLLOWUP_REASONS, FOLLOWUP_REASON_LABELS, type AlumniFilters, type ExperienceBand } from "@/lib/alumni-query";
-import { INDUSTRY_GROUPS, INDUSTRY_TO_GROUP, type IndustryGroup } from "@/lib/industry-groups";
-import { loadEngagement, scoreAlumni, splitEventResults, type ScoredAlum } from "@/lib/event-ranking";
+import { INDUSTRY_GROUPS, INDUSTRY_TO_GROUP, industriesInGroup, type IndustryGroup } from "@/lib/industry-groups";
+import { loadEngagement, scoreAlumni, splitEventResults, scoreAsPercent, type ScoredAlum, type DiversityDimension } from "@/lib/event-ranking";
+import { parseEventQuery, type ParsedEventQuery } from "@/lib/event-nl-parser";
 import YearFilter from "@/components/admin/YearFilter";
 import { SelectAllCheckbox, SelectedCountLink } from "@/components/admin/AlumniSelection";
 import { AlumniOptionsSection } from "@/components/admin/AlumniOptionsSection";
@@ -99,10 +100,10 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
 
   const showPhotos = pickStr(sp, "showPhotos") === "1";
   const eventMode = pickStr(sp, "eventMode") === "1";
-  const rankByEngagement = pickStr(sp, "rankByEngagement") === "1";
-  const rankByDiversity = pickStr(sp, "rankByDiversity") === "1";
-  const rankByRecency = pickStr(sp, "rankByRecency") === "1";
-  const eventSize = Math.max(1, Math.min(100, pickNum(sp, "eventSize") ?? 20));
+  const rankByEngagementWidget = pickStr(sp, "rankByEngagement") === "1";
+  const rankByDiversityWidget = pickStr(sp, "rankByDiversity") === "1";
+  const rankByRecencyWidget = pickStr(sp, "rankByRecency") === "1";
+  let eventSize = Math.max(1, Math.min(100, pickNum(sp, "eventSize") ?? 20));
   const addToList = pickStr(sp, "addToList") || null;
   let addToListName: string | null = null;
   if (addToList) {
@@ -110,6 +111,51 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     const list = await getInviteList(addToList);
     addToListName = list?.name ?? null;
   }
+
+  // Phase 3: when event mode is on and the search box has text, run the NL
+  // parser to auto-configure filters + ranking + diversity dims. Falls back
+  // transparently to fuzzy search on parse failure.
+  let parsed: ParsedEventQuery | null = null;
+  let parseError: string | null = null;
+  if (eventMode && filters.q) {
+    const result = await parseEventQuery(filters.q);
+    if (result.ok) parsed = result.parsed;
+    else parseError = result.error;
+  }
+
+  // Apply parser output on top of widget-driven filters (parser wins per field).
+  if (parsed) {
+    // Industry groups → expand each to its constituent LinkedIn industries
+    // and merge into `industries` (any-of match).
+    if (parsed.industryGroups.length > 0) {
+      const expanded = parsed.industryGroups.flatMap((g) => industriesInGroup(g));
+      filters.industries = Array.from(new Set(expanded));
+      filters.industryGroup = undefined;
+    }
+    if (parsed.city) filters.city = parsed.city;
+    if (parsed.region) filters.region = parsed.region;
+    if (parsed.minGradYear != null) filters.yearFrom = parsed.minGradYear;
+    if (parsed.maxGradYear != null) filters.yearTo = parsed.maxGradYear;
+    if (parsed.companyName) filters.company = parsed.companyName;
+    if (parsed.companySizeBand) filters.companySizeBand = parsed.companySizeBand;
+    // Keywords → append to `q` fuzzy search
+    if (parsed.keywords.length > 0) {
+      filters.q = [filters.q, ...parsed.keywords].filter(Boolean).join(" ").trim();
+    } else {
+      // Clear q so the NL query itself doesn't ILIKE-match literally
+      filters.q = undefined;
+    }
+    eventSize = parsed.eventSize;
+  }
+
+  // Effective scoring options: parser wins, else widget toggle.
+  const rankByEngagement = parsed ? parsed.rankByEngagement : rankByEngagementWidget;
+  const rankByRecency = parsed ? parsed.rankByRecency : rankByRecencyWidget;
+  const diversityDimensions: DiversityDimension[] = parsed
+    ? parsed.diversityDimensions
+    : rankByDiversityWidget
+      ? ["origin", "school", "region", "company", "age"]
+      : [];
 
   const [rows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
 
@@ -120,7 +166,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     const engagement = rankByEngagement
       ? await loadEngagement(rows.map((r) => r.id))
       : new Map();
-    scored = scoreAlumni(rows, { rankByEngagement, rankByDiversity, rankByRecency }, engagement);
+    scored = scoreAlumni(rows, { rankByEngagement, rankByRecency, diversityDimensions }, engagement);
     const split = splitEventResults(scored, eventSize);
     topRanked = split.top;
     honorable = split.honorable;
@@ -163,17 +209,52 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         </div>
       )}
 
+      {eventMode && parsed && (
+        <div className="mb-5 p-3 bg-ivory-2 border-l-4 border-navy rounded-[2px] text-sm">
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1.5">What I understood</div>
+          <div className="flex flex-wrap gap-1.5">
+            <ParseChip label={`Event size: ${parsed.eventSize}`} />
+            {parsed.industryGroups.map((g) => (
+              <ParseChip key={g} label={g} />
+            ))}
+            {parsed.city && <ParseChip label={`City: ${parsed.city}`} />}
+            {parsed.region && <ParseChip label={`Region: ${parsed.region}`} />}
+            {parsed.international && <ParseChip label="International" />}
+            {parsed.minGradYear != null && <ParseChip label={`Grad ≥ ${parsed.minGradYear}`} />}
+            {parsed.maxGradYear != null && <ParseChip label={`Grad ≤ ${parsed.maxGradYear}`} />}
+            {parsed.companyName && <ParseChip label={`Company: ${parsed.companyName}`} />}
+            {parsed.companySizeBand && <ParseChip label={`Size: ${parsed.companySizeBand}`} />}
+            {parsed.keywords.length > 0 && <ParseChip label={`Keywords: ${parsed.keywords.join(", ")}`} />}
+            {parsed.diversityDimensions.length > 0 && (
+              <ParseChip label={`Diversity: ${parsed.diversityDimensions.join(", ")}`} tone="diversity" />
+            )}
+            {parsed.rankByEngagement && <ParseChip label="Engagement ranking" tone="rank" />}
+            {parsed.rankByRecency && <ParseChip label="Recency ranking" tone="rank" />}
+          </div>
+        </div>
+      )}
+      {eventMode && parseError && filters.q && (
+        <div className="mb-5 p-3 bg-orange-50 border-l-4 border-orange-400 rounded-[2px] text-sm">
+          <span className="font-semibold text-orange-800">Couldn&rsquo;t parse the query</span>
+          <span className="text-orange-800"> — falling back to fuzzy keyword search. ({parseError})</span>
+        </div>
+      )}
+
       <form
         method="GET"
-        key={JSON.stringify({ ...filters, eventMode, rankByEngagement, rankByDiversity, rankByRecency, eventSize })}
+        key={JSON.stringify({ ...filters, eventMode, rankByEngagement, rankByDiversityWidget, rankByRecency, eventSize })}
         className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         {/* Row 1 — full-width free-text search */}
         <Field
-          label="Search (name, city, bio, work…)"
+          label={eventMode ? "Describe your event (natural language)" : "Search (name, city, bio, work…)"}
           name="q"
-          defaultValue={filters.q}
-          placeholder="e.g. finance"
+          defaultValue={pickStr(sp, "q")}
+          placeholder={
+            eventMode
+              ? "e.g. Tech dinner, 20 people, good mix of origins and ages, high engagement"
+              : "e.g. finance"
+          }
           span="sm:col-span-2 lg:col-span-4"
         />
 
@@ -251,9 +332,9 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           includeNonAlums={!!filters.includeNonAlums}
           includeMovedOut={!!filters.includeMovedOut}
           eventMode={eventMode}
-          rankByEngagement={rankByEngagement}
-          rankByDiversity={rankByDiversity}
-          rankByRecency={rankByRecency}
+          rankByEngagement={rankByEngagementWidget}
+          rankByDiversity={rankByDiversityWidget}
+          rankByRecency={rankByRecencyWidget}
           eventSize={eventSize}
         />
 
@@ -377,8 +458,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                       </span>
                     </Td>
                     <Td>
-                      <span className="inline-flex items-center justify-center min-w-[44px] px-2 py-1 rounded bg-ivory-2 border border-[color:var(--rule)] text-sm font-semibold text-navy">
-                        {r.score}
+                      <span
+                        title={`Raw score: ${r.score}`}
+                        className="inline-flex items-center justify-center min-w-[44px] px-2 py-1 rounded bg-ivory-2 border border-[color:var(--rule)] text-sm font-semibold text-navy"
+                      >
+                        {scoreAsPercent(r.score)}
                       </span>
                     </Td>
                     <Td>
@@ -631,8 +715,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
               return (
                 <li key={r.id} className="flex items-center justify-between gap-3 text-sm">
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="inline-flex items-center justify-center min-w-[40px] px-2 py-0.5 rounded bg-ivory-2 border border-[color:var(--rule)] text-xs font-semibold text-navy shrink-0">
-                      {r.score}
+                    <span
+                      title={`Raw score: ${r.score}`}
+                      className="inline-flex items-center justify-center min-w-[40px] px-2 py-0.5 rounded bg-ivory-2 border border-[color:var(--rule)] text-xs font-semibold text-navy shrink-0"
+                    >
+                      {scoreAsPercent(r.score)}
                     </span>
                     <Link href={`/admin/alumni/${r.id}`} className="font-semibold text-navy hover:underline truncate">
                       {name}
@@ -745,6 +832,17 @@ function MailIcon() {
       <path d="M3 7l9 6 9-6" />
     </svg>
   );
+}
+
+function ParseChip({ label, tone = "default" }: { label: string; tone?: "default" | "diversity" | "rank" }) {
+  const base = "text-[11px] font-semibold px-2 py-0.5 rounded border";
+  const palette =
+    tone === "diversity"
+      ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+      : tone === "rank"
+        ? "bg-indigo-50 border-indigo-200 text-indigo-800"
+        : "bg-white border-[color:var(--rule)] text-[color:var(--navy-ink)]";
+  return <span className={`${base} ${palette}`}>{label}</span>;
 }
 
 function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {

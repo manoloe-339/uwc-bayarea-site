@@ -1,10 +1,13 @@
 import type { AlumniRow } from "./alumni-query";
 import { sql } from "./db";
 
+export type DiversityDimension = "origin" | "school" | "region" | "company" | "age";
+
 export type ScoringOptions = {
   rankByEngagement: boolean;
-  rankByDiversity: boolean;
   rankByRecency: boolean;
+  /** Empty array = no diversity bonuses. */
+  diversityDimensions: DiversityDimension[];
 };
 
 export type EngagementStats = {
@@ -52,10 +55,25 @@ function seniorityDescriptor(gradYear: number | null | undefined): string | null
   return "Recent grad perspective";
 }
 
-/**
- * Pack a priority-ordered list of short phrases into a concise reason list,
- * capped at maxCount items and maxChars total (counting ", " separators).
- */
+function ageBucket(gradYear: number | null | undefined): string | null {
+  if (!gradYear) return null;
+  if (gradYear >= 2020) return "2020+";
+  if (gradYear >= 2015) return "2015-2019";
+  if (gradYear >= 2010) return "2010-2014";
+  if (gradYear >= 2005) return "2005-2009";
+  if (gradYear >= 2000) return "2000-2004";
+  return "<2000";
+}
+
+/** Phase 3 diversity bonus schedule: progressive bonus → penalty. */
+function diversityPoints(count: number): number {
+  if (count === 0) return 15;
+  if (count === 1) return 5;
+  if (count === 2) return 0;
+  if (count === 3) return -10;
+  return -20;
+}
+
 function packReasons(candidates: string[], maxChars: number, maxCount: number): string[] {
   const out: string[] = [];
   let len = 0;
@@ -74,17 +92,16 @@ function norm(s: string | null | undefined): string {
 }
 
 /**
- * Score and rank a candidate pool for event planning, generating a concise
- * "why they fit" rationale for each. Reasons focus on what this person ADDS
- * to the pool (diversity, engagement, recency) plus a seniority descriptor
- * — they do not duplicate the visible Name / Role columns.
+ * Score + rank candidates for event planning. Iterative diversity pass:
+ * running counts per dimension, bonuses/penalties per dimension, re-sort
+ * at end, reasons generated from final order.
  */
 export function scoreAlumni(
   rows: AlumniRow[],
   opts: ScoringOptions,
   engagement: Map<number, EngagementStats>
 ): ScoredAlum[] {
-  // Pass 1: base scores (scoring concern only, no reasons yet)
+  // Pass 1: base scores (profile completeness, engagement, recency).
   const scored: ScoredAlum[] = rows.map((r) => {
     let score = 50;
 
@@ -114,7 +131,7 @@ export function scoreAlumni(
     return { ...r, score, reasons: [] };
   });
 
-  // Pass 2: initial sort by score
+  // Pass 2: initial sort.
   const byScoreDesc = (a: ScoredAlum, b: ScoredAlum) => {
     if (b.score !== a.score) return b.score - a.score;
     const la = (a.last_name ?? "").toLowerCase();
@@ -123,59 +140,73 @@ export function scoreAlumni(
   };
   scored.sort(byScoreDesc);
 
-  // Pass 3: diversity penalty (score-only, if enabled) — uses current order
-  if (opts.rankByDiversity) {
-    const seen = new Map<string, number>();
-    for (const s of scored) {
-      const key = norm(s.current_company);
-      if (!key) continue;
-      const n = seen.get(key) ?? 0;
-      if (n === 1) s.score -= 10;
-      else if (n === 2) s.score -= 20;
-      else if (n >= 3) s.score -= 30;
-      seen.set(key, n + 1);
-    }
-    scored.sort(byScoreDesc);
-  }
+  // Pass 3: iterative diversity bonus. Running counts per dimension. Bonuses
+  // adjust score; reasons captured for first-occurrence only. Then re-sort.
+  const dimsEnabled = new Set(opts.diversityDimensions);
+  const hasAnyDiversity = dimsEnabled.size > 0;
 
-  // Pass 4: compute reasons based on final sort order
-  const seenOrigin = new Map<string, number>();
-  const seenRegion = new Map<string, number>();
-  const seenSchool = new Map<string, number>();
-  const seenCompany = new Map<string, number>();
+  const counts = {
+    origin: new Map<string, number>(),
+    school: new Map<string, number>(),
+    region: new Map<string, number>(),
+    company: new Map<string, number>(),
+    age: new Map<string, number>(),
+  };
+  const firstOccurrenceReasons = new Map<number, string[]>();
 
   for (const s of scored) {
-    const diversity: string[] = [];
+    const diversityReasons: string[] = [];
+
+    const checkDim = (
+      dim: DiversityDimension,
+      key: string | null,
+      reasonIfFirst: () => string | null
+    ) => {
+      if (!dimsEnabled.has(dim)) return;
+      if (!key) return;
+      const map = counts[dim];
+      const n = map.get(key) ?? 0;
+      s.score += diversityPoints(n);
+      if (n === 0) {
+        const r = reasonIfFirst();
+        if (r) diversityReasons.push(r);
+      }
+      map.set(key, n + 1);
+    };
 
     const origin = (s.origin ?? "").trim();
-    if (origin) {
-      const n = seenOrigin.get(norm(origin)) ?? 0;
-      if (n === 0) diversity.push(`Adds ${origin} diversity`);
-      seenOrigin.set(norm(origin), n + 1);
-    }
-
-    const region = (s.region ?? "").trim();
-    if (region) {
-      const n = seenRegion.get(norm(region)) ?? 0;
-      if (n === 0) diversity.push(`${region} representation`);
-      seenRegion.set(norm(region), n + 1);
-    }
+    checkDim("origin", norm(origin) || null, () => (origin ? `Adds ${origin} diversity` : null));
 
     const school = (s.uwc_college ?? "").trim();
-    if (school) {
-      const n = seenSchool.get(norm(school)) ?? 0;
-      if (n === 0) diversity.push("Different UWC background");
-      seenSchool.set(norm(school), n + 1);
-    }
+    checkDim("school", norm(school) || null, () => (school ? "Different UWC background" : null));
+
+    const region = (s.region ?? "").trim();
+    checkDim("region", norm(region) || null, () => (region ? `${region} representation` : null));
 
     const company = (s.current_company ?? "").trim();
-    if (company) {
-      const n = seenCompany.get(norm(company)) ?? 0;
-      if (n === 0) diversity.push("Unique company background");
-      seenCompany.set(norm(company), n + 1);
+    checkDim("company", norm(company) || null, () => (company ? "Unique company background" : null));
+
+    // Age diversity: contribute to score but don't add a separate reason
+    // (the seniority descriptor already covers age context).
+    const bucket = ageBucket(s.grad_year);
+    if (dimsEnabled.has("age") && bucket) {
+      const n = counts.age.get(bucket) ?? 0;
+      s.score += diversityPoints(n);
+      counts.age.set(bucket, n + 1);
     }
 
-    // Engagement phrase (positive only — never negative in reasons)
+    if (diversityReasons.length > 0) {
+      firstOccurrenceReasons.set(s.id, diversityReasons);
+    }
+  }
+
+  if (hasAnyDiversity) scored.sort(byScoreDesc);
+
+  // Pass 4: reasons generation (uses cached first-occurrence phrases even if
+  // order shifted after re-sort — the labels are still semantically correct).
+  for (const s of scored) {
+    const diversity = firstOccurrenceReasons.get(s.id) ?? [];
+
     let engagementReason: string | null = null;
     if (opts.rankByEngagement) {
       const e = engagement.get(s.id);
@@ -186,7 +217,6 @@ export function scoreAlumni(
       }
     }
 
-    // Recency phrase
     let recencyReason: string | null = null;
     if (opts.rankByRecency) {
       const days = daysSince(s.enriched_at);
@@ -198,7 +228,6 @@ export function scoreAlumni(
 
     const seniority = seniorityDescriptor(s.grad_year);
 
-    // Priority: diversity additions > engagement > recency > seniority
     const candidates = [
       ...diversity,
       engagementReason,
@@ -207,13 +236,19 @@ export function scoreAlumni(
     ].filter((v): v is string => !!v);
 
     s.reasons = packReasons(candidates, 60, 3);
-    // Fallback: every row gets at least the seniority descriptor
-    if (s.reasons.length === 0 && seniority) {
-      s.reasons = [seniority];
-    }
+    if (s.reasons.length === 0 && seniority) s.reasons = [seniority];
   }
 
   return scored;
+}
+
+/**
+ * Display-friendly score. Clamps negative to 0, scores ≥100 show as 100%.
+ */
+export function scoreAsPercent(score: number): string {
+  if (score < 0) return "0%";
+  if (score >= 100) return "100%";
+  return `${Math.round(score)}%`;
 }
 
 /**
