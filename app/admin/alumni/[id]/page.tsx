@@ -74,6 +74,51 @@ type AlumRecord = {
   no_linkedin_confirmed: boolean | null;
 };
 
+async function uploadAlumnusPhoto(id: number, formData: FormData) {
+  "use server";
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error("No photo selected");
+  }
+  if (!file.type.startsWith("image/")) {
+    throw new Error("File is not an image");
+  }
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) throw new Error("BLOB_READ_WRITE_TOKEN not set");
+
+  const rawExt = (file.name.split(".").pop() ?? "").toLowerCase();
+  const ext = /^[a-z0-9]{2,5}$/.test(rawExt) ? rawExt : "jpg";
+  const key = `alumni/${id}.${ext}`;
+
+  const { put, del } = await import("@vercel/blob");
+  const buf = Buffer.from(await file.arrayBuffer());
+  const { url } = await put(key, buf, {
+    access: "public",
+    contentType: file.type,
+    token,
+    allowOverwrite: true,
+  });
+
+  // Best-effort: if the previous photo used a different key (different
+  // extension), remove it so Blob doesn't accumulate orphans.
+  const prev = (await sql`SELECT photo_url FROM alumni WHERE id = ${id}`) as {
+    photo_url: string | null;
+  }[];
+  const oldUrl = prev[0]?.photo_url;
+  if (oldUrl && oldUrl !== url) {
+    try {
+      await del(oldUrl, { token });
+    } catch {
+      // ignore — the new photo is already live
+    }
+  }
+
+  await sql`UPDATE alumni SET photo_url = ${url}, updated_at = NOW() WHERE id = ${id}`;
+  revalidatePath(`/admin/alumni/${id}`);
+  revalidatePath("/admin/alumni");
+  redirect(`/admin/alumni/${id}?saved=1`);
+}
+
 async function updateAlumnus(id: number, formData: FormData) {
   "use server";
   const get = (k: string): string | null => {
@@ -184,6 +229,7 @@ export default async function AlumnusPage({
   }[];
 
   const update = updateAlumnus.bind(null, numericId);
+  const uploadPhoto = uploadAlumnusPhoto.bind(null, numericId);
 
   async function doResubscribe() {
     "use server";
@@ -201,17 +247,34 @@ export default async function AlumnusPage({
         </Link>
       </div>
       <div className="flex items-start gap-4 mb-6">
-        {r.photo_url ? (
-          <img
-            src={r.photo_url}
-            alt={name}
-            className="w-20 h-20 rounded-full object-cover bg-ivory-2 border border-[color:var(--rule)] shrink-0"
-          />
-        ) : (
-          <div className="w-20 h-20 rounded-full bg-ivory-2 border border-[color:var(--rule)] flex items-center justify-center text-[color:var(--muted)] text-xl font-sans font-bold shrink-0">
-            {(r.first_name?.[0] ?? r.email[0] ?? "?").toUpperCase()}
-          </div>
-        )}
+        <div className="flex flex-col items-center gap-1.5 shrink-0">
+          {r.photo_url ? (
+            <img
+              src={r.photo_url}
+              alt={name}
+              className="w-20 h-20 rounded-full object-cover bg-ivory-2 border border-[color:var(--rule)]"
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-ivory-2 border border-[color:var(--rule)] flex items-center justify-center text-[color:var(--muted)] text-xl font-sans font-bold">
+              {(r.first_name?.[0] ?? r.email[0] ?? "?").toUpperCase()}
+            </div>
+          )}
+          <form action={uploadPhoto} encType="multipart/form-data" className="flex flex-col items-center gap-1">
+            <input
+              type="file"
+              name="photo"
+              accept="image/*"
+              required
+              className="block text-[10px] w-[110px] file:mr-1.5 file:py-0.5 file:px-2 file:rounded file:border file:border-[color:var(--rule)] file:bg-white file:text-[10px] file:font-semibold file:text-navy file:cursor-pointer hover:file:bg-ivory-2"
+            />
+            <button
+              type="submit"
+              className="text-[10px] tracking-[.14em] uppercase font-bold text-navy hover:underline"
+            >
+              {r.photo_url ? "Replace photo" : "Upload photo"}
+            </button>
+          </form>
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center flex-wrap gap-2 mb-1">
             <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">{name}</h1>
