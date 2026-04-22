@@ -19,6 +19,7 @@ export default function PhotoUploadModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
   const [fileName, setFileName] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const open = () => dialogRef.current?.showModal();
   const close = () => {
@@ -35,8 +36,21 @@ export default function PhotoUploadModal({
     e.preventDefault();
     const form = e.currentTarget;
     const data = new FormData(form);
+    const file = data.get("photo");
+    if (file instanceof File && file.size > 8 * 1024 * 1024) {
+      setError(`File is ${(file.size / 1024 / 1024).toFixed(1)} MB — max is 8 MB. Try a smaller export.`);
+      return;
+    }
+    setError(null);
     startTransition(async () => {
-      await uploadAction(data);
+      try {
+        await uploadAction(data);
+      } catch (err) {
+        // redirect() throws a control-flow error that Next handles — only real
+        // errors surface here.
+        if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) return;
+        setError(err instanceof Error ? err.message : "Upload failed");
+      }
     });
   };
 
@@ -123,6 +137,11 @@ export default function PhotoUploadModal({
                 </span>
               )}
             </label>
+            {error && (
+              <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+                {error}
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-[color:var(--rule)]">
               <button
