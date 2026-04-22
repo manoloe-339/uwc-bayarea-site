@@ -111,9 +111,41 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
 
   if (f.q) {
     const q = `%${f.q.toLowerCase()}%`;
+    // Broad fuzzy search: every text field on alumni plus the child tables
+    // (career history, education, volunteering). Lets a single term find
+    // matches across self-reported and LinkedIn-enriched surfaces at once.
     push(
       (n) =>
-        `(lower(first_name) LIKE $${n} OR lower(last_name) LIKE $${n} OR lower(current_city) LIKE $${n} OR lower(about) LIKE $${n} OR lower(working) LIKE $${n} OR lower(studying) LIKE $${n} OR lower(help_tags) LIKE $${n} OR lower(company) LIKE $${n} OR lower(current_company) LIKE $${n} OR lower(current_title) LIKE $${n} OR lower(headline) LIKE $${n} OR lower(linkedin_about) LIKE $${n})`,
+        `(
+          lower(first_name) LIKE $${n} OR lower(last_name) LIKE $${n}
+          OR lower(current_city) LIKE $${n} OR lower(about) LIKE $${n}
+          OR lower(working) LIKE $${n} OR lower(studying) LIKE $${n}
+          OR lower(help_tags) LIKE $${n} OR lower(company) LIKE $${n}
+          OR lower(questions) LIKE $${n} OR lower(national_committee) LIKE $${n}
+          OR lower(origin) LIKE $${n} OR lower(uwc_college) LIKE $${n}
+          OR lower(uwc_college_raw) LIKE $${n} OR lower(uwc_school_matched) LIKE $${n}
+          OR lower(current_company) LIKE $${n} OR lower(current_title) LIKE $${n}
+          OR lower(current_company_industry) LIKE $${n}
+          OR lower(current_location) LIKE $${n}
+          OR lower(location_full) LIKE $${n} OR lower(location_country) LIKE $${n}
+          OR lower(headline) LIKE $${n} OR lower(linkedin_about) LIKE $${n}
+          OR lower(linkedin_alternate_email) LIKE $${n}
+          OR EXISTS (
+            SELECT 1 FROM alumni_career c
+            WHERE c.alumni_id = alumni.id
+              AND (lower(c.company) LIKE $${n} OR lower(c.title) LIKE $${n})
+          )
+          OR EXISTS (
+            SELECT 1 FROM alumni_education e
+            WHERE e.alumni_id = alumni.id
+              AND (lower(e.school) LIKE $${n} OR lower(e.degree_field) LIKE $${n})
+          )
+          OR EXISTS (
+            SELECT 1 FROM alumni_volunteering v
+            WHERE v.alumni_id = alumni.id
+              AND (lower(v.organization) LIKE $${n} OR lower(v.role) LIKE $${n})
+          )
+        )`,
       q
     );
   }
