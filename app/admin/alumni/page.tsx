@@ -196,10 +196,6 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           ))}
           <option value="none">No follow-up needed</option>
         </Select>
-        <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] mt-auto pb-2">
-          <input type="checkbox" name="hasPhoto" value="1" defaultChecked={filters.hasPhoto} />
-          Has photo
-        </label>
         <Select label="Email engagement" name="engagement" defaultValue={filters.engagement ?? ""}>
           <option value="">Any</option>
           <option value="opened_any">Opened any email</option>
@@ -208,35 +204,28 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <option value="never_received">Never received an email</option>
         </Select>
 
-        {/* Include-rows */}
-        <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] sm:col-span-2">
-          <input
-            type="checkbox"
-            name="showPhotos"
-            value="1"
-            defaultChecked={showPhotos}
-          />
-          Show photos in results
-        </label>
-        <div className="hidden sm:block sm:col-span-2" />
-        <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] sm:col-span-2">
-          <input
-            type="checkbox"
-            name="includeNonAlums"
-            value="1"
-            defaultChecked={filters.includeNonAlums}
-          />
-          Include friends &amp; parents
-        </label>
-        <label className="flex items-center gap-2 text-sm text-[color:var(--navy-ink)] sm:col-span-2">
-          <input
-            type="checkbox"
-            name="includeMovedOut"
-            value="1"
-            defaultChecked={filters.includeMovedOut}
-          />
-          Include alumni who moved out of the Bay Area
-        </label>
+        {/* Options — grouped checkboxes */}
+        <div className="sm:col-span-2 lg:col-span-4 border-t border-[color:var(--rule)] pt-4 mt-1">
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-2">Options</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-[color:var(--navy-ink)]">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="hasPhoto" value="1" defaultChecked={filters.hasPhoto} />
+              Has photo
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="showPhotos" value="1" defaultChecked={showPhotos} />
+              Show photos in results
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="includeNonAlums" value="1" defaultChecked={filters.includeNonAlums} />
+              Include friends &amp; parents
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="includeMovedOut" value="1" defaultChecked={filters.includeMovedOut} />
+              Include alumni who moved out of the Bay Area
+            </label>
+          </div>
+        </div>
 
         <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
           <button
