@@ -9,6 +9,7 @@ import { reasonLabel } from "@/lib/unsubscribe-reasons";
 import { resubscribe } from "@/app/unsubscribe/actions";
 import { fmtDate } from "@/lib/admin-time";
 import { FOLLOWUP_REASONS, FOLLOWUP_REASON_LABELS, type FollowupReason } from "@/lib/alumni-query";
+import PhotoUploadModal from "./PhotoUploadModal";
 
 export const dynamic = "force-dynamic";
 
@@ -247,34 +248,12 @@ export default async function AlumnusPage({
         </Link>
       </div>
       <div className="flex items-start gap-4 mb-6">
-        <div className="flex flex-col items-center gap-1.5 shrink-0">
-          {r.photo_url ? (
-            <img
-              src={r.photo_url}
-              alt={name}
-              className="w-20 h-20 rounded-full object-cover bg-ivory-2 border border-[color:var(--rule)]"
-            />
-          ) : (
-            <div className="w-20 h-20 rounded-full bg-ivory-2 border border-[color:var(--rule)] flex items-center justify-center text-[color:var(--muted)] text-xl font-sans font-bold">
-              {(r.first_name?.[0] ?? r.email[0] ?? "?").toUpperCase()}
-            </div>
-          )}
-          <form action={uploadPhoto} encType="multipart/form-data" className="flex flex-col items-center gap-1">
-            <input
-              type="file"
-              name="photo"
-              accept="image/*"
-              required
-              className="block text-[10px] w-[110px] file:mr-1.5 file:py-0.5 file:px-2 file:rounded file:border file:border-[color:var(--rule)] file:bg-white file:text-[10px] file:font-semibold file:text-navy file:cursor-pointer hover:file:bg-ivory-2"
-            />
-            <button
-              type="submit"
-              className="text-[10px] tracking-[.14em] uppercase font-bold text-navy hover:underline"
-            >
-              {r.photo_url ? "Replace photo" : "Upload photo"}
-            </button>
-          </form>
-        </div>
+        <PhotoUploadModal
+          photoUrl={r.photo_url}
+          name={name}
+          fallbackInitial={(r.first_name?.[0] ?? r.email[0] ?? "?").toUpperCase()}
+          uploadAction={uploadPhoto}
+        />
         <div className="flex-1 min-w-0">
           <div className="flex items-center flex-wrap gap-2 mb-1">
             <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">{name}</h1>
