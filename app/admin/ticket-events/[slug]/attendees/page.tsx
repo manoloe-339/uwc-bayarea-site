@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEventBySlug, listAttendeesForEvent, type AttendeeRecord } from "@/lib/events-db";
+import { SyncStripeButton } from "@/components/admin/SyncStripeButton";
+import { AttendeeRowActions } from "@/components/admin/AttendeeRowActions";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -81,7 +83,7 @@ export default async function AttendeesPage({
         </Link>
       </div>
 
-      <div className="flex items-end justify-between mb-6">
+      <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">{event.name}</h1>
           <p className="text-[color:var(--muted)] text-sm">
@@ -90,6 +92,7 @@ export default async function AttendeesPage({
             {event.location ? ` · ${event.location}` : ""}
           </p>
         </div>
+        <SyncStripeButton slug={slug} lastSyncedAt={event.updated_at} />
       </div>
 
       {/* Stats */}
@@ -204,6 +207,13 @@ function AttendeeRow({ a }: { a: AttendeeRecord }) {
           </div>
         )}
       </div>
+      <AttendeeRowActions
+        attendeeId={a.id}
+        initialNotes={a.notes}
+        initialStarred={a.is_starred}
+        initialFollowup={a.needs_followup}
+        alumniId={a.alumni_id}
+      />
     </li>
   );
 }
