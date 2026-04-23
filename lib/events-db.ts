@@ -28,6 +28,7 @@ export type AttendeeRecord = {
   stripe_payment_intent_id: string | null;
   stripe_customer_email: string | null;
   stripe_customer_name: string | null;
+  stripe_custom_fields: unknown;
   amount_paid: string;
   paid_at: string | null;
   refund_status: string | null;
@@ -38,6 +39,11 @@ export type AttendeeRecord = {
   notes: string | null;
   is_starred: boolean;
   needs_followup: boolean;
+  // New in migration 025:
+  associated_with_alumni_id: number | null;
+  relationship_type: string | null;
+  is_potential_donor: boolean;
+  signup_invite_sent_at: string | null;
   checked_in: boolean;
   checked_in_at: string | null;
   qr_code_data: string | null;
@@ -51,6 +57,9 @@ export type AttendeeRecord = {
   alumni_uwc_college: string | null;
   alumni_grad_year: number | null;
   alumni_photo_url: string | null;
+  // Joined-in association row (the alum this attendee is "here with").
+  associated_first_name: string | null;
+  associated_last_name: string | null;
 };
 
 export async function getEventBySlug(slug: string): Promise<EventRecord | null> {
@@ -71,9 +80,12 @@ export async function listAttendeesForEvent(eventId: number): Promise<AttendeeRe
       al.email AS alumni_email,
       al.uwc_college AS alumni_uwc_college,
       al.grad_year AS alumni_grad_year,
-      al.photo_url AS alumni_photo_url
+      al.photo_url AS alumni_photo_url,
+      assoc.first_name AS associated_first_name,
+      assoc.last_name AS associated_last_name
     FROM event_attendees a
     LEFT JOIN alumni al ON al.id = a.alumni_id
+    LEFT JOIN alumni assoc ON assoc.id = a.associated_with_alumni_id
     WHERE a.event_id = ${eventId} AND a.deleted_at IS NULL
     ORDER BY a.paid_at DESC NULLS LAST, a.id DESC
   `) as AttendeeRecord[];
