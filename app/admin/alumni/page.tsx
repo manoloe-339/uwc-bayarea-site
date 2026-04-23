@@ -161,6 +161,9 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     if (searchParsed.industryGroups.length > 0) {
       const expanded = searchParsed.industryGroups.flatMap((g) => industriesInGroup(g));
       widgetSafe.industries = Array.from(new Set(expanded));
+      // NL queries like "consulting experience" should also catch people
+      // whose past roles were in the industry, not just their current job.
+      widgetSafe.industriesIncludePast = true;
     }
     if (searchParsed.city) widgetSafe.city = searchParsed.city;
     if (searchParsed.region) widgetSafe.region = searchParsed.region;
@@ -193,6 +196,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
       help: undefined,
       industryGroup: undefined,
       industries: undefined,
+      industriesIncludePast: undefined,
       company: undefined,
       university: undefined,
       companySizeBand: undefined,

@@ -45,6 +45,10 @@ export type AlumniFilters = {
   // LinkedIn-enrichment filters
   industries?: string[];         // any-of match against current_company_industry
   industryGroup?: IndustryGroup; // grouped category; expands to industries[] at query time
+  /** When true, `industries` also matches any row in alumni_career.company_industry
+      (past roles), not just the current company. Set by NL mode so a query
+      like "consulting experience" catches ex-consultants too. */
+  industriesIncludePast?: boolean;
   company?: string;              // typeahead input; matches id first, else ILIKE name
   companyIdMap?: Record<string, string>; // page-provided: normalized name → current_company_id for exact-match lookup
   expBand?: ExperienceBand;
@@ -196,9 +200,19 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
   if (typeof f.yearTo === "number") push((n) => `grad_year <= $${n}`, f.yearTo);
   if (f.help) push((n) => `lower(help_tags) LIKE $${n}`, `%${f.help.toLowerCase()}%`);
 
-  // Industry multi-select (any-of)
+  // Industry multi-select (any-of). When industriesIncludePast is set,
+  // broaden the match to include any row in alumni_career so ex-roles
+  // in that industry count.
   if (f.industries && f.industries.length > 0) {
-    push((n) => `current_company_industry = ANY($${n})`, f.industries);
+    if (f.industriesIncludePast) {
+      push(
+        (n) =>
+          `(current_company_industry = ANY($${n}) OR EXISTS (SELECT 1 FROM alumni_career c WHERE c.alumni_id = alumni.id AND c.company_industry = ANY($${n})))`,
+        f.industries
+      );
+    } else {
+      push((n) => `current_company_industry = ANY($${n})`, f.industries);
+    }
   }
 
   // Industry group: expand to the list of industries in that bucket.
