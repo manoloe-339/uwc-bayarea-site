@@ -8,6 +8,7 @@ import { VALID_SECTORS, SECTOR_LABELS } from "@/lib/company-classifier";
 import { loadEngagement, scoreAlumni, splitEventResults, scoreAsPercent, type ScoredAlum, type DiversityDimension } from "@/lib/event-ranking";
 import { parseEventQuery, parseSearchQuery, type ParsedEventQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser";
 import { runAiFilter, type CompanyMeta } from "@/lib/ai-filter";
+import { findSearchMatches, type MatchInfo } from "@/lib/match-highlighter";
 import YearFilter from "@/components/admin/YearFilter";
 import { SelectAllCheckbox, SelectedCountLink } from "@/components/admin/AlumniSelection";
 import { AlumniOptionsSection } from "@/components/admin/AlumniOptionsSection";
@@ -287,6 +288,15 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     topRanked = split.top;
     honorable = split.honorable;
   }
+
+  // When the user typed a free-text query, surface a "why it matched"
+  // line for rows whose match came from a field not already shown in the
+  // results table (past roles, undergrad, bio, headline, etc.).
+  const matchRows = eventMode ? topRanked : rows;
+  const searchMatches =
+    filters.q && matchRows.length > 0
+      ? await findSearchMatches(matchRows, filters.q)
+      : (new Map() as Map<number, MatchInfo>);
 
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(filters)) {
@@ -668,6 +678,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                             {r.grad_year ? ` · ${r.grad_year}` : ""}
                             {r.location_city ? ` · ${r.location_city}` : ""}
                           </div>
+                          <MatchLine info={searchMatches.get(r.id)} />
                           <div className="mt-1 flex items-center gap-1.5">
                             {r.linkedin_url && (
                               <a
@@ -772,6 +783,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                     >
                       {[r.first_name, r.last_name].filter(Boolean).join(" ") || r.email}
                     </Link>
+                    <MatchLine info={searchMatches.get(r.id)} />
                     <div className="mt-1 flex items-center gap-1.5">
                       {r.linkedin_url && (
                         <a
@@ -910,6 +922,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                       {r.headline}
                     </div>
                   )}
+                  <MatchLine info={searchMatches.get(r.id)} />
                   <MetaLine
                     pairs={[
                       ["College", r.uwc_college],
@@ -1075,6 +1088,16 @@ function MailIcon() {
       <rect x="3" y="5" width="18" height="14" rx="2" />
       <path d="M3 7l9 6 9-6" />
     </svg>
+  );
+}
+
+function MatchLine({ info }: { info: MatchInfo | undefined }) {
+  if (!info) return null;
+  return (
+    <div className="mt-0.5 text-[11px] text-emerald-900/80">
+      <span className="font-semibold text-emerald-800">{info.label}:</span>{" "}
+      <span className="italic">{info.snippet}</span>
+    </div>
   );
 }
 
