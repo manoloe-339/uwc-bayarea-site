@@ -18,11 +18,23 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+const URL_TRAILING_PUNCT = /[.,;:!?)\]]+$/;
+
 function linkify(escaped: string): string {
-  // Simple URL autolinker. Operates on already-escaped text.
+  // Autolink both http(s)://... and bare www.... URLs in already-escaped text.
+  // For www-prefixed hits we synthesize https:// in the href so the link is
+  // actually clickable (a bare `www.uwcbayarea.org` href would resolve
+  // relative to the email's base URL and 404).
   return escaped.replace(
-    /(https?:\/\/[^\s<]+)/g,
-    (m) => `<a href="${m}" style="color:#0265A8;">${m}</a>`
+    /(\bhttps?:\/\/[^\s<]+|\bwww\.[^\s<]+)/gi,
+    (match) => {
+      // Strip trailing punctuation that's almost always sentence-level,
+      // not part of the URL.
+      const url = match.replace(URL_TRAILING_PUNCT, "");
+      const trailing = match.slice(url.length);
+      const href = /^www\./i.test(url) ? `https://${url}` : url;
+      return `<a href="${href}" style="color:#0265A8;">${url}</a>${trailing}`;
+    }
   );
 }
 
