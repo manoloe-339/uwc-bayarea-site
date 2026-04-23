@@ -311,8 +311,17 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         <div>
           <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Alumni lookup</h1>
           <p className="text-[color:var(--muted)] text-sm">
-            {total.toLocaleString()} {total === 1 ? "match" : "matches"}
-            {rows.length < total ? ` · showing first ${rows.length}` : ""}
+            {aiFilter && aiMatchedCount != null ? (
+              <>
+                {rows.length.toLocaleString()} {rows.length === 1 ? "match" : "matches"}
+                <span className="text-[color:var(--muted)]">{" "}· AI-filtered from {rawRows.length.toLocaleString()}</span>
+              </>
+            ) : (
+              <>
+                {total.toLocaleString()} {total === 1 ? "match" : "matches"}
+                {rows.length < total ? ` · showing first ${rows.length}` : ""}
+              </>
+            )}
           </p>
         </div>
         <a
@@ -579,15 +588,24 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
 
       <div className="flex items-center justify-between mb-3 text-sm">
         <p className="font-sans font-semibold text-[color:var(--navy-ink)]">
-          {total.toLocaleString()} {total === 1 ? "match" : "matches"}
-          {eventMode ? (
-            <span className="font-normal text-[color:var(--muted)]">
-              {" · ranking top "}{topRanked.length}
-              {honorable.length > 0 ? ` · ${honorable.length} honorable mentions` : ""}
-            </span>
-          ) : rows.length < total ? (
-            <span className="font-normal text-[color:var(--muted)]"> · showing first {rows.length}</span>
-          ) : null}
+          {aiFilter && aiMatchedCount != null ? (
+            <>
+              {rows.length.toLocaleString()} {rows.length === 1 ? "match" : "matches"}
+              <span className="font-normal text-[color:var(--muted)]">{" "}· AI-filtered from {rawRows.length.toLocaleString()}</span>
+            </>
+          ) : (
+            <>
+              {total.toLocaleString()} {total === 1 ? "match" : "matches"}
+              {eventMode ? (
+                <span className="font-normal text-[color:var(--muted)]">
+                  {" · ranking top "}{topRanked.length}
+                  {honorable.length > 0 ? ` · ${honorable.length} honorable mentions` : ""}
+                </span>
+              ) : rows.length < total ? (
+                <span className="font-normal text-[color:var(--muted)]"> · showing first {rows.length}</span>
+              ) : null}
+            </>
+          )}
         </p>
         <div className="flex items-center gap-4">
           {addToList && addToListName ? (
