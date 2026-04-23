@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { getEventBySlug, getCommunicationStats } from "@/lib/events-db";
 import { CommunicationsControls } from "@/components/admin/CommunicationsControls";
 import { ReminderCopyEditor } from "@/components/admin/ReminderCopyEditor";
+import { ReminderScheduleEditor } from "@/components/admin/ReminderScheduleEditor";
 import {
   DEFAULT_REMINDER_SUBJECT,
   DEFAULT_REMINDER_HEADING,
@@ -95,6 +96,14 @@ export default async function CommunicationsPage({
         />
         <Stat label="Last reminder sent" value={stats.lastSentAt ? fmtDateTime(stats.lastSentAt) : "Never"} />
       </section>
+
+      <ReminderScheduleEditor
+        slug={slug}
+        initialScheduledAt={event.reminder_scheduled_at}
+        autoSentAt={event.reminder_auto_sent_at}
+        eventDateIso={new Date(event.date).toISOString()}
+        eventTime={event.time}
+      />
 
       <ReminderCopyEditor
         slug={slug}

@@ -21,6 +21,8 @@ export type EventRecord = {
   reminder_subject: string | null;
   reminder_heading: string | null;
   reminder_body: string | null;
+  reminder_scheduled_at: string | null;
+  reminder_auto_sent_at: string | null;
   created_at: string;
   updated_at: string;
 };
