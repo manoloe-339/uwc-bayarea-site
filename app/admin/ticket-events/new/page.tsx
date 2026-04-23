@@ -25,10 +25,10 @@ export default function NewEventPage() {
         </div>
         <Field name="location" label="Location" placeholder="e.g. SF, TBD" />
         <TextareaField name="description" label="Description (optional)" rows={3} />
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Field name="stripe_payment_link_id" label="Stripe Payment Link ID" placeholder="plink_…" />
-          <Field name="ticket_price" label="Ticket price (USD)" type="number" placeholder="50" />
-        </div>
+        <Field name="stripe_payment_link_id" label="Stripe Payment Link ID" placeholder="plink_…" />
+        <p className="text-xs text-[color:var(--muted)] -mt-2">
+          Ticket price is pulled from the Payment Link on the first sync — no manual entry.
+        </p>
         <div className="pt-2 flex justify-end gap-2">
           <Link href="/admin/ticket-events" className="px-4 py-2 text-sm text-[color:var(--muted)] hover:text-navy">
             Cancel

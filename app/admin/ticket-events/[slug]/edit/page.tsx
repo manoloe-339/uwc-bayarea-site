@@ -41,19 +41,17 @@ export default async function EditEventPage({
         </div>
         <Field name="location" label="Location" defaultValue={event.location ?? ""} />
         <TextareaField name="description" label="Description" rows={3} defaultValue={event.description ?? ""} />
-        <div className="grid sm:grid-cols-2 gap-4">
-          <Field
-            name="stripe_payment_link_id"
-            label="Stripe Payment Link ID"
-            defaultValue={event.stripe_payment_link_id ?? ""}
-          />
-          <Field
-            name="ticket_price"
-            label="Ticket price (USD)"
-            type="number"
-            defaultValue={event.ticket_price ?? ""}
-          />
-        </div>
+        <Field
+          name="stripe_payment_link_id"
+          label="Stripe Payment Link ID"
+          defaultValue={event.stripe_payment_link_id ?? ""}
+        />
+        <p className="text-xs text-[color:var(--muted)] -mt-2">
+          Ticket price{" "}
+          {event.ticket_price
+            ? <>is <strong>${Number(event.ticket_price).toFixed(2)}</strong>, pulled from Stripe on each sync.</>
+            : <>will be pulled from the Payment Link on the next sync.</>}
+        </p>
         <div className="pt-2 flex justify-end gap-2">
           <Link
             href={`/admin/ticket-events/${slug}/attendees`}

@@ -49,6 +49,29 @@ export async function syncEventFromStripe(event: EventRow): Promise<SyncSummary>
 
   const stripe = getStripe();
 
+  // Pull the current price off the Payment Link so the admin doesn't have
+  // to keep events.ticket_price in sync manually. Stripe stores unit_amount
+  // in cents; stripe_price_id is the stable identifier for the price.
+  try {
+    const link = await stripe.paymentLinks.retrieve(event.stripe_payment_link_id, {
+      expand: ["line_items.data.price"],
+    });
+    const firstItem = link.line_items?.data?.[0];
+    const price = firstItem?.price ?? null;
+    const unitAmount = price?.unit_amount ?? null;
+    const priceDollars = unitAmount != null ? unitAmount / 100 : null;
+    await sql`
+      UPDATE events
+      SET ticket_price = ${priceDollars},
+          stripe_price_id = ${price?.id ?? null}
+      WHERE id = ${event.id}
+    `;
+  } catch (err) {
+    summary.errors.push(
+      `Failed to read price from Payment Link: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+
   // Index existing rows once so the loop is O(1) per session.
   const existingRows = (await sql`
     SELECT id, stripe_session_id, amount_paid, refund_status, deleted_at
