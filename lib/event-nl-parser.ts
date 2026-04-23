@@ -245,7 +245,7 @@ Schema (every field required; use null or [] when absent):
   "university": <string or null — non-UWC undergrad / grad / postgrad like "Berkeley", "Stanford", "MIT", "Harvard", "Brown", "Minerva", "LSE", etc.>,
   "origin": <string or null — country the alumnus is from, e.g. "Brazil", "Singapore">,
   "company_tag": <"tech" | "non_tech" | "startup" | "not_startup" | null — semantic, classification-backed; prefer this over industry_groups/company_size_band when the user's intent is "tech" or "startup" semantically>,
-  "sector": <null OR one of: "ai_research", "enterprise_saas", "consumer_tech", "developer_tools", "fintech", "biotech_research", "healthcare", "consulting", "academic", "government", "nonprofit", "finance", "media", "education", "energy", "industrial", "other" — use when user names a domain like "AI people", "fintech folks", "biotech", "developer tools">,
+  "sector": <null OR one of: "ai_research", "enterprise_saas", "consumer_tech", "developer_tools", "fintech", "biotech_research" — ONLY use for tech sub-sectors that LinkedIn's industry tags misclassify. Leave null for generic domains like consulting, finance, healthcare, education — those belong in industry_groups, not sector.>,
   "gender": <"male" | "female" | "they" | null — only set when user explicitly filters on gender>,
   "keywords": [<substantive professional terms only — e.g. "product management", "climate tech", "UX design">]
 }
@@ -273,6 +273,11 @@ ${ageRules(thisYear)}
 - UWC school names → college (only set if user specifically mentions a UWC school)
 - Undergrad / grad school names like "Berkeley alumni", "went to Stanford", "MIT grads" → university
 - "from Brazil"/"Brazilian"/"Singapore origin" → origin
+- NEVER emit BOTH industry_groups AND sector for the same concept. For generic
+  professional domains (consulting, finance, education, healthcare, research,
+  non-profit) use industry_groups only and leave sector null. Only use sector
+  for tech sub-sectors that LinkedIn tags poorly (AI, fintech, biotech,
+  developer tools, enterprise SaaS, consumer tech).
 - "women"/"female"/"she/her" → gender "female"
 - "men"/"male"/"he/him"/"guys" → gender "male" (but "people"/"folks"/"alumni" are gender-neutral — leave gender null)
 - "they/them"/"non-binary" → gender "they"

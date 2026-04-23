@@ -172,7 +172,12 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     if (searchParsed.university) widgetSafe.university = searchParsed.university;
     if (searchParsed.origin) widgetSafe.origin = searchParsed.origin;
     if (searchParsed.companyTag) widgetSafe.companyTag = searchParsed.companyTag;
-    if (searchParsed.sector) widgetSafe.sector = searchParsed.sector;
+    // Belt-and-suspenders: if both industries and sector were emitted, drop
+    // sector. LinkedIn industry tags have much wider coverage than our
+    // classification table, and AND'ing both usually produces zero rows.
+    if (searchParsed.sector && !widgetSafe.industries) {
+      widgetSafe.sector = searchParsed.sector;
+    }
     if (searchParsed.gender) widgetSafe.gender = searchParsed.gender;
     widgetSafe.q = searchParsed.keywords.length > 0 ? searchParsed.keywords.join(" ") : undefined;
     // Replace the filters object entirely.
