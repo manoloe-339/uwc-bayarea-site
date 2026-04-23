@@ -123,7 +123,7 @@ export default function DesktopFlyer({ seatsRemaining = event.totalSeats }: { se
                   className="text-center text-white no-underline transition hover:opacity-90 hover:-translate-y-0.5"
                 >
                   <div
-                    className="rounded-full bg-cover bg-center"
+                    className="rounded-full bg-cover bg-center mx-auto"
                     style={{
                       width: 100,
                       height: 100,
