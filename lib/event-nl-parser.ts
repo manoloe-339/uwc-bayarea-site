@@ -26,6 +26,10 @@ export type ParseResult =
 
 export type ParsedSearchQuery = {
   industryGroups: IndustryGroup[];
+  /** "current" (default) matches only current company; "past_or_current"
+      also matches any past role in alumni_career. Driven by phrasing like
+      "experience", "background", "has worked", "ex-", "former". */
+  industryScope: "current" | "past_or_current";
   city: string | null;
   region: string | null;
   minGradYear: number | null;
@@ -235,6 +239,7 @@ Return ONLY a JSON object. No prose, no markdown fences.
 Schema (every field required; use null or [] when absent):
 {
   "industry_groups": [<zero or more of: "Tech & Hardware", "Finance & Investing", "Consulting", "Education", "Non-Profit & Social Impact", "Research & Science", "Healthcare">],
+  "industry_scope": <"current" | "past_or_current" — "current" is the default; set "past_or_current" ONLY when the user's phrasing implies ever-worked-in (experience, background, former, ex-, has worked, used to) rather than currently-works-in>,
   "city": <string or null — canonical like "San Francisco", "Berkeley", "Oakland", "Palo Alto">,
   "region": <one of "SF", "East Bay", "Peninsula", "South Bay", "North Bay" or null>,
   "min_grad_year": <integer or null>,
@@ -251,6 +256,11 @@ Schema (every field required; use null or [] when absent):
 }
 
 Rules:
+- industry_scope: default "current". Use "past_or_current" ONLY when the user's phrasing clearly signals lifetime/history intent. Signals: "experience", "background", "has worked in", "worked in", "ex-", "former", "used to", "previously", "any kind of X experience". Examples:
+  * "consultants" / "in consulting" / "consulting people" / "women in consulting" → "current"
+  * "consulting experience" / "with consulting background" / "ex-consultants" / "has done consulting" → "past_or_current"
+  * "currently in tech" / "tech workers" → "current"
+  * "tech background" / "worked in tech" → "past_or_current"
 - "tech"/"software"/"AI"/"ML"/"engineering" → include "Tech & Hardware"
 - "finance"/"VC"/"investing"/"banking"/"PE" → include "Finance & Investing"
 - "consulting"/"strategy" → include "Consulting"
@@ -334,6 +344,9 @@ function normalizeSearch(raw: unknown): SearchParseResult {
       ? (r.gender as ParsedSearchQuery["gender"])
       : null;
 
+  const industryScope: ParsedSearchQuery["industryScope"] =
+    r.industry_scope === "past_or_current" ? "past_or_current" : "current";
+
   const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
   const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 
@@ -341,6 +354,7 @@ function normalizeSearch(raw: unknown): SearchParseResult {
     ok: true,
     parsed: {
       industryGroups,
+      industryScope,
       city: str(r.city),
       region,
       minGradYear: num(r.min_grad_year),

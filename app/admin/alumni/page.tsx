@@ -161,9 +161,9 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     if (searchParsed.industryGroups.length > 0) {
       const expanded = searchParsed.industryGroups.flatMap((g) => industriesInGroup(g));
       widgetSafe.industries = Array.from(new Set(expanded));
-      // NL queries like "consulting experience" should also catch people
-      // whose past roles were in the industry, not just their current job.
-      widgetSafe.industriesIncludePast = true;
+      // Only widen to past roles when the phrasing asks for it
+      // (e.g. "consulting experience", "ex-consultants", "tech background").
+      widgetSafe.industriesIncludePast = searchParsed.industryScope === "past_or_current";
     }
     if (searchParsed.city) widgetSafe.city = searchParsed.city;
     if (searchParsed.region) widgetSafe.region = searchParsed.region;
@@ -398,7 +398,14 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1.5">What I understood</div>
           <div className="flex flex-wrap gap-1.5">
             {searchParsed.industryGroups.map((g) => (
-              <ParseChip key={g} label={g} />
+              <ParseChip
+                key={g}
+                label={
+                  searchParsed.industryScope === "past_or_current"
+                    ? `${g} (any time)`
+                    : g
+                }
+              />
             ))}
             {searchParsed.city && <ParseChip label={`City: ${searchParsed.city}`} />}
             {searchParsed.region && <ParseChip label={`Region: ${searchParsed.region}`} />}
