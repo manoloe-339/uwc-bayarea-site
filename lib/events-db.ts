@@ -15,6 +15,9 @@ export type EventRecord = {
   total_tickets_sold: number;
   total_revenue: string;
   last_synced_at: string | null;
+  checkin_token: string | null;
+  checkin_pin: string | null;
+  checkin_token_generated_at: string | null;
   created_at: string;
   updated_at: string;
 };
