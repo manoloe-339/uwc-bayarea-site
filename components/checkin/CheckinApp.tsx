@@ -332,18 +332,49 @@ export function CheckinApp({
           </h2>
           <ul className="space-y-1 text-sm">
             {stats.recent.map((r) => (
-              <li key={r.id} className="flex items-center justify-between text-[color:var(--muted)]">
-                <span className="text-[color:var(--navy-ink)]">
+              <li
+                key={r.id}
+                className="flex items-center justify-between gap-2 text-[color:var(--muted)]"
+              >
+                <span className="text-[color:var(--navy-ink)] truncate">
                   ✓ {r.display_name}
                   {r.attendee_type === "walk-in" && (
-                    <span className="ml-1 text-[10px] text-indigo-700 uppercase tracking-wider">walk-in</span>
+                    <span className="ml-1 text-[10px] text-indigo-700 uppercase tracking-wider">
+                      walk-in
+                    </span>
                   )}
                 </span>
-                <span className="text-xs">
-                  {new Date(r.checked_in_at).toLocaleTimeString([], {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+                <span className="flex items-center gap-3 shrink-0">
+                  <span className="text-xs">
+                    {new Date(r.checked_in_at).toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (
+                        !confirm(
+                          `Undo check-in for ${r.display_name}? They'll be marked as not checked in.`
+                        )
+                      )
+                        return;
+                      await undoCheckIn(r.id);
+                      // Optimistic: refresh stats immediately.
+                      try {
+                        const sres = await fetch(`/api/checkin/${token}/stats`, {
+                          cache: "no-store",
+                        });
+                        if (sres.ok) setStats((await sres.json()) as Stats);
+                      } catch {
+                        /* next poll will refresh */
+                      }
+                    }}
+                    className="text-xs text-red-700 hover:underline"
+                  >
+                    Undo
+                  </button>
                 </span>
               </li>
             ))}

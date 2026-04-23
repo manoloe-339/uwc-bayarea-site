@@ -6,6 +6,7 @@ import { MatchReviewModal } from "./MatchReviewModal";
 import { LinkToAlumniModal } from "./LinkToAlumniModal";
 import { StripeDetailsModal } from "./StripeDetailsModal";
 import { SignupInviteModal } from "./SignupInviteModal";
+import { ViewQrCodeModal } from "./ViewQrCodeModal";
 
 type Props = {
   attendeeId: number;
@@ -82,6 +83,7 @@ export function AttendeeRowActions(props: Props) {
   const [stripeOpen, setStripeOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [sendQrOpen, setSendQrOpen] = useState(false);
+  const [viewQrOpen, setViewQrOpen] = useState(false);
   const [sendingQr, setSendingQr] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tone: "ok" | "err" } | null>(null);
   const [, startTransition] = useTransition();
@@ -226,6 +228,11 @@ export function AttendeeRowActions(props: Props) {
                 {qrCodeSentAt ? "Resend QR code" : "Send QR code"}
               </MenuItem>
             )}
+            {(attendeeType === "paid" || attendeeType === "comp") && (
+              <MenuItem onClick={() => { setViewQrOpen(true); setMenuOpen(false); }}>
+                View QR code
+              </MenuItem>
+            )}
             {isStripePurchase && (
               <MenuItem onClick={() => { setStripeOpen(true); setMenuOpen(false); }}>
                 View Stripe details
@@ -294,6 +301,14 @@ export function AttendeeRowActions(props: Props) {
           uwcAffiliation={uwcAffiliation}
           alreadySentAt={signupInviteSentAt}
           onClose={() => setInviteOpen(false)}
+        />
+      )}
+
+      {viewQrOpen && (
+        <ViewQrCodeModal
+          attendeeId={attendeeId}
+          displayName={displayName}
+          onClose={() => setViewQrOpen(false)}
         />
       )}
 
