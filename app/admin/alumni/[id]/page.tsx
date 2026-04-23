@@ -345,7 +345,28 @@ export default async function AlumnusPage({
             <Field label="First name" name="first_name" defaultValue={r.first_name} />
             <Field label="Last name" name="last_name" defaultValue={r.last_name} />
             <Field label="Email" name="email" type="email" defaultValue={r.email} required />
-            <Field label="Mobile" name="mobile" defaultValue={r.mobile} />
+            <Field
+              label="Mobile"
+              name="mobile"
+              defaultValue={r.mobile}
+              labelAddon={(() => {
+                const url = whatsappUrlFromMobile(r.mobile);
+                return url ? (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Open WhatsApp chat"
+                    title="Open WhatsApp chat"
+                    className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#25D366] text-white hover:brightness-110 normal-case tracking-normal"
+                  >
+                    <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.967-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12.057 22.32c-1.923 0-3.82-.498-5.492-1.438l-.389-.232-4.054.996 1.076-3.96-.252-.403C1.907 15.578 1.36 13.67 1.36 11.737c0-5.897 4.8-10.697 10.697-10.697 2.859 0 5.547 1.113 7.568 3.134 2.022 2.021 3.135 4.71 3.135 7.57-.003 5.897-4.799 10.697-10.703 10.697h-.004z"/>
+                    </svg>
+                  </a>
+                ) : null;
+              })()}
+            />
             <Field
               label="LinkedIn URL"
               name="linkedin_url"
@@ -651,6 +672,13 @@ export default async function AlumnusPage({
       )}
     </div>
   );
+}
+
+function whatsappUrlFromMobile(mobile: string | null | undefined): string | null {
+  if (!mobile) return null;
+  const digits = mobile.replace(/\D/g, "");
+  if (digits.length < 7) return null;
+  return `https://wa.me/${digits}`;
 }
 
 function shortClickUrl(u: string): string {
