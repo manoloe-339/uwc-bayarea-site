@@ -24,6 +24,7 @@ type Props = {
   matchReason: string | null;
   isManualMatch: boolean;
   isStripePurchase: boolean;
+  attendeeType: "paid" | "comp" | "walk-in";
   displayName: string;
   associatedAlumniId: number | null;
   associatedName: string | null;
@@ -34,6 +35,9 @@ type Props = {
   eventName: string;
   signupInviteSentAt: string | null;
   canInvite: boolean;
+  // QR reminder
+  reminderRecipient: string | null;
+  qrCodeSentAt: string | null;
 };
 
 export function AttendeeRowActions(props: Props) {
@@ -54,6 +58,7 @@ export function AttendeeRowActions(props: Props) {
     matchReason,
     isManualMatch,
     isStripePurchase,
+    attendeeType,
     displayName,
     associatedAlumniId,
     associatedName,
@@ -63,6 +68,8 @@ export function AttendeeRowActions(props: Props) {
     eventName,
     signupInviteSentAt,
     canInvite,
+    reminderRecipient,
+    qrCodeSentAt,
   } = props;
 
   const [starred, setStarred] = useState(initialStarred);
@@ -74,9 +81,18 @@ export function AttendeeRowActions(props: Props) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [stripeOpen, setStripeOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [sendQrOpen, setSendQrOpen] = useState(false);
+  const [sendingQr, setSendingQr] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; tone: "ok" | "err" } | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -115,6 +131,30 @@ export function AttendeeRowActions(props: Props) {
     await patch({ delete: true });
     setMenuOpen(false);
   };
+  const sendQr = async () => {
+    setSendQrOpen(false);
+    setSendingQr(true);
+    try {
+      const res = await fetch(`/api/ticket-events/attendees/${attendeeId}/send-qr`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Send failed");
+      }
+      const body = (await res.json()) as { to: string };
+      setToast({ msg: `QR code sent to ${body.to}`, tone: "ok" });
+      startTransition(() => router.refresh());
+    } catch (err) {
+      setToast({ msg: err instanceof Error ? err.message : "Send failed", tone: "err" });
+    } finally {
+      setSendingQr(false);
+    }
+  };
+
+  const canSendQr =
+    (attendeeType === "paid" || attendeeType === "comp") && !!reminderRecipient;
+
   const rematch = async () => {
     const res = await fetch(`/api/ticket-events/attendees/${attendeeId}`, {
       method: "PATCH",
@@ -179,6 +219,11 @@ export function AttendeeRowActions(props: Props) {
             {canInvite && (
               <MenuItem onClick={() => { setInviteOpen(true); setMenuOpen(false); }}>
                 {signupInviteSentAt ? "Resend invite" : "Invite to signup"}
+              </MenuItem>
+            )}
+            {canSendQr && (
+              <MenuItem onClick={() => { setSendQrOpen(true); setMenuOpen(false); }}>
+                {qrCodeSentAt ? "Resend QR code" : "Send QR code"}
               </MenuItem>
             )}
             {isStripePurchase && (
@@ -250,6 +295,79 @@ export function AttendeeRowActions(props: Props) {
           alreadySentAt={signupInviteSentAt}
           onClose={() => setInviteOpen(false)}
         />
+      )}
+
+      {sendQrOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-[1px] p-4">
+          <div className="bg-white rounded-[12px] shadow-xl p-6 w-full max-w-[440px]">
+            <h2 className="font-sans font-bold text-navy text-lg mb-1">
+              {qrCodeSentAt ? "Resend QR code" : "Send QR code"}
+            </h2>
+            <p className="text-xs text-[color:var(--muted)] mb-4">
+              Generates a QR code if one doesn&rsquo;t exist yet, then sends the
+              reminder email to this attendee.
+            </p>
+            <dl className="text-sm space-y-1.5 mb-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-[color:var(--muted)]">To</dt>
+                <dd className="font-semibold text-navy break-all text-right">{reminderRecipient}</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-[color:var(--muted)]">Last sent</dt>
+                <dd className="text-[color:var(--navy-ink)]">
+                  {qrCodeSentAt
+                    ? new Date(qrCodeSentAt).toLocaleString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })
+                    : "Never"}
+                </dd>
+              </div>
+            </dl>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setSendQrOpen(false)}
+                className="px-4 py-2 text-sm text-[color:var(--muted)] hover:text-navy"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={sendQr}
+                className="bg-navy text-white px-5 py-2 rounded text-sm font-semibold"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {sendingQr && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
+          <div className="bg-white rounded-[12px] shadow-xl px-6 py-5 flex items-center gap-3">
+            <span className="inline-block w-5 h-5 border-[3px] border-navy border-t-transparent rounded-full animate-spin" aria-hidden />
+            <span className="font-semibold text-navy text-sm">Sending QR code…</span>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div
+          role="status"
+          className={`fixed bottom-6 right-6 z-[70] rounded-[10px] shadow-lg px-4 py-3 text-sm font-semibold max-w-[320px] ${
+            toast.tone === "ok"
+              ? "bg-green-600 text-white"
+              : "bg-red-600 text-white"
+          }`}
+        >
+          {toast.tone === "ok" ? "✓ " : "✗ "}
+          {toast.msg}
+        </div>
       )}
 
       {editingNotes && (

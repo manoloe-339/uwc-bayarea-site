@@ -351,6 +351,7 @@ function AttendeeRow({
         matchReason={a.match_reason}
         isManualMatch={a.match_confidence === "manual"}
         isStripePurchase={a.attendee_type === "paid"}
+        attendeeType={a.attendee_type}
         displayName={displayName}
         associatedAlumniId={a.associated_with_alumni_id}
         associatedName={associatedName}
@@ -360,6 +361,8 @@ function AttendeeRow({
         eventName={eventName}
         signupInviteSentAt={a.signup_invite_sent_at}
         canInvite={showUwcNotInDbBadge && !!stripeEmail}
+        reminderRecipient={alumniEmail ?? stripeEmail}
+        qrCodeSentAt={a.qr_code_sent_at}
       />
     </li>
   );

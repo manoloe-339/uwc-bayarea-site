@@ -47,6 +47,7 @@ export type AttendeeRecord = {
   checked_in: boolean;
   checked_in_at: string | null;
   qr_code_data: string | null;
+  qr_code_sent_at: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
