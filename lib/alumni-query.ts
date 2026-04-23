@@ -17,11 +17,12 @@ const COMPANY_SIZE_BANDS: Record<CompanySizeBand, string[]> = {
   large: ["1001-5000", "5001-10000", "10001+"],
 };
 export type CompanyTagFilter = "tech" | "non_tech" | "startup" | "not_startup";
-export const FOLLOWUP_REASONS = ["bad_record", "follow_up", "ask_for_help", "other"] as const;
+export const FOLLOWUP_REASONS = ["bad_record", "follow_up", "invite", "ask_for_help", "other"] as const;
 export type FollowupReason = (typeof FOLLOWUP_REASONS)[number];
 export const FOLLOWUP_REASON_LABELS: Record<FollowupReason, string> = {
   bad_record: "Bad record",
   follow_up: "Follow up",
+  invite: "Invite",
   ask_for_help: "Ask for help",
   other: "Other",
 };
