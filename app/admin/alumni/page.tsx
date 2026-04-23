@@ -466,6 +466,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         {/* Marks this request as an explicit Apply (vs. a mode-toggle
             navigation). NL mode only runs search when applied=1. */}
         <input type="hidden" name="applied" value="1" />
+        {/* Carry the current mode through form submission — FormData
+            builds a fresh URL, so mode params would otherwise be
+            dropped on Apply. */}
+        {searchNL && <input type="hidden" name="searchNL" value="1" />}
+        {eventMode && <input type="hidden" name="eventMode" value="1" />}
         {/* Row 1 — full-width free-text search + inline NL toggle */}
         <label className="block sm:col-span-2 lg:col-span-4">
           <span className="flex items-center justify-between mb-1">
