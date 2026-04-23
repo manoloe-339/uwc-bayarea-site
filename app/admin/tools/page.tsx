@@ -22,6 +22,18 @@ export default function ToolsIndex() {
             industry tag so filters like &ldquo;non-tech&rdquo; and &ldquo;real startup&rdquo; actually work.
           </p>
         </Link>
+        <Link
+          href="/admin/tools/duplicates"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Find duplicates</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Alumni rows sharing a LinkedIn URL or name</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Groups confirmed-dupe rows side-by-side with email, submit date,
+            enrichment counts, and per-row Delete / swap-email actions. Safe
+            to re-run any time new data comes in.
+          </p>
+        </Link>
       </div>
     </div>
   );
