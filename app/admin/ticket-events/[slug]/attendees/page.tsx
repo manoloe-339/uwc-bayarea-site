@@ -4,6 +4,7 @@ import { getEventBySlug, listAttendeesForEvent, type AttendeeRecord } from "@/li
 import { SyncStripeButton } from "@/components/admin/SyncStripeButton";
 import { AttendeeRowActions } from "@/components/admin/AttendeeRowActions";
 import { AddSpecialGuestButton } from "@/components/admin/AddSpecialGuestButton";
+import { CheckinAccessCard } from "@/components/admin/CheckinAccessCard";
 import { relationshipLabel } from "@/lib/attendee-labels";
 
 export const dynamic = "force-dynamic";
@@ -162,6 +163,13 @@ export default async function AttendeesPage({
         <Stat label="Average ticket" value={paidRows.length > 0 ? fmtMoney(avgTicket) : "—"} />
         <Stat label="Base price (Stripe)" value={basePrice != null ? fmtMoney(basePrice) : "—"} />
       </section>
+
+      <CheckinAccessCard
+        slug={slug}
+        token={event.checkin_token}
+        pin={event.checkin_pin}
+        generatedAt={event.checkin_token_generated_at}
+      />
 
       {(counts.review > 0 || counts.unmatched > 0 || counts.followup > 0 || counts.uwc_not_in_db > 0) && (
         <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 mb-6 text-sm">
