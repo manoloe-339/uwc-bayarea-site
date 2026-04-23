@@ -71,6 +71,58 @@ export async function listEvents(): Promise<EventRecord[]> {
   return (await sql`SELECT * FROM events ORDER BY date DESC, id DESC`) as EventRecord[];
 }
 
+export type CommunicationStats = {
+  totalEligible: number;
+  qrGenerated: number;
+  remindersSent: number;
+  lastSentAt: string | null;
+  matchedWithAlumni: number;
+  guestsOnStripeEmail: number;
+};
+
+export async function getCommunicationStats(eventId: number): Promise<CommunicationStats> {
+  const rows = (await sql`
+    SELECT
+      COUNT(*) FILTER (
+        WHERE attendee_type IN ('paid', 'comp')
+      )::int AS total_eligible,
+      COUNT(*) FILTER (
+        WHERE attendee_type IN ('paid', 'comp') AND qr_code_data IS NOT NULL
+      )::int AS qr_generated,
+      COUNT(*) FILTER (
+        WHERE attendee_type IN ('paid', 'comp') AND qr_code_sent_at IS NOT NULL
+      )::int AS reminders_sent,
+      MAX(qr_code_sent_at) AS last_sent_at,
+      COUNT(*) FILTER (
+        WHERE attendee_type IN ('paid', 'comp') AND alumni_id IS NOT NULL
+      )::int AS matched_with_alumni,
+      COUNT(*) FILTER (
+        WHERE attendee_type IN ('paid', 'comp')
+          AND alumni_id IS NULL
+          AND stripe_customer_email IS NOT NULL
+          AND stripe_customer_email <> ''
+      )::int AS guests_on_stripe_email
+    FROM event_attendees
+    WHERE event_id = ${eventId} AND deleted_at IS NULL
+  `) as {
+    total_eligible: number;
+    qr_generated: number;
+    reminders_sent: number;
+    last_sent_at: Date | string | null;
+    matched_with_alumni: number;
+    guests_on_stripe_email: number;
+  }[];
+  const r = rows[0];
+  return {
+    totalEligible: r?.total_eligible ?? 0,
+    qrGenerated: r?.qr_generated ?? 0,
+    remindersSent: r?.reminders_sent ?? 0,
+    lastSentAt: r?.last_sent_at ? new Date(r.last_sent_at).toISOString() : null,
+    matchedWithAlumni: r?.matched_with_alumni ?? 0,
+    guestsOnStripeEmail: r?.guests_on_stripe_email ?? 0,
+  };
+}
+
 export async function listAttendeesForEvent(eventId: number): Promise<AttendeeRecord[]> {
   return (await sql`
     SELECT

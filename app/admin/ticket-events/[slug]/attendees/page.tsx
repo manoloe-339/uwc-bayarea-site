@@ -133,6 +133,12 @@ export default async function AttendeesPage({
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href={`/admin/ticket-events/${slug}/communications`}
+            className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
+          >
+            Communications →
+          </Link>
           <AddSpecialGuestButton slug={slug} />
           <a
             href={`/api/ticket-events/${slug}/export`}
