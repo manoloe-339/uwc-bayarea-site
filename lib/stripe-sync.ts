@@ -208,6 +208,7 @@ export async function syncEventFromStripe(event: EventRow): Promise<SyncSummary>
     UPDATE events
     SET total_tickets_sold = ${totals[0].tickets},
         total_revenue = ${totals[0].revenue},
+        last_synced_at = NOW(),
         updated_at = NOW()
     WHERE id = ${event.id}
   `;

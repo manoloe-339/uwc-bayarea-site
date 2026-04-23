@@ -54,11 +54,11 @@ export function SyncStripeButton({ slug, lastSyncedAt }: { slug: string; lastSyn
         >
           {pending ? "Syncing…" : "Sync from Stripe"}
         </button>
-        {lastSyncedAt && (
-          <span className="text-xs text-[color:var(--muted)]">
-            Last synced {new Date(lastSyncedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-          </span>
-        )}
+        <span className="text-xs text-[color:var(--muted)]">
+          {lastSyncedAt
+            ? `Last synced ${new Date(lastSyncedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`
+            : "Never synced"}
+        </span>
       </div>
 
       {pending && (

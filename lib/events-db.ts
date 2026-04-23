@@ -14,6 +14,7 @@ export type EventRecord = {
   ticket_price: string | null;
   total_tickets_sold: number;
   total_revenue: string;
+  last_synced_at: string | null;
   created_at: string;
   updated_at: string;
 };

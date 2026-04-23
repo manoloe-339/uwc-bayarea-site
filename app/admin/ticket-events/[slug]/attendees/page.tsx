@@ -110,7 +110,7 @@ export default async function AttendeesPage({
           >
             Export CSV
           </a>
-          <SyncStripeButton slug={slug} lastSyncedAt={event.updated_at} />
+          <SyncStripeButton slug={slug} lastSyncedAt={event.last_synced_at} />
         </div>
       </div>
 
