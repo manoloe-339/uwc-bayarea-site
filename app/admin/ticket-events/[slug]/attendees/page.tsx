@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getEventBySlug, listAttendeesForEvent, type AttendeeRecord } from "@/lib/events-db";
 import { SyncStripeButton } from "@/components/admin/SyncStripeButton";
 import { AttendeeRowActions } from "@/components/admin/AttendeeRowActions";
+import { AddSpecialGuestButton } from "@/components/admin/AddSpecialGuestButton";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -90,9 +91,22 @@ export default async function AttendeesPage({
             {new Date(event.date).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
             {event.time ? ` · ${event.time}` : ""}
             {event.location ? ` · ${event.location}` : ""}
+            {" · "}
+            <Link href={`/admin/ticket-events/${slug}/edit`} className="hover:text-navy underline">
+              Edit
+            </Link>
           </p>
         </div>
-        <SyncStripeButton slug={slug} lastSyncedAt={event.updated_at} />
+        <div className="flex items-center gap-2 flex-wrap">
+          <AddSpecialGuestButton slug={slug} />
+          <a
+            href={`/api/ticket-events/${slug}/export`}
+            className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
+          >
+            Export CSV
+          </a>
+          <SyncStripeButton slug={slug} lastSyncedAt={event.updated_at} />
+        </div>
       </div>
 
       {/* Stats */}
@@ -213,6 +227,9 @@ function AttendeeRow({ a }: { a: AttendeeRecord }) {
         initialStarred={a.is_starred}
         initialFollowup={a.needs_followup}
         alumniId={a.alumni_id}
+        stripeName={a.stripe_customer_name}
+        stripeEmail={a.stripe_customer_email}
+        matchReason={a.match_reason}
       />
     </li>
   );

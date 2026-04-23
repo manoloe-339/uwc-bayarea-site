@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { MatchReviewModal } from "./MatchReviewModal";
 
 type Props = {
   attendeeId: number;
@@ -9,7 +10,9 @@ type Props = {
   initialStarred: boolean;
   initialFollowup: boolean;
   alumniId: number | null;
-  onOpenMatchReview?: () => void;
+  stripeName: string | null;
+  stripeEmail: string | null;
+  matchReason: string | null;
 };
 
 export function AttendeeRowActions({
@@ -18,8 +21,11 @@ export function AttendeeRowActions({
   initialStarred,
   initialFollowup,
   alumniId,
-  onOpenMatchReview,
+  stripeName,
+  stripeEmail,
+  matchReason,
 }: Props) {
+  const [matchOpen, setMatchOpen] = useState(false);
   const [starred, setStarred] = useState(initialStarred);
   const [followup, setFollowup] = useState(initialFollowup);
   const [notes, setNotes] = useState(initialNotes ?? "");
@@ -117,18 +123,16 @@ export function AttendeeRowActions({
             >
               {notes ? "Edit notes" : "Add notes"}
             </button>
-            {onOpenMatchReview && (
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenMatchReview();
-                  setMenuOpen(false);
-                }}
-                className="block w-full text-left px-3 py-2 hover:bg-ivory-2"
-              >
-                {alumniId ? "Change match" : "Pick match"}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                setMatchOpen(true);
+                setMenuOpen(false);
+              }}
+              className="block w-full text-left px-3 py-2 hover:bg-ivory-2"
+            >
+              {alumniId ? "Change match" : "Pick match"}
+            </button>
             <button
               type="button"
               onClick={removeFromEvent}
@@ -139,6 +143,17 @@ export function AttendeeRowActions({
           </div>
         )}
       </div>
+
+      {matchOpen && (
+        <MatchReviewModal
+          attendeeId={attendeeId}
+          currentAlumniId={alumniId}
+          stripeName={stripeName}
+          stripeEmail={stripeEmail}
+          matchReason={matchReason}
+          onClose={() => setMatchOpen(false)}
+        />
+      )}
 
       {editingNotes && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-[1px]">
