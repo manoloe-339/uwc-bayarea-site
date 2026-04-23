@@ -37,3 +37,13 @@ h1, h2, h3, .display { font-family: Fraunces, Georgia, serif; }
 .urgency-dot {
   animation: urgency-pulse 1.6s ease-in-out infinite;
 }
+
+/* Check-in celebration — pops in quickly, fades out after 2 seconds. */
+@keyframes checkin-pop {
+  0%   { opacity: 0; transform: scale(0.82); }
+  18%  { opacity: 1; transform: scale(1.05); }
+  28%  { transform: scale(1); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; transform: scale(0.98); }
+}
+.animate-checkin-pop { animation: checkin-pop 2.4s ease-out forwards; }
