@@ -305,12 +305,6 @@ export default async function AlumnusPage({
           {r.headline && (
             <p className="text-[color:var(--navy-ink)] italic text-sm mb-1">{r.headline}</p>
           )}
-          <p className="text-[color:var(--muted)] text-sm">
-            Record #{r.id}
-            {r.submitted_at ? ` · submitted ${fmtDate(r.submitted_at)}` : ""}
-            {r.imported_at ? ` · imported ${fmtDate(r.imported_at)}` : ""}
-            {r.updated_at ? ` · updated ${fmtDate(r.updated_at)}` : ""}
-          </p>
         </div>
       </div>
 
@@ -575,23 +569,34 @@ export default async function AlumnusPage({
           </p>
         </Section>
 
-        <div className="flex items-center justify-between pt-4 border-t border-[color:var(--rule)]">
-          <div className="text-[11px] tracking-[.22em] uppercase text-[color:var(--muted)]">
-            Sources: {sourcesLabel(r.sources, r.enrichment_source)}
-            {r.flags?.length ? ` · flags: ${r.flags.join(", ")}` : ""}
-            {r.enriched_at && (
-              <span className="ml-3 normal-case tracking-normal text-[11px]">
-                Last enriched {fmtDate(r.enriched_at)}
-              </span>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold">
-              Save changes
-            </button>
-          </div>
+        <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-[color:var(--rule)]">
+          <button type="submit" className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold">
+            Save changes
+          </button>
         </div>
       </form>
+
+      <div className="mt-6 text-[11px] text-[color:var(--muted)] leading-relaxed">
+        <div>
+          Record #{r.id}
+          {r.submitted_at ? ` · submitted ${fmtDate(r.submitted_at)}` : ""}
+          {r.imported_at ? ` · imported ${fmtDate(r.imported_at)}` : ""}
+          {r.updated_at ? ` · updated ${fmtDate(r.updated_at)}` : ""}
+        </div>
+        <div className="mt-1 tracking-[.2em] uppercase">
+          Sources: <span className="normal-case tracking-normal">{sourcesLabel(r.sources, r.enrichment_source)}</span>
+          {r.flags?.length ? (
+            <>
+              {" · "}flags: <span className="normal-case tracking-normal">{r.flags.join(", ")}</span>
+            </>
+          ) : null}
+          {r.enriched_at && (
+            <span className="ml-2 normal-case tracking-normal">
+              Last enriched {fmtDate(r.enriched_at)}
+            </span>
+          )}
+        </div>
+      </div>
 
       {emailHistory.length > 0 && (
         <section className="mt-8 bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">

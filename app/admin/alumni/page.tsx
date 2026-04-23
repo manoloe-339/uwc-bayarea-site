@@ -300,12 +300,6 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
       ? await findSearchMatches(matchRows, filters.q)
       : (new Map() as Map<number, MatchInfo>);
 
-  const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(filters)) {
-    if (v != null && v !== "") qs.set(k, String(v));
-  }
-  const exportHref = `/api/admin/alumni/export?${qs.toString()}`;
-
   // Preserve the raw URL params so detail-page "Back to alumni" can return
   // the user to the same filtered list (NL query, event mode, etc. intact).
   const rawListQs = new URLSearchParams();
@@ -319,29 +313,21 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
 
   return (
     <div>
-      <div className="flex items-end justify-between mb-6">
-        <div>
-          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Alumni lookup</h1>
-          <p className="text-[color:var(--muted)] text-sm">
-            {aiFilter && aiMatchedCount != null ? (
-              <>
-                {rows.length.toLocaleString()} {rows.length === 1 ? "match" : "matches"}
-                <span className="text-[color:var(--muted)]">{" "}· AI-filtered from {rawRows.length.toLocaleString()}</span>
-              </>
-            ) : (
-              <>
-                {total.toLocaleString()} {total === 1 ? "match" : "matches"}
-                {rows.length < total ? ` · showing first ${rows.length}` : ""}
-              </>
-            )}
-          </p>
-        </div>
-        <a
-          href={exportHref}
-          className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
-        >
-          Export CSV
-        </a>
+      <div className="mb-6">
+        <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Alumni lookup</h1>
+        <p className="text-[color:var(--muted)] text-sm">
+          {aiFilter && aiMatchedCount != null ? (
+            <>
+              {rows.length.toLocaleString()} {rows.length === 1 ? "match" : "matches"}
+              <span className="text-[color:var(--muted)]">{" "}· AI-filtered from {rawRows.length.toLocaleString()}</span>
+            </>
+          ) : (
+            <>
+              {total.toLocaleString()} {total === 1 ? "match" : "matches"}
+              {rows.length < total ? ` · showing first ${rows.length}` : ""}
+            </>
+          )}
+        </p>
       </div>
       {addToList && addToListName && (
         <div className="mb-5 p-3 bg-ivory-2 border-l-4 border-navy rounded-[2px] text-sm flex items-center justify-between">
@@ -888,7 +874,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                 />
                 {showPhotos && <Thumb url={r.photo_url} firstName={r.first_name} email={r.email} size={44} />}
                 <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1">
                     <Link
                       href={detailHref(r.id)}
                       className="font-semibold text-navy hover:underline"
@@ -901,7 +887,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                         target="_blank"
                         rel="noreferrer"
                         aria-label="LinkedIn profile"
-                        className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#0A66C2] text-white text-[10px] font-bold"
+                        className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-sm bg-[#0A66C2] text-white text-[10px] font-bold leading-none"
                       >
                         in
                       </a>
