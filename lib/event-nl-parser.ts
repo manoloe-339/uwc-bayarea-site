@@ -282,7 +282,8 @@ ${ageRules(thisYear)}
 - "men"/"male"/"he/him"/"guys" → gender "male" (but "people"/"folks"/"alumni" are gender-neutral — leave gender null)
 - "they/them"/"non-binary" → gender "they"
 - Do NOT set gender unless the user explicitly filters on it (phrases like "women in tech" yes; "tech people" no).
-- Keywords capture ONLY substantive professional terms (e.g. "product management", "impact investing"). Never emit as keywords: generic quantity words ("people", "alumni", "folks", "professionals", "leaders") or event-format words ("dinner", "meetup", "event", "networking").
+- Keywords capture ONLY substantive professional terms (e.g. "product management", "impact investing"). Never emit as keywords: generic quantity words ("people", "alumni", "folks", "professionals", "leaders"), event-format words ("dinner", "meetup", "event", "networking"), or vague qualifier words ("experience", "background", "skills", "expertise", "knowledge").
+- CRITICAL: if a concept is already captured by a structured field (industry_groups, sector, company_tag, gender, origin, university, college, city, region, company_name), do NOT also include it (or its variants) in keywords. Example: "women with consulting experience" → industry_groups ["Consulting"] + gender "female", keywords [] (NOT ["consulting experience"]). Example: "people at Google in SF" → company_name "Google" + city "San Francisco", keywords [] (NOT ["Google"]). Keywords are only for concepts that none of the structured fields can express.
 
 Do NOT invent filters unsupported by the input. When in doubt, leave null / empty.`;
 }
