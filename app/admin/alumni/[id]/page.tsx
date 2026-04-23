@@ -74,6 +74,9 @@ type AlumRecord = {
   enrichment_source: string | null;
   followup_reason: string | null;
   no_linkedin_confirmed: boolean | null;
+  gender: string | null;
+  gender_confidence: number | null;
+  gender_source: string | null;
 };
 
 async function uploadAlumnusPhoto(id: number, formData: FormData) {
@@ -161,6 +164,14 @@ async function updateAlumnus(id: number, formData: FormData) {
       ? followupReasonRaw
       : null;
 
+  // Gender override: a dropdown change is treated as an admin override
+  // (so future classifier runs skip this row).
+  const genderRaw = String(formData.get("gender") ?? "").trim();
+  const genderValue =
+    genderRaw && ["male", "female", "they", "unknown"].includes(genderRaw) ? genderRaw : null;
+  const genderSource = genderValue ? "admin" : null;
+  const genderConfidence = genderValue ? 1.0 : null;
+
   await sql`
     UPDATE alumni SET
       first_name         = ${get("first_name")},
@@ -188,6 +199,9 @@ async function updateAlumnus(id: number, formData: FormData) {
       deceased           = ${formData.get("deceased") === "on"},
       followup_reason    = ${followupReason},
       no_linkedin_confirmed = ${formData.get("no_linkedin_confirmed") === "on"},
+      gender             = ${genderValue},
+      gender_source      = ${genderSource},
+      gender_confidence  = ${genderConfidence},
       updated_at         = NOW()
     WHERE id = ${id}
   `;
@@ -352,6 +366,18 @@ export default async function AlumnusPage({
               }
             />
             <SelectField label="Affiliation" name="affiliation" defaultValue={r.affiliation} options={[{ value: "", label: "—" }, ...AFFILIATIONS.map((a) => ({ value: a, label: a }))]} />
+            <SelectField
+              label={`Gender${r.gender_source === "llm" && r.gender_confidence != null ? ` · AI ${Math.round(r.gender_confidence * 100)}%` : r.gender_source === "admin" ? " · manual" : ""}`}
+              name="gender"
+              defaultValue={r.gender}
+              options={[
+                { value: "", label: "— (unset)" },
+                { value: "male", label: "Male" },
+                { value: "female", label: "Female" },
+                { value: "they", label: "They" },
+                { value: "unknown", label: "Unknown" },
+              ]}
+            />
           </Grid>
           <label className="flex items-start gap-2 text-sm mt-3">
             <input

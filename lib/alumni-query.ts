@@ -59,6 +59,8 @@ export type AlumniFilters = {
   companyTag?: CompanyTagFilter;
   /** Classification-backed sector filter (ai_research, fintech, biotech_research, etc.). */
   sector?: string;
+  /** Filter by gender (Haiku-classified + admin-editable). */
+  gender?: "male" | "female" | "they" | "unknown" | "unset";
 
   /** Explicit recipient IDs (bypasses other filters during send). */
   ids?: number[];
@@ -103,6 +105,7 @@ export type AlumniRow = {
   followup_reason: string | null;
   enriched_at: string | null;
   deceased: boolean | null;
+  gender: string | null;
 };
 
 export function buildWhere(f: AlumniFilters): { where: string; params: unknown[] } {
@@ -301,6 +304,14 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
     );
   }
 
+  // Gender filter — "unset" matches rows that haven't been classified
+  // at all (gender IS NULL).
+  if (f.gender === "unset") {
+    parts.push(`gender IS NULL`);
+  } else if (f.gender) {
+    push((n) => `gender = $${n}`, f.gender);
+  }
+
   // Follow-up flag (admin)
   if (f.followup === "any") {
     parts.push(`followup_reason IS NOT NULL`);
@@ -325,7 +336,7 @@ export async function searchAlumni(f: AlumniFilters, limit = 500): Promise<Alumn
            current_company_industry, uwc_verified, total_experience_years,
            location_city, location_country, location_full,
            linkedin_about, linkedin_alternate_email,
-           followup_reason, enriched_at, deceased
+           followup_reason, enriched_at, deceased, gender
     FROM alumni
     ${where}
     ORDER BY grad_year DESC NULLS LAST, last_name ASC NULLS LAST, first_name ASC NULLS LAST
@@ -352,7 +363,7 @@ export async function getAlumniByIds(ids: number[]): Promise<AlumniRow[]> {
             current_company_industry, uwc_verified, total_experience_years,
             location_city, location_country, location_full,
            linkedin_about, linkedin_alternate_email,
-           followup_reason, enriched_at, deceased
+           followup_reason, enriched_at, deceased, gender
      FROM alumni
      WHERE id = ANY($1) AND subscribed IS NOT FALSE AND deceased IS NOT TRUE
      ORDER BY last_name ASC NULLS LAST, first_name ASC NULLS LAST`,

@@ -97,6 +97,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     university: pickStr(sp, "university"),
     companyTag: pickStr(sp, "companyTag") as AlumniFilters["companyTag"],
     sector: pickStr(sp, "sector"),
+    gender: pickStr(sp, "gender") as AlumniFilters["gender"],
     companyIdMap,
     expBand: pickStr(sp, "expBand") as ExperienceBand | undefined,
     uwcVerified: pickStr(sp, "uwcVerified") as AlumniFilters["uwcVerified"],
@@ -187,6 +188,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
       companySizeBand: undefined,
       companyTag: undefined,
       sector: undefined,
+      gender: undefined,
       expBand: undefined,
       uwcVerified: undefined,
       linkedin: undefined,
@@ -555,6 +557,14 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           {VALID_SECTORS.map((s) => (
             <option key={s} value={s}>{SECTOR_LABELS[s]}</option>
           ))}
+        </Select>
+        <Select label="Gender" name="gender" defaultValue={filters.gender ?? ""}>
+          <option value="">Any</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="they">They</option>
+          <option value="unknown">Unknown</option>
+          <option value="unset">Not classified yet</option>
         </Select>
         </>}
 
