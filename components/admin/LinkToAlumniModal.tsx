@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { RELATIONSHIP_OPTIONS } from "@/lib/attendee-labels";
 
 type AlumniHit = {
   id: number;
@@ -12,14 +13,6 @@ type AlumniHit = {
   grad_year: number | null;
   photo_url: string | null;
 };
-
-const RELATIONSHIP_OPTIONS = [
-  { value: "spouse_partner", label: "Spouse / Partner" },
-  { value: "friend", label: "Friend" },
-  { value: "colleague", label: "Colleague" },
-  { value: "family", label: "Family member" },
-  { value: "other", label: "Other" },
-];
 
 type Props = {
   attendeeId: number;
@@ -237,8 +230,3 @@ export function LinkToAlumniModal({
   );
 }
 
-export function relationshipLabel(type: string | null): string {
-  if (!type) return "";
-  const o = RELATIONSHIP_OPTIONS.find((x) => x.value === type);
-  return o?.label ?? type;
-}

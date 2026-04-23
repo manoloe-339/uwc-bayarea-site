@@ -4,7 +4,7 @@ import { getEventBySlug, listAttendeesForEvent, type AttendeeRecord } from "@/li
 import { SyncStripeButton } from "@/components/admin/SyncStripeButton";
 import { AttendeeRowActions } from "@/components/admin/AttendeeRowActions";
 import { AddSpecialGuestButton } from "@/components/admin/AddSpecialGuestButton";
-import { relationshipLabel } from "@/components/admin/LinkToAlumniModal";
+import { relationshipLabel } from "@/lib/attendee-labels";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
