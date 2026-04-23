@@ -3,8 +3,8 @@ import { listEvents } from "@/lib/events-db";
 
 export const dynamic = "force-dynamic";
 
-function fmtDate(s: string): string {
-  return new Date(s).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+function fmtDate(d: Date | string): string {
+  return new Date(d).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
 export default async function TicketEventsIndexPage() {

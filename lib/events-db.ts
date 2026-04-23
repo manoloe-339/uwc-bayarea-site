@@ -4,7 +4,8 @@ export type EventRecord = {
   id: number;
   slug: string;
   name: string;
-  date: string;
+  // Neon serialises DATE columns as JS Date objects, not ISO strings.
+  date: Date;
   time: string | null;
   location: string | null;
   description: string | null;

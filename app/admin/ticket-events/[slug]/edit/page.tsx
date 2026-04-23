@@ -5,6 +5,15 @@ import { updateEventAction } from "../../new/actions";
 
 export const dynamic = "force-dynamic";
 
+// Neon returns DATE columns as JS Date objects, not strings. Normalise to
+// YYYY-MM-DD for <input type="date">.
+function toDateInputValue(d: unknown): string {
+  if (!d) return "";
+  const date = d instanceof Date ? d : new Date(String(d));
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
 export default async function EditEventPage({
   params,
 }: {
@@ -27,7 +36,7 @@ export default async function EditEventPage({
       <form action={update} className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 space-y-4">
         <Field name="name" label="Event name" defaultValue={event.name} required />
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field name="date" label="Date" type="date" defaultValue={event.date.slice(0, 10)} required />
+          <Field name="date" label="Date" type="date" defaultValue={toDateInputValue(event.date)} required />
           <Field name="time" label="Time" defaultValue={event.time ?? ""} />
         </div>
         <Field name="location" label="Location" defaultValue={event.location ?? ""} />
