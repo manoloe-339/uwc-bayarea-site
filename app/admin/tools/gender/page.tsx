@@ -22,7 +22,15 @@ const GENDER_OPTIONS = [
   { value: "unknown", label: "Unknown" },
 ];
 
-export default async function GenderToolPage() {
+export default async function GenderToolPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string; origin?: string }>;
+}) {
+  const sp = await searchParams;
+  const view = sp.view === "all" || sp.view === "admin" ? sp.view : "needs";
+  const originFilter = (sp.origin ?? "").trim().toLowerCase();
+
   const all = await listAlumniForGenderReview();
   const classified = all.filter((a) => a.gender != null);
   const unclassified = all.filter((a) => a.gender == null);
@@ -30,6 +38,26 @@ export default async function GenderToolPage() {
   const lowConf = all.filter(
     (a) => a.gender != null && a.gender !== "unknown" && a.gender_source !== "admin" && (a.gender_confidence ?? 0) < 0.75
   );
+  const needsReview = all.filter(
+    (a) =>
+      a.gender_source !== "admin" &&
+      (a.gender == null || a.gender === "unknown" || (a.gender_confidence ?? 0) < 0.75)
+  );
+  const adminSet = all.filter((a) => a.gender_source === "admin");
+
+  let visible =
+    view === "needs" ? needsReview : view === "admin" ? adminSet : all;
+  if (originFilter) {
+    visible = visible.filter((a) => (a.origin ?? "").toLowerCase().includes(originFilter));
+  }
+  // Within needs-review, sort lowest-confidence + unknowns first
+  if (view === "needs") {
+    visible = [...visible].sort((a, b) => {
+      const ac = a.gender == null ? -1 : a.gender === "unknown" ? 0 : a.gender_confidence ?? 1;
+      const bc = b.gender == null ? -1 : b.gender === "unknown" ? 0 : b.gender_confidence ?? 1;
+      return ac - bc;
+    });
+  }
 
   return (
     <div className="max-w-[1100px]">
@@ -75,14 +103,49 @@ export default async function GenderToolPage() {
         </button>
       </form>
 
-      <p className="text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-2">
-        All alumni · needs-review rows highlighted
+      <div className="flex items-center gap-4 mb-3">
+        <div className="flex items-center gap-1 text-sm font-semibold">
+          <ViewTab href="/admin/tools/gender?view=needs" active={view === "needs"} count={needsReview.length}>
+            Needs review
+          </ViewTab>
+          <ViewTab href="/admin/tools/gender?view=all" active={view === "all"} count={all.length}>
+            All
+          </ViewTab>
+          <ViewTab href="/admin/tools/gender?view=admin" active={view === "admin"} count={adminSet.length}>
+            Admin-set
+          </ViewTab>
+        </div>
+        <form method="GET" action="/admin/tools/gender" className="ml-auto flex items-center gap-2">
+          <input type="hidden" name="view" value={view} />
+          <input
+            type="text"
+            name="origin"
+            placeholder="Filter by origin (e.g. China)"
+            defaultValue={sp.origin ?? ""}
+            className="text-xs border border-[color:var(--rule)] rounded px-2 py-1 bg-white min-w-[180px]"
+          />
+          <button type="submit" className="text-xs text-navy font-semibold hover:underline">
+            Apply
+          </button>
+          {originFilter && (
+            <Link
+              href={`/admin/tools/gender?view=${view}`}
+              className="text-xs text-[color:var(--muted)] hover:text-navy"
+            >
+              clear
+            </Link>
+          )}
+        </form>
+      </div>
+      <p className="text-[11px] tracking-[.22em] uppercase text-[color:var(--muted)] mb-2">
+        Showing {visible.length} of {all.length}
       </p>
 
       <section className="bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">
         <table className="w-full text-xs">
           <thead className="bg-ivory-2 text-[10px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)]">
             <tr>
+              <th className="text-left px-3 py-2 w-[56px]">Photo</th>
               <th className="text-left px-3 py-2">Alumnus</th>
               <th className="text-left px-3 py-2">Origin</th>
               <th className="text-left px-3 py-2">Gender</th>
@@ -92,12 +155,35 @@ export default async function GenderToolPage() {
             </tr>
           </thead>
           <tbody>
-            {all.map((a) => {
-              const needsReview = a.gender == null || a.gender === "unknown" || ((a.gender_confidence ?? 0) < 0.75 && a.gender_source !== "admin");
+            {visible.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-3 py-6 text-center text-[color:var(--muted)]">
+                  Nothing in this view. ✓
+                </td>
+              </tr>
+            )}
+            {visible.map((a) => {
+              const needsReviewRow = a.gender == null || a.gender === "unknown" || ((a.gender_confidence ?? 0) < 0.75 && a.gender_source !== "admin");
               const name = [a.first_name, a.last_name].filter(Boolean).join(" ");
               const classifyOne = classifyOneGenderAction.bind(null, a.id);
+              const initial = (a.first_name?.[0] ?? "?").toUpperCase();
               return (
-                <tr key={a.id} className={`border-t border-[color:var(--rule)] ${needsReview ? "bg-orange-50/40" : ""}`}>
+                <tr key={a.id} className={`border-t border-[color:var(--rule)] ${needsReviewRow ? "bg-orange-50/40" : ""}`}>
+                  <td className="px-3 py-2">
+                    <Link href={`/admin/alumni/${a.id}`} className="block">
+                      {a.photo_url ? (
+                        <img
+                          src={a.photo_url}
+                          alt={name}
+                          className="w-10 h-10 rounded-full object-cover bg-ivory-2 border border-[color:var(--rule)]"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-ivory-2 border border-[color:var(--rule)] flex items-center justify-center text-[color:var(--muted)] text-sm font-sans font-bold">
+                          {initial}
+                        </div>
+                      )}
+                    </Link>
+                  </td>
                   <td className="px-3 py-2">
                     <Link href={`/admin/alumni/${a.id}`} className="font-semibold text-navy hover:underline">
                       #{a.id} · {name}
@@ -134,6 +220,17 @@ export default async function GenderToolPage() {
         </table>
       </section>
     </div>
+  );
+}
+
+function ViewTab({ href, active, count, children }: { href: string; active: boolean; count: number; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className={`px-3 py-1.5 rounded border ${active ? "bg-navy text-white border-navy" : "bg-white text-navy border-[color:var(--rule)] hover:border-navy"}`}
+    >
+      {children} <span className={`text-xs ${active ? "text-white/70" : "text-[color:var(--muted)]"}`}>({count})</span>
+    </Link>
   );
 }
 
