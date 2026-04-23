@@ -3,6 +3,9 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { MatchReviewModal } from "./MatchReviewModal";
+import { LinkToAlumniModal } from "./LinkToAlumniModal";
+import { StripeDetailsModal } from "./StripeDetailsModal";
+import { SignupInviteModal } from "./SignupInviteModal";
 
 type Props = {
   attendeeId: number;
@@ -12,30 +15,65 @@ type Props = {
   alumniId: number | null;
   stripeName: string | null;
   stripeEmail: string | null;
+  stripeSessionId: string | null;
+  stripePaymentIntentId: string | null;
+  stripeCustomFields: unknown;
+  amountPaid: string;
+  paidAt: string | null;
+  refundStatus: string | null;
   matchReason: string | null;
-  /** When true, Rematch is disabled (admin-confirmed manual match). */
   isManualMatch: boolean;
   isStripePurchase: boolean;
+  displayName: string;
+  associatedAlumniId: number | null;
+  associatedName: string | null;
+  relationshipType: string | null;
+  isPotentialDonor: boolean;
+  // UWC invite prerequisites
+  uwcAffiliation: string | null;
+  eventName: string;
+  signupInviteSentAt: string | null;
+  canInvite: boolean;
 };
 
-export function AttendeeRowActions({
-  attendeeId,
-  initialNotes,
-  initialStarred,
-  initialFollowup,
-  alumniId,
-  stripeName,
-  stripeEmail,
-  matchReason,
-  isManualMatch,
-  isStripePurchase,
-}: Props) {
-  const [matchOpen, setMatchOpen] = useState(false);
+export function AttendeeRowActions(props: Props) {
+  const {
+    attendeeId,
+    initialNotes,
+    initialStarred,
+    initialFollowup,
+    alumniId,
+    stripeName,
+    stripeEmail,
+    stripeSessionId,
+    stripePaymentIntentId,
+    stripeCustomFields,
+    amountPaid,
+    paidAt,
+    refundStatus,
+    matchReason,
+    isManualMatch,
+    isStripePurchase,
+    displayName,
+    associatedAlumniId,
+    associatedName,
+    relationshipType,
+    isPotentialDonor,
+    uwcAffiliation,
+    eventName,
+    signupInviteSentAt,
+    canInvite,
+  } = props;
+
   const [starred, setStarred] = useState(initialStarred);
   const [followup, setFollowup] = useState(initialFollowup);
   const [notes, setNotes] = useState(initialNotes ?? "");
   const [editingNotes, setEditingNotes] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [matchOpen, setMatchOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [stripeOpen, setStripeOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [, startTransition] = useTransition();
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -131,45 +169,38 @@ export function AttendeeRowActions({
           </svg>
         </button>
         {menuOpen && (
-          <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-[color:var(--rule)] rounded-[8px] shadow-lg py-1 text-sm z-10">
-            <button
-              type="button"
-              onClick={() => {
-                setEditingNotes(true);
-                setMenuOpen(false);
-              }}
-              className="block w-full text-left px-3 py-2 hover:bg-ivory-2"
-            >
+          <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-[color:var(--rule)] rounded-[8px] shadow-lg py-1 text-sm z-10">
+            <MenuItem onClick={() => { setEditingNotes(true); setMenuOpen(false); }}>
               {notes ? "Edit notes" : "Add notes"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMatchOpen(true);
-                setMenuOpen(false);
-              }}
-              className="block w-full text-left px-3 py-2 hover:bg-ivory-2"
-            >
-              {alumniId ? "Change match" : "Pick match"}
-            </button>
+            </MenuItem>
+            <MenuItem onClick={() => { setLinkOpen(true); setMenuOpen(false); }}>
+              {associatedAlumniId ? "Edit association" : "Link to alumni"}
+            </MenuItem>
+            {canInvite && (
+              <MenuItem onClick={() => { setInviteOpen(true); setMenuOpen(false); }}>
+                {signupInviteSentAt ? "Resend invite" : "Invite to signup"}
+              </MenuItem>
+            )}
             {isStripePurchase && (
-              <button
-                type="button"
+              <MenuItem onClick={() => { setStripeOpen(true); setMenuOpen(false); }}>
+                View Stripe details
+              </MenuItem>
+            )}
+            <MenuItem onClick={() => { setMatchOpen(true); setMenuOpen(false); }}>
+              {alumniId ? "Change match" : "Pick match"}
+            </MenuItem>
+            {isStripePurchase && (
+              <MenuItem
                 onClick={rematch}
                 disabled={isManualMatch}
                 title={isManualMatch ? "Admin-confirmed match — clear it to rematch" : undefined}
-                className="block w-full text-left px-3 py-2 hover:bg-ivory-2 disabled:text-[color:var(--muted)] disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
                 Rematch
-              </button>
+              </MenuItem>
             )}
-            <button
-              type="button"
-              onClick={removeFromEvent}
-              className="block w-full text-left px-3 py-2 hover:bg-ivory-2 text-red-700"
-            >
+            <MenuItem onClick={removeFromEvent} danger>
               Remove from event
-            </button>
+            </MenuItem>
           </div>
         )}
       </div>
@@ -182,6 +213,42 @@ export function AttendeeRowActions({
           stripeEmail={stripeEmail}
           matchReason={matchReason}
           onClose={() => setMatchOpen(false)}
+        />
+      )}
+
+      {linkOpen && (
+        <LinkToAlumniModal
+          attendeeId={attendeeId}
+          displayName={displayName}
+          initialAssociatedAlumniId={associatedAlumniId}
+          initialAssociatedName={associatedName}
+          initialRelationshipType={relationshipType}
+          initialIsPotentialDonor={isPotentialDonor}
+          onClose={() => setLinkOpen(false)}
+        />
+      )}
+
+      {stripeOpen && (
+        <StripeDetailsModal
+          sessionId={stripeSessionId}
+          paymentIntentId={stripePaymentIntentId}
+          amountPaid={amountPaid}
+          paidAt={paidAt}
+          refundStatus={refundStatus}
+          customFields={stripeCustomFields}
+          onClose={() => setStripeOpen(false)}
+        />
+      )}
+
+      {inviteOpen && canInvite && (
+        <SignupInviteModal
+          attendeeId={attendeeId}
+          to={stripeEmail ?? ""}
+          firstName={firstNameFromDisplay(displayName)}
+          eventName={eventName}
+          uwcAffiliation={uwcAffiliation}
+          alreadySentAt={signupInviteSentAt}
+          onClose={() => setInviteOpen(false)}
         />
       )}
 
@@ -221,4 +288,37 @@ export function AttendeeRowActions({
       )}
     </div>
   );
+}
+
+function MenuItem({
+  onClick,
+  disabled,
+  danger,
+  title,
+  children,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`block w-full text-left px-3 py-2 hover:bg-ivory-2 disabled:text-[color:var(--muted)] disabled:cursor-not-allowed disabled:hover:bg-transparent ${
+        danger ? "text-red-700" : ""
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function firstNameFromDisplay(name: string): string | null {
+  const first = name.trim().split(/\s+/)[0];
+  return first || null;
 }

@@ -4,6 +4,7 @@ import { getEventBySlug, listAttendeesForEvent, type AttendeeRecord } from "@/li
 import { SyncStripeButton } from "@/components/admin/SyncStripeButton";
 import { AttendeeRowActions } from "@/components/admin/AttendeeRowActions";
 import { AddSpecialGuestButton } from "@/components/admin/AddSpecialGuestButton";
+import { relationshipLabel } from "@/components/admin/LinkToAlumniModal";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -157,7 +158,7 @@ export default async function AttendeesPage({
       ) : (
         <ul className="space-y-2">
           {visible.map((a) => (
-            <AttendeeRow key={a.id} a={a} basePrice={basePrice} />
+            <AttendeeRow key={a.id} a={a} basePrice={basePrice} eventName={event.name} />
           ))}
         </ul>
       )}
@@ -165,7 +166,36 @@ export default async function AttendeesPage({
   );
 }
 
-function AttendeeRow({ a, basePrice }: { a: AttendeeRecord; basePrice: number | null }) {
+// Extract the UWC custom field value (if any) for the UWC-NOT-IN-DB badge.
+function extractUwcField(raw: unknown): string | null {
+  if (!Array.isArray(raw)) return null;
+  for (const f of raw) {
+    if (!f || typeof f !== "object") continue;
+    const obj = f as {
+      key?: string;
+      label?: { custom?: string | null } | null;
+      text?: { value?: string | null } | null;
+      dropdown?: { value?: string | null } | null;
+      numeric?: { value?: string | null } | null;
+    };
+    const key = (obj.key ?? "").toLowerCase();
+    const label = (obj.label?.custom ?? "").toLowerCase();
+    if (!key.includes("uwc") && !label.includes("uwc")) continue;
+    const value = obj.text?.value ?? obj.dropdown?.value ?? obj.numeric?.value ?? null;
+    if (value && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function AttendeeRow({
+  a,
+  basePrice,
+  eventName,
+}: {
+  a: AttendeeRecord;
+  basePrice: number | null;
+  eventName: string;
+}) {
   const displayName =
     [a.alumni_first_name, a.alumni_last_name].filter(Boolean).join(" ") ||
     a.stripe_customer_name ||
@@ -179,6 +209,11 @@ function AttendeeRow({ a, basePrice }: { a: AttendeeRecord; basePrice: number | 
   const showAlumniEmail = !!(alumniEmail && stripeEmail && alumniEmail !== stripeEmail);
   const photo = a.alumni_photo_url;
   const initial = (displayName[0] ?? "?").toUpperCase();
+
+  const uwcAffiliation = extractUwcField(a.stripe_custom_fields);
+  const showUwcNotInDbBadge = a.alumni_id == null && !!uwcAffiliation;
+  const associatedName =
+    [a.associated_first_name, a.associated_last_name].filter(Boolean).join(" ") || null;
 
   return (
     <li className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 flex gap-3 text-sm">
@@ -220,6 +255,14 @@ function AttendeeRow({ a, basePrice }: { a: AttendeeRecord; basePrice: number | 
           {a.is_starred && <span className="text-amber-500" aria-label="VIP">⭐</span>}
           {a.needs_followup && <span className="text-orange-600" aria-label="Follow-up">🚩</span>}
           <MatchBadge status={a.match_status} confidence={a.match_confidence} />
+          {showUwcNotInDbBadge && (
+            <span
+              title={`Stripe says: "${uwcAffiliation}"`}
+              className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 uppercase tracking-wider font-bold"
+            >
+              ⚠ UWC (not in DB)
+            </span>
+          )}
         </div>
         <div className="text-xs text-[color:var(--muted)] mt-0.5">
           {primaryEmail}
@@ -228,6 +271,35 @@ function AttendeeRow({ a, basePrice }: { a: AttendeeRecord; basePrice: number | 
         {showAlumniEmail && (
           <div className="text-xs text-amber-700 mt-0.5">
             Alumni record on file: <span className="font-semibold">{alumniEmail}</span>
+          </div>
+        )}
+        {showUwcNotInDbBadge && (
+          <div className="text-xs text-amber-700 mt-0.5">
+            Stripe says: <span className="italic">&ldquo;{uwcAffiliation}&rdquo;</span>
+            {a.signup_invite_sent_at && (
+              <>
+                {" · "}
+                <span className="text-[color:var(--muted)]">
+                  Invite sent{" "}
+                  {new Date(a.signup_invite_sent_at).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+              </>
+            )}
+          </div>
+        )}
+        {(associatedName || a.is_potential_donor) && (
+          <div className="text-xs text-indigo-800 mt-0.5">
+            {associatedName && (
+              <>
+                Associated with <span className="font-semibold">{associatedName}</span>
+                {a.relationship_type ? ` (${relationshipLabel(a.relationship_type)})` : ""}
+              </>
+            )}
+            {associatedName && a.is_potential_donor && " · "}
+            {a.is_potential_donor && <span className="font-semibold">Potential donor</span>}
           </div>
         )}
         <div className="text-xs text-[color:var(--muted)] mt-0.5">
@@ -254,9 +326,24 @@ function AttendeeRow({ a, basePrice }: { a: AttendeeRecord; basePrice: number | 
         alumniId={a.alumni_id}
         stripeName={a.stripe_customer_name}
         stripeEmail={a.stripe_customer_email}
+        stripeSessionId={a.stripe_session_id}
+        stripePaymentIntentId={a.stripe_payment_intent_id}
+        stripeCustomFields={a.stripe_custom_fields}
+        amountPaid={a.amount_paid}
+        paidAt={a.paid_at}
+        refundStatus={a.refund_status}
         matchReason={a.match_reason}
         isManualMatch={a.match_confidence === "manual"}
         isStripePurchase={a.attendee_type === "paid"}
+        displayName={displayName}
+        associatedAlumniId={a.associated_with_alumni_id}
+        associatedName={associatedName}
+        relationshipType={a.relationship_type}
+        isPotentialDonor={a.is_potential_donor}
+        uwcAffiliation={uwcAffiliation}
+        eventName={eventName}
+        signupInviteSentAt={a.signup_invite_sent_at}
+        canInvite={showUwcNotInDbBadge && !!stripeEmail}
       />
     </li>
   );

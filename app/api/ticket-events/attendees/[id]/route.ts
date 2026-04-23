@@ -13,7 +13,19 @@ type PatchBody = {
   alumni_id?: number | null;
   delete?: boolean;
   rematch?: boolean;
+  // Association ("here with this alum") — orthogonal to alumni_id.
+  associated_with_alumni_id?: number | null;
+  relationship_type?: string | null;
+  is_potential_donor?: boolean;
 };
+
+const ALLOWED_RELATIONSHIPS = new Set([
+  "spouse_partner",
+  "friend",
+  "colleague",
+  "family",
+  "other",
+]);
 
 async function revalidateForId(id: number) {
   const rows = (await sql`
@@ -61,6 +73,23 @@ export async function PATCH(
   }
   if (body.needs_followup !== undefined) {
     await sql`UPDATE event_attendees SET needs_followup = ${!!body.needs_followup}, updated_at = NOW() WHERE id = ${id}`;
+  }
+  if (body.associated_with_alumni_id !== undefined) {
+    const assoc = body.associated_with_alumni_id == null ? null : Number(body.associated_with_alumni_id);
+    if (assoc !== null && !Number.isFinite(assoc)) {
+      return NextResponse.json({ error: "Invalid associated_with_alumni_id" }, { status: 400 });
+    }
+    await sql`UPDATE event_attendees SET associated_with_alumni_id = ${assoc}, updated_at = NOW() WHERE id = ${id}`;
+  }
+  if (body.relationship_type !== undefined) {
+    const raw = body.relationship_type == null ? null : String(body.relationship_type).trim();
+    if (raw !== null && !ALLOWED_RELATIONSHIPS.has(raw)) {
+      return NextResponse.json({ error: "Invalid relationship_type" }, { status: 400 });
+    }
+    await sql`UPDATE event_attendees SET relationship_type = ${raw}, updated_at = NOW() WHERE id = ${id}`;
+  }
+  if (body.is_potential_donor !== undefined) {
+    await sql`UPDATE event_attendees SET is_potential_donor = ${!!body.is_potential_donor}, updated_at = NOW() WHERE id = ${id}`;
   }
   if (body.alumni_id !== undefined) {
     // Explicit match override — stamp as manual confidence.

@@ -22,9 +22,12 @@ export async function GET(
         r.stripe_customer_name ||
         "";
       const email = r.alumni_email ?? r.stripe_customer_email ?? "";
+      const associatedName =
+        [r.associated_first_name, r.associated_last_name].filter(Boolean).join(" ") || "";
       return {
         name,
         email,
+        stripe_email: r.stripe_customer_email ?? "",
         college: r.alumni_uwc_college ?? "",
         grad_year: r.alumni_grad_year ?? "",
         attendee_type: r.attendee_type,
@@ -33,6 +36,10 @@ export async function GET(
         refund_status: r.refund_status ?? "",
         match_status: r.match_status,
         match_confidence: r.match_confidence ?? "",
+        associated_with: associatedName,
+        relationship: r.relationship_type ?? "",
+        potential_donor: r.is_potential_donor ? "yes" : "",
+        signup_invite_sent_at: r.signup_invite_sent_at ?? "",
         notes: r.notes ?? "",
         starred: r.is_starred ? "yes" : "",
         followup: r.needs_followup ? "yes" : "",

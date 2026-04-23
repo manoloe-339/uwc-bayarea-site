@@ -30,6 +30,54 @@ function buildBody(params: {
   return `${sal}${name},\n\n${params.body}`;
 }
 
+/**
+ * Send a "join the alumni DB" invite to a ticket buyer who isn't yet an
+ * alum. Tracked in email_sends via event_attendee_id (not alumni_id) so
+ * the existing Resend webhook still updates opens/clicks on that row.
+ */
+export async function sendSignupInvite(params: {
+  attendeeId: number;
+  to: string;
+  subject: string;
+  body: string;
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  try {
+    const resend = getResend();
+    const html = renderEmailHtml(params.body, null);
+    const text = renderEmailText(params.body, null);
+    const result = await resend.emails.send({
+      from: fromAddress(),
+      to: params.to,
+      replyTo: replyToAddress(),
+      subject: params.subject,
+      html,
+      text,
+    });
+    if ("error" in result && result.error) {
+      return { ok: false, error: result.error.message ?? "send failed" };
+    }
+    const id = "data" in result && result.data ? result.data.id : "";
+    await sql`
+      INSERT INTO email_sends (
+        event_attendee_id, alumni_id, email, subject, body,
+        resend_message_id, status, sent_at, kind
+      ) VALUES (
+        ${params.attendeeId}, NULL, ${params.to},
+        ${params.subject}, ${params.body},
+        ${id || null}, 'sent', NOW(), 'signup_invite'
+      )
+    `;
+    await sql`
+      UPDATE event_attendees
+      SET signup_invite_sent_at = NOW(), updated_at = NOW()
+      WHERE id = ${params.attendeeId}
+    `;
+    return { ok: true, id };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "unknown" };
+  }
+}
+
 export async function sendTestEmail(params: {
   to: string;
   subject: string;
