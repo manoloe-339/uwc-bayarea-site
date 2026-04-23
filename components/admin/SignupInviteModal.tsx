@@ -26,6 +26,8 @@ ${SIGNUP_URL}
 
 Once you're in our system, you'll get updates about future events and can connect with other UWC alumni in the Bay Area.
 
+We also have a UWC Bay Area WhatsApp group — let me know if you'd like more info on joining.
+
 See you at the event!`;
 }
 
