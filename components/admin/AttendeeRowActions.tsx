@@ -13,6 +13,9 @@ type Props = {
   stripeName: string | null;
   stripeEmail: string | null;
   matchReason: string | null;
+  /** When true, Rematch is disabled (admin-confirmed manual match). */
+  isManualMatch: boolean;
+  isStripePurchase: boolean;
 };
 
 export function AttendeeRowActions({
@@ -24,6 +27,8 @@ export function AttendeeRowActions({
   stripeName,
   stripeEmail,
   matchReason,
+  isManualMatch,
+  isStripePurchase,
 }: Props) {
   const [matchOpen, setMatchOpen] = useState(false);
   const [starred, setStarred] = useState(initialStarred);
@@ -71,6 +76,20 @@ export function AttendeeRowActions({
     if (!confirm("Remove this person from the event? (Soft delete — won't reappear on next sync.)")) return;
     await patch({ delete: true });
     setMenuOpen(false);
+  };
+  const rematch = async () => {
+    const res = await fetch(`/api/ticket-events/attendees/${attendeeId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rematch: true }),
+    });
+    setMenuOpen(false);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      alert(body.error ?? "Rematch failed");
+      return;
+    }
+    startTransition(() => router.refresh());
   };
 
   return (
@@ -133,6 +152,17 @@ export function AttendeeRowActions({
             >
               {alumniId ? "Change match" : "Pick match"}
             </button>
+            {isStripePurchase && (
+              <button
+                type="button"
+                onClick={rematch}
+                disabled={isManualMatch}
+                title={isManualMatch ? "Admin-confirmed match — clear it to rematch" : undefined}
+                className="block w-full text-left px-3 py-2 hover:bg-ivory-2 disabled:text-[color:var(--muted)] disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              >
+                Rematch
+              </button>
+            )}
             <button
               type="button"
               onClick={removeFromEvent}

@@ -255,6 +255,8 @@ function AttendeeRow({ a, basePrice }: { a: AttendeeRecord; basePrice: number | 
         stripeName={a.stripe_customer_name}
         stripeEmail={a.stripe_customer_email}
         matchReason={a.match_reason}
+        isManualMatch={a.match_confidence === "manual"}
+        isStripePurchase={a.attendee_type === "paid"}
       />
     </li>
   );

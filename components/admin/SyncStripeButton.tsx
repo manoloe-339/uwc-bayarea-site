@@ -13,6 +13,7 @@ type SyncSummary = {
   needsReview: number;
   unmatched: number;
   skipped: number;
+  rematched: number;
   errors: string[];
 };
 
@@ -98,6 +99,9 @@ function SyncResultModal({ summary, onClose }: { summary: SyncSummary; onClose: 
           <Row label="New payments found" value={summary.created} accent={summary.created > 0} />
           <Row label="Updated" value={summary.updated} />
           {summary.refunded > 0 && <Row label="Refunded" value={summary.refunded} tone="red" />}
+          {summary.rematched > 0 && (
+            <Row label="Rematched (alumni DB changed)" value={summary.rematched} tone="green" />
+          )}
           <div className="pt-1 border-t border-[color:var(--rule)] mt-2" />
           <Row label="Auto-matched (high)" value={autoMatched} tone="green" />
           <Row

@@ -13,6 +13,10 @@ export type SyncSummary = {
   needsReview: number;
   unmatched: number;
   skipped: number;
+  /** Existing rows whose alumni_id / match_status changed on this sync
+   *  because the alumni DB has new rows that the matcher now finds.
+   *  Admin-overridden rows (match_confidence='manual') are preserved. */
+  rematched: number;
   errors: string[];
 };
 
@@ -39,6 +43,7 @@ export async function syncEventFromStripe(event: EventRow): Promise<SyncSummary>
     needsReview: 0,
     unmatched: 0,
     skipped: 0,
+    rematched: 0,
     errors: [],
   };
 
@@ -72,9 +77,13 @@ export async function syncEventFromStripe(event: EventRow): Promise<SyncSummary>
     );
   }
 
-  // Index existing rows once so the loop is O(1) per session.
+  // Index existing rows once so the loop is O(1) per session. We include
+  // match metadata so we can rematch any row the admin hasn't manually
+  // confirmed — this picks up alumni that were added to the DB after a
+  // ticket was purchased.
   const existingRows = (await sql`
-    SELECT id, stripe_session_id, amount_paid, refund_status, deleted_at
+    SELECT id, stripe_session_id, amount_paid, refund_status, deleted_at,
+           alumni_id, match_status, match_confidence
     FROM event_attendees
     WHERE event_id = ${event.id} AND stripe_session_id IS NOT NULL
   `) as {
@@ -83,6 +92,9 @@ export async function syncEventFromStripe(event: EventRow): Promise<SyncSummary>
     amount_paid: string;
     refund_status: string | null;
     deleted_at: Date | null;
+    alumni_id: number | null;
+    match_status: string;
+    match_confidence: string | null;
   }[];
   const bySession = new Map(existingRows.map((r) => [r.stripe_session_id, r]));
 
@@ -128,7 +140,6 @@ export async function syncEventFromStripe(event: EventRow): Promise<SyncSummary>
       const existing = bySession.get(session.id);
 
       if (existing) {
-        // Update refund / amount if they've moved. Don't touch match metadata.
         if (existing.deleted_at) {
           summary.skipped++;
           continue;
@@ -145,6 +156,34 @@ export async function syncEventFromStripe(event: EventRow): Promise<SyncSummary>
           `;
           summary.updated++;
           if (refundStatus) summary.refunded++;
+        }
+
+        // Rematch any row the admin hasn't confirmed manually. If the
+        // matcher now resolves to a different alumni or to a matched
+        // state it didn't reach last time, update the row.
+        if (existing.match_confidence !== "manual") {
+          const email =
+            session.customer_details?.email ?? session.customer_email ?? null;
+          const name = session.customer_details?.name ?? null;
+          const uwcCollege = extractUwcField(session.custom_fields ?? []);
+          const match = await matchAlumniForAttendee({ email, name, uwcCollege });
+          const changed =
+            match.alumniId !== existing.alumni_id ||
+            match.matchStatus !== existing.match_status ||
+            (match.matchConfidence ?? null) !== (existing.match_confidence ?? null);
+          if (changed) {
+            await sql`
+              UPDATE event_attendees
+              SET alumni_id = ${match.alumniId},
+                  match_status = ${match.matchStatus},
+                  match_confidence = ${match.matchConfidence},
+                  match_reason = ${match.matchReason},
+                  matched_at = ${match.alumniId ? new Date().toISOString() : null},
+                  updated_at = NOW()
+              WHERE id = ${existing.id}
+            `;
+            summary.rematched++;
+          }
         }
         continue;
       }
@@ -236,6 +275,62 @@ function extractUwcField(fields: CustomField[]): string | null {
     if (value && value.trim()) return value.trim();
   }
   return null;
+}
+
+/**
+ * Rematch a single attendee from their stored Stripe data — no Stripe
+ * API call needed. Skips rows the admin has manually overridden.
+ * Returns the resulting match status ("unchanged" when nothing moved).
+ */
+export async function rematchAttendee(
+  attendeeId: number
+): Promise<{ ok: true; changed: boolean; matchStatus: string } | { ok: false; error: string }> {
+  const rows = (await sql`
+    SELECT id, alumni_id, match_status, match_confidence,
+           stripe_customer_email, stripe_customer_name, stripe_custom_fields
+    FROM event_attendees
+    WHERE id = ${attendeeId}
+    LIMIT 1
+  `) as {
+    id: number;
+    alumni_id: number | null;
+    match_status: string;
+    match_confidence: string | null;
+    stripe_customer_email: string | null;
+    stripe_customer_name: string | null;
+    stripe_custom_fields: unknown;
+  }[];
+  const row = rows[0];
+  if (!row) return { ok: false, error: "Attendee not found" };
+  if (row.match_confidence === "manual") {
+    return { ok: false, error: "Row is manually matched — remove the manual match first" };
+  }
+
+  const customFields = Array.isArray(row.stripe_custom_fields)
+    ? (row.stripe_custom_fields as CustomField[])
+    : [];
+  const match = await matchAlumniForAttendee({
+    email: row.stripe_customer_email,
+    name: row.stripe_customer_name,
+    uwcCollege: extractUwcField(customFields),
+  });
+  const changed =
+    match.alumniId !== row.alumni_id ||
+    match.matchStatus !== row.match_status ||
+    (match.matchConfidence ?? null) !== (row.match_confidence ?? null);
+  if (changed) {
+    await sql`
+      UPDATE event_attendees
+      SET alumni_id = ${match.alumniId},
+          match_status = ${match.matchStatus},
+          match_confidence = ${match.matchConfidence},
+          match_reason = ${match.matchReason},
+          matched_at = ${match.alumniId ? new Date().toISOString() : null},
+          updated_at = NOW()
+      WHERE id = ${attendeeId}
+    `;
+  }
+  return { ok: true, changed, matchStatus: match.matchStatus };
 }
 
 function asPaymentIntent(pi: string | Stripe.PaymentIntent | null): Stripe.PaymentIntent | null {

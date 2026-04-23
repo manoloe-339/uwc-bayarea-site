@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
+import { rematchAttendee } from "@/lib/stripe-sync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ type PatchBody = {
   needs_followup?: boolean;
   alumni_id?: number | null;
   delete?: boolean;
+  rematch?: boolean;
 };
 
 async function revalidateForId(id: number) {
@@ -37,6 +39,15 @@ export async function PATCH(
     await sql`UPDATE event_attendees SET deleted_at = NOW(), updated_at = NOW() WHERE id = ${id}`;
     await revalidateForId(id);
     return NextResponse.json({ ok: true });
+  }
+
+  if (body.rematch === true) {
+    const result = await rematchAttendee(id);
+    await revalidateForId(id);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, changed: result.changed, matchStatus: result.matchStatus });
   }
 
   // Apply whichever fields were provided. Using separate COALESCE-style
