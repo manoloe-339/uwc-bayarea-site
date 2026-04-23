@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { AttendeeCard } from "./AttendeeCard";
+import { WalkinPanel } from "./WalkinPanel";
+
+// Camera-heavy component — only load when the QR tab opens, so no
+// getUserMedia init on the name-search flow.
+const QrScanPanel = dynamic(
+  () => import("./QrScanPanel").then((m) => m.QrScanPanel),
+  { ssr: false, loading: () => <div className="text-sm text-[color:var(--muted)] text-center py-6">Loading scanner…</div> }
+);
 
 type Event = {
   id: number;
@@ -447,23 +456,3 @@ function CelebrationOverlay({ name, college }: { name: string; college: string |
   );
 }
 
-// Placeholder components filled in by subsequent commits.
-function QrScanPanel({ token, onFound }: { token: string; onFound: (hit: Hit) => void }) {
-  void token;
-  void onFound;
-  return (
-    <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-8 text-center text-sm text-[color:var(--muted)]">
-      QR scanner — coming up in the next commit.
-    </div>
-  );
-}
-
-function WalkinPanel({ token, onDone }: { token: string; onDone: (hit: Hit) => void }) {
-  void token;
-  void onDone;
-  return (
-    <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-8 text-center text-sm text-[color:var(--muted)]">
-      Walk-in form — coming up in the next commit.
-    </div>
-  );
-}

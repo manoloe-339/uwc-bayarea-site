@@ -135,6 +135,12 @@ export default async function AttendeesPage({
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Link
+            href={`/admin/ticket-events/${slug}/live`}
+            className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
+          >
+            Live dashboard →
+          </Link>
+          <Link
             href={`/admin/ticket-events/${slug}/communications`}
             className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
           >

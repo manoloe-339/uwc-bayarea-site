@@ -1,0 +1,182 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { sql } from "@/lib/db";
+import { getEventBySlug } from "@/lib/events-db";
+import { getCheckinStats } from "@/lib/checkin-queries";
+import { LiveDashboardRefresher } from "@/components/admin/LiveDashboardRefresher";
+
+export const dynamic = "force-dynamic";
+export const maxDuration = 300;
+
+function fmtDateTime(s: string | null): string {
+  if (!s) return "—";
+  return new Date(s).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+export default async function LiveDashboardPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const event = await getEventBySlug(slug);
+  if (!event) notFound();
+  const stats = await getCheckinStats(event.id);
+
+  const noShows = (await sql`
+    SELECT
+      a.id, a.amount_paid,
+      COALESCE(
+        NULLIF(TRIM(CONCAT_WS(' ', al.first_name, al.last_name)), ''),
+        a.stripe_customer_name
+      ) AS display_name
+    FROM event_attendees a
+    LEFT JOIN alumni al ON al.id = a.alumni_id
+    WHERE a.event_id = ${event.id}
+      AND a.deleted_at IS NULL
+      AND a.attendee_type IN ('paid', 'comp')
+      AND a.checked_in = FALSE
+      AND (a.refund_status IS NULL OR a.refund_status = 'partially_refunded')
+    ORDER BY COALESCE(al.last_name, a.stripe_customer_name, '') ASC
+    LIMIT 100
+  `) as { id: number; amount_paid: string; display_name: string | null }[];
+
+  // Capacity = paid + comp rows (ticketed). Present = everyone checked in
+  // (including walk-ins). Over capacity when present > capacity.
+  const capacity = stats.totalRegistered;
+  const present = stats.checkedIn;
+  const overCapacity = present > capacity;
+  const percent = capacity === 0 ? 0 : Math.round((present / capacity) * 100);
+
+  return (
+    <div className="max-w-[1000px]">
+      <LiveDashboardRefresher />
+      <div className="mb-4 text-sm">
+        <Link
+          href={`/admin/ticket-events/${slug}/attendees`}
+          className="text-[color:var(--muted)] hover:text-navy"
+        >
+          ← {event.name}
+        </Link>
+      </div>
+      <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
+        <div>
+          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">
+            Live dashboard
+          </h1>
+          <p className="text-[color:var(--muted)] text-sm">
+            Auto-refreshes every 10 seconds. Refresh the page for manual update.
+          </p>
+        </div>
+        <Link
+          href={`/admin/ticket-events/${slug}/attendees`}
+          className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
+        >
+          ← Attendees
+        </Link>
+      </div>
+
+      <section className="bg-white border border-[color:var(--rule)] rounded-[12px] p-5 mb-6">
+        <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-2">
+          Attendance
+        </div>
+        <div className="text-3xl font-sans font-bold text-navy">
+          {present} / {capacity}
+          <span className="text-base text-[color:var(--muted)] font-normal ml-2">
+            ({percent}%)
+          </span>
+        </div>
+        <div className="mt-3 h-3 bg-ivory-2 rounded-full overflow-hidden">
+          <div
+            className={`h-full ${
+              overCapacity
+                ? "bg-red-600"
+                : percent >= 85
+                  ? "bg-amber-500"
+                  : "bg-green-600"
+            } transition-all`}
+            style={{ width: `${Math.min(100, percent)}%` }}
+          />
+        </div>
+        <div className="mt-3 text-sm text-[color:var(--muted)] flex gap-4 flex-wrap">
+          <span>
+            Walk-ins: <strong className="text-[color:var(--navy-ink)]">{stats.walkIns}</strong>
+          </span>
+          <span>
+            Last 5 min:{" "}
+            <strong className="text-[color:var(--navy-ink)]">{stats.last5MinCount}</strong> checked in
+          </span>
+        </div>
+        {overCapacity && (
+          <div className="mt-3 bg-red-50 border-l-4 border-red-600 rounded-r p-3 text-sm text-red-900">
+            <strong>⚠ Over capacity.</strong> {present - capacity} more present than
+            tickets issued. Notify catering.
+          </div>
+        )}
+      </section>
+
+      <section className="bg-white border border-[color:var(--rule)] rounded-[12px] p-5 mb-6">
+        <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-3">
+          Recent check-ins
+        </div>
+        {stats.recent.length === 0 ? (
+          <p className="text-sm text-[color:var(--muted)]">No check-ins yet.</p>
+        ) : (
+          <ul className="space-y-1.5 text-sm">
+            {stats.recent.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center justify-between gap-3"
+              >
+                <span className="truncate">
+                  ✓ <strong className="text-[color:var(--navy-ink)]">{r.display_name}</strong>
+                  {r.uwc_college && (
+                    <span className="text-[color:var(--muted)]">
+                      {" "}· {r.uwc_college}
+                      {r.grad_year ? ` '${String(r.grad_year).slice(-2)}` : ""}
+                    </span>
+                  )}
+                  {r.attendee_type === "walk-in" && (
+                    <span className="ml-1 text-[10px] text-indigo-700 uppercase tracking-wider font-bold">
+                      walk-in
+                    </span>
+                  )}
+                </span>
+                <span className="text-xs text-[color:var(--muted)] tabular-nums shrink-0">
+                  {fmtDateTime(r.checked_in_at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="bg-white border border-[color:var(--rule)] rounded-[12px] p-5">
+        <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-3">
+          Not yet checked in ({noShows.length})
+        </div>
+        {noShows.length === 0 ? (
+          <p className="text-sm text-[color:var(--muted)]">
+            Everyone&rsquo;s in. 🎉
+          </p>
+        ) : (
+          <ul className="space-y-1 text-sm">
+            {noShows.map((r) => (
+              <li key={r.id} className="flex items-baseline justify-between gap-3">
+                <span className="truncate text-[color:var(--navy-ink)]">
+                  {r.display_name ?? `#${r.id}`}
+                </span>
+                <span className="text-xs text-[color:var(--muted)] tabular-nums shrink-0">
+                  Paid ${Number(r.amount_paid || 0).toFixed(0)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
