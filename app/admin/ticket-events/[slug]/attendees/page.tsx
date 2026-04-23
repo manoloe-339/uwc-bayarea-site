@@ -20,10 +20,10 @@ function fmtDateTime(s: string | null): string {
   });
 }
 
-function fmtMoney(s: string | number | null): string {
+function fmtMoney(s: string | number | null, decimals = 2): string {
   const n = s == null ? 0 : Number(s);
   if (!Number.isFinite(n)) return "$0";
-  return `$${n.toFixed(0)}`;
+  return `$${n.toFixed(decimals)}`;
 }
 
 function filterForTab(tab: Tab, rows: AttendeeRecord[]): AttendeeRecord[] {
@@ -76,6 +76,11 @@ export default async function AttendeesPage({
   const matched = rows.filter((r) => r.alumni_id != null).length;
   const matchedPct = rows.length === 0 ? 0 : Math.round((matched / rows.length) * 100);
 
+  const paidRows = rows.filter((r) => r.attendee_type === "paid");
+  const totalRevenue = paidRows.reduce((sum, r) => sum + Number(r.amount_paid || 0), 0);
+  const avgTicket = paidRows.length > 0 ? totalRevenue / paidRows.length : 0;
+  const basePrice = event.ticket_price == null ? null : Number(event.ticket_price);
+
   return (
     <div className="max-w-[1100px]">
       <div className="mb-4 text-sm">
@@ -110,11 +115,16 @@ export default async function AttendeesPage({
       </div>
 
       {/* Stats */}
-      <section className="grid sm:grid-cols-4 gap-3 mb-6">
+      <section className="grid sm:grid-cols-4 gap-3 mb-3">
         <Stat label="Total registered" value={rows.length} />
         <Stat label="Paid" value={counts.paid} />
         <Stat label="Special guests" value={counts.comp} />
         <Stat label="Matched to alumni" value={`${matched} (${matchedPct}%)`} accent={matched < rows.length} />
+      </section>
+      <section className="grid sm:grid-cols-3 gap-3 mb-6">
+        <Stat label="Total revenue" value={fmtMoney(totalRevenue)} />
+        <Stat label="Average ticket" value={paidRows.length > 0 ? fmtMoney(avgTicket) : "—"} />
+        <Stat label="Base price (Stripe)" value={basePrice != null ? fmtMoney(basePrice) : "—"} />
       </section>
 
       {(counts.review > 0 || counts.unmatched > 0 || counts.followup > 0) && (
@@ -147,7 +157,7 @@ export default async function AttendeesPage({
       ) : (
         <ul className="space-y-2">
           {visible.map((a) => (
-            <AttendeeRow key={a.id} a={a} />
+            <AttendeeRow key={a.id} a={a} basePrice={basePrice} />
           ))}
         </ul>
       )}
@@ -155,7 +165,7 @@ export default async function AttendeesPage({
   );
 }
 
-function AttendeeRow({ a }: { a: AttendeeRecord }) {
+function AttendeeRow({ a, basePrice }: { a: AttendeeRecord; basePrice: number | null }) {
   const displayName =
     [a.alumni_first_name, a.alumni_last_name].filter(Boolean).join(" ") ||
     a.stripe_customer_name ||
@@ -211,8 +221,7 @@ function AttendeeRow({ a }: { a: AttendeeRecord }) {
           {a.alumni_uwc_college ? ` · ${a.alumni_uwc_college}${a.alumni_grad_year ? ` '${String(a.alumni_grad_year).slice(-2)}` : ""}` : ""}
         </div>
         <div className="text-xs text-[color:var(--muted)] mt-0.5">
-          {a.attendee_type === "paid" ? `Paid ${fmtMoney(a.amount_paid)}` : "Special guest"}
-          {a.paid_at ? ` · ${fmtDateTime(a.paid_at)}` : ""}
+          {a.paid_at ? fmtDateTime(a.paid_at) : "—"}
           {a.match_reason ? ` · ${a.match_reason}` : ""}
         </div>
         {a.notes && (
@@ -221,6 +230,12 @@ function AttendeeRow({ a }: { a: AttendeeRecord }) {
           </div>
         )}
       </div>
+      <PaidAmount
+        amount={Number(a.amount_paid || 0)}
+        attendeeType={a.attendee_type}
+        refundStatus={a.refund_status}
+        basePrice={basePrice}
+      />
       <AttendeeRowActions
         attendeeId={a.id}
         initialNotes={a.notes}
@@ -232,6 +247,51 @@ function AttendeeRow({ a }: { a: AttendeeRecord }) {
         matchReason={a.match_reason}
       />
     </li>
+  );
+}
+
+function PaidAmount({
+  amount,
+  attendeeType,
+  refundStatus,
+  basePrice,
+}: {
+  amount: number;
+  attendeeType: AttendeeRecord["attendee_type"];
+  refundStatus: string | null;
+  basePrice: number | null;
+}) {
+  if (attendeeType === "comp") {
+    return (
+      <div className="shrink-0 text-right">
+        <div className="text-sm font-sans font-bold text-indigo-800">Comp</div>
+        <div className="text-[10px] text-[color:var(--muted)]">$0</div>
+      </div>
+    );
+  }
+  const label = refundStatus === "refunded"
+    ? null
+    : basePrice != null && basePrice > 0 && Math.abs(amount - basePrice) > 0.005
+      ? amount > basePrice
+        ? `+${fmtMoney(amount - basePrice)} donation`
+        : `${fmtMoney(amount - basePrice)} off`
+      : null;
+  const tone = refundStatus === "refunded"
+    ? "text-red-700 line-through"
+    : amount > (basePrice ?? 0)
+      ? "text-emerald-700"
+      : "text-navy";
+  return (
+    <div className="shrink-0 text-right min-w-[80px]">
+      <div className={`text-base font-sans font-bold tabular-nums ${tone}`}>
+        {fmtMoney(amount)}
+      </div>
+      {label && (
+        <div className={`text-[10px] font-semibold ${amount > (basePrice ?? 0) ? "text-emerald-700" : "text-amber-700"}`}>
+          {label}
+        </div>
+      )}
+    </div>
   );
 }
 
