@@ -15,8 +15,16 @@ export async function runGenderClassifierAction(formData: FormData): Promise<voi
 
 export async function classifyOneGenderAction(alumniId: number): Promise<void> {
   const rows = (await sql`
-    SELECT first_name, last_name, origin, headline, linkedin_about FROM alumni WHERE id = ${alumniId}
-  `) as { first_name: string | null; last_name: string | null; origin: string | null; headline: string | null; linkedin_about: string | null }[];
+    SELECT first_name, last_name, origin, headline, linkedin_about, photo_url
+    FROM alumni WHERE id = ${alumniId}
+  `) as {
+    first_name: string | null;
+    last_name: string | null;
+    origin: string | null;
+    headline: string | null;
+    linkedin_about: string | null;
+    photo_url: string | null;
+  }[];
   const a = rows[0];
   if (!a) throw new Error("Not found");
   if (!a.first_name) throw new Error("No first name to classify");
@@ -26,6 +34,7 @@ export async function classifyOneGenderAction(alumniId: number): Promise<void> {
     origin: a.origin,
     headline: a.headline,
     linkedinAbout: a.linkedin_about,
+    photoUrl: a.photo_url,
   });
   if (!res.ok) throw new Error(res.error);
   await sql`

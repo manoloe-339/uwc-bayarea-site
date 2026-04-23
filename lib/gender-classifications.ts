@@ -8,6 +8,7 @@ export type GenderAlum = {
   origin: string | null;
   headline: string | null;
   linkedin_about: string | null;
+  photo_url: string | null;
   gender: string | null;
   gender_confidence: number | null;
   gender_source: string | null;
@@ -16,7 +17,7 @@ export type GenderAlum = {
 export async function listAlumniForGenderReview(): Promise<GenderAlum[]> {
   return (await sql`
     SELECT id, first_name, last_name, origin, headline, linkedin_about,
-           gender, gender_confidence, gender_source
+           photo_url, gender, gender_confidence, gender_source
     FROM alumni
     WHERE deceased IS NOT TRUE
     ORDER BY id
@@ -64,6 +65,7 @@ export async function classifyAllGenders(opts: {
             origin: a.origin,
             headline: a.headline,
             linkedinAbout: a.linkedin_about,
+            photoUrl: a.photo_url,
           };
           const res = await classifyGender(input);
           if (res.ok) {

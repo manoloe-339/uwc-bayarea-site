@@ -6,6 +6,9 @@ export type GenderInput = {
   origin?: string | null;
   headline?: string | null;
   linkedinAbout?: string | null;
+  /** Public URL of the alumnus's photo (if any). When present, Claude
+   * gets the image alongside the text context as an additional signal. */
+  photoUrl?: string | null;
 };
 
 export type GenderValue = "male" | "female" | "they" | "unknown";
@@ -37,19 +40,20 @@ Rules, in priority order:
    - "Nikita": male in Russia, female in the US/UK
    - "Kim": ambiguous (female in US, often male in Korea)
    - "Jordan", "Taylor", "Morgan", "Robin", "Casey" — commonly ambiguous
-3. "they" is ONLY for EXPLICITLY stated they/them pronouns. Do NOT use "they" as a safe default.
-4. Use "unknown" when you genuinely can't determine from the available data. Lowering confidence is better than guessing.
-5. Confidence guide:
-   - 0.95+ : obvious (explicit pronouns, or very common single-gender name in matching origin)
-   - 0.75-0.9 : strong signal but not explicit
-   - 0.5-0.75 : plausible but ambiguous
+3. If a photo is attached, use it as an ADDITIONAL signal — not a definitive one. Photos can be unreliable (lighting, stylization, group shots, trans/non-conforming presentations). Only use the photo to bump an ambiguous name+origin case from "unknown" to a best-guess with MODERATE confidence (≤0.8). Never override explicit pronouns with the photo.
+4. "they" is ONLY for EXPLICITLY stated they/them pronouns. Do NOT use "they" as a safe default.
+5. Use "unknown" when you genuinely can't determine from the available data — including when the photo is unclear. Lowering confidence is better than guessing.
+6. Confidence guide:
+   - 0.95+ : obvious (explicit pronouns, or very common single-gender name in matching origin, or clear name + confirming photo)
+   - 0.75-0.9 : strong signal but not explicit (name matches origin conventions clearly, or photo strongly confirms an ambiguous name)
+   - 0.5-0.75 : plausible but ambiguous (weak photo signal, or ambiguous name with some origin context)
    - <0.5 : prefer "unknown"
 
 Return ONLY JSON:
 { "gender": "male"|"female"|"they"|"unknown", "confidence": 0-1, "reasoning": "<=150 chars" }`;
 }
 
-function userMessage(c: GenderInput): string {
+function userText(c: GenderInput): string {
   const name = [c.firstName, c.lastName].filter(Boolean).join(" ");
   const fields = [
     `name: ${name}`,
@@ -75,12 +79,20 @@ export async function classifyGender(input: GenderInput): Promise<GenderResult> 
   }
   try {
     const client = new Anthropic({ apiKey });
+    const content: Anthropic.Messages.ContentBlockParam[] = [];
+    if (input.photoUrl) {
+      content.push({
+        type: "image",
+        source: { type: "url", url: input.photoUrl },
+      });
+    }
+    content.push({ type: "text", text: userText(input) });
     const resp = await client.messages.create({
       model: MODEL,
       max_tokens: 200,
       temperature: 0,
       system: systemPrompt(),
-      messages: [{ role: "user", content: userMessage(input) }],
+      messages: [{ role: "user", content }],
     });
     const text = resp.content
       .filter((b): b is Anthropic.Messages.TextBlock => b.type === "text")
