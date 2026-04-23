@@ -1,6 +1,8 @@
 import { sql } from "./db";
 import { getResend, fromAddress, replyToAddress } from "./resend";
-import { generateQRToken, renderQRDataUrl } from "./qr-code";
+import { generateQRToken } from "./qr-code";
+
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://uwcbayarea.org").replace(/\/+$/, "");
 
 export type ReminderEvent = {
   id: number;
@@ -64,7 +66,7 @@ function renderHtml(params: {
   eventTime: string | null;
   eventLocation: string | null;
   amountPaid: string;
-  qrDataUrl: string;
+  qrImageUrl: string;
 }): string {
   const whenLine = params.eventTime
     ? `${escapeHtml(params.eventDate)} at ${escapeHtml(params.eventTime)}`
@@ -83,7 +85,7 @@ function renderHtml(params: {
   <h2 style="color: #0A2540; font-size: 18px;">Your QR code for fast check-in</h2>
   <p>Show this QR code at the door for instant check-in:</p>
   <div style="text-align: center; margin: 24px 0;">
-    <img src="${params.qrDataUrl}" alt="Your QR code" width="300" height="300" style="width: 300px; height: 300px; display: inline-block;" />
+    <img src="${params.qrImageUrl}" alt="Your QR code" width="300" height="300" style="width: 300px; height: 300px; display: inline-block; border: 0;" />
   </div>
   <p style="text-align: center; color: #6B7280; font-size: 13px;">Can't scan? Just give your last name at check-in.</p>
   <p>Looking forward to seeing you.</p>
@@ -189,7 +191,7 @@ export async function sendReminderToAttendee(
   const to = recipientEmail(attendee);
   if (!to || !to.includes("@")) throw new Error("No recipient email");
 
-  const qrDataUrl = await renderQRDataUrl(attendee.qr_code_data);
+  const qrImageUrl = `${APP_URL}/api/qr/${encodeURIComponent(attendee.qr_code_data)}`;
   const subject = `Tomorrow: ${event.name} — Your QR code`;
   const html = renderHtml({
     recipientName: recipientName(attendee),
@@ -198,7 +200,7 @@ export async function sendReminderToAttendee(
     eventTime: event.time,
     eventLocation: event.location,
     amountPaid: attendee.amount_paid,
-    qrDataUrl,
+    qrImageUrl,
   });
   const text = renderText({
     recipientName: recipientName(attendee),
