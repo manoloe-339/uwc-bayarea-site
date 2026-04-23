@@ -1,5 +1,5 @@
 import { sql } from "./db";
-import { classifyGender, GENDER_CLASSIFIER_MODEL, type GenderInput } from "./gender-classifier";
+import { classifyGender, type GenderInput } from "./gender-classifier";
 
 export type GenderAlum = {
   id: number;
@@ -100,4 +100,3 @@ export async function setGenderManual(id: number, gender: string | null): Promis
   `;
 }
 
-export { GENDER_CLASSIFIER_MODEL };

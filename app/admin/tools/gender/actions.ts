@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { classifyAllGenders } from "@/lib/gender-classifications";
-import { classifyGender, GENDER_CLASSIFIER_MODEL } from "@/lib/gender-classifier";
+import { classifyGender } from "@/lib/gender-classifier";
 import { sql } from "@/lib/db";
 
 export async function runGenderClassifierAction(formData: FormData): Promise<void> {
@@ -53,5 +53,3 @@ export async function setGenderManualAction(alumniId: number, formData: FormData
   revalidatePath("/admin/alumni");
   revalidatePath(`/admin/alumni/${alumniId}`);
 }
-
-export { GENDER_CLASSIFIER_MODEL };
