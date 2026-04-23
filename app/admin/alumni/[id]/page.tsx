@@ -236,6 +236,18 @@ export default async function AlumnusPage({
     subject: string | null;
   }[];
 
+  const emailClicks = (await sql`
+    SELECT send_id, url, clicked_at FROM email_clicks
+    WHERE send_id = ANY(${emailHistory.map((h) => h.id)})
+    ORDER BY clicked_at ASC
+  `) as { send_id: string; url: string; clicked_at: string }[];
+  const clicksBySend = new Map<string, { url: string; clicked_at: string }[]>();
+  for (const c of emailClicks) {
+    const arr = clicksBySend.get(c.send_id) ?? [];
+    arr.push({ url: c.url, clicked_at: c.clicked_at });
+    clicksBySend.set(c.send_id, arr);
+  }
+
   const update = updateAlumnus.bind(null, numericId);
   const uploadPhoto = uploadAlumnusPhoto.bind(null, numericId);
 
@@ -587,6 +599,23 @@ export default async function AlumnusPage({
                   </td>
                   <td className="px-4 py-2 text-xs">
                     {h.clicked_at ? fmtDate(h.clicked_at) : "—"}
+                    {(clicksBySend.get(h.id) ?? []).length > 0 && (
+                      <ul className="mt-0.5 text-[10px] text-[color:var(--muted)] space-y-0.5">
+                        {(clicksBySend.get(h.id) ?? []).map((c, i) => (
+                          <li key={i} className="truncate max-w-[260px]">
+                            <a
+                              href={c.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="hover:underline"
+                              title={c.url}
+                            >
+                              {shortClickUrl(c.url)}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -596,6 +625,17 @@ export default async function AlumnusPage({
       )}
     </div>
   );
+}
+
+function shortClickUrl(u: string): string {
+  try {
+    const url = new URL(u);
+    const path = url.pathname === "/" ? "" : url.pathname;
+    const compact = `${url.hostname.replace(/^www\./, "")}${path}`;
+    return compact.length > 48 ? compact.slice(0, 45) + "…" : compact;
+  } catch {
+    return u.length > 48 ? u.slice(0, 45) + "…" : u;
+  }
 }
 
 function hasAnyLinkedInData(r: AlumRecord): boolean {

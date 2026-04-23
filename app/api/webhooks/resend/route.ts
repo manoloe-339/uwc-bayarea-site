@@ -16,6 +16,7 @@ const HANDLED_EVENTS = new Set([
 ]);
 
 type ResendBounce = { type?: string; message?: string; subType?: string };
+type ResendClick = { link?: string };
 type ResendEvent = {
   type: string;
   created_at?: string;
@@ -23,6 +24,7 @@ type ResendEvent = {
     email_id?: string;
     to?: string | string[];
     bounce?: ResendBounce;
+    click?: ResendClick;
   };
 };
 
@@ -88,6 +90,25 @@ export async function POST(req: NextRequest) {
     await sql`UPDATE email_sends SET opened_at = COALESCE(opened_at, ${when}) WHERE resend_message_id = ${messageId}`;
   } else if (event.type === "email.clicked") {
     await sql`UPDATE email_sends SET clicked_at = COALESCE(clicked_at, ${when}) WHERE resend_message_id = ${messageId}`;
+    // Also log the specific URL that was clicked so we can see which
+    // link the recipient engaged with (not just that they clicked
+    // something). Resend puts the URL in event.data.click.link.
+    const clickedUrl =
+      typeof event.data?.click?.link === "string" && event.data.click.link.trim()
+        ? event.data.click.link.trim()
+        : null;
+    if (clickedUrl) {
+      const sends = (await sql`
+        SELECT id FROM email_sends WHERE resend_message_id = ${messageId} LIMIT 1
+      `) as { id: string }[];
+      const sendId = sends[0]?.id;
+      if (sendId) {
+        await sql`
+          INSERT INTO email_clicks (send_id, url, clicked_at)
+          VALUES (${sendId}, ${clickedUrl}, ${when})
+        `;
+      }
+    }
   } else if (event.type === "email.bounced") {
     const bounce = event.data?.bounce;
     const type = (bounce?.type ?? "").toLowerCase();

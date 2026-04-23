@@ -47,6 +47,17 @@ type SendListRow = {
 const fmt = fmtDateTime;
 const fmtShort = fmtDateTimeShort;
 
+function shortUrl(u: string): string {
+  try {
+    const url = new URL(u);
+    const path = url.pathname === "/" ? "" : url.pathname;
+    const compact = `${url.hostname.replace(/^www\./, "")}${path}`;
+    return compact.length > 40 ? compact.slice(0, 37) + "…" : compact;
+  } catch {
+    return u.length > 40 ? u.slice(0, 37) + "…" : u;
+  }
+}
+
 export default async function CampaignDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const rows = (await sql`SELECT * FROM email_campaigns WHERE id = ${id}`) as CampaignRow[];
@@ -78,6 +89,20 @@ export default async function CampaignDetail({ params }: { params: Promise<{ id:
       s.sent_at DESC NULLS LAST,
       s.email
   `) as SendListRow[];
+
+  // Per-URL click log (populated by the Resend webhook). Multiple clicks
+  // per recipient possible — show them inline under their Clicked cell.
+  const clickRows = (await sql`
+    SELECT send_id, url, clicked_at FROM email_clicks
+    WHERE send_id = ANY(${sendList.map((s) => s.id)})
+    ORDER BY clicked_at ASC
+  `) as { send_id: string; url: string; clicked_at: string }[];
+  const clicksBySend = new Map<string, { url: string; clicked_at: string }[]>();
+  for (const c of clickRows) {
+    const arr = clicksBySend.get(c.send_id) ?? [];
+    arr.push({ url: c.url, clicked_at: c.clicked_at });
+    clicksBySend.set(c.send_id, arr);
+  }
 
   return (
     <div className="max-w-[1100px]">
@@ -186,7 +211,20 @@ export default async function CampaignDetail({ params }: { params: Promise<{ id:
                     </Td>
                     <Td>{fmtShort(r.sent_at)}</Td>
                     <Td>{fmtShort(r.opened_at)}</Td>
-                    <Td>{fmtShort(r.clicked_at)}</Td>
+                    <Td>
+                      {fmtShort(r.clicked_at)}
+                      {(clicksBySend.get(r.id) ?? []).length > 0 && (
+                        <ul className="mt-0.5 text-[10px] text-[color:var(--muted)] space-y-0.5">
+                          {(clicksBySend.get(r.id) ?? []).map((c, i) => (
+                            <li key={i} className="truncate max-w-[220px]">
+                              <a href={c.url} target="_blank" rel="noreferrer" className="hover:underline" title={c.url}>
+                                {shortUrl(c.url)}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </Td>
                     <Td>
                       {r.alumni_id != null && (
                         <a
