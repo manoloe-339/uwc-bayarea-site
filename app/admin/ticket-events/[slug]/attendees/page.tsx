@@ -9,7 +9,33 @@ import { relationshipLabel } from "@/lib/attendee-labels";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-type Tab = "all" | "paid" | "comp" | "review" | "starred" | "followup" | "unmatched";
+type Tab = "all" | "paid" | "comp" | "review" | "starred" | "followup" | "unmatched" | "uwc_not_in_db";
+
+// Extract the UWC custom field value (if any) for the UWC-NOT-IN-DB badge
+// and the matching filter tab.
+function extractUwcField(raw: unknown): string | null {
+  if (!Array.isArray(raw)) return null;
+  for (const f of raw) {
+    if (!f || typeof f !== "object") continue;
+    const obj = f as {
+      key?: string;
+      label?: { custom?: string | null } | null;
+      text?: { value?: string | null } | null;
+      dropdown?: { value?: string | null } | null;
+      numeric?: { value?: string | null } | null;
+    };
+    const key = (obj.key ?? "").toLowerCase();
+    const label = (obj.label?.custom ?? "").toLowerCase();
+    if (!key.includes("uwc") && !label.includes("uwc")) continue;
+    const value = obj.text?.value ?? obj.dropdown?.value ?? obj.numeric?.value ?? null;
+    if (value && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function isUwcNotInDb(r: AttendeeRecord): boolean {
+  return r.alumni_id == null && !!extractUwcField(r.stripe_custom_fields);
+}
 
 function fmtDateTime(s: string | null): string {
   if (!s) return "—";
@@ -41,6 +67,8 @@ function filterForTab(tab: Tab, rows: AttendeeRecord[]): AttendeeRecord[] {
       return rows.filter((r) => r.needs_followup);
     case "unmatched":
       return rows.filter((r) => r.match_status === "unmatched");
+    case "uwc_not_in_db":
+      return rows.filter(isUwcNotInDb);
     case "all":
     default:
       return rows;
@@ -60,7 +88,7 @@ export default async function AttendeesPage({
   if (!event) notFound();
   const rows = await listAttendeesForEvent(event.id);
 
-  const tab = (["all", "paid", "comp", "review", "starred", "followup", "unmatched"].includes(tabParam ?? "")
+  const tab = (["all", "paid", "comp", "review", "starred", "followup", "unmatched", "uwc_not_in_db"].includes(tabParam ?? "")
     ? tabParam
     : "all") as Tab;
   const visible = filterForTab(tab, rows);
@@ -73,6 +101,7 @@ export default async function AttendeesPage({
     starred: rows.filter((r) => r.is_starred).length,
     followup: rows.filter((r) => r.needs_followup).length,
     unmatched: rows.filter((r) => r.match_status === "unmatched").length,
+    uwc_not_in_db: rows.filter(isUwcNotInDb).length,
   };
   const matched = rows.filter((r) => r.alumni_id != null).length;
   const matchedPct = rows.length === 0 ? 0 : Math.round((matched / rows.length) * 100);
@@ -128,12 +157,13 @@ export default async function AttendeesPage({
         <Stat label="Base price (Stripe)" value={basePrice != null ? fmtMoney(basePrice) : "—"} />
       </section>
 
-      {(counts.review > 0 || counts.unmatched > 0 || counts.followup > 0) && (
+      {(counts.review > 0 || counts.unmatched > 0 || counts.followup > 0 || counts.uwc_not_in_db > 0) && (
         <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 mb-6 text-sm">
           <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-2">Needs attention</div>
           <ul className="flex flex-wrap gap-4 text-[color:var(--muted)]">
             {counts.review > 0 && <li>⚠ {counts.review} needs review</li>}
             {counts.unmatched > 0 && <li>✗ {counts.unmatched} unmatched</li>}
+            {counts.uwc_not_in_db > 0 && <li>⚠ {counts.uwc_not_in_db} UWC (not in DB)</li>}
             {counts.followup > 0 && <li>🚩 {counts.followup} follow-up</li>}
           </ul>
         </div>
@@ -146,6 +176,7 @@ export default async function AttendeesPage({
         <Tab href={`/admin/ticket-events/${slug}/attendees?tab=comp`} active={tab === "comp"} count={counts.comp}>Special guests</Tab>
         <Tab href={`/admin/ticket-events/${slug}/attendees?tab=review`} active={tab === "review"} count={counts.review}>Needs review</Tab>
         <Tab href={`/admin/ticket-events/${slug}/attendees?tab=unmatched`} active={tab === "unmatched"} count={counts.unmatched}>Unmatched</Tab>
+        <Tab href={`/admin/ticket-events/${slug}/attendees?tab=uwc_not_in_db`} active={tab === "uwc_not_in_db"} count={counts.uwc_not_in_db}>⚠ UWC (not in DB)</Tab>
         <Tab href={`/admin/ticket-events/${slug}/attendees?tab=starred`} active={tab === "starred"} count={counts.starred}>Starred</Tab>
         <Tab href={`/admin/ticket-events/${slug}/attendees?tab=followup`} active={tab === "followup"} count={counts.followup}>Follow-up</Tab>
       </div>
@@ -164,27 +195,6 @@ export default async function AttendeesPage({
       )}
     </div>
   );
-}
-
-// Extract the UWC custom field value (if any) for the UWC-NOT-IN-DB badge.
-function extractUwcField(raw: unknown): string | null {
-  if (!Array.isArray(raw)) return null;
-  for (const f of raw) {
-    if (!f || typeof f !== "object") continue;
-    const obj = f as {
-      key?: string;
-      label?: { custom?: string | null } | null;
-      text?: { value?: string | null } | null;
-      dropdown?: { value?: string | null } | null;
-      numeric?: { value?: string | null } | null;
-    };
-    const key = (obj.key ?? "").toLowerCase();
-    const label = (obj.label?.custom ?? "").toLowerCase();
-    if (!key.includes("uwc") && !label.includes("uwc")) continue;
-    const value = obj.text?.value ?? obj.dropdown?.value ?? obj.numeric?.value ?? null;
-    if (value && value.trim()) return value.trim();
-  }
-  return null;
 }
 
 function AttendeeRow({
