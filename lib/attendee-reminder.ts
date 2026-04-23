@@ -10,7 +10,39 @@ export type ReminderEvent = {
   date: Date;
   time: string | null;
   location: string | null;
+  reminder_subject?: string | null;
+  reminder_heading?: string | null;
+  reminder_body?: string | null;
 };
+
+/** Defaults used whenever events.reminder_* is NULL. */
+export const DEFAULT_REMINDER_SUBJECT = "Tomorrow: {event} — Your QR code";
+export const DEFAULT_REMINDER_HEADING = "See you tomorrow!";
+export const DEFAULT_REMINDER_BODY = "You're all set for {event} tomorrow.";
+
+export const REMINDER_PLACEHOLDERS = [
+  "{name}",
+  "{event}",
+  "{date}",
+  "{time}",
+  "{location}",
+  "{amount}",
+] as const;
+
+export type ReminderCopyVars = {
+  name: string;
+  event: string;
+  date: string;
+  time: string;
+  location: string;
+  amount: string;
+};
+
+export function interpolateReminder(template: string, vars: ReminderCopyVars): string {
+  return template.replace(/\{(name|event|date|time|location|amount)\}/g, (_, k: keyof ReminderCopyVars) =>
+    vars[k] ?? ""
+  );
+}
 
 export type ReminderAttendee = {
   id: number;
@@ -59,7 +91,20 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function renderHtml(params: {
+/** Split a multi-paragraph body into <p> blocks for HTML. */
+function bodyParagraphsHtml(text: string): string {
+  const paras = text
+    .split(/\n{2,}/g)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return paras
+    .map((p) => `<p>${escapeHtml(p).replace(/\n/g, "<br/>")}</p>`)
+    .join("\n  ");
+}
+
+export function renderReminderHtml(params: {
+  heading: string;
+  body: string;
   recipientName: string;
   eventName: string;
   eventDate: string;
@@ -74,9 +119,9 @@ function renderHtml(params: {
   return `<!DOCTYPE html>
 <html>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #0A2540;">
-  <h1 style="color: #0A2540; margin-bottom: 8px;">See you tomorrow!</h1>
+  <h1 style="color: #0A2540; margin-bottom: 8px;">${escapeHtml(params.heading)}</h1>
   <p>Hi ${escapeHtml(params.recipientName)},</p>
-  <p>You're all set for <strong>${escapeHtml(params.eventName)}</strong> tomorrow.</p>
+  ${bodyParagraphsHtml(params.body)}
   <div style="background: #F5F0E6; padding: 20px; border-radius: 8px; margin: 20px 0; line-height: 1.6;">
     <div><strong>When:</strong> ${whenLine}</div>
     ${params.eventLocation ? `<div><strong>Where:</strong> ${escapeHtml(params.eventLocation)}</div>` : ""}
@@ -96,9 +141,10 @@ function renderHtml(params: {
 </html>`;
 }
 
-function renderText(params: {
+export function renderReminderText(params: {
+  heading: string;
+  body: string;
   recipientName: string;
-  eventName: string;
   eventDate: string;
   eventTime: string | null;
   eventLocation: string | null;
@@ -107,9 +153,11 @@ function renderText(params: {
 }): string {
   const whenLine = params.eventTime ? `${params.eventDate} at ${params.eventTime}` : params.eventDate;
   return [
+    params.heading,
+    "",
     `Hi ${params.recipientName},`,
     "",
-    `You're all set for ${params.eventName} tomorrow.`,
+    params.body,
     "",
     `When: ${whenLine}`,
     params.eventLocation ? `Where: ${params.eventLocation}` : null,
@@ -192,20 +240,43 @@ export async function sendReminderToAttendee(
   if (!to || !to.includes("@")) throw new Error("No recipient email");
 
   const qrImageUrl = `${APP_URL}/api/qr/${encodeURIComponent(attendee.qr_code_data)}`;
-  const subject = `Tomorrow: ${event.name} — Your QR code`;
-  const html = renderHtml({
-    recipientName: recipientName(attendee),
+  const dateStr = formatDate(new Date(event.date));
+  const vars: ReminderCopyVars = {
+    name: recipientName(attendee),
+    event: event.name,
+    date: dateStr,
+    time: event.time ?? "",
+    location: event.location ?? "",
+    amount: `$${Number(attendee.amount_paid || 0).toFixed(2)}`,
+  };
+  const subject = interpolateReminder(
+    event.reminder_subject ?? DEFAULT_REMINDER_SUBJECT,
+    vars
+  );
+  const heading = interpolateReminder(
+    event.reminder_heading ?? DEFAULT_REMINDER_HEADING,
+    vars
+  );
+  const body = interpolateReminder(
+    event.reminder_body ?? DEFAULT_REMINDER_BODY,
+    vars
+  );
+  const html = renderReminderHtml({
+    heading,
+    body,
+    recipientName: vars.name,
     eventName: event.name,
-    eventDate: formatDate(new Date(event.date)),
+    eventDate: dateStr,
     eventTime: event.time,
     eventLocation: event.location,
     amountPaid: attendee.amount_paid,
     qrImageUrl,
   });
-  const text = renderText({
-    recipientName: recipientName(attendee),
-    eventName: event.name,
-    eventDate: formatDate(new Date(event.date)),
+  const text = renderReminderText({
+    heading,
+    body,
+    recipientName: vars.name,
+    eventDate: dateStr,
     eventTime: event.time,
     eventLocation: event.location,
     amountPaid: attendee.amount_paid,

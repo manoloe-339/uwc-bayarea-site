@@ -30,7 +30,9 @@ export async function POST(
       al.last_name  AS alumni_last_name,
       al.email      AS alumni_email,
       e.id AS e_id, e.name AS e_name, e.date AS e_date,
-      e.time AS e_time, e.location AS e_location, e.slug AS e_slug
+      e.time AS e_time, e.location AS e_location, e.slug AS e_slug,
+      e.reminder_subject AS e_subject, e.reminder_heading AS e_heading,
+      e.reminder_body AS e_body
     FROM event_attendees a
     JOIN events e ON e.id = a.event_id
     LEFT JOIN alumni al ON al.id = a.alumni_id
@@ -55,6 +57,9 @@ export async function POST(
     e_time: string | null;
     e_location: string | null;
     e_slug: string;
+    e_subject: string | null;
+    e_heading: string | null;
+    e_body: string | null;
   }[];
   const r = rows[0];
   if (!r) return NextResponse.json({ error: "Attendee not found" }, { status: 404 });
@@ -102,6 +107,9 @@ export async function POST(
     date: r.e_date,
     time: r.e_time,
     location: r.e_location,
+    reminder_subject: r.e_subject,
+    reminder_heading: r.e_heading,
+    reminder_body: r.e_body,
   };
 
   try {

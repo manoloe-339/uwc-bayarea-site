@@ -37,6 +37,9 @@ export async function POST(
       date: event.date,
       time: event.time,
       location: event.location,
+      reminder_subject: event.reminder_subject,
+      reminder_heading: event.reminder_heading,
+      reminder_body: event.reminder_body,
     },
     { onlyUnsent: !body.include_sent, concurrency: 5 }
   );

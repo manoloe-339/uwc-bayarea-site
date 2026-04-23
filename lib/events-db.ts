@@ -18,6 +18,9 @@ export type EventRecord = {
   checkin_token: string | null;
   checkin_pin: string | null;
   checkin_token_generated_at: string | null;
+  reminder_subject: string | null;
+  reminder_heading: string | null;
+  reminder_body: string | null;
   created_at: string;
   updated_at: string;
 };

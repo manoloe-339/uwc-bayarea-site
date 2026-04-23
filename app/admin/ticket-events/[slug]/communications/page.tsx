@@ -3,6 +3,12 @@ import { notFound } from "next/navigation";
 import { sql } from "@/lib/db";
 import { getEventBySlug, getCommunicationStats } from "@/lib/events-db";
 import { CommunicationsControls } from "@/components/admin/CommunicationsControls";
+import { ReminderCopyEditor } from "@/components/admin/ReminderCopyEditor";
+import {
+  DEFAULT_REMINDER_SUBJECT,
+  DEFAULT_REMINDER_HEADING,
+  DEFAULT_REMINDER_BODY,
+} from "@/lib/attendee-reminder";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -89,6 +95,31 @@ export default async function CommunicationsPage({
         />
         <Stat label="Last reminder sent" value={stats.lastSentAt ? fmtDateTime(stats.lastSentAt) : "Never"} />
       </section>
+
+      <ReminderCopyEditor
+        slug={slug}
+        initialSubject={event.reminder_subject}
+        initialHeading={event.reminder_heading}
+        initialBody={event.reminder_body}
+        defaults={{
+          subject: DEFAULT_REMINDER_SUBJECT,
+          heading: DEFAULT_REMINDER_HEADING,
+          body: DEFAULT_REMINDER_BODY,
+        }}
+        sampleVars={{
+          name: "Alex Doe",
+          event: event.name,
+          date: new Date(event.date).toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          }),
+          time: event.time ?? "",
+          location: event.location ?? "",
+          amount: `$${Number(event.ticket_price ?? 0).toFixed(2)}`,
+        }}
+      />
 
       <section className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 mb-6">
         <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-3">
