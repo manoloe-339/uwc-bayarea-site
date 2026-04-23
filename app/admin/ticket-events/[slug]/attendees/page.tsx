@@ -171,7 +171,12 @@ function AttendeeRow({ a, basePrice }: { a: AttendeeRecord; basePrice: number | 
     a.stripe_customer_name ||
     a.stripe_customer_email ||
     "Unknown";
-  const email = a.alumni_email ?? a.stripe_customer_email ?? "—";
+  const stripeEmail = a.stripe_customer_email?.trim().toLowerCase() || null;
+  const alumniEmail = a.alumni_email?.trim().toLowerCase() || null;
+  // Show the email the buyer paid with; surface the alumni record's email
+  // separately when they differ (that's what caused a name-only match).
+  const primaryEmail = stripeEmail ?? alumniEmail ?? "—";
+  const showAlumniEmail = !!(alumniEmail && stripeEmail && alumniEmail !== stripeEmail);
   const photo = a.alumni_photo_url;
   const initial = (displayName[0] ?? "?").toUpperCase();
 
@@ -217,9 +222,14 @@ function AttendeeRow({ a, basePrice }: { a: AttendeeRecord; basePrice: number | 
           <MatchBadge status={a.match_status} confidence={a.match_confidence} />
         </div>
         <div className="text-xs text-[color:var(--muted)] mt-0.5">
-          {email}
+          {primaryEmail}
           {a.alumni_uwc_college ? ` · ${a.alumni_uwc_college}${a.alumni_grad_year ? ` '${String(a.alumni_grad_year).slice(-2)}` : ""}` : ""}
         </div>
+        {showAlumniEmail && (
+          <div className="text-xs text-amber-700 mt-0.5">
+            Alumni record on file: <span className="font-semibold">{alumniEmail}</span>
+          </div>
+        )}
         <div className="text-xs text-[color:var(--muted)] mt-0.5">
           {a.paid_at ? fmtDateTime(a.paid_at) : "—"}
           {a.match_reason ? ` · ${a.match_reason}` : ""}
