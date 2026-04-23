@@ -12,3 +12,5 @@ alumni_export.json
 linkedin_results.json
 review_needed.json
 review_approved.json
+.tsc-tmp/
+alumni_missing_photos.csv
