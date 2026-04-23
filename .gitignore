@@ -14,3 +14,6 @@ review_needed.json
 review_approved.json
 .tsc-tmp/
 alumni_missing_photos.csv
+scripts/test-*.mjs
+scripts/test-*.ts
+scripts/_tmp*
