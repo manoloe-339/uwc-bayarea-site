@@ -102,6 +102,7 @@ export type AlumniRow = {
   linkedin_alternate_email: string | null;
   followup_reason: string | null;
   enriched_at: string | null;
+  deceased: boolean | null;
 };
 
 export function buildWhere(f: AlumniFilters): { where: string; params: unknown[] } {
@@ -163,6 +164,10 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
   if (!f.includeMovedOut) {
     parts.push(`(moved_out IS NOT TRUE)`);
   }
+  // Deceased alumni are permanently hidden from search and email sends.
+  // No toggle — detail page is still reachable by direct URL if unflag is
+  // ever needed.
+  parts.push(`(deceased IS NOT TRUE)`);
   if (f.subscription === "unsubscribed") {
     parts.push(`subscribed = FALSE`);
   } else if (f.subscription !== "any") {
@@ -320,7 +325,7 @@ export async function searchAlumni(f: AlumniFilters, limit = 500): Promise<Alumn
            current_company_industry, uwc_verified, total_experience_years,
            location_city, location_country, location_full,
            linkedin_about, linkedin_alternate_email,
-           followup_reason, enriched_at
+           followup_reason, enriched_at, deceased
     FROM alumni
     ${where}
     ORDER BY grad_year DESC NULLS LAST, last_name ASC NULLS LAST, first_name ASC NULLS LAST
@@ -347,9 +352,9 @@ export async function getAlumniByIds(ids: number[]): Promise<AlumniRow[]> {
             current_company_industry, uwc_verified, total_experience_years,
             location_city, location_country, location_full,
            linkedin_about, linkedin_alternate_email,
-           followup_reason, enriched_at
+           followup_reason, enriched_at, deceased
      FROM alumni
-     WHERE id = ANY($1) AND subscribed IS NOT FALSE
+     WHERE id = ANY($1) AND subscribed IS NOT FALSE AND deceased IS NOT TRUE
      ORDER BY last_name ASC NULLS LAST, first_name ASC NULLS LAST`,
     [ids]
   );

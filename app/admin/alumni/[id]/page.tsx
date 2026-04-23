@@ -40,6 +40,7 @@ type AlumRecord = {
   working: string | null;
   attended_event: boolean | null;
   moved_out: boolean | null;
+  deceased: boolean | null;
   subscribed: boolean | null;
   unsubscribed_at: string | null;
   unsubscribe_reason: string | null;
@@ -184,6 +185,7 @@ async function updateAlumnus(id: number, formData: FormData) {
       working            = ${get("working")},
       attended_event     = ${formData.get("attended_event") === "on"},
       moved_out          = ${formData.get("moved_out") === "on"},
+      deceased           = ${formData.get("deceased") === "on"},
       followup_reason    = ${followupReason},
       no_linkedin_confirmed = ${formData.get("no_linkedin_confirmed") === "on"},
       updated_at         = NOW()
@@ -473,6 +475,15 @@ export default async function AlumnusPage({
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="moved_out" defaultChecked={r.moved_out ?? false} />
               No longer in the Bay Area (hide from default search)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="deceased" defaultChecked={r.deceased ?? false} />
+              <span>
+                <span className="font-semibold">Deceased</span>
+                <span className="block text-xs text-[color:var(--muted)]">
+                  Hidden from default search and permanently excluded from email sends — even if added to an invite list.
+                </span>
+              </span>
             </label>
           </div>
         </Section>
