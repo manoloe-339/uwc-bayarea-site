@@ -93,6 +93,7 @@ export async function classifyCompany(
     const resp = await client.messages.create({
       model: MODEL,
       max_tokens: 400,
+      temperature: 0,
       system: systemPrompt(),
       messages: [{ role: "user", content: userMessage(c) }],
     });

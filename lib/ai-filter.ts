@@ -71,6 +71,7 @@ async function runOneBatch(
     const resp = await client.messages.create({
       model: MODEL,
       max_tokens: 3000,
+      temperature: 0,
       system: systemPrompt(),
       messages: [{ role: "user", content: userMessage(question, batch) }],
     });

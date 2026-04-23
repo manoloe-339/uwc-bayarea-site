@@ -49,25 +49,44 @@ export type SearchParseResult =
   | { ok: false; error: string };
 
 function ageRules(thisYear: number): string {
-  // Pre-compute several reference points so Claude doesn't have to reason
-  // arithmetically — it's unreliable at that. The math: UWC graduation age
-  // ≈ 18, so grad_year = today - age + 18 (a 30-year-old graduated UWC 12
-  // years ago, not 30 years ago).
+  // Pre-computed so Claude doesn't have to do arithmetic — it was
+  // intermittently dropping the +18 UWC graduation offset and landing
+  // 18 years too early. TWO tables: one for raw ages, one directly for
+  // the "older than N" phrasing (same values — belt-and-suspenders).
   const forAge = (a: number) => thisYear - a + 18;
-  return `- Age is in YEARS OLD; the database stores GRADUATION YEAR. UWC alumni graduate at ~18, so a 30-year-old graduated ~12 years ago (not 30). Use these EXACT mappings — do NOT re-derive arithmetically:
+  return `- Age is in YEARS OLD; the database stores GRADUATION YEAR. UWC alumni graduate at ~18, so a 30-year-old graduated ~12 years ago (NOT 30).
+
+- Age → grad_year lookup (use these EXACT values, never compute):
+  * age 22 → grad_year ${forAge(22)}
   * age 25 → grad_year ${forAge(25)}
+  * age 28 → grad_year ${forAge(28)}
   * age 30 → grad_year ${forAge(30)}
+  * age 33 → grad_year ${forAge(33)}
   * age 35 → grad_year ${forAge(35)}
+  * age 38 → grad_year ${forAge(38)}
   * age 40 → grad_year ${forAge(40)}
   * age 45 → grad_year ${forAge(45)}
   * age 50 → grad_year ${forAge(50)}
-- "older than N" / "over N" / "N+" → max_grad_year = the value from the table above for age N (or N+5 for safety)
-- "younger than N" / "under N" → min_grad_year = value for age N
-- "around N" / "about N years old" → min_grad_year = value(N+3), max_grad_year = value(N-3)
-- "senior alumni", "experienced", "older" without a number → max_grad_year 2010
-- "recent grads", "younger" without a number → min_grad_year 2018
-- COMMON MISTAKE: DO NOT compute grad_year as (today - age). That misses the +18 offset and lands 18 years too early. Always use the table.
-- Do NOT emit max_grad_year below 1990 — the database has no one older. Clip.
+  * age 55 → grad_year ${forAge(55)}
+
+- "older than N" / "over N" / "N+" / "above N" → emit max_grad_year = the grad_year for age N from the table above.
+  EXPLICIT EXAMPLES:
+  * "older than 30" / "30+" / "over 30" → max_grad_year ${forAge(30)}
+  * "older than 35" / "35+" → max_grad_year ${forAge(35)}
+  * "older than 40" / "40+" / "above 40" → max_grad_year ${forAge(40)}
+  * "older than 45" / "45+" → max_grad_year ${forAge(45)}
+
+- "younger than N" / "under N" / "below N" → emit min_grad_year = grad_year for age N.
+  * "under 30" → min_grad_year ${forAge(30)}
+  * "under 35" → min_grad_year ${forAge(35)}
+
+- "around N" / "about N years old" → min_grad_year = value for age (N+3), max_grad_year = value for age (N-3)
+
+- "senior alumni" / "experienced" / "older" (no number) → max_grad_year 2010
+- "recent grads" / "younger" (no number) → min_grad_year 2018
+
+- CRITICAL: The grad_year is ALWAYS within ~18 years of today, because alumni graduated UWC at 18. A 40-year-old today graduated in ${forAge(40)}, NOT in 1986 / 1984 / 1980. If you're about to emit max_grad_year less than 1990, STOP — you made the off-by-18 error. Clip to 1990 as a safety net.
+
 - Age filter and age diversity are MUTUALLY EXCLUSIVE — never both.`;
 }
 
@@ -336,6 +355,7 @@ export async function parseSearchQuery(query: string): Promise<SearchParseResult
     const resp = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 600,
+      temperature: 0,
       system: searchSystemPrompt(new Date().getFullYear()),
       messages: [{ role: "user", content: `Parse this search query: "${trimmed}"` }],
     });
@@ -369,6 +389,7 @@ export async function parseEventQuery(query: string): Promise<ParseResult> {
     const resp = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 800,
+      temperature: 0,
       system: eventSystemPrompt(new Date().getFullYear()),
       messages: [{ role: "user", content: `Parse this event description: "${trimmed}"` }],
     });
