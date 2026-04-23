@@ -13,6 +13,8 @@ export function SearchNLToggle({ on }: Props) {
   const handleChange = (next: boolean) => {
     // Preserve the typed query across a mode switch (but still clear
     // every other filter — that's the intended "fresh start" semantics).
+    // Deliberately DO NOT set `applied=1` — so toggling just flips mode
+    // and the NL search doesn't run until the user hits Apply filters.
     const qInput = document.querySelector<HTMLInputElement>('input[name="q"]');
     const q = qInput?.value.trim() ?? "";
     const params = new URLSearchParams();

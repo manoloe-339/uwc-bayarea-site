@@ -110,7 +110,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
   const showPhotos = pickStr(sp, "showPhotos") === "1";
   const aiFilter = pickStr(sp, "aiFilter") || null;
   const searchNL = pickStr(sp, "searchNL") === "1";
+  const applied = pickStr(sp, "applied") === "1";
   const eventMode = !searchNL && pickStr(sp, "eventMode") === "1";
+  // NL mode never runs until the user clicks Apply filters — toggling
+  // mode just flips the UI, search waits for explicit submission.
+  const nlReady = searchNL && applied && !!filters.q;
   const rankByEngagementWidget = pickStr(sp, "rankByEngagement") === "1";
   const rankByDiversityWidget = pickStr(sp, "rankByDiversity") === "1";
   const rankByRecencyWidget = pickStr(sp, "rankByRecency") === "1";
@@ -139,12 +143,12 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
   // parser extracts plus the options-section checkboxes (photo, etc.).
   let searchParsed: ParsedSearchQuery | null = null;
   let searchParseError: string | null = null;
-  if (searchNL && filters.q) {
-    const result = await parseSearchQuery(filters.q);
+  if (nlReady) {
+    const result = await parseSearchQuery(filters.q!);
     if (result.ok) searchParsed = result.parsed;
     else searchParseError = result.error;
   }
-  if (searchNL && searchParsed) {
+  if (nlReady && searchParsed) {
     const widgetSafe: AlumniFilters = {
       // Keep only options-section flags from the widgets; wipe every
       // structured filter so parser output is authoritative.
@@ -169,6 +173,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     if (searchParsed.origin) widgetSafe.origin = searchParsed.origin;
     if (searchParsed.companyTag) widgetSafe.companyTag = searchParsed.companyTag;
     if (searchParsed.sector) widgetSafe.sector = searchParsed.sector;
+    if (searchParsed.gender) widgetSafe.gender = searchParsed.gender;
     widgetSafe.q = searchParsed.keywords.length > 0 ? searchParsed.keywords.join(" ") : undefined;
     // Replace the filters object entirely.
     Object.assign(filters, {
@@ -229,7 +234,12 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
       ? ["origin", "school", "region", "company", "age"]
       : [];
 
-  const [rawRows, total] = await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
+  // NL mode without an applied query shouldn't run any search — skip
+  // the DB round-trip so the UI stays empty until Apply is clicked.
+  const nlWaiting = searchNL && !nlReady;
+  const [rawRows, total] = nlWaiting
+    ? [[] as Awaited<ReturnType<typeof searchAlumni>>, 0]
+    : await Promise.all([searchAlumni(filters, 500), countAlumni(filters)]);
 
   // Runtime AI filter: after SQL narrowing, ask Claude once whether each
   // unique company matches the user's free-text criterion. Used for
@@ -404,6 +414,18 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                 tone="diversity"
               />
             )}
+            {searchParsed.gender && (
+              <ParseChip
+                label={
+                  searchParsed.gender === "female"
+                    ? "Women"
+                    : searchParsed.gender === "male"
+                      ? "Men"
+                      : "They/them"
+                }
+                tone="diversity"
+              />
+            )}
             {searchParsed.keywords.length > 0 && <ParseChip label={`Keywords: ${searchParsed.keywords.join(", ")}`} />}
           </div>
         </div>
@@ -436,6 +458,9 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         formKey={JSON.stringify({ ...filters, eventMode, rankByEngagement, rankByDiversityWidget, rankByRecency, eventSize })}
         className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
+        {/* Marks this request as an explicit Apply (vs. a mode-toggle
+            navigation). NL mode only runs search when applied=1. */}
+        <input type="hidden" name="applied" value="1" />
         {/* Row 1 — full-width free-text search + inline NL toggle */}
         <label className="block sm:col-span-2 lg:col-span-4">
           <span className="flex items-center justify-between mb-1">
@@ -592,6 +617,18 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         </div>
       </FilterFormWithLoading>
 
+      {nlWaiting && (
+        <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-8 text-center">
+          <p className="font-sans font-semibold text-[color:var(--navy-ink)] mb-1">
+            Natural-language search
+          </p>
+          <p className="text-sm text-[color:var(--muted)]">
+            Describe who you&rsquo;re looking for above, then click <span className="font-semibold text-navy">Apply filters</span> to run the search.
+          </p>
+        </div>
+      )}
+
+      {!nlWaiting && <>
       <div className="flex items-center justify-between mb-3 text-sm">
         <p className="font-sans font-semibold text-[color:var(--navy-ink)]">
           {aiFilter && aiMatchedCount != null ? (
@@ -863,7 +900,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             return (
               <div
                 key={r.id}
-                className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 flex gap-3 text-sm"
+                className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 flex gap-3 text-sm overflow-hidden"
               >
                 <input
                   type="checkbox"
@@ -985,6 +1022,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           </ul>
         </section>
       )}
+      </>}
     </div>
   );
 }
@@ -1212,10 +1250,9 @@ function MetaLine({ pairs }: { pairs: [string, string | number | null | undefine
   const filled = pairs.filter(([, v]) => v !== null && v !== undefined && v !== "");
   if (filled.length === 0) return null;
   return (
-    <div className="text-xs text-[color:var(--muted)] leading-relaxed">
-      {filled.map(([label, value], i) => (
-        <span key={label}>
-          {i > 0 && <span className="mx-1.5 opacity-60">·</span>}
+    <div className="text-xs text-[color:var(--muted)] leading-relaxed flex flex-wrap gap-x-2 gap-y-0.5 break-words">
+      {filled.map(([label, value]) => (
+        <span key={label} className="inline-block min-w-0 break-words">
           <span className="uppercase tracking-wider text-[10px] mr-1">{label}:</span>
           <span className="text-[color:var(--navy-ink)]">{value}</span>
         </span>

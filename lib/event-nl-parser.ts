@@ -41,6 +41,7 @@ export type ParsedSearchQuery = {
   companyTag: "tech" | "non_tech" | "startup" | "not_startup" | null;
   /** Classification-backed sector (e.g. ai_research, fintech, biotech_research). */
   sector: string | null;
+  gender: "male" | "female" | "they" | null;
   keywords: string[];
 };
 
@@ -245,6 +246,7 @@ Schema (every field required; use null or [] when absent):
   "origin": <string or null — country the alumnus is from, e.g. "Brazil", "Singapore">,
   "company_tag": <"tech" | "non_tech" | "startup" | "not_startup" | null — semantic, classification-backed; prefer this over industry_groups/company_size_band when the user's intent is "tech" or "startup" semantically>,
   "sector": <null OR one of: "ai_research", "enterprise_saas", "consumer_tech", "developer_tools", "fintech", "biotech_research", "healthcare", "consulting", "academic", "government", "nonprofit", "finance", "media", "education", "energy", "industrial", "other" — use when user names a domain like "AI people", "fintech folks", "biotech", "developer tools">,
+  "gender": <"male" | "female" | "they" | null — only set when user explicitly filters on gender>,
   "keywords": [<substantive professional terms only — e.g. "product management", "climate tech", "UX design">]
 }
 
@@ -271,6 +273,10 @@ ${ageRules(thisYear)}
 - UWC school names → college (only set if user specifically mentions a UWC school)
 - Undergrad / grad school names like "Berkeley alumni", "went to Stanford", "MIT grads" → university
 - "from Brazil"/"Brazilian"/"Singapore origin" → origin
+- "women"/"female"/"she/her" → gender "female"
+- "men"/"male"/"he/him"/"guys" → gender "male" (but "people"/"folks"/"alumni" are gender-neutral — leave gender null)
+- "they/them"/"non-binary" → gender "they"
+- Do NOT set gender unless the user explicitly filters on it (phrases like "women in tech" yes; "tech people" no).
 - Keywords capture ONLY substantive professional terms (e.g. "product management", "impact investing"). Never emit as keywords: generic quantity words ("people", "alumni", "folks", "professionals", "leaders") or event-format words ("dinner", "meetup", "event", "networking").
 
 Do NOT invent filters unsupported by the input. When in doubt, leave null / empty.`;
@@ -316,6 +322,12 @@ function normalizeSearch(raw: unknown): SearchParseResult {
   const sector =
     typeof r.sector === "string" && validSectors.includes(r.sector) ? r.sector : null;
 
+  const validGenders: ParsedSearchQuery["gender"][] = ["male", "female", "they"];
+  const gender =
+    typeof r.gender === "string" && (validGenders as string[]).includes(r.gender)
+      ? (r.gender as ParsedSearchQuery["gender"])
+      : null;
+
   const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
   const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
 
@@ -334,6 +346,7 @@ function normalizeSearch(raw: unknown): SearchParseResult {
       origin: str(r.origin),
       companyTag,
       sector,
+      gender,
       keywords: Array.isArray(r.keywords)
         ? r.keywords.filter((k): k is string => typeof k === "string" && k.trim().length > 0)
         : [],

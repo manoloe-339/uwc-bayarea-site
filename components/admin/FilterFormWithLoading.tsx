@@ -49,10 +49,24 @@ export function FilterFormWithLoading({ children, className, formKey }: Props) {
         {children}
       </form>
       {pending && (
-        <div className="mb-5 p-3 bg-ivory-2 border-l-4 border-navy rounded-[2px] text-sm flex items-center gap-2">
-          <span className="inline-block w-3 h-3 border-2 border-navy border-t-transparent rounded-full animate-spin" aria-hidden />
-          <span className="font-semibold text-navy">Searching…</span>
-          <span className="text-[color:var(--muted)]">AI steps may take a few seconds.</span>
+        <div
+          role="alertdialog"
+          aria-live="assertive"
+          aria-label="Searching"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-[1px]"
+        >
+          <div className="bg-white rounded-[12px] shadow-xl px-7 py-6 flex items-center gap-4 max-w-[90vw]">
+            <span
+              className="inline-block w-6 h-6 border-[3px] border-navy border-t-transparent rounded-full animate-spin shrink-0"
+              aria-hidden
+            />
+            <div>
+              <div className="font-sans font-bold text-navy text-base">Searching…</div>
+              <div className="text-xs text-[color:var(--muted)] mt-0.5">
+                AI steps can take a few seconds.
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </>
