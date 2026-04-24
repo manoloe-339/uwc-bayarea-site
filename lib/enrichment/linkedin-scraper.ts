@@ -8,6 +8,11 @@
  * immediately (see photo-uploader.ts).
  */
 
+// Force Vercel's file tracer to bundle proxy-agent. apify-client uses it
+// via dynamic require() which @vercel/nft can't follow; without this
+// static import the serverless deployment omits node_modules/proxy-agent
+// entirely and throws "Cannot find module 'proxy-agent'" at first call.
+import "proxy-agent";
 import { ApifyClient } from "apify-client";
 import type { ApifyProfile } from "@/types/enrichment";
 import { ENRICHMENT_CONFIG, requireEnv } from "./constants";
