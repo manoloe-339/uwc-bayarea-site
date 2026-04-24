@@ -160,6 +160,9 @@ export default function SignupForm() {
               placeholder="e.g. 2015"
               required
               inputMode="numeric"
+              min={1962}
+              max={new Date().getFullYear() + 2}
+              step={1}
             />
           </Grid>
           <p className="mt-2 text-xs text-[color:var(--muted)]">
@@ -284,9 +287,11 @@ function Grid({ children }: { children: React.ReactNode }) {
 
 function Field({
   label, name, type = "text", required, full, placeholder, autoComplete, inputMode,
+  min, max, step,
 }: {
   label: string; name: string; type?: string; required?: boolean; full?: boolean;
   placeholder?: string; autoComplete?: string; inputMode?: "numeric" | "tel" | "email" | "text";
+  min?: number | string; max?: number | string; step?: number | string;
 }) {
   return (
     <label className={`block ${full ? "sm:col-span-2" : ""}`}>
@@ -300,6 +305,9 @@ function Field({
         placeholder={placeholder}
         autoComplete={autoComplete}
         inputMode={inputMode}
+        min={min}
+        max={max}
+        step={step}
         className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
       />
     </label>

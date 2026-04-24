@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { sql } from "@/lib/db";
 import { Redis } from "@upstash/redis";
 import { normalizeCollege, isPearson } from "@/lib/uwc-colleges";
@@ -145,20 +146,25 @@ export async function submitSignup(formData: FormData): Promise<void> {
   const wasNew = upserted[0].inserted;
 
   // Kick off LinkedIn auto-enrichment if we have enough to search on.
-  // Fire-and-forget — the signup response must not block on the
-  // Railway service (15–55s run time). Errors are logged but don't
-  // surface to the user; enrichment failure leaves the row intact.
+  // Uses Next 15's after() so the Railway call + polling continues to
+  // run after the redirect response is sent. Plain fire-and-forget
+  // (no await) inside a Server Action is fragile on Vercel — the
+  // worker can tear down before the floating promise resolves.
   if (firstName && lastName && (linkedinUrl || uwcCollege || company)) {
-    triggerEnrichment(alumniId, {
-      linkedin_url: linkedinUrl,
-      first_name: firstName,
-      last_name: lastName,
-      email,
-      uwc_college: uwcCollege,
-      grad_year: gradYear,
-      company,
-    }).catch((err) => {
-      console.error(`[signup] enrichment failed to start for ${alumniId}:`, err);
+    after(async () => {
+      try {
+        await triggerEnrichment(alumniId, {
+          linkedin_url: linkedinUrl,
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          uwc_college: uwcCollege,
+          grad_year: gradYear,
+          company,
+        });
+      } catch (err) {
+        console.error(`[signup] enrichment failed for ${alumniId}:`, err);
+      }
     });
   }
 
