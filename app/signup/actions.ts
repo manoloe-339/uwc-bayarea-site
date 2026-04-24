@@ -8,6 +8,7 @@ import { parseGradYear } from "@/lib/gradyear";
 import { cityToRegion } from "@/lib/region";
 import { sendTestEmail } from "@/lib/email-send";
 import { trackClick } from "@/lib/analytics";
+import { triggerEnrichment } from "@/lib/enrichment";
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL!,
@@ -142,6 +143,24 @@ export async function submitSignup(formData: FormData): Promise<void> {
 
   const alumniId = upserted[0].id;
   const wasNew = upserted[0].inserted;
+
+  // Kick off LinkedIn auto-enrichment if we have enough to search on.
+  // Fire-and-forget — the signup response must not block on the
+  // Railway service (15–55s run time). Errors are logged but don't
+  // surface to the user; enrichment failure leaves the row intact.
+  if (firstName && lastName && (linkedinUrl || uwcCollege || company)) {
+    triggerEnrichment(alumniId, {
+      linkedin_url: linkedinUrl,
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      uwc_college: uwcCollege,
+      grad_year: gradYear,
+      company,
+    }).catch((err) => {
+      console.error(`[signup] enrichment failed to start for ${alumniId}:`, err);
+    });
+  }
 
   // Fire analytics counter (uses the same helper our page beacons use).
   try {
