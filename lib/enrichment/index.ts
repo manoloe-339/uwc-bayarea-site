@@ -227,16 +227,21 @@ export async function triggerEnrichment(
     }
 
     // Scenario A (given URL) or Scenario B (Claude picked): scrape.
-    const profile = await scrapeLinkedinProfile(targetUrl);
-    if (!profile) {
+    const result = await scrapeLinkedinProfile(targetUrl);
+    if (!result.ok) {
       await markNeedsReview(
         neonId,
-        "Apify returned no profile data (private or no-such-profile)",
-        { attemptedUrl: targetUrl, ...candidateStash }
+        `Apify: ${result.reason} (run ${result.runId ?? "?"})`,
+        {
+          attemptedUrl: targetUrl,
+          apifyRunId: result.runId,
+          apifyLogTail: result.logTail,
+          ...candidateStash,
+        }
       );
       return;
     }
-    await applyProfile(neonId, profile);
+    await applyProfile(neonId, result.profile);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "unknown";
     await markFailed(neonId, msg);

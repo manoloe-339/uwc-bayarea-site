@@ -17,7 +17,11 @@ import { ApifyClient } from "apify-client";
 import type { ApifyProfile } from "@/types/enrichment";
 import { ENRICHMENT_CONFIG, requireEnv } from "./constants";
 
-export async function scrapeLinkedinProfile(url: string): Promise<ApifyProfile | null> {
+export type ScrapeResult =
+  | { ok: true; profile: ApifyProfile; runId: string }
+  | { ok: false; reason: string; runId: string | null; logTail: string | null };
+
+export async function scrapeLinkedinProfile(url: string): Promise<ScrapeResult> {
   const client = new ApifyClient({ token: requireEnv("APIFY_API_TOKEN") });
   const run = await client.actor(ENRICHMENT_CONFIG.APIFY_ACTOR_ID).call(
     { profileUrls: [url] },
@@ -27,9 +31,29 @@ export async function scrapeLinkedinProfile(url: string): Promise<ApifyProfile |
     }
   );
   if (!run.defaultDatasetId) {
-    throw new Error("Apify run did not return a defaultDatasetId");
+    return {
+      ok: false,
+      reason: "Apify run did not return a defaultDatasetId",
+      runId: run.id ?? null,
+      logTail: null,
+    };
   }
   const { items } = await client.dataset(run.defaultDatasetId).listItems();
   const first = (items as unknown as ApifyProfile[])[0];
-  return first ?? null;
+  if (!first) {
+    // Pull the last ~2KB of the run log so the admin can see WHY the
+    // actor returned nothing (LinkedIn CAPTCHA, login required, etc.)
+    // instead of the unhelpful "no profile data" string.
+    let logTail: string | null = null;
+    try {
+      const stream = await client.log(run.id).get();
+      if (typeof stream === "string") {
+        logTail = stream.slice(-2000);
+      }
+    } catch (err) {
+      console.error("[enrichment] could not fetch run log:", err);
+    }
+    return { ok: false, reason: "Apify returned zero profile items", runId: run.id, logTail };
+  }
+  return { ok: true, profile: first, runId: run.id };
 }
