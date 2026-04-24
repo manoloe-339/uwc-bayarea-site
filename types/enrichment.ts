@@ -60,3 +60,112 @@ export interface JobResponse {
   result?: EnrichmentResult;
   error?: string;
 }
+
+/* ------------------------------------------------------------------ */
+/* Apify Linkedin-Profile-Scraper response shape                      */
+/* ------------------------------------------------------------------ */
+
+export interface ApifyEducationEntry {
+  title?: string | null;
+  subtitle?: string | null;
+  description?: string | null;
+  companyId?: string | null;
+  companyLink1?: string | null;
+  period?: {
+    startedOn?: { year?: number | string | null } | number | string | null;
+    endedOn?: { year?: number | string | null } | number | string | null;
+  } | null;
+}
+
+export interface ApifyExperienceEntry {
+  title?: string | null;
+  subtitle?: string | null;
+  description?: string | null;
+  companyLink1?: string | null;
+  companyId?: string | null;
+  companyIndustry?: string | null;
+  companySize?: string | null;
+  companyWebsite?: string | null;
+  jobLocation?: string | null;
+  jobStartedOn?: string | null;
+  jobEndedOn?: string | null;
+  jobStillWorking?: boolean | null;
+  period?: {
+    startedOn?: string | { year?: number | string | null } | null;
+    endedOn?: string | { year?: number | string | null } | null;
+  } | null;
+}
+
+export interface ApifyVolunteerEntry {
+  organization?: string | null;
+  role?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  industry?: string | null;
+  period?: {
+    startedOn?: { year?: number | string | null } | number | string | null;
+    endedOn?: { year?: number | string | null } | number | string | null;
+  } | null;
+}
+
+export interface ApifyProfile {
+  linkedinUrl?: string | null;
+  publicIdentifier?: string | null;
+  fullName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  headline?: string | null;
+  about?: string | null;
+  addressWithCountry?: string | null;
+  addressWithoutCountry?: string | null;
+  addressCountryOnly?: string | null;
+  profilePic?: string | null;
+  profilePicHighQuality?: string | null;
+  jobTitle?: string | null;
+  companyName?: string | null;
+  companyLinkedin?: string | null;
+  companyIndustry?: string | null;
+  companySize?: string | null;
+  companyWebsite?: string | null;
+  jobLocation?: string | null;
+  jobStartedOn?: string | null;
+  jobStillWorking?: boolean | null;
+  educations?: ApifyEducationEntry[] | null;
+  experiences?: ApifyExperienceEntry[] | null;
+  volunteerAndAwards?: ApifyVolunteerEntry[] | null;
+  totalExperienceYears?: number | null;
+  firstRoleYear?: number | null;
+  email?: string | null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Candidate discovery (Scenario B)                                   */
+/* ------------------------------------------------------------------ */
+
+export type CandidateSource =
+  | "serper-quoted"
+  | "serper-uwc"
+  | "serper-location"
+  | "serper-broad"
+  | "serper-davis"
+  | "serper-quoted-post"
+  | "exa";
+
+export interface LinkedinCandidate {
+  url: string;
+  title: string;
+  text: string;
+  source: CandidateSource;
+}
+
+export interface BioSnippet {
+  url: string;
+  title: string;
+  text: string;
+}
+
+export interface MatchDecision {
+  chosen_url: string | null;
+  confidence: "high" | "medium" | "low" | "none";
+  reasoning: string;
+}

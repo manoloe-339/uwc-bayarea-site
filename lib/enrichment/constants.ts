@@ -1,28 +1,75 @@
 /**
- * Configuration knobs for the LinkedIn enrichment pipeline.
- * Tunables live here so the rest of the module reads cleanly.
+ * Tunables for the inline LinkedIn enrichment pipeline.
+ * Values that used to live on the Railway service now live here so
+ * every stage (search → match → scrape → transform) can be configured
+ * from one place.
  */
 
 export const ENRICHMENT_CONFIG = {
-  /** Railway Python service base URL, e.g. https://uwc-alumni-search-production.up.railway.app */
-  SERVICE_URL: process.env.LINKEDIN_ENRICHMENT_URL ?? "",
+  /** Apify actor that scrapes a LinkedIn profile URL. Community-maintained. */
+  APIFY_ACTOR_ID: "dev_fusion/Linkedin-Profile-Scraper",
+  APIFY_RUN_TIMEOUT_SECS: 600,
+  APIFY_MEMORY_MB: 1024,
 
-  /** Max number of GET /enrich/{job_id} attempts before giving up. */
-  MAX_POLL_ATTEMPTS: 20,
+  /** Claude Haiku — good enough for disambiguating LinkedIn candidates. */
+  CLAUDE_MODEL: "claude-haiku-4-5-20251001",
 
-  /** Wait between poll attempts. 20 × 5s = 100s — matches the
-   *  15–55s typical runtime + 45s headroom. */
-  POLL_INTERVAL_MS: 5_000,
-
-  /** Prefix used when uploading enriched photos to Vercel Blob. */
+  /** Where enriched photos get re-hosted. */
   PHOTO_STORAGE_PREFIX: "alumni-photos/",
+
+  /** Limits to cap wild Scenario-B fan-out cost. */
+  SERPER_RESULTS_PER_QUERY: 10,
+  EXA_RESULTS_PER_QUERY: 10,
+  MAX_CANDIDATES_TO_CLAUDE: 12,
 } as const;
 
-export function assertServiceUrl(): string {
-  if (!ENRICHMENT_CONFIG.SERVICE_URL) {
-    throw new Error(
-      "LINKEDIN_ENRICHMENT_URL is not set — add the Railway service URL to env"
-    );
-  }
-  return ENRICHMENT_CONFIG.SERVICE_URL;
+/**
+ * UWC school name variants used to build Serper / Exa queries.
+ * Deliberately omitting "USA" alone — too noisy as a bare search term.
+ * Ported verbatim from scripts/discover_missing_linkedin.py.
+ */
+export const UWC_SHORT_FORMS: Record<string, string> = {
+  "UWC Mostar": "Mostar",
+  "UWC Mahindra": "Mahindra",
+  "UWC Changshu China": "Changshu",
+  "UWC Adriatic": "Adriatic",
+  "UWC Dilijan": "Dilijan",
+  "UWC Maastricht": "Maastricht",
+  "UWC Robert Bosch": "Robert Bosch",
+  "Red Cross Nordic": "Red Cross Nordic",
+  "UWC Atlantic College": "Atlantic College",
+  "Atlantic College": "Atlantic College",
+  "Pearson College": "Pearson College",
+  "UWC Pearson College": "Pearson College",
+  "Li Po Chun": "Li Po Chun",
+  "UWC Li Po Chun": "Li Po Chun",
+  "Waterford Kamhlaba": "Waterford Kamhlaba",
+  "UWC Costa Rica": "Costa Rica",
+  "UWC ISAK Japan": "ISAK Japan",
+  "UWC East Africa": "East Africa",
+  "UWC South East Asia": "South East Asia",
+  "UWC Thailand": "Thailand",
+};
+
+export function schoolVariants(school: string | null | undefined): string[] {
+  if (!school) return [];
+  const exact = UWC_SHORT_FORMS[school.trim()];
+  const variants = new Set<string>();
+  variants.add(school.trim());
+  if (exact) variants.add(exact);
+  return [...variants];
+}
+
+/**
+ * Detects whether a blob of LinkedIn education text mentions a UWC.
+ * Same coverage as scripts/enrich_bay_area.py UWC_PATTERN.
+ */
+export const UWC_PATTERN =
+  /\b(uwc|united\s*world\s*college|muwci|li\s*po\s*chun|waterford|pearson\s*college|red\s*cross\s*nordic|adriatic|mahindra|atlantic\s*college|armand\s*hammer|mostar|changshu|dilijan|isak\s*japan|robert\s*bosch|maastricht|costa\s*rica|south\s*east\s*asia|davis\s*uwc)\b/i;
+
+/** Env var accessors with clear error messages. */
+export function requireEnv(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`${name} not set`);
+  return v;
 }
