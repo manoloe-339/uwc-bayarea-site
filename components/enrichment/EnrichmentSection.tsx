@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { EnrichmentStatus } from "@/types/enrichment";
 import { EnrichmentStatusBadge } from "./StatusBadge";
@@ -46,6 +46,15 @@ export function EnrichmentSection({
   const [showOverride, setShowOverride] = useState(false);
   const [, startTransition] = useTransition();
   const router = useRouter();
+
+  // While enrichment is pending, hammer router.refresh() every 5s so the
+  // status badge transitions live without the admin needing to reload.
+  useEffect(() => {
+    if (status !== "pending") return;
+    const tick = () => startTransition(() => router.refresh());
+    const id = setInterval(tick, 5000);
+    return () => clearInterval(id);
+  }, [status, router]);
 
   const reEnrich = async () => {
     if (!confirm("Re-run enrichment? Will overwrite scraped fields (your typed fields are preserved via COALESCE).")) return;

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { after } from "next/server";
 import { sql } from "@/lib/db";
 import { triggerEnrichment } from "@/lib/enrichment";
 
@@ -47,14 +48,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Alumni missing name" }, { status: 400 });
   }
 
-  await triggerEnrichment(alum.id, {
-    linkedin_url: url,
-    first_name: alum.first_name,
-    last_name: alum.last_name,
-    email: alum.email,
-    uwc_college: alum.uwc_college,
-    grad_year: alum.grad_year,
-    company: alum.current_company,
+  await sql`
+    UPDATE alumni SET
+      linkedin_enrichment_status = 'pending',
+      linkedin_enrichment_error  = NULL,
+      updated_at                 = NOW()
+    WHERE id = ${alum.id}
+  `;
+  // Snapshot for closure type narrowing.
+  const firstName = alum.first_name;
+  const lastName = alum.last_name;
+  after(async () => {
+    try {
+      await triggerEnrichment(alum.id, {
+        linkedin_url: url,
+        first_name: firstName,
+        last_name: lastName,
+        email: alum.email,
+        uwc_college: alum.uwc_college,
+        grad_year: alum.grad_year,
+        company: alum.current_company,
+      });
+    } catch (err) {
+      console.error(`[enrichment approve] background failed for ${alum.id}:`, err);
+    }
   });
   return NextResponse.json({ success: true, alumni_id: alum.id, linkedin_url: url });
 }
