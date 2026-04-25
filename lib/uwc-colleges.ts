@@ -8,29 +8,47 @@ export type College = {
   short: string;
   country: string;
   aliases: readonly string[];
+  /** First year alumni could have graduated (or attended) under the UWC banner. */
+  firstYear: number;
+  /** Last graduation year for closed schools. Omit for currently-operating ones. */
+  lastYear?: number;
 };
 
 export const COLLEGES: readonly College[] = [
-  { canonical: "UWC Atlantic",          short: "Atlantic",         country: "Wales, UK",               aliases: ["atlantic", "uwc atlantic", "atlantic college", "ac", "uwc ac", "uwcac", "awc", "uwca"] },
-  { canonical: "UWC Pearson College",   short: "Pearson",          country: "Canada",                  aliases: ["pearson", "uwc pearson", "pearson college", "pcuwc", "pc uwc", "lbpuwc", "lbp", "college of the pacific", "lester b pearson"] },
-  { canonical: "UWC USA",               short: "USA",              country: "USA",                     aliases: ["uwc usa", "uwc-usa", "uwcusa", "armand hammer", "new mexico", "montezuma", "usa", "american west"] },
-  { canonical: "UWC Adriatic",          short: "Adriatic",         country: "Italy",                   aliases: ["adriatic", "uwc adriatic", "duino", "ad", "uwc ad", "uwcad"] },
-  { canonical: "UWC Red Cross Nordic",  short: "Red Cross Nordic", country: "Norway",                  aliases: ["red cross nordic", "rcn", "uwc rcn", "rcnuwc", "nordic", "flekke"] },
-  { canonical: "UWC Mahindra",          short: "Mahindra",         country: "India",                   aliases: ["mahindra", "uwc mahindra", "muwci", "pune", "uwc india", "uwc in india"] },
-  { canonical: "UWC Costa Rica",        short: "Costa Rica",       country: "Costa Rica",              aliases: ["costa rica", "uwc costa rica", "uwccr", "uwc cr"] },
-  { canonical: "UWC Waterford Kamhlaba", short: "Waterford",       country: "Eswatini",                aliases: ["waterford", "uwc waterford", "kamhlaba", "waterford kamhlaba", "swaziland", "eswatini"] },
-  { canonical: "UWC Mostar",            short: "Mostar",           country: "Bosnia and Herzegovina",  aliases: ["mostar", "uwc mostar", "uwcim", "bosnia"] },
-  { canonical: "UWC Li Po Chun",        short: "Li Po Chun",       country: "Hong Kong",               aliases: ["li po chun", "uwc li po chun", "lpc", "lpcuwc", "hong kong"] },
-  { canonical: "UWC Robert Bosch",      short: "Robert Bosch",     country: "Germany",                 aliases: ["robert bosch", "uwc robert bosch", "rbc", "uwc rbc", "uwcrbc", "freiburg"] },
-  { canonical: "UWC Dilijan",           short: "Dilijan",          country: "Armenia",                 aliases: ["dilijan", "uwc dilijan", "armenia"] },
-  { canonical: "UWC Maastricht",        short: "Maastricht",       country: "Netherlands",             aliases: ["maastricht", "uwc maastricht", "uwcm", "uwcmaastricht", "netherlands"] },
-  { canonical: "UWC Changshu China",    short: "Changshu",         country: "China",                   aliases: ["changshu", "uwc changshu", "uwc china"] },
-  { canonical: "UWC Thailand",          short: "Thailand",         country: "Thailand",                aliases: ["uwc thailand", "uwct", "phuket"] },
-  { canonical: "UWC ISAK Japan",        short: "ISAK Japan",       country: "Japan",                   aliases: ["isak", "uwc isak", "uwc japan", "karuizawa"] },
-  { canonical: "UWC South East Asia",   short: "UWCSEA",           country: "Singapore",               aliases: ["south east asia", "uwcsea", "uwc sea", "uwc south east asia", "sea", "dover", "east campus", "southeast asia", "uwc singapore", "singapore"] },
-  { canonical: "UWC East Africa",       short: "East Africa",      country: "Tanzania",                aliases: ["east africa", "uwc east africa", "uwcea", "tanzania", "moshi", "arusha"] },
-  { canonical: "UWC Simón Bolívar",     short: "Simón Bolívar",    country: "Venezuela (closed)",      aliases: ["simon bolivar", "simón bolívar", "uwc simon bolivar", "venezuela", "uwc venezuela"] },
+  { canonical: "UWC Atlantic",          short: "Atlantic",         country: "Wales, UK",               firstYear: 1962, aliases: ["atlantic", "uwc atlantic", "atlantic college", "ac", "uwc ac", "uwcac", "awc", "uwca"] },
+  { canonical: "UWC Pearson College",   short: "Pearson",          country: "Canada",                  firstYear: 1974, aliases: ["pearson", "uwc pearson", "pearson college", "pcuwc", "pc uwc", "lbpuwc", "lbp", "college of the pacific", "lester b pearson"] },
+  { canonical: "UWC USA",               short: "USA",              country: "USA",                     firstYear: 1982, aliases: ["uwc usa", "uwc-usa", "uwcusa", "armand hammer", "new mexico", "montezuma", "usa", "american west"] },
+  { canonical: "UWC Adriatic",          short: "Adriatic",         country: "Italy",                   firstYear: 1982, aliases: ["adriatic", "uwc adriatic", "duino", "ad", "uwc ad", "uwcad"] },
+  { canonical: "UWC Red Cross Nordic",  short: "Red Cross Nordic", country: "Norway",                  firstYear: 1995, aliases: ["red cross nordic", "rcn", "uwc rcn", "rcnuwc", "nordic", "flekke"] },
+  { canonical: "UWC Mahindra",          short: "Mahindra",         country: "India",                   firstYear: 1997, aliases: ["mahindra", "uwc mahindra", "muwci", "pune", "uwc india", "uwc in india"] },
+  { canonical: "UWC Costa Rica",        short: "Costa Rica",       country: "Costa Rica",              firstYear: 2006, aliases: ["costa rica", "uwc costa rica", "uwccr", "uwc cr"] },
+  { canonical: "UWC Waterford Kamhlaba", short: "Waterford",       country: "Eswatini",                firstYear: 1963, aliases: ["waterford", "uwc waterford", "kamhlaba", "waterford kamhlaba", "swaziland", "eswatini"] },
+  { canonical: "UWC Mostar",            short: "Mostar",           country: "Bosnia and Herzegovina",  firstYear: 2006, aliases: ["mostar", "uwc mostar", "uwcim", "bosnia"] },
+  { canonical: "UWC Li Po Chun",        short: "Li Po Chun",       country: "Hong Kong",               firstYear: 1992, aliases: ["li po chun", "uwc li po chun", "lpc", "lpcuwc", "hong kong"] },
+  { canonical: "UWC Robert Bosch",      short: "Robert Bosch",     country: "Germany",                 firstYear: 2014, aliases: ["robert bosch", "uwc robert bosch", "rbc", "uwc rbc", "uwcrbc", "freiburg"] },
+  { canonical: "UWC Dilijan",           short: "Dilijan",          country: "Armenia",                 firstYear: 2014, aliases: ["dilijan", "uwc dilijan", "armenia"] },
+  { canonical: "UWC Maastricht",        short: "Maastricht",       country: "Netherlands",             firstYear: 2009, aliases: ["maastricht", "uwc maastricht", "uwcm", "uwcmaastricht", "netherlands"] },
+  { canonical: "UWC Changshu China",    short: "Changshu",         country: "China",                   firstYear: 2015, aliases: ["changshu", "uwc changshu", "uwc china"] },
+  { canonical: "UWC Thailand",          short: "Thailand",         country: "Thailand",                firstYear: 2016, aliases: ["uwc thailand", "uwct", "phuket"] },
+  { canonical: "UWC ISAK Japan",        short: "ISAK Japan",       country: "Japan",                   firstYear: 2014, aliases: ["isak", "uwc isak", "uwc japan", "karuizawa"] },
+  { canonical: "UWC South East Asia",   short: "UWCSEA",           country: "Singapore",               firstYear: 1971, aliases: ["south east asia", "uwcsea", "uwc sea", "uwc south east asia", "sea", "dover", "east campus", "southeast asia", "uwc singapore", "singapore"] },
+  { canonical: "UWC East Africa",       short: "East Africa",      country: "Tanzania",                firstYear: 2019, aliases: ["east africa", "uwc east africa", "uwcea", "tanzania", "moshi", "arusha"] },
+  { canonical: "UWC Simón Bolívar",     short: "Simón Bolívar",    country: "Venezuela (closed)",      firstYear: 1988, lastYear: 2020, aliases: ["simon bolivar", "simón bolívar", "uwc simon bolivar", "venezuela", "uwc venezuela"] },
 ];
+
+/**
+ * Returns the inclusive [min, max] year range a graduate of `canonical`
+ * could have attended. For currently-operating schools, max is current
+ * year + 2 (covers students still enrolled). For closed schools, max is
+ * the school's last year of operation.
+ */
+export function gradYearRangeFor(canonical: string | null | undefined): { min: number; max: number } | null {
+  if (!canonical) return null;
+  const c = COLLEGES.find((x) => x.canonical === canonical);
+  if (!c) return null;
+  const max = c.lastYear ?? new Date().getFullYear() + 2;
+  return { min: c.firstYear, max };
+}
 
 type IndexedAlias = { pattern: RegExp; college: College };
 

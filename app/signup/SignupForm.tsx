@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { COLLEGES } from "@/lib/uwc-colleges";
+import { COLLEGES, gradYearRangeFor } from "@/lib/uwc-colleges";
 import { submitSignup } from "./actions";
 
 const HELP_OPTIONS = [
@@ -18,11 +18,17 @@ type Affiliation = "Alum" | "Friend" | "Parent";
 
 export default function SignupForm() {
   const [affiliation, setAffiliation] = useState<Affiliation | "">("");
+  const [college, setCollege] = useState<string>("");
   const [email, setEmail] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
   const [isWorking, setIsWorking] = useState(false);
   const [isStudying, setIsStudying] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  const yearRange = gradYearRangeFor(college);
+  const yearOptions: number[] = yearRange
+    ? Array.from({ length: yearRange.max - yearRange.min + 1 }, (_, i) => yearRange.max - i)
+    : [];
 
   const showUwcFields = affiliation === "Alum";
   const emailsMatch =
@@ -132,42 +138,65 @@ export default function SignupForm() {
             { value: "Parent", label: "Parent of a UWC alum or student" },
           ]}
         />
-        <div className="mt-4">
-          <Field
-            label="Do you currently volunteer on a National Committee? If so, which?"
-            name="national_committee"
-            placeholder="e.g. Polish NC"
-            full
-          />
-        </div>
       </Section>
 
       {showUwcFields && (
         <Section title="Which UWC?">
           <Grid>
-            <SelectField label="College" name="uwc_college" required>
-              <option value="">— Select —</option>
-              {COLLEGES.map((c) => (
-                <option key={c.canonical} value={c.canonical}>
-                  {c.canonical}
-                </option>
-              ))}
-            </SelectField>
-            <Field
-              label="Graduation year"
-              name="grad_year"
-              type="number"
-              placeholder="e.g. 2015"
-              required
-              inputMode="numeric"
-              min={1962}
-              max={new Date().getFullYear() + 2}
-              step={1}
-            />
+            <label className="block">
+              <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+                College *
+              </span>
+              <select
+                name="uwc_college"
+                required
+                value={college}
+                onChange={(e) => setCollege(e.target.value)}
+                className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+              >
+                <option value="">— Select —</option>
+                {COLLEGES.map((c) => (
+                  <option key={c.canonical} value={c.canonical}>
+                    {c.canonical}
+                    {c.lastYear ? ` (closed ${c.lastYear})` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+                Graduation year *
+              </span>
+              <select
+                name="grad_year"
+                required
+                disabled={!college}
+                defaultValue=""
+                key={college /* reset when college changes */}
+                className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white disabled:bg-ivory-2 disabled:text-[color:var(--muted)]"
+              >
+                <option value="">{college ? "— Select —" : "Pick a college first"}</option>
+                {yearOptions.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </label>
           </Grid>
-          <p className="mt-2 text-xs text-[color:var(--muted)]">
-            Pearson College alumni: enter the 4-digit year (e.g. 2018 for PC43).
-          </p>
+          {college === "UWC Pearson College" && (
+            <p className="mt-2 text-xs text-[color:var(--muted)]">
+              Pearson alumni: pick the 4-digit year (e.g. 2018 for PC43).
+            </p>
+          )}
+          <div className="mt-4">
+            <Field
+              label="Do you currently volunteer on a National Committee? If so, which?"
+              name="national_committee"
+              placeholder="e.g. Polish NC"
+              full
+            />
+          </div>
         </Section>
       )}
 
