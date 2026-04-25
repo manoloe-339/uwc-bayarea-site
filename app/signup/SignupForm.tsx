@@ -27,7 +27,7 @@ export default function SignupForm() {
 
   const yearRange = gradYearRangeFor(college);
   const yearOptions: number[] = yearRange
-    ? Array.from({ length: yearRange.max - yearRange.min + 1 }, (_, i) => yearRange.max - i)
+    ? Array.from({ length: yearRange.max - yearRange.min + 1 }, (_, i) => yearRange.min + i)
     : [];
 
   const showUwcFields = affiliation === "Alum";
