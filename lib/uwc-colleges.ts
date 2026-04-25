@@ -1,4 +1,4 @@
-// The 19 United World Colleges (18 current + Simón Bolívar, closed 2020).
+// The 19 United World Colleges (18 current + Simón Bolívar, closed 2012).
 // Canonical name is what we store in the DB and show in the UI.
 // Aliases are matched as whole words (lower-cased) inside the input string,
 // so short acronyms like "AC" don't collide with longer words.
@@ -33,7 +33,7 @@ export const COLLEGES: readonly College[] = [
   { canonical: "UWC ISAK Japan",        short: "ISAK Japan",       country: "Japan",                   firstYear: 2014, aliases: ["isak", "uwc isak", "uwc japan", "karuizawa"] },
   { canonical: "UWC South East Asia",   short: "UWCSEA",           country: "Singapore",               firstYear: 1971, aliases: ["south east asia", "uwcsea", "uwc sea", "uwc south east asia", "sea", "dover", "east campus", "southeast asia", "uwc singapore", "singapore"] },
   { canonical: "UWC East Africa",       short: "East Africa",      country: "Tanzania",                firstYear: 2019, aliases: ["east africa", "uwc east africa", "uwcea", "tanzania", "moshi", "arusha"] },
-  { canonical: "UWC Simón Bolívar",     short: "Simón Bolívar",    country: "Venezuela (closed)",      firstYear: 1988, lastYear: 2020, aliases: ["simon bolivar", "simón bolívar", "uwc simon bolivar", "venezuela", "uwc venezuela"] },
+  { canonical: "UWC Simón Bolívar",     short: "Simón Bolívar",    country: "Venezuela (closed)",      firstYear: 1988, lastYear: 2012, aliases: ["simon bolivar", "simón bolívar", "uwc simon bolivar", "venezuela", "uwc venezuela"] },
 ];
 
 /**
