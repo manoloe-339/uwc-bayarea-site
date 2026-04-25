@@ -9,6 +9,8 @@ import { reasonLabel } from "@/lib/unsubscribe-reasons";
 import { resubscribe } from "@/app/unsubscribe/actions";
 import { fmtDate } from "@/lib/admin-time";
 import { FOLLOWUP_REASONS, FOLLOWUP_REASON_LABELS, type FollowupReason } from "@/lib/alumni-query";
+import { EnrichmentSection } from "@/components/enrichment/EnrichmentSection";
+import type { EnrichmentStatus as EnrichmentStatusType } from "@/types/enrichment";
 import PhotoUploadModal from "./PhotoUploadModal";
 
 export const dynamic = "force-dynamic";
@@ -77,6 +79,10 @@ type AlumRecord = {
   gender: string | null;
   gender_confidence: number | null;
   gender_source: string | null;
+  linkedin_enrichment_status: string | null;
+  linkedin_enriched_at: string | null;
+  linkedin_enrichment_error: string | null;
+  linkedin_raw_data: unknown;
 };
 
 async function uploadAlumnusPhoto(id: number, formData: FormData) {
@@ -575,6 +581,22 @@ export default async function AlumnusPage({
           </button>
         </div>
       </form>
+
+      <EnrichmentSection
+        alumniId={r.id}
+        status={r.linkedin_enrichment_status as EnrichmentStatusType}
+        enrichedAt={r.linkedin_enriched_at}
+        error={r.linkedin_enrichment_error}
+        rawData={r.linkedin_raw_data}
+        current={{
+          headline: r.headline,
+          current_company: r.current_company,
+          current_title: r.current_title,
+          location_city: r.location_city,
+          location_country: r.location_country,
+          about: r.about,
+        }}
+      />
 
       <div className="mt-6 text-[11px] text-[color:var(--muted)] leading-relaxed">
         <div>
