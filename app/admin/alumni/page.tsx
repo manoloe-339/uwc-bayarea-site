@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { EnrichmentStatusBadge } from "@/components/enrichment/StatusBadge";
+import type { EnrichmentStatus } from "@/types/enrichment";
 import { COLLEGES } from "@/lib/uwc-colleges";
 import { REGIONS } from "@/lib/region";
 import { sql } from "@/lib/db";
@@ -98,6 +100,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     companyTag: pickStr(sp, "companyTag") as AlumniFilters["companyTag"],
     sector: pickStr(sp, "sector"),
     gender: pickStr(sp, "gender") as AlumniFilters["gender"],
+    enrichmentStatus: pickStr(sp, "enrichmentStatus") as AlumniFilters["enrichmentStatus"],
     companyIdMap,
     expBand: pickStr(sp, "expBand") as ExperienceBand | undefined,
     uwcVerified: pickStr(sp, "uwcVerified") as AlumniFilters["uwcVerified"],
@@ -598,6 +601,14 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <option value="unknown">Unknown</option>
           <option value="unset">Not classified yet</option>
         </Select>
+        <Select label="Enrichment status" name="enrichmentStatus" defaultValue={filters.enrichmentStatus ?? ""}>
+          <option value="">Any</option>
+          <option value="complete">✓ Enriched</option>
+          <option value="pending">⏳ Pending</option>
+          <option value="needs_review">⚠ Needs review</option>
+          <option value="failed">✗ Failed</option>
+          <option value="never">— Never attempted</option>
+        </Select>
         </>}
 
         {/* Runtime AI filter — asks Claude per-company at query time, so this
@@ -951,6 +962,12 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                       </a>
                     )}
                     <QuickLinks email={r.email} mobile={r.mobile} />
+                    <EnrichmentStatusBadge
+                      status={r.linkedin_enrichment_status as EnrichmentStatus}
+                      enrichedAt={r.linkedin_enriched_at}
+                      error={r.linkedin_enrichment_error}
+                      compact
+                    />
                     {r.affiliation && r.affiliation !== "Alum" && (
                       <span className="text-[10px] text-[color:var(--muted)] uppercase tracking-wider">
                         {r.affiliation}

@@ -12,6 +12,7 @@ const ITEMS: Item[] = [
   { href: "/admin/email/preview", label: "Preview" },
   { href: "/admin/email/settings", label: "Settings" },
   { href: "/admin/import", label: "Import" },
+  { href: "/admin/enrichment", label: "Enrich" },
   { href: "/admin/tools", label: "Tools" },
   { href: "/admin/unsubscribes", label: "Unsubscribes" },
   { href: "/admin/analytics", label: "Analytics" },
