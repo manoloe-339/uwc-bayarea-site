@@ -87,7 +87,9 @@ export async function submitSignup(formData: FormData): Promise<void> {
   const origin = s(formData.get("origin"));
   const company = s(formData.get("company"));
   const working = s(formData.get("working"));
+  const workLocation = s(formData.get("work_location"));
   const studying = s(formData.get("studying"));
+  const studyLocation = s(formData.get("study_location"));
   const nationalCommittee = s(formData.get("national_committee"));
   const about = s(formData.get("about"));
   const questions = s(formData.get("questions"));
@@ -103,13 +105,15 @@ export async function submitSignup(formData: FormData): Promise<void> {
       uwc_college, uwc_college_raw, grad_year, grad_year_raw,
       current_city, region, affiliation, company,
       help_tags, national_committee, about, questions,
-      studying, working, subscribed, sources, flags, imported_at, updated_at
+      studying, study_location, working, work_location,
+      subscribed, sources, flags, imported_at, updated_at
     ) VALUES (
       ${firstName}, ${lastName}, ${email}, ${mobile}, ${linkedinUrl}, ${origin},
       ${uwcCollege}, ${uwcCollegeRaw}, ${gradYear}, ${gradYearRaw},
       ${currentCity}, ${region}, ${affiliation}, ${company},
       ${helpTags}, ${nationalCommittee}, ${about}, ${questions},
-      ${studying}, ${working}, TRUE, ${[SOURCE]}, ${[]}, NOW(), NOW()
+      ${studying}, ${studyLocation}, ${working}, ${workLocation},
+      TRUE, ${[SOURCE]}, ${[]}, NOW(), NOW()
     )
     ON CONFLICT (email) DO UPDATE SET
       first_name         = COALESCE(alumni.first_name, EXCLUDED.first_name),
@@ -130,7 +134,9 @@ export async function submitSignup(formData: FormData): Promise<void> {
       about              = COALESCE(alumni.about, EXCLUDED.about),
       questions          = COALESCE(alumni.questions, EXCLUDED.questions),
       studying           = COALESCE(alumni.studying, EXCLUDED.studying),
+      study_location     = COALESCE(alumni.study_location, EXCLUDED.study_location),
       working            = COALESCE(alumni.working, EXCLUDED.working),
+      work_location      = COALESCE(alumni.work_location, EXCLUDED.work_location),
       subscribed         = TRUE,
       unsubscribed_at    = NULL,
       unsubscribe_reason = NULL,

@@ -242,20 +242,34 @@ export default function SignupForm() {
         </div>
 
         {isWorking && (
-          <Grid>
-            <Field label="Company" name="company" placeholder="best company ever" />
-            <Field label="Role" name="working" placeholder="chief vibe officer" />
-          </Grid>
+          <>
+            <Grid>
+              <Field label="Company" name="company" placeholder="best company ever" />
+              <Field label="Role" name="working" placeholder="chief vibe officer" />
+            </Grid>
+            <div className="mt-4">
+              <Field
+                label="Where (city or remote)"
+                name="work_location"
+                placeholder="e.g. San Francisco, or 'Remote'"
+                full
+              />
+            </div>
+          </>
         )}
         {isStudying && (
-          <div className="mt-4">
+          <Grid>
             <Field
-              label="Where & what are you studying?"
-              name="studying"
-              full
-              placeholder="best uni ever"
+              label="Where (school or city)"
+              name="study_location"
+              placeholder="e.g. UC Berkeley"
             />
-          </div>
+            <Field
+              label="What are you studying?"
+              name="studying"
+              placeholder="e.g. Comp Sci, MBA, etc."
+            />
+          </Grid>
         )}
       </Section>
 
