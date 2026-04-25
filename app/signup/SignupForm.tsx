@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { COLLEGES, gradYearRangeFor } from "@/lib/uwc-colleges";
+import { CountryAutocomplete } from "@/components/CountryAutocomplete";
 import { submitSignup } from "./actions";
 
 const HELP_OPTIONS = [
@@ -190,11 +191,12 @@ export default function SignupForm() {
             </p>
           )}
           <div className="mt-4">
-            <Field
-              label="Do you currently volunteer on a National Committee? If so, which?"
+            <CountryAutocomplete
               name="national_committee"
-              placeholder="e.g. Polish NC"
+              label="Do you currently volunteer on a National Committee? If so, which?"
+              placeholder="Type a country (e.g. Poland)"
               full
+              hint="Pick the NC's country. Skip this if you don't volunteer on one."
             />
           </div>
         </Section>
@@ -210,10 +212,10 @@ export default function SignupForm() {
             full
             autoComplete="address-level2"
           />
-          <Field
+          <CountryAutocomplete
             label="Origin (country, optional)"
             name="origin"
-            placeholder="e.g. Brazil, or 'US'"
+            placeholder="Type a country (e.g. Brazil)"
             full
           />
         </Grid>
