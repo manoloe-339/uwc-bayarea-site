@@ -282,11 +282,14 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
   } else if (f.linkedin === "missing_confirmed") {
     parts.push(`${missingSql} AND no_linkedin_confirmed IS TRUE`);
   } else if (f.linkedin === "has_unenriched") {
-    // Has a LinkedIn URL but no successful enrichment (status null,
-    // failed, pending, or needs_review). Useful for batching admin
-    // re-enrichment runs.
+    // Has a LinkedIn URL but no enrichment data from ANY source —
+    // neither the legacy CSV/Python pipeline (enriched_at) nor the
+    // current Apify flow (linkedin_enrichment_status='complete').
     parts.push(
-      `(linkedin_url IS NOT NULL AND linkedin_url <> '' AND (linkedin_enrichment_status IS NULL OR linkedin_enrichment_status <> 'complete'))`
+      `(linkedin_url IS NOT NULL
+        AND linkedin_url <> ''
+        AND enriched_at IS NULL
+        AND linkedin_enrichment_status IS DISTINCT FROM 'complete')`
     );
   }
 
