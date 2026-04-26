@@ -39,7 +39,7 @@ export default function SignupForm() {
   // labels narrow on mobile (e.g. "Atlantic" vs "UWC Atlantic College").
   const collegeOptions = COLLEGES.map((c) => ({
     value: c.canonical,
-    label: c.short + (c.lastYear ? ` (closed ${c.lastYear})` : ""),
+    label: c.short,
   }));
 
   const showUwcFields = affiliation === "Alum";
