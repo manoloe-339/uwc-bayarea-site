@@ -10,7 +10,12 @@ export type EngagementFilter =
 
 export type ExperienceBand = "0-3" | "3-7" | "7-15" | "15+";
 export type UwcVerifiedFilter = "verified" | "unverified" | "any";
-export type LinkedinFilter = "has" | "missing" | "missing_unverified" | "missing_confirmed";
+export type LinkedinFilter =
+  | "has"
+  | "missing"
+  | "missing_unverified"
+  | "missing_confirmed"
+  | "has_unenriched";
 export type CompanySizeBand = "startup" | "large";
 const COMPANY_SIZE_BANDS: Record<CompanySizeBand, string[]> = {
   startup: ["1-10", "11-50", "51-200"],
@@ -276,6 +281,13 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
     parts.push(`${missingSql} AND no_linkedin_confirmed IS NOT TRUE`);
   } else if (f.linkedin === "missing_confirmed") {
     parts.push(`${missingSql} AND no_linkedin_confirmed IS TRUE`);
+  } else if (f.linkedin === "has_unenriched") {
+    // Has a LinkedIn URL but no successful enrichment (status null,
+    // failed, pending, or needs_review). Useful for batching admin
+    // re-enrichment runs.
+    parts.push(
+      `(linkedin_url IS NOT NULL AND linkedin_url <> '' AND (linkedin_enrichment_status IS NULL OR linkedin_enrichment_status <> 'complete'))`
+    );
   }
 
   // Company size band (Phase 3 NL parser maps "startup"/"large" here)
