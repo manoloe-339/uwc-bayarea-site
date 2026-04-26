@@ -52,13 +52,17 @@ export default function SignupForm() {
       className="space-y-7"
       noValidate
     >
-      {/* Honeypot — hidden from real users, bots will fill it */}
-      <div aria-hidden className="absolute left-[-9999px] top-[-9999px]">
-        <label>
-          Website
-          <input type="text" name="website" tabIndex={-1} autoComplete="off" />
-        </label>
-      </div>
+      {/* Honeypot — bots fill named fields; we hide it from humans
+          (offscreen + opacity 0 + tabindex -1) and skip the label so
+          nothing user-facing reads "Website". */}
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden
+        className="absolute left-[-9999px] top-[-9999px] w-px h-px opacity-0 pointer-events-none"
+      />
 
       <Section title="About you">
         <Grid>

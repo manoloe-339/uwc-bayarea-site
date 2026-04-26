@@ -76,12 +76,6 @@ export default async function SignupPage({
       </div>
 
       <section className="max-w-[680px] mx-auto px-5 sm:px-7 pt-9 pb-20">
-        <div className="flex flex-wrap items-baseline justify-between gap-6 mb-[18px]">
-          <div className="text-[11px] tracking-[.28em] uppercase font-bold text-[color:var(--muted)]">
-            {signup.formEyebrow}
-          </div>
-        </div>
-
         {errorMsg && (
           <div className="mb-5 p-4 border-l-4 border-red-600 bg-red-50 text-sm text-red-900 rounded-[2px]">
             {errorMsg}
