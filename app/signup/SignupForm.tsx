@@ -193,7 +193,7 @@ export default function SignupForm() {
           <div className="mt-4">
             <CountryAutocomplete
               name="national_committee"
-              label="Do you currently volunteer on a National Committee? If so, which?"
+              label="Are you a volunteer with a National Committee?"
               placeholder="Type a country (e.g. Poland)"
               full
               hint="Pick the NC's country. Skip this if you don't volunteer on one."
