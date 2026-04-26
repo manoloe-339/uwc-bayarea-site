@@ -5,10 +5,16 @@ import { COLLEGES, gradYearRangeFor } from "@/lib/uwc-colleges";
 import { CountryAutocomplete } from "@/components/CountryAutocomplete";
 import { submitSignup } from "./actions";
 
-const HELP_OPTIONS = [
-  "Organize events",
-  "Campus contact (Berkeley, Stanford, Minerva, etc.)",
-  "Help with a National Committee",
+type HelpOption = { value: string; label: string; hint?: string };
+
+const HELP_OPTIONS: ReadonlyArray<HelpOption> = [
+  { value: "Organize events", label: "Organize events" },
+  {
+    value: "Campus contact",
+    label: "Campus contact",
+    hint: "Berkeley, Stanford, Minerva, etc.",
+  },
+  { value: "Help with a National Committee", label: "Help with a National Committee" },
 ];
 
 type Affiliation = "Alum" | "Friend" | "Parent";
@@ -295,14 +301,21 @@ export default function SignupForm() {
       <Section title="How would you like to help? (optional)">
         <div className="grid gap-2 sm:grid-cols-2">
           {HELP_OPTIONS.map((opt) => (
-            <label key={opt} className="flex items-start gap-2 text-sm">
+            <label key={opt.value} className="flex items-start gap-2 text-sm">
               <input
                 type="checkbox"
                 name="help"
-                value={opt}
+                value={opt.value}
                 className="mt-1"
               />
-              <span>{opt}</span>
+              <span>
+                {opt.label}
+                {opt.hint && (
+                  <span className="block text-xs text-[color:var(--muted)]">
+                    {opt.hint}
+                  </span>
+                )}
+              </span>
             </label>
           ))}
         </div>
