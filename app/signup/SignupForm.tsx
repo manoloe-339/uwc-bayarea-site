@@ -186,12 +186,7 @@ export default function SignupForm() {
 
         {showParentFields && (
           <div className="mt-5 space-y-4">
-            <Field
-              label="Student's name"
-              name="parent_of_name"
-              placeholder="e.g. Mateo Espinosa"
-              full
-            />
+            <Field label="Student's name" name="parent_of_name" full />
             <Grid>
               <SelectField
                 label="Their college"
