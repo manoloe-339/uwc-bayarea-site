@@ -9,6 +9,7 @@ type Row = {
   first_name: string | null;
   last_name: string | null;
   email: string | null;
+  linkedin_url: string | null;
   uwc_college: string | null;
   grad_year: number | null;
   current_company: string | null;
@@ -33,7 +34,8 @@ type RawShape = {
 
 export default async function EnrichmentReviewPage() {
   const rows = (await sql`
-    SELECT id, first_name, last_name, email, uwc_college, grad_year,
+    SELECT id, first_name, last_name, email, linkedin_url,
+           uwc_college, grad_year,
            current_company, current_city, linkedin_enriched_at,
            linkedin_enrichment_error,
            linkedin_raw_data AS raw
@@ -68,8 +70,25 @@ export default async function EnrichmentReviewPage() {
         <ul className="space-y-4">
           {rows.map((r) => {
             const raw = (r.raw ?? {}) as RawShape;
-            const candidates = Array.isArray(raw.candidates) ? raw.candidates : [];
+            const apiCandidates = Array.isArray(raw.candidates) ? raw.candidates : [];
             const decision = raw.decision ?? null;
+            // If the alum already has a linkedin_url that the search
+            // didn't surface (or never ran — Scenario A failure case),
+            // include it as a synthetic first candidate so admin can
+            // approve / re-trigger on it without leaving the queue.
+            const onFile = (r.linkedin_url ?? "").trim();
+            const inList = onFile && apiCandidates.some((c) => c.url === onFile);
+            const candidates = onFile && !inList
+              ? [
+                  {
+                    url: onFile,
+                    title: "On file (alum-supplied)",
+                    text: "Originally entered by the alum on signup or by an admin.",
+                    source: "alumni-record",
+                  },
+                  ...apiCandidates,
+                ]
+              : apiCandidates;
             return (
               <li
                 key={r.id}
@@ -121,7 +140,7 @@ export default async function EnrichmentReviewPage() {
 
                 {candidates.length === 0 ? (
                   <p className="text-sm text-[color:var(--muted)]">
-                    No candidate list captured. Use{" "}
+                    No URL on file and no search candidates. Use{" "}
                     <Link
                       href={`/admin/alumni/${r.id}`}
                       className="text-navy hover:underline"
@@ -139,7 +158,7 @@ export default async function EnrichmentReviewPage() {
                       text: (c.text ?? "").slice(0, 200),
                       source: c.source ?? "",
                     }))}
-                    chosenUrl={decision?.chosen_url ?? null}
+                    chosenUrl={decision?.chosen_url ?? onFile ?? null}
                   />
                 )}
               </li>
