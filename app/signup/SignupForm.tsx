@@ -7,12 +7,10 @@ import { submitSignup } from "./actions";
 
 const HELP_OPTIONS = [
   "Organize events",
-  "Manage UWCx 501(c)(3)",
   "Campus contact (Berkeley, Stanford, Minerva, etc.)",
   "Communication & marketing",
   "Host / cook",
   "Introductions & fundraising",
-  "Volunteer with a National Committee",
 ];
 
 type Affiliation = "Alum" | "Friend" | "Parent";
@@ -37,11 +35,18 @@ export default function SignupForm() {
     ? Array.from({ length: parentYearRange.max - parentYearRange.min + 1 }, (_, i) => parentYearRange.min + i)
     : [];
 
+  // Reused by alum and parent college dropdowns. c.short keeps option
+  // labels narrow on mobile (e.g. "Atlantic" vs "UWC Atlantic College").
+  const collegeOptions = COLLEGES.map((c) => ({
+    value: c.canonical,
+    label: c.short + (c.lastYear ? ` (closed ${c.lastYear})` : ""),
+  }));
+
   const showUwcFields = affiliation === "Alum";
   const showParentFields = affiliation === "Parent";
+  const showFriendFields = affiliation === "Friend";
   const emailsMatch =
     !confirmEmail || email.trim().toLowerCase() === confirmEmail.trim().toLowerCase();
-  const canSubmit = !pending && emailsMatch && !!email && !!confirmEmail;
 
   return (
     <form
@@ -89,13 +94,9 @@ export default function SignupForm() {
             <input
               type="email"
               required
-              autoComplete="off"
+              autoComplete="email"
               value={confirmEmail}
               onChange={(e) => setConfirmEmail(e.target.value)}
-              onPaste={(e) => {
-                // Discourage paste so typos don't slip through both fields.
-                e.preventDefault();
-              }}
               className={`w-full border rounded px-3 py-2 text-sm bg-white ${
                 emailsMatch ? "border-[color:var(--rule)]" : "border-red-500"
               }`}
@@ -118,7 +119,7 @@ export default function SignupForm() {
               className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
             />
             <span className="block mt-1 text-xs text-[color:var(--muted)]">
-              We occasionally organize things via WhatsApp, so a mobile helps.
+              We use WhatsApp to organize events.
             </span>
           </label>
           <label className="block sm:col-span-2">
@@ -150,58 +151,29 @@ export default function SignupForm() {
             { value: "Parent", label: "Parent of a UWC alum or student" },
           ]}
         />
-      </Section>
 
-      {showUwcFields && (
-        <Section title="Which UWC?">
-          <Grid>
-            <label className="block">
-              <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-                College *
-              </span>
-              <select
+        {showUwcFields && (
+          <div className="mt-5 space-y-4">
+            <Grid>
+              <SelectField
+                label="College *"
                 name="uwc_college"
                 required
                 value={college}
-                onChange={(e) => setCollege(e.target.value)}
-                className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
-              >
-                <option value="">— Select —</option>
-                {COLLEGES.map((c) => (
-                  <option key={c.canonical} value={c.canonical}>
-                    {c.canonical}
-                    {c.lastYear ? ` (closed ${c.lastYear})` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-                Graduation year *
-              </span>
-              <select
+                onChange={setCollege}
+                placeholder="— Select —"
+                options={collegeOptions}
+              />
+              <SelectField
+                label="Graduation year *"
                 name="grad_year"
                 required
                 disabled={!college}
-                defaultValue=""
                 key={college /* reset when college changes */}
-                className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white disabled:bg-ivory-2 disabled:text-[color:var(--muted)]"
-              >
-                <option value="">{college ? "— Select —" : "Pick a college first"}</option>
-                {yearOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </Grid>
-          {college === "UWC Pearson College" && (
-            <p className="mt-2 text-xs text-[color:var(--muted)]">
-              Pearson alumni: pick the 4-digit year (e.g. 2018 for PC43).
-            </p>
-          )}
-          <div className="mt-4">
+                placeholder={college ? "— Select —" : "Pick a college first"}
+                options={yearOptions.map((y) => ({ value: String(y), label: String(y) }))}
+              />
+            </Grid>
             <CountryAutocomplete
               name="national_committee"
               label="Are you a volunteer with a National Committee?"
@@ -210,82 +182,69 @@ export default function SignupForm() {
               hint="Pick the NC's country. Skip this if you don't volunteer on one."
             />
           </div>
-        </Section>
-      )}
+        )}
 
-      {showParentFields && (
-        <Section title="About your UWC connection">
-          <div className="mb-4">
+        {showParentFields && (
+          <div className="mt-5 space-y-4">
             <Field
               label="Student's name"
               name="parent_of_name"
               placeholder="e.g. Mateo Espinosa"
               full
             />
-          </div>
-          <Grid>
-            <label className="block">
-              <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-                Their college
-              </span>
-              <select
+            <Grid>
+              <SelectField
+                label="Their college"
                 name="parent_of_uwc_college"
                 value={parentCollege}
-                onChange={(e) => setParentCollege(e.target.value)}
-                className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
-              >
-                <option value="">— Select —</option>
-                {COLLEGES.map((c) => (
-                  <option key={c.canonical} value={c.canonical}>
-                    {c.canonical}
-                    {c.lastYear ? ` (closed ${c.lastYear})` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-                Their graduation year
-              </span>
-              <select
+                onChange={setParentCollege}
+                placeholder="— Select —"
+                options={collegeOptions}
+              />
+              <SelectField
+                label="Their graduation year"
                 name="parent_of_grad_year"
                 disabled={!parentCollege}
-                defaultValue=""
                 key={parentCollege}
-                className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white disabled:bg-ivory-2 disabled:text-[color:var(--muted)]"
-              >
-                <option value="">{parentCollege ? "— Select —" : "Pick a college first"}</option>
-                {parentYearOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </Grid>
-          <p className="mt-2 text-xs text-[color:var(--muted)]">
-            Helps us recognize you when their cohort hosts events.
-          </p>
-        </Section>
-      )}
+                placeholder={parentCollege ? "— Select —" : "Pick a college first"}
+                options={parentYearOptions.map((y) => ({ value: String(y), label: String(y) }))}
+              />
+            </Grid>
+          </div>
+        )}
 
-      <Section title="Where you are">
-        <Grid>
-          <Field
-            label="Current city"
-            name="current_city"
-            required
-            placeholder="e.g. San Francisco"
-            full
-            autoComplete="address-level2"
-          />
-          <CountryAutocomplete
-            label="Origin (country, optional)"
-            name="origin"
-            placeholder="Type a country (e.g. Brazil)"
-            full
-          />
-        </Grid>
+        {showFriendFields && (
+          <div className="mt-5">
+            <Field
+              label="How did you hear about us?"
+              name="how_heard"
+              placeholder="e.g. through a friend, an event, social media…"
+              full
+            />
+          </div>
+        )}
+
+        {affiliation && (
+          <div className="mt-5">
+            <CountryAutocomplete
+              label="Origin (country, optional)"
+              name="origin"
+              placeholder="Type a country (e.g. Brazil)"
+              full
+            />
+          </div>
+        )}
+      </Section>
+
+      <Section title="Where you live now">
+        <Field
+          label="Current city"
+          name="current_city"
+          required
+          placeholder="e.g. San Francisco"
+          full
+          autoComplete="address-level2"
+        />
       </Section>
 
       <Section title="Work & study (optional)">
@@ -374,7 +333,7 @@ export default function SignupForm() {
       <div className="pt-4 border-t border-[color:var(--rule)]">
         <button
           type="submit"
-          disabled={!canSubmit}
+          disabled={pending}
           className="bg-navy text-white px-6 py-3 rounded text-sm font-semibold tracking-wide disabled:opacity-50"
         >
           {pending ? "Sending…" : "Sign me up"}
@@ -427,22 +386,58 @@ function Field({
 }
 
 function SelectField({
-  label, name, required, children,
+  label,
+  name,
+  required,
+  disabled,
+  value,
+  onChange,
+  options,
+  placeholder,
+  children,
 }: {
-  label: string; name: string; required?: boolean; children: React.ReactNode;
+  label: string;
+  name: string;
+  required?: boolean;
+  disabled?: boolean;
+  /** Controlled value. Omit for uncontrolled (uses defaultValue=""). */
+  value?: string;
+  onChange?: (v: string) => void;
+  /** When provided, renders <option> rows; can be used together with `placeholder`. */
+  options?: ReadonlyArray<{ value: string; label: string }>;
+  placeholder?: string;
+  /** Fallback for legacy callers passing raw <option> children. */
+  children?: React.ReactNode;
 }) {
+  const labelStripped = label.replace(/\s*\*\s*$/, "");
+  const isRequired = required || /\*\s*$/.test(label);
   return (
     <label className="block">
       <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-        {label}{required ? " *" : ""}
+        {labelStripped}
+        {isRequired ? " *" : ""}
       </span>
       <select
         name={name}
-        required={required}
-        defaultValue=""
-        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+        required={isRequired}
+        disabled={disabled}
+        {...(value !== undefined
+          ? { value, onChange: (e) => onChange?.(e.target.value) }
+          : { defaultValue: "" })}
+        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white disabled:bg-ivory-2 disabled:text-[color:var(--muted)]"
       >
-        {children}
+        {options ? (
+          <>
+            {placeholder !== undefined && <option value="">{placeholder}</option>}
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </>
+        ) : (
+          children
+        )}
       </select>
     </label>
   );

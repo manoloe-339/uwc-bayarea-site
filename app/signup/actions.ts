@@ -91,6 +91,8 @@ export async function submitSignup(formData: FormData): Promise<void> {
   const studying = s(formData.get("studying"));
   const studyLocation = s(formData.get("study_location"));
   const nationalCommittee = s(formData.get("national_committee"));
+  const howHeardRaw = s(formData.get("how_heard"));
+  const howHeard = affiliation === "Friend" ? howHeardRaw : null;
 
   // Parent affiliation: which college / year their child attended.
   const parentOfNameRaw = s(formData.get("parent_of_name"));
@@ -118,6 +120,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
       help_tags, national_committee, about, questions,
       studying, study_location, working, work_location,
       parent_of_name, parent_of_uwc_college, parent_of_grad_year,
+      how_heard,
       subscribed, sources, flags, imported_at, updated_at
     ) VALUES (
       ${firstName}, ${lastName}, ${email}, ${mobile}, ${linkedinUrl}, ${origin},
@@ -126,6 +129,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
       ${helpTags}, ${nationalCommittee}, ${about}, ${questions},
       ${studying}, ${studyLocation}, ${working}, ${workLocation},
       ${parentOfName}, ${parentCollegeFinal}, ${parentGradFinal},
+      ${howHeard},
       TRUE, ${[SOURCE]}, ${[]}, NOW(), NOW()
     )
     ON CONFLICT (email) DO UPDATE SET
@@ -153,6 +157,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
       parent_of_name     = COALESCE(alumni.parent_of_name, EXCLUDED.parent_of_name),
       parent_of_uwc_college = COALESCE(alumni.parent_of_uwc_college, EXCLUDED.parent_of_uwc_college),
       parent_of_grad_year = COALESCE(alumni.parent_of_grad_year, EXCLUDED.parent_of_grad_year),
+      how_heard          = COALESCE(alumni.how_heard, EXCLUDED.how_heard),
       subscribed         = TRUE,
       unsubscribed_at    = NULL,
       unsubscribe_reason = NULL,
