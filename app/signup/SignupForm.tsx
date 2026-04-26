@@ -8,9 +8,7 @@ import { submitSignup } from "./actions";
 const HELP_OPTIONS = [
   "Organize events",
   "Campus contact (Berkeley, Stanford, Minerva, etc.)",
-  "Communication & marketing",
-  "Host / cook",
-  "Introductions & fundraising",
+  "Help with a National Committee",
 ];
 
 type Affiliation = "Alum" | "Friend" | "Parent";
