@@ -91,6 +91,17 @@ export async function submitSignup(formData: FormData): Promise<void> {
   const studying = s(formData.get("studying"));
   const studyLocation = s(formData.get("study_location"));
   const nationalCommittee = s(formData.get("national_committee"));
+
+  // Parent affiliation: which college / year their child attended.
+  const parentOfNameRaw = s(formData.get("parent_of_name"));
+  const parentOfCollegeRaw = s(formData.get("parent_of_uwc_college"));
+  const parentOfCollege = normalizeCollege(parentOfCollegeRaw);
+  const parentOfGradYear = parseGradYear(s(formData.get("parent_of_grad_year")), {
+    pearson: isPearson(parentOfCollege),
+  });
+  const parentOfName = affiliation === "Parent" ? parentOfNameRaw : null;
+  const parentCollegeFinal = affiliation === "Parent" ? parentOfCollege : null;
+  const parentGradFinal = affiliation === "Parent" ? parentOfGradYear : null;
   const about = s(formData.get("about"));
   const questions = s(formData.get("questions"));
 
@@ -106,6 +117,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
       current_city, region, affiliation, company,
       help_tags, national_committee, about, questions,
       studying, study_location, working, work_location,
+      parent_of_name, parent_of_uwc_college, parent_of_grad_year,
       subscribed, sources, flags, imported_at, updated_at
     ) VALUES (
       ${firstName}, ${lastName}, ${email}, ${mobile}, ${linkedinUrl}, ${origin},
@@ -113,6 +125,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
       ${currentCity}, ${region}, ${affiliation}, ${company},
       ${helpTags}, ${nationalCommittee}, ${about}, ${questions},
       ${studying}, ${studyLocation}, ${working}, ${workLocation},
+      ${parentOfName}, ${parentCollegeFinal}, ${parentGradFinal},
       TRUE, ${[SOURCE]}, ${[]}, NOW(), NOW()
     )
     ON CONFLICT (email) DO UPDATE SET
@@ -137,6 +150,9 @@ export async function submitSignup(formData: FormData): Promise<void> {
       study_location     = COALESCE(alumni.study_location, EXCLUDED.study_location),
       working            = COALESCE(alumni.working, EXCLUDED.working),
       work_location      = COALESCE(alumni.work_location, EXCLUDED.work_location),
+      parent_of_name     = COALESCE(alumni.parent_of_name, EXCLUDED.parent_of_name),
+      parent_of_uwc_college = COALESCE(alumni.parent_of_uwc_college, EXCLUDED.parent_of_uwc_college),
+      parent_of_grad_year = COALESCE(alumni.parent_of_grad_year, EXCLUDED.parent_of_grad_year),
       subscribed         = TRUE,
       unsubscribed_at    = NULL,
       unsubscribe_reason = NULL,

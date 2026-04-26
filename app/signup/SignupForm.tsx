@@ -20,6 +20,7 @@ type Affiliation = "Alum" | "Friend" | "Parent";
 export default function SignupForm() {
   const [affiliation, setAffiliation] = useState<Affiliation | "">("");
   const [college, setCollege] = useState<string>("");
+  const [parentCollege, setParentCollege] = useState<string>("");
   const [email, setEmail] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
   const [isWorking, setIsWorking] = useState(false);
@@ -31,7 +32,13 @@ export default function SignupForm() {
     ? Array.from({ length: yearRange.max - yearRange.min + 1 }, (_, i) => yearRange.min + i)
     : [];
 
+  const parentYearRange = gradYearRangeFor(parentCollege);
+  const parentYearOptions: number[] = parentYearRange
+    ? Array.from({ length: parentYearRange.max - parentYearRange.min + 1 }, (_, i) => parentYearRange.min + i)
+    : [];
+
   const showUwcFields = affiliation === "Alum";
+  const showParentFields = affiliation === "Parent";
   const emailsMatch =
     !confirmEmail || email.trim().toLowerCase() === confirmEmail.trim().toLowerCase();
   const canSubmit = !pending && emailsMatch && !!email && !!confirmEmail;
@@ -199,6 +206,62 @@ export default function SignupForm() {
               hint="Pick the NC's country. Skip this if you don't volunteer on one."
             />
           </div>
+        </Section>
+      )}
+
+      {showParentFields && (
+        <Section title="About your UWC connection">
+          <div className="mb-4">
+            <Field
+              label="Student's name"
+              name="parent_of_name"
+              placeholder="e.g. Mateo Espinosa"
+              full
+            />
+          </div>
+          <Grid>
+            <label className="block">
+              <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+                Their college
+              </span>
+              <select
+                name="parent_of_uwc_college"
+                value={parentCollege}
+                onChange={(e) => setParentCollege(e.target.value)}
+                className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+              >
+                <option value="">— Select —</option>
+                {COLLEGES.map((c) => (
+                  <option key={c.canonical} value={c.canonical}>
+                    {c.canonical}
+                    {c.lastYear ? ` (closed ${c.lastYear})` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+                Their graduation year
+              </span>
+              <select
+                name="parent_of_grad_year"
+                disabled={!parentCollege}
+                defaultValue=""
+                key={parentCollege}
+                className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white disabled:bg-ivory-2 disabled:text-[color:var(--muted)]"
+              >
+                <option value="">{parentCollege ? "— Select —" : "Pick a college first"}</option>
+                {parentYearOptions.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </Grid>
+          <p className="mt-2 text-xs text-[color:var(--muted)]">
+            Helps us recognize you when their cohort hosts events.
+          </p>
         </Section>
       )}
 

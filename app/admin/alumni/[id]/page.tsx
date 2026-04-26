@@ -83,6 +83,11 @@ type AlumRecord = {
   linkedin_enriched_at: string | null;
   linkedin_enrichment_error: string | null;
   linkedin_raw_data: unknown;
+  parent_of_name: string | null;
+  parent_of_uwc_college: string | null;
+  parent_of_grad_year: number | null;
+  work_location: string | null;
+  study_location: string | null;
 };
 
 async function uploadAlumnusPhoto(id: number, formData: FormData) {
@@ -199,7 +204,17 @@ async function updateAlumnus(id: number, formData: FormData) {
       about              = ${get("about")},
       questions          = ${get("questions")},
       studying           = ${get("studying")},
+      study_location     = ${get("study_location")},
       working            = ${get("working")},
+      work_location      = ${get("work_location")},
+      parent_of_name     = ${get("parent_of_name")},
+      parent_of_uwc_college = ${get("parent_of_uwc_college")},
+      parent_of_grad_year = ${(() => {
+        const raw = get("parent_of_grad_year");
+        if (!raw) return null;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : null;
+      })()},
       attended_event     = ${formData.get("attended_event") === "on"},
       moved_out          = ${formData.get("moved_out") === "on"},
       deceased           = ${formData.get("deceased") === "on"},
@@ -448,8 +463,28 @@ export default async function AlumnusPage({
         <Section title="Work & study">
           <Grid>
             <Field label="Company" name="company" defaultValue={r.company} />
-            <Field label="Working (free text)" name="working" defaultValue={r.working} />
-            <Field label="Studying" name="studying" defaultValue={r.studying} full />
+            <Field label="Role" name="working" defaultValue={r.working} />
+            <Field label="Work location" name="work_location" defaultValue={r.work_location} />
+            <Field label="Studying" name="studying" defaultValue={r.studying} />
+            <Field label="Study location" name="study_location" defaultValue={r.study_location} full />
+          </Grid>
+        </Section>
+
+        <Section title="Parent of UWC alum or student">
+          <Grid>
+            <Field label="Student's name" name="parent_of_name" defaultValue={r.parent_of_name} full />
+            <SelectField
+              label="Their college"
+              name="parent_of_uwc_college"
+              defaultValue={r.parent_of_uwc_college}
+              options={[{ value: "", label: "— (none)" }, ...COLLEGES.map((c) => ({ value: c.canonical, label: c.short }))]}
+            />
+            <Field
+              label="Their grad year"
+              name="parent_of_grad_year"
+              type="number"
+              defaultValue={r.parent_of_grad_year?.toString() ?? null}
+            />
           </Grid>
         </Section>
 
