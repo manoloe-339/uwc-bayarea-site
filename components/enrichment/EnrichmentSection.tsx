@@ -44,17 +44,42 @@ export function EnrichmentSection({
   const [retryMsg, setRetryMsg] = useState<string | null>(null);
   const [showRaw, setShowRaw] = useState(false);
   const [showOverride, setShowOverride] = useState(false);
+  // Optimistic local override so the badge reads "Enriching" the
+  // instant the admin clicks Re-enrich, even before the server-rendered
+  // prop catches up. Cleared when the prop reports a terminal state.
+  const [optimisticPending, setOptimisticPending] = useState(false);
   const [, startTransition] = useTransition();
   const router = useRouter();
 
-  // While enrichment is pending, hammer router.refresh() every 5s so the
-  // status badge transitions live without the admin needing to reload.
+  // The status the UI actually reflects. Prefer prop when it's already
+  // "pending" or terminal, but force "pending" while the optimistic flag
+  // is set and the prop hasn't moved past pending yet.
+  const effectiveStatus: EnrichmentStatus =
+    optimisticPending && status !== "complete" && status !== "failed" && status !== "needs_review"
+      ? "pending"
+      : status;
+
+  // Clear the optimistic flag once the server has reported a terminal
+  // state (the section's prop changed). Otherwise we'd keep polling
+  // forever after enrichment finished.
   useEffect(() => {
-    if (status !== "pending") return;
+    if (
+      optimisticPending &&
+      (status === "complete" || status === "failed" || status === "needs_review")
+    ) {
+      setOptimisticPending(false);
+    }
+  }, [status, optimisticPending]);
+
+  // Poll while the section is showing pending — covers both the
+  // server-confirmed pending and the brief optimistic-only window
+  // immediately after a trigger before the first refresh lands.
+  useEffect(() => {
+    if (effectiveStatus !== "pending") return;
     const tick = () => startTransition(() => router.refresh());
     const id = setInterval(tick, 5000);
     return () => clearInterval(id);
-  }, [status, router]);
+  }, [effectiveStatus, router]);
 
   const reEnrich = async () => {
     if (!confirm("Re-run enrichment? Will overwrite scraped fields (your typed fields are preserved via COALESCE).")) return;
@@ -68,7 +93,9 @@ export function EnrichmentSection({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error ?? body.message ?? "Failed");
-      setRetryMsg("Queued — refresh in ~60s");
+      // Optimistic — badge flips to "Enriching" right away.
+      setOptimisticPending(true);
+      setRetryMsg("Running — usually 30–90s");
       startTransition(() => router.refresh());
     } catch (err) {
       setRetryMsg(err instanceof Error ? err.message : "Failed");
@@ -91,7 +118,11 @@ export function EnrichmentSection({
         <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
           LinkedIn enrichment
         </h2>
-        <EnrichmentStatusBadge status={status} enrichedAt={enrichedAt} error={error} />
+        <EnrichmentStatusBadge
+          status={effectiveStatus}
+          enrichedAt={enrichedAt}
+          error={effectiveStatus === "pending" ? null : error}
+        />
       </div>
 
       <dl className="text-sm space-y-1 mb-4">
