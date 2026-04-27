@@ -23,6 +23,8 @@ export type EventRecord = {
   reminder_body: string | null;
   reminder_scheduled_at: string | null;
   reminder_auto_sent_at: string | null;
+  photo_upload_token: string | null;
+  photo_upload_enabled: boolean;
   created_at: string;
   updated_at: string;
 };

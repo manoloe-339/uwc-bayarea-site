@@ -7,3 +7,5 @@ export { BulkActionsBar } from "./BulkActionsBar";
 export { DownloadButtons } from "./DownloadButtons";
 export { PhotoUploadZone } from "./PhotoUploadZone";
 export { PhotoUploadZoneWrapper } from "./PhotoUploadZoneWrapper";
+export { AttendeePhotoUploadZone } from "./AttendeePhotoUploadZone";
+export { PhotoUploadLinkSection } from "./PhotoUploadLinkSection";
