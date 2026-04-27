@@ -14,10 +14,13 @@ import {
   DownloadButtons,
   PhotoUploadZoneWrapper,
   GalleryLayoutEditor,
+  PhotoUploadLinkSection,
 } from "@/components/event-photos";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
+
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://uwcbayarea.org").replace(/\/+$/, "");
 
 const VALID_FILTERS: PhotoFilter[] = ["all", "pending", "approved", "rejected"];
 type View = "approve" | "layout";
@@ -76,6 +79,15 @@ export default async function PhotosPage({
         </div>
         {view === "approve" && <DownloadButtons eventId={event.id} stats={stats} />}
       </div>
+
+      <PhotoUploadLinkSection
+        eventId={event.id}
+        eventSlug={slug}
+        eventName={event.name}
+        initialToken={event.photo_upload_token}
+        initialEnabled={event.photo_upload_enabled}
+        appUrl={APP_URL}
+      />
 
       <div className="flex items-center gap-1 border-b border-[color:var(--rule)] mb-6">
         <Link

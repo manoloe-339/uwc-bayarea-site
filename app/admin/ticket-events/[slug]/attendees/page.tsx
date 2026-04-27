@@ -5,10 +5,7 @@ import { SyncStripeButton } from "@/components/admin/SyncStripeButton";
 import { AttendeeRowActions } from "@/components/admin/AttendeeRowActions";
 import { AddSpecialGuestButton } from "@/components/admin/AddSpecialGuestButton";
 import { CheckinAccessCard } from "@/components/admin/CheckinAccessCard";
-import { PhotoUploadLinkSection } from "@/components/event-photos";
 import { relationshipLabel } from "@/lib/attendee-labels";
-
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://uwcbayarea.org").replace(/\/+$/, "");
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -184,15 +181,6 @@ export default async function AttendeesPage({
         token={event.checkin_token}
         pin={event.checkin_pin}
         generatedAt={event.checkin_token_generated_at}
-      />
-
-      <PhotoUploadLinkSection
-        eventId={event.id}
-        eventSlug={slug}
-        eventName={event.name}
-        initialToken={event.photo_upload_token}
-        initialEnabled={event.photo_upload_enabled}
-        appUrl={APP_URL}
       />
 
       {(counts.review > 0 || counts.unmatched > 0 || counts.followup > 0 || counts.uwc_not_in_db > 0) && (

@@ -2,11 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEventBySlug } from "@/lib/events-db";
 import { updateEventAction } from "../../new/actions";
-import { PhotoUploadLinkSection } from "@/components/event-photos";
 
 export const dynamic = "force-dynamic";
-
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://uwcbayarea.org").replace(/\/+$/, "");
 
 // Neon returns DATE columns as JS Date objects, not strings. Normalise to
 // YYYY-MM-DD for <input type="date">.
@@ -67,17 +64,6 @@ export default async function EditEventPage({
           </button>
         </div>
       </form>
-
-      <div className="mt-6">
-        <PhotoUploadLinkSection
-          eventId={event.id}
-          eventSlug={slug}
-          eventName={event.name}
-          initialToken={event.photo_upload_token}
-          initialEnabled={event.photo_upload_enabled}
-          appUrl={APP_URL}
-        />
-      </div>
     </div>
   );
 }
