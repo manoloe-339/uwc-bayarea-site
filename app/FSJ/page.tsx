@@ -304,7 +304,7 @@ Questions? DM either of us or drop them in the subgroup.`}
 
           <Section title="Why each event gets its own subgroup">
             <P>
-              This is the single most important rule. Each event lives in a closed
+              This is the single most important element. Each event lives in a closed
               subgroup (admin approval required for new members), separate from the
               main Foodies chat and the regional group.
             </P>
