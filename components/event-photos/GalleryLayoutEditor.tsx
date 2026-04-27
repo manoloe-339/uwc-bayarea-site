@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import type { EventPhoto, DisplayRole } from "@/lib/event-photos/types";
 
 type RoleColumn = "marquee" | "supporting";
@@ -160,13 +161,15 @@ function Column({
               <span className="text-xs text-[color:var(--muted)] tabular-nums w-6 text-right">
                 {i + 1}
               </span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={p.blob_url}
-                alt={p.original_filename ?? `Photo ${p.id}`}
-                className="w-16 h-16 object-cover rounded bg-[color:var(--ivory-deep,#f4f1ea)]"
-                loading="lazy"
-              />
+              <div className="relative w-16 h-16 rounded overflow-hidden bg-[color:var(--ivory-deep,#f4f1ea)] shrink-0">
+                <Image
+                  src={p.blob_url}
+                  alt={p.original_filename ?? `Photo ${p.id}`}
+                  fill
+                  sizes="64px"
+                  className="object-cover"
+                />
+              </div>
               <div className="flex-1 min-w-0 text-xs text-[color:var(--muted)] truncate">
                 {p.original_filename ?? `Photo ${p.id}`}
               </div>

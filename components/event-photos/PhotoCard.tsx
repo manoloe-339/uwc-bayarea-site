@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import type { EventPhoto } from "@/lib/event-photos/types";
 
 const statusBadge: Record<EventPhoto["approval_status"], { label: string; cls: string }> = {
@@ -61,14 +62,14 @@ export function PhotoCard({
       <button
         type="button"
         onClick={() => onOpen(photo.id)}
-        className="block w-full aspect-square bg-[color:var(--ivory-deep,#f4f1ea)]"
+        className="block relative w-full aspect-square bg-[color:var(--ivory-deep,#f4f1ea)]"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={photo.blob_url}
           alt={photo.original_filename ?? `Photo ${photo.id}`}
-          className="w-full h-full object-cover"
-          loading="lazy"
+          fill
+          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+          className="object-cover"
         />
       </button>
       {isPending && onQuickAction && (

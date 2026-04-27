@@ -7,6 +7,15 @@ const nextConfig = {
   // runtime. Marking them external uses node_modules at runtime
   // where dynamic requires work normally.
   serverExternalPackages: ["apify-client", "proxy-agent"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+        pathname: "/**",
+      },
+    ],
+  },
   experimental: {
     serverActions: {
       // Default is 1 MB. Admin photo uploads can be larger LinkedIn exports.
