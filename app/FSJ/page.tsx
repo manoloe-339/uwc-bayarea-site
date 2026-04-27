@@ -331,8 +331,10 @@ Questions? DM either of us or drop them in the subgroup.`}
           <Section title="Be mindful of late joiners">
             <P>
               People trickle into the subgroup over days or weeks, often in bursts
-              after announcements or reminders. New members do not see messages posted
-              before they joined.
+              after announcements or reminders.{" "}
+              <span className="font-bold underline">
+                New members do not see messages posted before they joined.
+              </span>
             </P>
             <Screenshot
               src="/fsj/late-joiners-example.png"
