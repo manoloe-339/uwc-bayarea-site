@@ -48,6 +48,10 @@ export function EnrichmentSection({
   // instant the admin clicks Re-enrich, even before the server-rendered
   // prop catches up. Cleared when the prop reports a terminal state.
   const [optimisticPending, setOptimisticPending] = useState(false);
+  // Live-feedback state for the polling indicator.
+  const [pollCount, setPollCount] = useState(0);
+  const [lastPollAt, setLastPollAt] = useState<number | null>(null);
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const [, startTransition] = useTransition();
   const router = useRouter();
 
@@ -76,10 +80,29 @@ export function EnrichmentSection({
   // immediately after a trigger before the first refresh lands.
   useEffect(() => {
     if (effectiveStatus !== "pending") return;
-    const tick = () => startTransition(() => router.refresh());
+    const tick = () => {
+      setLastPollAt(Date.now());
+      setPollCount((c) => c + 1);
+      startTransition(() => router.refresh());
+    };
+    // Fire one immediately so the user sees a check happen instantly.
+    tick();
     const id = setInterval(tick, 5000);
     return () => clearInterval(id);
   }, [effectiveStatus, router]);
+
+  // Tick a 1Hz clock while pending so the "checked Ns ago" label
+  // counts up smoothly between polls.
+  useEffect(() => {
+    if (effectiveStatus !== "pending") return;
+    const id = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [effectiveStatus]);
+
+  const secondsSincePoll =
+    lastPollAt == null ? null : Math.max(0, Math.round((nowTick - lastPollAt) / 1000));
+  const secondsUntilNextPoll =
+    secondsSincePoll == null ? null : Math.max(0, 5 - secondsSincePoll);
 
   const reEnrich = async () => {
     if (!confirm("Re-run enrichment? Will overwrite scraped fields (your typed fields are preserved via COALESCE).")) return;
@@ -144,6 +167,22 @@ export function EnrichmentSection({
           </div>
         )}
       </dl>
+
+      {effectiveStatus === "pending" && (
+        <div className="mb-4 flex items-center gap-2 text-xs text-[color:var(--muted)]">
+          <span
+            aria-hidden
+            className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"
+          />
+          <span>
+            Checking…
+            {secondsSincePoll != null && (
+              <> last check {secondsSincePoll}s ago · next in {secondsUntilNextPoll}s</>
+            )}
+            {pollCount > 0 && <> · {pollCount} check{pollCount === 1 ? "" : "s"} so far</>}
+          </span>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <button
