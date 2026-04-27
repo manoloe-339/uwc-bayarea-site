@@ -22,6 +22,14 @@ const nextConfig = {
       bodySizeLimit: "8mb",
     },
   },
+  async redirects() {
+    return [
+      // Renamed admin sections (2026-04-27): legacy URLs redirect to the new
+      // canonical paths so existing bookmarks keep working.
+      { source: "/admin/ticket-events", destination: "/admin/events", permanent: true },
+      { source: "/admin/ticket-events/:path*", destination: "/admin/events/:path*", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

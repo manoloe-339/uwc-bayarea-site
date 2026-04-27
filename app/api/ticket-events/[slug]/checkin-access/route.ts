@@ -34,7 +34,7 @@ export async function POST(
               updated_at = NOW()
           WHERE id = ${event.id}
         `;
-        revalidatePath(`/admin/ticket-events/${slug}/attendees`);
+        revalidatePath(`/admin/events/${slug}/attendees`);
         return NextResponse.json({ ok: true, token });
       } catch (err) {
         if (i === 4) {
@@ -56,7 +56,7 @@ export async function POST(
           updated_at = NOW()
       WHERE id = ${event.id}
     `;
-    revalidatePath(`/admin/ticket-events/${slug}/attendees`);
+    revalidatePath(`/admin/events/${slug}/attendees`);
     return NextResponse.json({ ok: true });
   }
 
@@ -70,7 +70,7 @@ export async function POST(
       SET checkin_pin = ${raw || null}, updated_at = NOW()
       WHERE id = ${event.id}
     `;
-    revalidatePath(`/admin/ticket-events/${slug}/attendees`);
+    revalidatePath(`/admin/events/${slug}/attendees`);
     return NextResponse.json({ ok: true });
   }
 

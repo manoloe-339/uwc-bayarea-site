@@ -28,7 +28,7 @@ export default async function InviteListDetailPage({
   return (
     <div className="max-w-[1000px]">
       <div className="mb-4 text-sm">
-        <Link href="/admin/events" className="text-[color:var(--muted)] hover:text-navy">
+        <Link href="/admin/email/invite-lists" className="text-[color:var(--muted)] hover:text-navy">
           ← Back to event lists
         </Link>
       </div>

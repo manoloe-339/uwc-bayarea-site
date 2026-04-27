@@ -18,8 +18,8 @@ export async function POST(
   }
   try {
     const generated = await generateMissingQRTokens(event.id);
-    revalidatePath(`/admin/ticket-events/${slug}/communications`);
-    revalidatePath(`/admin/ticket-events/${slug}/attendees`);
+    revalidatePath(`/admin/events/${slug}/communications`);
+    revalidatePath(`/admin/events/${slug}/attendees`);
     return NextResponse.json({ generated });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed";

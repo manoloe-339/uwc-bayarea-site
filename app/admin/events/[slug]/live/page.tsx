@@ -56,7 +56,7 @@ export default async function LiveDashboardPage({
       <LiveDashboardRefresher />
       <div className="mb-4 text-sm">
         <Link
-          href={`/admin/ticket-events/${slug}/attendees`}
+          href={`/admin/events/${slug}/attendees`}
           className="text-[color:var(--muted)] hover:text-navy"
         >
           ← {event.name}
@@ -72,7 +72,7 @@ export default async function LiveDashboardPage({
           </p>
         </div>
         <Link
-          href={`/admin/ticket-events/${slug}/attendees`}
+          href={`/admin/events/${slug}/attendees`}
           className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
         >
           ← Attendees

@@ -36,8 +36,8 @@ export async function createEventAction(formData: FormData): Promise<void> {
     INSERT INTO events (slug, name, date, time, location, description, stripe_payment_link_id, event_type)
     VALUES (${slug}, ${name}, ${date}, ${time}, ${location}, ${description}, ${finalStripeLink}, ${eventType})
   `;
-  revalidatePath("/admin/ticket-events");
-  redirect(`/admin/ticket-events/${slug}/attendees`);
+  revalidatePath("/admin/events");
+  redirect(`/admin/events/${slug}/attendees`);
 }
 
 export async function updateEventAction(id: number, formData: FormData): Promise<void> {
@@ -66,7 +66,7 @@ export async function updateEventAction(id: number, formData: FormData): Promise
   `) as { slug: string }[];
 
   if (!rows[0]) throw new Error("Event not found");
-  revalidatePath("/admin/ticket-events");
-  revalidatePath(`/admin/ticket-events/${rows[0].slug}/attendees`);
-  redirect(`/admin/ticket-events/${rows[0].slug}/attendees`);
+  revalidatePath("/admin/events");
+  revalidatePath(`/admin/events/${rows[0].slug}/attendees`);
+  redirect(`/admin/events/${rows[0].slug}/attendees`);
 }

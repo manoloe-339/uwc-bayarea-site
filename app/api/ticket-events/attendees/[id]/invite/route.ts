@@ -53,6 +53,6 @@ export async function POST(
     return NextResponse.json({ error: result.error }, { status: 502 });
   }
 
-  revalidatePath(`/admin/ticket-events/${attendee.slug}/attendees`);
+  revalidatePath(`/admin/events/${attendee.slug}/attendees`);
   return NextResponse.json({ ok: true, id: result.id });
 }

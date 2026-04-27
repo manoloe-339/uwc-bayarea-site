@@ -39,6 +39,6 @@ export async function POST(
         updated_at = NOW()
     WHERE id = ${event.id}
   `;
-  revalidatePath(`/admin/ticket-events/${slug}/communications`);
+  revalidatePath(`/admin/events/${slug}/communications`);
   return NextResponse.json({ ok: true });
 }

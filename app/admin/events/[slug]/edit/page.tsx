@@ -28,7 +28,7 @@ export default async function EditEventPage({
   return (
     <div className="max-w-[720px]">
       <div className="mb-4 text-sm">
-        <Link href={`/admin/ticket-events/${slug}/attendees`} className="text-[color:var(--muted)] hover:text-navy">
+        <Link href={`/admin/events/${slug}/attendees`} className="text-[color:var(--muted)] hover:text-navy">
           ← {event.name}
         </Link>
       </div>

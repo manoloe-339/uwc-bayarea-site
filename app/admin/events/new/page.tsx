@@ -1,140 +1,157 @@
+"use client";
+
 import Link from "next/link";
-import { sql } from "@/lib/db";
-import { createListAction } from "../actions";
+import { useState } from "react";
+import { createEventAction } from "./actions";
 
-export const dynamic = "force-dynamic";
-
-type AlumPreview = {
-  id: number;
-  first_name: string | null;
-  last_name: string | null;
-  email: string;
-  current_title: string | null;
-  current_company: string | null;
-};
-
-function parseIds(sp: Record<string, string | string[] | undefined>): number[] {
-  const raw = sp["ids"];
-  return (Array.isArray(raw) ? raw : raw ? [raw] : [])
-    .flatMap((v) => String(v).split(","))
-    .map((v) => Number(v.trim()))
-    .filter((n) => Number.isFinite(n) && n > 0);
-}
-
-export default async function NewInviteListPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  const sp = await searchParams;
-  const ids = Array.from(new Set(parseIds(sp)));
-
-  let preview: AlumPreview[] = [];
-  if (ids.length > 0) {
-    preview = (await sql`
-      SELECT id, first_name, last_name, email, current_title, current_company
-      FROM alumni
-      WHERE id = ANY(${ids})
-      ORDER BY last_name ASC NULLS LAST, first_name ASC NULLS LAST
-    `) as AlumPreview[];
-  }
-
+export default function NewEventPage() {
+  const [eventType, setEventType] = useState<"ticketed" | "casual">("ticketed");
   return (
-    <div className="max-w-[800px]">
+    <div className="max-w-[720px]">
       <div className="mb-4 text-sm">
         <Link href="/admin/events" className="text-[color:var(--muted)] hover:text-navy">
-          ← Back to event lists
+          ← Events
         </Link>
       </div>
-      <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-2">New invite list</h1>
+      <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">New event</h1>
       <p className="text-[color:var(--muted)] text-sm mb-6">
-        {ids.length > 0
-          ? `${ids.length} alumni selected — name the list below.`
-          : "No alumni selected. Pick people from the alumni search first, or save an empty list and add members later."}
+        Ticketed events sync attendees from a Stripe Payment Link. Casual events
+        are managed manually — add attendees as RSVPs come in. Both kinds support
+        photo galleries and email reminders.
       </p>
 
-      <form action={createListAction} className="bg-white border border-[color:var(--rule)] rounded-[10px] p-6 space-y-4">
-        {ids.map((id) => (
-          <input key={id} type="hidden" name="ids" value={id} />
-        ))}
+      <form action={createEventAction} className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 space-y-4">
+        <fieldset>
+          <legend className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-2">
+            Event kind
+          </legend>
+          <div className="grid sm:grid-cols-2 gap-2">
+            <RadioCard
+              checked={eventType === "ticketed"}
+              onChange={() => setEventType("ticketed")}
+              name="event_type"
+              value="ticketed"
+              title="Ticketed"
+              hint="Stripe Payment Link, attendees sync from Stripe, QR check-in."
+            />
+            <RadioCard
+              checked={eventType === "casual"}
+              onChange={() => setEventType("casual")}
+              name="event_type"
+              value="casual"
+              title="Casual"
+              hint="No Stripe. Manually add attendees. Foodies, gallery-only events."
+            />
+          </div>
+        </fieldset>
 
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-            Name
-          </span>
-          <input
-            type="text"
-            name="name"
-            required
-            placeholder="e.g. Tech Leadership Dinner"
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
-          />
-        </label>
-
+        <Field name="name" label="Event name" placeholder="e.g. May 1 Tech Leadership Dinner" required />
+        <Field name="slug" label="Slug (optional — derived from name)" placeholder="e.g. may-1-2026-dinner" />
         <div className="grid sm:grid-cols-2 gap-4">
-          <label className="block">
-            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-              Event date (optional)
-            </span>
-            <input
-              type="date"
-              name="event_date"
-              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
-            />
-          </label>
-          <label className="block">
-            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-              Event location (optional)
-            </span>
-            <input
-              type="text"
-              name="event_location"
-              placeholder="e.g. San Francisco"
-              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
-            />
-          </label>
+          <Field name="date" label="Date" type="date" required />
+          <Field name="time" label="Time" placeholder="e.g. 6:30 PM" />
         </div>
+        <Field name="location" label="Location" placeholder="e.g. SF, TBD" />
+        <TextareaField name="description" label="Description (optional)" rows={3} />
 
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-            Description (optional)
-          </span>
-          <textarea
-            name="description"
-            rows={3}
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
-          />
-        </label>
+        {eventType === "ticketed" && (
+          <>
+            <Field name="stripe_payment_link_id" label="Stripe Payment Link ID" placeholder="plink_…" />
+            <p className="text-xs text-[color:var(--muted)] -mt-2">
+              Ticket price is pulled from the Payment Link on the first sync — no manual entry.
+            </p>
+          </>
+        )}
 
-        <div className="flex items-center gap-2 pt-2 border-t border-[color:var(--rule)]">
-          <button type="submit" className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold">
-            Create list
-          </button>
-          <Link href="/admin/events" className="px-5 py-2.5 text-sm text-[color:var(--muted)] hover:text-navy">
+        <div className="pt-2 flex justify-end gap-2">
+          <Link href="/admin/events" className="px-4 py-2 text-sm text-[color:var(--muted)] hover:text-navy">
             Cancel
           </Link>
+          <button type="submit" className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold">
+            Create event
+          </button>
         </div>
       </form>
-
-      {preview.length > 0 && (
-        <div className="mt-6 bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">
-          <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-navy px-5 py-4 border-b border-[color:var(--rule)]">
-            Selected ({preview.length})
-          </h2>
-          <ul className="divide-y divide-[color:var(--rule)]">
-            {preview.map((a) => {
-              const name = [a.first_name, a.last_name].filter(Boolean).join(" ") || a.email;
-              const role = [a.current_title, a.current_company].filter(Boolean).join(" @ ");
-              return (
-                <li key={a.id} className="px-5 py-2.5 text-sm flex justify-between gap-4">
-                  <span className="font-semibold text-navy">{name}</span>
-                  <span className="text-xs text-[color:var(--muted)] truncate">{role || "—"}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
     </div>
+  );
+}
+
+function RadioCard({
+  checked,
+  onChange,
+  name,
+  value,
+  title,
+  hint,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  name: string;
+  value: string;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <label
+      className={`block cursor-pointer border rounded-[10px] p-3 transition-colors ${
+        checked
+          ? "border-navy bg-navy/5"
+          : "border-[color:var(--rule)] hover:border-navy"
+      }`}
+    >
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={checked}
+        onChange={onChange}
+        className="sr-only"
+      />
+      <div className="flex items-center gap-2 mb-1">
+        <span
+          className={`inline-block w-3 h-3 rounded-full border-2 ${
+            checked ? "border-navy bg-navy" : "border-[color:var(--rule)]"
+          }`}
+        />
+        <span className="font-bold text-[color:var(--navy-ink)] text-sm">{title}</span>
+      </div>
+      <p className="text-xs text-[color:var(--muted)]">{hint}</p>
+    </label>
+  );
+}
+
+function Field({
+  name, label, placeholder, type = "text", required,
+}: {
+  name: string; label: string; placeholder?: string; type?: string; required?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+        {label}
+      </span>
+      <input
+        name={name}
+        type={type}
+        placeholder={placeholder}
+        required={required}
+        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+      />
+    </label>
+  );
+}
+
+function TextareaField({ name, label, rows }: { name: string; label: string; rows?: number }) {
+  return (
+    <label className="block">
+      <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+        {label}
+      </span>
+      <textarea
+        name={name}
+        rows={rows}
+        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+      />
+    </label>
   );
 }

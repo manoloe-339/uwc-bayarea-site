@@ -355,7 +355,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         <div className="mb-5 p-3 bg-ivory-2 border-l-4 border-navy rounded-[2px] text-sm flex items-center justify-between">
           <span>
             Adding selections to invite list:{" "}
-            <Link href={`/admin/events/${addToList}`} className="font-semibold text-navy hover:underline">
+            <Link href={`/admin/email/invite-lists/${addToList}`} className="font-semibold text-navy hover:underline">
               {addToListName}
             </Link>
           </span>
@@ -688,13 +688,13 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             <SelectedCountLink
               formId="alumni-select-form"
               label={`Add to ${addToListName}`}
-              formAction={`/admin/events/${addToList}/add`}
+              formAction={`/admin/email/invite-lists/${addToList}/add`}
             />
           ) : (
             <SelectedCountLink
               formId="alumni-select-form"
               label="Save as invite list"
-              formAction="/admin/events/new"
+              formAction="/admin/email/invite-lists/new"
             />
           )}
           <SelectedCountLink formId="alumni-select-form" label="Email selected" />

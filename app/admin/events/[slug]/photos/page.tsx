@@ -50,13 +50,13 @@ export default async function PhotosPage({
     view === "layout" ? getApprovedPhotosOrdered(event.id) : Promise.resolve([]),
   ]);
 
-  const basePath = `/admin/ticket-events/${slug}/photos`;
+  const basePath = `/admin/events/${slug}/photos`;
 
   return (
     <div className="max-w-[1100px]">
       <div className="mb-4 text-sm">
         <Link
-          href={`/admin/ticket-events/${slug}/attendees`}
+          href={`/admin/events/${slug}/attendees`}
           className="text-[color:var(--muted)] hover:text-navy"
         >
           ← {event.name}

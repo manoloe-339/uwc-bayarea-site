@@ -121,7 +121,7 @@ export async function POST(
     );
   }
 
-  revalidatePath(`/admin/ticket-events/${r.e_slug}/attendees`);
-  revalidatePath(`/admin/ticket-events/${r.e_slug}/communications`);
+  revalidatePath(`/admin/events/${r.e_slug}/attendees`);
+  revalidatePath(`/admin/events/${r.e_slug}/communications`);
   return NextResponse.json({ ok: true, to: recipient });
 }

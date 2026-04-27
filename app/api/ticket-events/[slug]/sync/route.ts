@@ -28,7 +28,7 @@ export async function POST(
     name: event.name,
     stripe_payment_link_id: event.stripe_payment_link_id,
   });
-  revalidatePath(`/admin/ticket-events/${slug}/attendees`);
-  revalidatePath("/admin/ticket-events");
+  revalidatePath(`/admin/events/${slug}/attendees`);
+  revalidatePath("/admin/events");
   return NextResponse.json(summary);
 }

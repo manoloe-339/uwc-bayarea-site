@@ -65,7 +65,7 @@ export default async function CommunicationsPage({
     <div className="max-w-[1000px]">
       <div className="mb-4 text-sm">
         <Link
-          href={`/admin/ticket-events/${slug}/attendees`}
+          href={`/admin/events/${slug}/attendees`}
           className="text-[color:var(--muted)] hover:text-navy"
         >
           ← {event.name}
@@ -82,8 +82,8 @@ export default async function CommunicationsPage({
           </p>
         </div>
         <nav className="flex items-center gap-1 text-sm font-semibold">
-          <SubTab href={`/admin/ticket-events/${slug}/attendees`}>Attendees</SubTab>
-          <SubTab href={`/admin/ticket-events/${slug}/communications`} active>Communications</SubTab>
+          <SubTab href={`/admin/events/${slug}/attendees`}>Attendees</SubTab>
+          <SubTab href={`/admin/events/${slug}/communications`} active>Communications</SubTab>
         </nav>
       </div>
 
@@ -174,7 +174,7 @@ export default async function CommunicationsPage({
                 <tr key={r.id} className="border-t border-[color:var(--rule)]">
                   <td className="px-4 py-2">
                     <Link
-                      href={`/admin/ticket-events/${slug}/attendees`}
+                      href={`/admin/events/${slug}/attendees`}
                       className="font-semibold text-navy hover:underline"
                     >
                       {r.display_name ?? "—"}

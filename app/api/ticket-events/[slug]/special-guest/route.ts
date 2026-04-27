@@ -91,6 +91,6 @@ export async function POST(
     RETURNING id
   `) as { id: number }[];
 
-  revalidatePath(`/admin/ticket-events/${slug}/attendees`);
+  revalidatePath(`/admin/events/${slug}/attendees`);
   return NextResponse.json({ ok: true, id: rows[0].id });
 }

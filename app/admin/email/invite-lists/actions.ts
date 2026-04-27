@@ -39,8 +39,8 @@ export async function createListAction(formData: FormData): Promise<void> {
     eventLocation,
     alumniIds: uniq,
   });
-  revalidatePath("/admin/events");
-  redirect(`/admin/events/${id}`);
+  revalidatePath("/admin/email/invite-lists");
+  redirect(`/admin/email/invite-lists/${id}`);
 }
 
 export async function updateListAction(
@@ -53,15 +53,15 @@ export async function updateListAction(
   const eventDate = String(formData.get("event_date") ?? "").trim() || null;
   const eventLocation = String(formData.get("event_location") ?? "").trim() || null;
   await updateInviteListMeta(listId, { name, description, eventDate, eventLocation });
-  revalidatePath(`/admin/events/${listId}`);
-  revalidatePath("/admin/events");
-  redirect(`/admin/events/${listId}?saved=1`);
+  revalidatePath(`/admin/email/invite-lists/${listId}`);
+  revalidatePath("/admin/email/invite-lists");
+  redirect(`/admin/email/invite-lists/${listId}?saved=1`);
 }
 
 export async function deleteListAction(listId: string): Promise<void> {
   await deleteInviteList(listId);
-  revalidatePath("/admin/events");
-  redirect("/admin/events");
+  revalidatePath("/admin/email/invite-lists");
+  redirect("/admin/email/invite-lists");
 }
 
 export async function removeMemberAction(
@@ -69,7 +69,7 @@ export async function removeMemberAction(
   alumniId: number
 ): Promise<void> {
   await removeMemberFromList(listId, alumniId);
-  revalidatePath(`/admin/events/${listId}`);
+  revalidatePath(`/admin/email/invite-lists/${listId}`);
 }
 
 export async function addMembersAction(
@@ -79,6 +79,6 @@ export async function addMembersAction(
   const all = formData.getAll("ids");
   const ids = Array.from(new Set(all.flatMap((v) => parseIds(v))));
   await addMembersToList(listId, ids);
-  revalidatePath(`/admin/events/${listId}`);
-  redirect(`/admin/events/${listId}`);
+  revalidatePath(`/admin/email/invite-lists/${listId}`);
+  redirect(`/admin/email/invite-lists/${listId}`);
 }

@@ -116,8 +116,8 @@ export default async function AttendeesPage({
   return (
     <div className="max-w-[1100px]">
       <div className="mb-4 text-sm">
-        <Link href="/admin/ticket-events" className="text-[color:var(--muted)] hover:text-navy">
-          ← Ticket events
+        <Link href="/admin/events" className="text-[color:var(--muted)] hover:text-navy">
+          ← Events
         </Link>
       </div>
 
@@ -129,7 +129,7 @@ export default async function AttendeesPage({
             {event.time ? ` · ${event.time}` : ""}
             {event.location ? ` · ${event.location}` : ""}
             {" · "}
-            <Link href={`/admin/ticket-events/${slug}/edit`} className="hover:text-navy underline">
+            <Link href={`/admin/events/${slug}/edit`} className="hover:text-navy underline">
               Edit
             </Link>
           </p>
@@ -137,20 +137,20 @@ export default async function AttendeesPage({
         <div className="flex items-center gap-2 flex-wrap">
           {!isCasual && (
             <Link
-              href={`/admin/ticket-events/${slug}/live`}
+              href={`/admin/events/${slug}/live`}
               className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
             >
               Live dashboard →
             </Link>
           )}
           <Link
-            href={`/admin/ticket-events/${slug}/communications`}
+            href={`/admin/events/${slug}/communications`}
             className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
           >
             Communications →
           </Link>
           <Link
-            href={`/admin/ticket-events/${slug}/photos`}
+            href={`/admin/events/${slug}/photos`}
             className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
           >
             Photos →
@@ -211,20 +211,20 @@ export default async function AttendeesPage({
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-1 mb-4 text-sm font-semibold">
-        <Tab href={`/admin/ticket-events/${slug}/attendees?tab=all`} active={tab === "all"} count={counts.all}>All</Tab>
+        <Tab href={`/admin/events/${slug}/attendees?tab=all`} active={tab === "all"} count={counts.all}>All</Tab>
         {!isCasual && (
           <>
-            <Tab href={`/admin/ticket-events/${slug}/attendees?tab=paid`} active={tab === "paid"} count={counts.paid}>Paid</Tab>
-            <Tab href={`/admin/ticket-events/${slug}/attendees?tab=comp`} active={tab === "comp"} count={counts.comp}>Special guests</Tab>
+            <Tab href={`/admin/events/${slug}/attendees?tab=paid`} active={tab === "paid"} count={counts.paid}>Paid</Tab>
+            <Tab href={`/admin/events/${slug}/attendees?tab=comp`} active={tab === "comp"} count={counts.comp}>Special guests</Tab>
           </>
         )}
-        <Tab href={`/admin/ticket-events/${slug}/attendees?tab=review`} active={tab === "review"} count={counts.review}>Needs review</Tab>
-        <Tab href={`/admin/ticket-events/${slug}/attendees?tab=unmatched`} active={tab === "unmatched"} count={counts.unmatched}>Unmatched</Tab>
+        <Tab href={`/admin/events/${slug}/attendees?tab=review`} active={tab === "review"} count={counts.review}>Needs review</Tab>
+        <Tab href={`/admin/events/${slug}/attendees?tab=unmatched`} active={tab === "unmatched"} count={counts.unmatched}>Unmatched</Tab>
         {!isCasual && (
-          <Tab href={`/admin/ticket-events/${slug}/attendees?tab=uwc_not_in_db`} active={tab === "uwc_not_in_db"} count={counts.uwc_not_in_db}>⚠ UWC (not in DB)</Tab>
+          <Tab href={`/admin/events/${slug}/attendees?tab=uwc_not_in_db`} active={tab === "uwc_not_in_db"} count={counts.uwc_not_in_db}>⚠ UWC (not in DB)</Tab>
         )}
-        <Tab href={`/admin/ticket-events/${slug}/attendees?tab=starred`} active={tab === "starred"} count={counts.starred}>Starred</Tab>
-        <Tab href={`/admin/ticket-events/${slug}/attendees?tab=followup`} active={tab === "followup"} count={counts.followup}>Follow-up</Tab>
+        <Tab href={`/admin/events/${slug}/attendees?tab=starred`} active={tab === "starred"} count={counts.starred}>Starred</Tab>
+        <Tab href={`/admin/events/${slug}/attendees?tab=followup`} active={tab === "followup"} count={counts.followup}>Follow-up</Tab>
       </div>
 
       {/* List */}

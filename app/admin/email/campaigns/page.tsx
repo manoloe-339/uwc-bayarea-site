@@ -371,7 +371,7 @@ async function OtherEmailsTable({ sp }: { sp: { kind?: string } }) {
                     <td className="px-4 py-2.5 text-xs">
                       {r.event_slug ? (
                         <Link
-                          href={`/admin/ticket-events/${r.event_slug}/attendees`}
+                          href={`/admin/events/${r.event_slug}/attendees`}
                           className="text-navy hover:underline"
                         >
                           {r.event_name}

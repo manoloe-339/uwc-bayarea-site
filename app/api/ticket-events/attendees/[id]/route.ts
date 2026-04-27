@@ -32,7 +32,7 @@ async function revalidateForId(id: number) {
     SELECT e.slug FROM event_attendees a JOIN events e ON e.id = a.event_id WHERE a.id = ${id} LIMIT 1
   `) as { slug: string }[];
   if (rows[0]) {
-    revalidatePath(`/admin/ticket-events/${rows[0].slug}/attendees`);
+    revalidatePath(`/admin/events/${rows[0].slug}/attendees`);
   }
 }
 

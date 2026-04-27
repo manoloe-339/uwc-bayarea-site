@@ -43,7 +43,7 @@ export async function POST(
     },
     { onlyUnsent: !body.include_sent, concurrency: 5 }
   );
-  revalidatePath(`/admin/ticket-events/${slug}/communications`);
-  revalidatePath(`/admin/ticket-events/${slug}/attendees`);
+  revalidatePath(`/admin/events/${slug}/communications`);
+  revalidatePath(`/admin/events/${slug}/attendees`);
   return NextResponse.json({ generated, ...summary });
 }

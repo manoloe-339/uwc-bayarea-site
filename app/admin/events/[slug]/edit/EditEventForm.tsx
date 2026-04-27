@@ -80,7 +80,7 @@ export default function EditEventForm({ slug, initial, action }: Props) {
 
       <div className="pt-2 flex justify-end gap-2">
         <Link
-          href={`/admin/ticket-events/${slug}/attendees`}
+          href={`/admin/events/${slug}/attendees`}
           className="px-4 py-2 text-sm text-[color:var(--muted)] hover:text-navy"
         >
           Cancel
