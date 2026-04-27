@@ -4,25 +4,25 @@ import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { sendQuickList, type QuickSendResult } from "./actions";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Find email-shaped substrings anywhere in the input — tolerates names,
+// angle brackets, parentheses, etc.
+const EMAIL_FIND_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g;
 
 function quickParse(raw: string): { valid: string[]; invalid: string[]; duplicates: number } {
-  const tokens = raw.split(/[\s,;]+/).map((t) => t.trim()).filter(Boolean);
+  const matches = raw.match(EMAIL_FIND_RE) ?? [];
   const seen = new Set<string>();
   const valid: string[] = [];
-  const invalid: string[] = [];
   let duplicates = 0;
-  for (const t of tokens) {
+  for (const t of matches) {
     const lc = t.toLowerCase();
     if (seen.has(lc)) {
       duplicates++;
       continue;
     }
     seen.add(lc);
-    if (EMAIL_RE.test(t)) valid.push(lc);
-    else invalid.push(t);
+    valid.push(lc);
   }
-  return { valid, invalid, duplicates };
+  return { valid, invalid: [], duplicates };
 }
 
 export default function QuickSendForm() {

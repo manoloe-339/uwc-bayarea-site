@@ -4,7 +4,9 @@ import { sql } from "@/lib/db";
 import { getResend, fromAddress, replyToAddress } from "@/lib/resend";
 import { renderEmailHtml, renderEmailText } from "@/lib/email";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Match an email-shaped substring anywhere in the input. RFC-y, not RFC-strict.
+// Tolerates surrounding quotes, angle brackets, names, parentheses, etc.
+const EMAIL_FIND_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g;
 const MAX_PER_SEND = 200;
 
 export type QuickSendResult =
@@ -25,20 +27,19 @@ export async function parseAndPreview(rawEmails: string): Promise<{
   unsubscribed: { email: string; first_name: string | null }[];
   duplicates: number;
 }> {
-  const tokens = rawEmails.split(/[\s,;]+/).map((t) => t.trim()).filter(Boolean);
+  const found = rawEmails.match(EMAIL_FIND_RE) ?? [];
   const seen = new Set<string>();
   const accepted: string[] = [];
   const invalid: string[] = [];
   let duplicates = 0;
-  for (const t of tokens) {
+  for (const t of found) {
     const lc = t.toLowerCase();
     if (seen.has(lc)) {
       duplicates++;
       continue;
     }
     seen.add(lc);
-    if (EMAIL_RE.test(t)) accepted.push(lc);
-    else invalid.push(t);
+    accepted.push(lc);
   }
 
   if (accepted.length === 0) {
