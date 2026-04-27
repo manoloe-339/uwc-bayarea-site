@@ -60,6 +60,7 @@ export default function QuickSendForm() {
   const [includeFirstName, setIncludeFirstName] = useState(true);
   const [emails, setEmails] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [nameOverrides, setNameOverrides] = useState<Record<string, string>>({});
   const [state, action, pending] = useActionState<QuickSendResult | null, FormData>(
     sendQuickList,
     null
@@ -195,24 +196,36 @@ export default function QuickSendForm() {
         </div>
 
         {parsed.rows.length > 0 && (
-          <div className="mt-3 border border-[color:var(--rule)] rounded-[10px] divide-y divide-[color:var(--rule)] max-h-72 overflow-y-auto">
+          <div className="mt-3 border border-[color:var(--rule)] rounded-[10px] divide-y divide-[color:var(--rule)] max-h-80 overflow-y-auto">
             {parsed.rows.map((r) => {
+              const override = nameOverrides[r.email];
+              const effectiveName =
+                override !== undefined ? override : (r.parsedName ?? "");
+              const effectiveFirstName = extractFirstName(effectiveName);
               const greeting =
-                includeFirstName && (r.firstName || "").length > 0
-                  ? `${salutation.trim() || "Hi"} ${r.firstName},`
+                includeFirstName && effectiveFirstName
+                  ? `${salutation.trim() || "Hi"} ${effectiveFirstName},`
                   : `${salutation.trim() || "Hi"} there,`;
               return (
                 <div
                   key={r.email}
-                  className="px-3 py-2 flex items-center justify-between gap-3 text-xs"
+                  className="px-3 py-2 flex items-center gap-3 text-xs"
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[color:var(--navy-ink)] truncate">
-                      {r.parsedName ?? <span className="italic text-[color:var(--muted)]">(no name detected)</span>}
+                  <div className="min-w-0 flex-1 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-x-3">
+                    <input
+                      type="text"
+                      value={effectiveName}
+                      placeholder="(no name)"
+                      onChange={(e) =>
+                        setNameOverrides((prev) => ({ ...prev, [r.email]: e.target.value }))
+                      }
+                      className="border border-[color:var(--rule)] rounded px-2 py-1 text-xs bg-white text-[color:var(--navy-ink)]"
+                    />
+                    <div className="text-[color:var(--muted)] truncate self-center">
+                      {r.email}
                     </div>
-                    <div className="text-[color:var(--muted)] truncate">{r.email}</div>
                   </div>
-                  <div className="text-[color:var(--muted)] font-mono whitespace-nowrap">
+                  <div className="text-[color:var(--muted)] font-mono whitespace-nowrap shrink-0">
                     → {greeting}
                   </div>
                 </div>
@@ -220,6 +233,12 @@ export default function QuickSendForm() {
             })}
           </div>
         )}
+
+        <input
+          type="hidden"
+          name="nameOverrides"
+          value={JSON.stringify(nameOverrides)}
+        />
       </section>
 
       {state && !state.ok && (

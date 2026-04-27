@@ -146,12 +146,36 @@ export async function sendQuickList(_prev: QuickSendResult | null, fd: FormData)
   const salutation = String(fd.get("salutation") ?? "Hi").trim();
   const includeFirstName = fd.get("includeFirstName") === "on";
   const rawEmails = String(fd.get("emails") ?? "");
+  const nameOverridesRaw = String(fd.get("nameOverrides") ?? "");
+  let nameOverrides: Record<string, string> = {};
+  try {
+    if (nameOverridesRaw) {
+      const parsed = JSON.parse(nameOverridesRaw);
+      if (parsed && typeof parsed === "object") {
+        nameOverrides = Object.fromEntries(
+          Object.entries(parsed)
+            .filter(([k, v]) => typeof k === "string" && typeof v === "string")
+            .map(([k, v]) => [k.toLowerCase(), v as string])
+        );
+      }
+    }
+  } catch {
+    // ignore malformed override blob; fall back to parsed/alumni names
+  }
 
   if (!subject) return { ok: false, error: "Subject is required" };
   if (!body) return { ok: false, error: "Body is required" };
 
   const { valid, unsubscribed } = await parseAndPreview(rawEmails);
   const invalid: string[] = [];
+
+  // Apply admin's per-recipient name overrides (entered in the preview list).
+  for (const r of valid) {
+    if (Object.prototype.hasOwnProperty.call(nameOverrides, r.email)) {
+      const overrideFirst = extractFirstName(nameOverrides[r.email]);
+      r.first_name = overrideFirst;
+    }
+  }
   if (valid.length === 0) {
     return { ok: false, error: "No valid, deliverable email addresses to send to" };
   }
