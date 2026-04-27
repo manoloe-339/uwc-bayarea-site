@@ -76,12 +76,20 @@ export default async function CampaignsListPage({
           </p>
         </div>
         {view === "campaigns" && (
-          <Link
-            href="/admin/email/campaigns/new"
-            className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold tracking-wide"
-          >
-            New campaign →
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/admin/email/quick-send"
+              className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
+            >
+              Quick send
+            </Link>
+            <Link
+              href="/admin/email/campaigns/new"
+              className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold tracking-wide"
+            >
+              New campaign →
+            </Link>
+          </div>
         )}
       </div>
 
