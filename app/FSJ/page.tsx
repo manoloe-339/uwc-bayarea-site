@@ -225,7 +225,7 @@ function Playbook() {
 📍 [City], [Neighborhood / general area] (exact restaurant locked in soon)
 👋 Hosted by [Host 1] ([College]) + [Host 2] ([College])
 
-5–12 people, ~$[low]–[high] pp before drinks. [Ordering style] — let us know in the subgroup if you have dietary needs and we'll work around it.
+~$[low]–[high] pp before drinks. [Ordering style] — let us know in the subgroup if you have dietary needs and we'll work around it.
 
 Want in? Join the subgroup → [WhatsApp invite link]
 RSVP cutoff: [Date].
