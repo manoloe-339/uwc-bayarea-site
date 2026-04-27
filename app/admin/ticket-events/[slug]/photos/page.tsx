@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEventBySlug } from "@/lib/events-db";
-import { getEventPhotos, getPhotoStats } from "@/lib/event-photos/queries";
+import {
+  getEventPhotos,
+  getPhotoStats,
+  getApprovedPhotosOrdered,
+} from "@/lib/event-photos/queries";
 import type { ApprovalStatus, PhotoFilter } from "@/lib/event-photos/types";
 import {
   PhotoStatsCards,
@@ -9,33 +13,38 @@ import {
   PhotoGrid,
   DownloadButtons,
   PhotoUploadZoneWrapper,
+  GalleryLayoutEditor,
 } from "@/components/event-photos";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 const VALID_FILTERS: PhotoFilter[] = ["all", "pending", "approved", "rejected"];
+type View = "approve" | "layout";
 
 export default async function PhotosPage({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{ filter?: string; view?: string }>;
 }) {
   const { slug } = await params;
-  const { filter: filterParam } = await searchParams;
+  const { filter: filterParam, view: viewParam } = await searchParams;
   const event = await getEventBySlug(slug);
   if (!event) notFound();
+
+  const view: View = viewParam === "layout" ? "layout" : "approve";
 
   const filter: PhotoFilter = VALID_FILTERS.includes((filterParam ?? "all") as PhotoFilter)
     ? ((filterParam ?? "all") as PhotoFilter)
     : "all";
 
   const statusForQuery: ApprovalStatus | undefined = filter === "all" ? undefined : filter;
-  const [photos, stats] = await Promise.all([
-    getEventPhotos(event.id, statusForQuery),
+  const [photos, stats, approvedOrdered] = await Promise.all([
+    view === "approve" ? getEventPhotos(event.id, statusForQuery) : Promise.resolve([]),
     getPhotoStats(event.id),
+    view === "layout" ? getApprovedPhotosOrdered(event.id) : Promise.resolve([]),
   ]);
 
   const basePath = `/admin/ticket-events/${slug}/photos`;
@@ -65,16 +74,43 @@ export default async function PhotosPage({
               : ""}
           </p>
         </div>
-        <DownloadButtons eventId={event.id} stats={stats} />
+        {view === "approve" && <DownloadButtons eventId={event.id} stats={stats} />}
       </div>
 
-      <PhotoStatsCards stats={stats} />
+      <div className="flex items-center gap-1 border-b border-[color:var(--rule)] mb-6">
+        <Link
+          href={basePath}
+          className={`px-4 py-2 text-sm border-b-2 -mb-px ${
+            view === "approve"
+              ? "border-navy text-navy font-semibold"
+              : "border-transparent text-[color:var(--muted)] hover:text-navy"
+          }`}
+        >
+          Approve
+        </Link>
+        <Link
+          href={`${basePath}?view=layout`}
+          className={`px-4 py-2 text-sm border-b-2 -mb-px ${
+            view === "layout"
+              ? "border-navy text-navy font-semibold"
+              : "border-transparent text-[color:var(--muted)] hover:text-navy"
+          }`}
+        >
+          Gallery layout
+          <span className="ml-1.5 text-[11px] text-[color:var(--muted)]">({stats.approved})</span>
+        </Link>
+      </div>
 
-      <PhotoUploadZoneWrapper eventId={event.id} />
-
-      <PhotoFilterTabs active={filter} basePath={basePath} stats={stats} />
-
-      <PhotoGrid photos={photos} eventId={event.id} />
+      {view === "approve" ? (
+        <>
+          <PhotoStatsCards stats={stats} />
+          <PhotoUploadZoneWrapper eventId={event.id} />
+          <PhotoFilterTabs active={filter} basePath={basePath} stats={stats} />
+          <PhotoGrid photos={photos} eventId={event.id} />
+        </>
+      ) : (
+        <GalleryLayoutEditor photos={approvedOrdered} eventId={event.id} />
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import type { EventPhoto, PhotoStats, ApprovalStatus } from "./types";
+import type { EventPhoto, PhotoStats, ApprovalStatus, DisplayRole } from "./types";
 
 export async function getEventPhotos(
   eventId: number,
@@ -132,5 +132,55 @@ export async function setUploadEnabled(eventId: number, enabled: boolean): Promi
     UPDATE events
     SET photo_upload_enabled = ${enabled}
     WHERE id = ${eventId}
+  `;
+}
+
+/**
+ * Approved photos ordered for public gallery rendering:
+ * marquee first (by display_order), then supporting (by display_order, then newest).
+ * NULL display_order rows fall after numbered ones.
+ */
+export async function getApprovedPhotosOrdered(eventId: number): Promise<EventPhoto[]> {
+  return (await sql`
+    SELECT * FROM event_photos
+    WHERE event_id = ${eventId} AND approval_status = 'approved'
+    ORDER BY
+      CASE WHEN display_role = 'marquee' THEN 0 ELSE 1 END,
+      display_order ASC NULLS LAST,
+      uploaded_at DESC,
+      id DESC
+  `) as EventPhoto[];
+}
+
+export async function setPhotoLayout(
+  photoId: number,
+  displayRole: DisplayRole | null,
+  displayOrder: number | null
+): Promise<void> {
+  await sql`
+    UPDATE event_photos
+    SET display_role = ${displayRole}, display_order = ${displayOrder}
+    WHERE id = ${photoId}
+  `;
+}
+
+/**
+ * Re-numbers display_order = 0..n for the given photo ids in array order,
+ * and assigns them to the given role. Does so for the photos in this list only.
+ */
+export async function reorderPhotos(
+  eventId: number,
+  role: DisplayRole,
+  photoIds: number[]
+): Promise<void> {
+  if (photoIds.length === 0) return;
+  const orders = photoIds.map((_, idx) => idx);
+  await sql`
+    UPDATE event_photos AS ep
+    SET display_role = ${role}, display_order = v.ord
+    FROM (
+      SELECT unnest(${photoIds}::int[]) AS id, unnest(${orders}::int[]) AS ord
+    ) AS v
+    WHERE ep.id = v.id AND ep.event_id = ${eventId}
   `;
 }

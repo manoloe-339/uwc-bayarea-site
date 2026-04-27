@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getEventBySlug } from "@/lib/events-db";
-import { getEventPhotos } from "@/lib/event-photos/queries";
+import { getApprovedPhotosOrdered } from "@/lib/event-photos/queries";
 import { PublicGalleryGrid } from "@/components/event-photos/PublicGalleryGrid";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function PublicEventPhotosPage({
   const event = await getEventBySlug(slug);
   if (!event) notFound();
 
-  const photos = await getEventPhotos(event.id, "approved");
+  const photos = await getApprovedPhotosOrdered(event.id);
 
   const dateLabel = event.date
     ? new Date(event.date).toLocaleDateString(undefined, {
