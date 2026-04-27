@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
@@ -287,6 +288,13 @@ function Playbook() {
               after announcements or reminders. New members do not see messages posted
               before they joined. A few ways to work around this:
             </P>
+            <Screenshot
+              src="/fsj/late-joiners-example.png"
+              alt="Itinerary post followed by a stream of new members joining via group link"
+              w={1320}
+              h={932}
+              caption="The itinerary went out at 2:42 PM. Anyone who joined after that doesn't see it."
+            />
             <UL>
               <LI>
                 <strong>Wait for critical mass before posting key info.</strong> If you
@@ -297,10 +305,24 @@ function Playbook() {
                 <strong>Use the group description as the durable source of truth.</strong>{" "}
                 Everyone sees it, regardless of when they joined. Repost key details
                 there as they firm up.
+                <Screenshot
+                  src="/fsj/group-description-example.png"
+                  alt="WhatsApp group description showing welcome message, deposit, RSVP deadline, ordering style"
+                  w={962}
+                  h={630}
+                  caption="Sample group description: deposit, RSVP deadline, ordering style, where to ask questions."
+                />
               </LI>
               <LI>
                 <strong>Polls work well, but you may need to run them more than once</strong>{" "}
                 as new waves of members arrive.
+                <Screenshot
+                  src="/fsj/poll-example.png"
+                  alt="Resent WhatsApp poll asking which parts of the Foodies trek attendees will join"
+                  w={1264}
+                  h={904}
+                  caption="Resending the side-quest poll once new members had joined."
+                />
               </LI>
               <LI>
                 <strong>Telegraph upcoming activity.</strong> A new joiner who lands in
@@ -328,6 +350,13 @@ function Playbook() {
               person puts the card down, everyone Venmos before leaving the table. Food
               split evenly, drinks per your policy.
             </P>
+            <Screenshot
+              src="/fsj/day-of-example.png"
+              alt="Day-of WhatsApp message: itinerary recap, who's joining each stop, table-size note, and Venmo policy clarification"
+              w={1166}
+              h={976}
+              caption="Day-of post: re-state the itinerary, who's joining each stop, and any logistics changes (table split, payment expectations)."
+            />
             <P>
               <strong>During:</strong> take a photo of the food when it arrives (before
               anyone digs in) and a few of people mingling. Photos are required.
@@ -343,6 +372,26 @@ function Playbook() {
               <LI>One for hosts to give feedback.</LI>
             </UL>
             <P>Photos go on the event page on the UWC Bay Area website.</P>
+
+            <p className="text-[color:var(--muted)] text-sm mt-4 mb-2">
+              Examples — the food, people mingling, and the side quest:
+            </p>
+            <div className="grid grid-cols-3 gap-2 max-w-[440px]">
+              {[1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  className="relative aspect-square rounded overflow-hidden bg-[color:var(--ivory-deep,#f4f1ea)]"
+                >
+                  <Image
+                    src={`/fsj/photo-${n}.jpg`}
+                    alt={`Foodies sample photo ${n}`}
+                    fill
+                    sizes="(max-width: 640px) 33vw, 150px"
+                    className="object-cover"
+                  />
+                </div>
+              ))}
+            </div>
           </Section>
     </>
   );
@@ -459,4 +508,35 @@ function UL({ children }: { children: React.ReactNode }) {
 
 function LI({ children }: { children: React.ReactNode }) {
   return <li>{children}</li>;
+}
+
+function Screenshot({
+  src,
+  alt,
+  w,
+  h,
+  caption,
+}: {
+  src: string;
+  alt: string;
+  w: number;
+  h: number;
+  caption?: string;
+}) {
+  return (
+    <figure className="my-3 max-w-[440px]">
+      <Image
+        src={src}
+        alt={alt}
+        width={w}
+        height={h}
+        className="w-full h-auto rounded border border-[color:var(--rule)]"
+      />
+      {caption && (
+        <figcaption className="text-xs text-[color:var(--muted)] mt-1.5 italic">
+          {caption}
+        </figcaption>
+      )}
+    </figure>
+  );
 }
