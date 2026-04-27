@@ -90,9 +90,10 @@ function Playbook() {
                 Avoid chains.
               </LI>
               <LI>
-                <strong>Day and time.</strong> Friday or Saturday evenings, or Sunday
-                lunch. Be mindful of traffic. Encourage people to arrive a few minutes
-                early so ordering does not start before everyone is there.
+                <strong>Day and time.</strong> Friday or Saturday evenings, Saturday
+                or Sunday brunch, or Sunday lunch. Be mindful of traffic. Encourage
+                people to arrive a few minutes early so ordering does not start
+                before everyone is there.
               </LI>
               <LI>
                 <strong>Drinks policy.</strong> Default to drinks on your own tab (food
