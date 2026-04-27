@@ -170,7 +170,11 @@ function Playbook() {
               </LI>
               <LI>Admin rights for you and your co-host.</LI>
               <LI>The group description populated with your details.</LI>
-              <LI>The announcement post in the General and Foodies chats.</LI>
+              <LI>
+                The announcement post in three places: the General chat, the Foodies
+                subgroup, and the relevant regional group (e.g. the Peninsula group
+                for a South Bay event, the East Bay group for Berkeley / Oakland, etc.).
+              </LI>
             </UL>
             <P>
               From there, the event is yours to run. Loop the organizer back in if
@@ -204,6 +208,14 @@ function Playbook() {
               The announcement only needs theme, date and time, general area, and
               hosts. Everything else can be added to the group description as it firms
               up.
+            </P>
+            <P>
+              If you&rsquo;d rather post the announcement yourself in any of the three
+              places (General, Foodies, regional group) instead of having the
+              organizer do it, that&rsquo;s fine — but use the standardized template
+              the organizer would have used. Consistent copy across all three groups
+              keeps Foodies events easy to recognize and easy for the community to
+              manage.
             </P>
           </Section>
 
