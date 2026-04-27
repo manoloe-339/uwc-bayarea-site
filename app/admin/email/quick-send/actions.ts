@@ -9,6 +9,65 @@ import { renderEmailHtml, renderEmailText } from "@/lib/email";
 const EMAIL_FIND_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g;
 const MAX_PER_SEND = 200;
 
+export type ExtractedRecipient = {
+  email: string;
+  parsedName: string | null;
+  parsedFirstName: string | null;
+};
+
+/**
+ * Walk the input line-by-line. For each email, the candidate "name" is text
+ * on the same line *before* the email (e.g. "First Last <email>" — Outlook
+ * style), or the most recent non-empty line above (e.g. "First Last\nemail").
+ * Best-effort heuristic; works for typical paste shapes.
+ */
+export function extractRecipients(raw: string): ExtractedRecipient[] {
+  const lines = raw.split(/\r?\n/);
+  const seen = new Set<string>();
+  const out: ExtractedRecipient[] = [];
+
+  let prevNonEmpty: string | null = null;
+
+  for (const line of lines) {
+    const emailsInLine = [...line.matchAll(EMAIL_FIND_RE)];
+    if (emailsInLine.length === 0) {
+      const trimmed = line.trim();
+      prevNonEmpty = trimmed || null;
+      continue;
+    }
+
+    for (const m of emailsInLine) {
+      const email = m[0].toLowerCase();
+      if (seen.has(email)) continue;
+      seen.add(email);
+
+      let nameText = line.slice(0, m.index ?? 0).trim();
+      nameText = nameText.replace(/<\s*$/, "").replace(/[“”"']/g, "").trim();
+
+      if (!nameText && prevNonEmpty) {
+        nameText = prevNonEmpty.replace(/[“”"']/g, "").trim();
+      }
+
+      const parsedName = nameText || null;
+      const parsedFirstName = extractFirstName(parsedName);
+      out.push({ email, parsedName, parsedFirstName });
+    }
+
+    prevNonEmpty = null;
+  }
+
+  return out;
+}
+
+function extractFirstName(name: string | null): string | null {
+  if (!name) return null;
+  const cleaned = name.replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  if (!cleaned) return null;
+  const firstWord = cleaned.split(" ")[0];
+  if (!/^[A-Za-zÀ-ſ][A-Za-zÀ-ſ'\-]*$/.test(firstWord)) return null;
+  return firstWord;
+}
+
 export type QuickSendResult =
   | { ok: true; campaignId: string; sent: number; failed: number; matched: number; unmatched: number; unsubscribed: number; invalid: number }
   | { ok: false; error: string };
@@ -22,28 +81,17 @@ type AlumniMatch = {
 };
 
 export async function parseAndPreview(rawEmails: string): Promise<{
-  valid: { email: string; alumni_id: number | null; first_name: string | null }[];
+  valid: { email: string; alumni_id: number | null; first_name: string | null; source: "parsed" | "alumni" | null }[];
   invalid: string[];
   unsubscribed: { email: string; first_name: string | null }[];
   duplicates: number;
 }> {
-  const found = rawEmails.match(EMAIL_FIND_RE) ?? [];
-  const seen = new Set<string>();
-  const accepted: string[] = [];
-  const invalid: string[] = [];
-  let duplicates = 0;
-  for (const t of found) {
-    const lc = t.toLowerCase();
-    if (seen.has(lc)) {
-      duplicates++;
-      continue;
-    }
-    seen.add(lc);
-    accepted.push(lc);
-  }
+  const extracted = extractRecipients(rawEmails);
+  const accepted = extracted.map((r) => r.email);
+  const duplicates = (rawEmails.match(EMAIL_FIND_RE)?.length ?? 0) - accepted.length;
 
   if (accepted.length === 0) {
-    return { valid: [], invalid, unsubscribed: [], duplicates };
+    return { valid: [], invalid: [], unsubscribed: [], duplicates: Math.max(0, duplicates) };
   }
 
   const matches = (await sql`
@@ -54,22 +102,30 @@ export async function parseAndPreview(rawEmails: string): Promise<{
   const byEmail = new Map<string, AlumniMatch>();
   for (const m of matches) byEmail.set(m.email, m);
 
-  const valid: { email: string; alumni_id: number | null; first_name: string | null }[] = [];
+  const valid: { email: string; alumni_id: number | null; first_name: string | null; source: "parsed" | "alumni" | null }[] = [];
   const unsubscribed: { email: string; first_name: string | null }[] = [];
-  for (const e of accepted) {
-    const m = byEmail.get(e);
+  for (const r of extracted) {
+    const m = byEmail.get(r.email);
     if (m && (m.subscribed === false || m.email_invalid === true)) {
-      unsubscribed.push({ email: e, first_name: m.first_name });
+      unsubscribed.push({ email: r.email, first_name: r.parsedFirstName ?? m.first_name });
       continue;
     }
+    // Prefer name parsed from the paste (admin's intent) over alumni record.
+    const firstName = r.parsedFirstName ?? m?.first_name ?? null;
+    const source: "parsed" | "alumni" | null = r.parsedFirstName
+      ? "parsed"
+      : m?.first_name
+      ? "alumni"
+      : null;
     valid.push({
-      email: e,
+      email: r.email,
       alumni_id: m?.id ?? null,
-      first_name: m?.first_name ?? null,
+      first_name: firstName,
+      source,
     });
   }
 
-  return { valid, invalid, unsubscribed, duplicates };
+  return { valid, invalid: [], unsubscribed, duplicates: Math.max(0, duplicates) };
 }
 
 function buildBody(args: {
@@ -94,7 +150,8 @@ export async function sendQuickList(_prev: QuickSendResult | null, fd: FormData)
   if (!subject) return { ok: false, error: "Subject is required" };
   if (!body) return { ok: false, error: "Body is required" };
 
-  const { valid, invalid, unsubscribed } = await parseAndPreview(rawEmails);
+  const { valid, unsubscribed } = await parseAndPreview(rawEmails);
+  const invalid: string[] = [];
   if (valid.length === 0) {
     return { ok: false, error: "No valid, deliverable email addresses to send to" };
   }

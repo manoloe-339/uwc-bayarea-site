@@ -4,25 +4,53 @@ import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { sendQuickList, type QuickSendResult } from "./actions";
 
-// Find email-shaped substrings anywhere in the input — tolerates names,
-// angle brackets, parentheses, etc.
+// Find email-shaped substrings anywhere in the input.
 const EMAIL_FIND_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g;
 
-function quickParse(raw: string): { valid: string[]; invalid: string[]; duplicates: number } {
-  const matches = raw.match(EMAIL_FIND_RE) ?? [];
+type ParsedRow = { email: string; parsedName: string | null; firstName: string | null };
+
+function extractFirstName(name: string | null): string | null {
+  if (!name) return null;
+  const cleaned = name.replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  if (!cleaned) return null;
+  const firstWord = cleaned.split(" ")[0];
+  if (!/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'\-]*$/.test(firstWord)) return null;
+  return firstWord;
+}
+
+function quickParse(raw: string): { rows: ParsedRow[]; duplicates: number } {
+  const lines = raw.split(/\r?\n/);
   const seen = new Set<string>();
-  const valid: string[] = [];
+  const rows: ParsedRow[] = [];
+  let prevNonEmpty: string | null = null;
   let duplicates = 0;
-  for (const t of matches) {
-    const lc = t.toLowerCase();
-    if (seen.has(lc)) {
-      duplicates++;
+
+  for (const line of lines) {
+    const matches = [...line.matchAll(EMAIL_FIND_RE)];
+    if (matches.length === 0) {
+      const trimmed = line.trim();
+      prevNonEmpty = trimmed || null;
       continue;
     }
-    seen.add(lc);
-    valid.push(lc);
+    for (const m of matches) {
+      const email = m[0].toLowerCase();
+      if (seen.has(email)) {
+        duplicates++;
+        continue;
+      }
+      seen.add(email);
+
+      let nameText = line.slice(0, m.index ?? 0).trim();
+      nameText = nameText.replace(/<\s*$/, "").replace(/[“”"']/g, "").trim();
+      if (!nameText && prevNonEmpty) {
+        nameText = prevNonEmpty.replace(/[“”"']/g, "").trim();
+      }
+      const parsedName = nameText || null;
+      rows.push({ email, parsedName, firstName: extractFirstName(parsedName) });
+    }
+    prevNonEmpty = null;
   }
-  return { valid, invalid: [], duplicates };
+  return { rows, duplicates };
 }
 
 export default function QuickSendForm() {
@@ -41,7 +69,7 @@ export default function QuickSendForm() {
   const canSend =
     subject.trim().length > 0 &&
     body.trim().length > 0 &&
-    parsed.valid.length > 0 &&
+    parsed.rows.length > 0 &&
     !pending;
 
   if (state?.ok) {
@@ -112,7 +140,7 @@ export default function QuickSendForm() {
               onChange={(e) => setIncludeFirstName(e.target.checked)}
               className="accent-navy"
             />
-            Include first name (alumni-matched only)
+            Include first name (parsed from paste, or alumni record)
           </label>
         </div>
 
@@ -155,23 +183,43 @@ export default function QuickSendForm() {
         </label>
         <div className="mt-3 text-xs text-[color:var(--muted)] space-y-0.5">
           <div>
-            <strong className="text-[color:var(--navy-ink)]">{parsed.valid.length}</strong>{" "}
-            valid email{parsed.valid.length === 1 ? "" : "s"}
+            <strong className="text-[color:var(--navy-ink)]">{parsed.rows.length}</strong>{" "}
+            recipient{parsed.rows.length === 1 ? "" : "s"} found
             {parsed.duplicates > 0 && ` · ${parsed.duplicates} duplicate${parsed.duplicates === 1 ? "" : "s"} removed`}
-            {parsed.invalid.length > 0 && ` · ${parsed.invalid.length} invalid skipped`}
           </div>
-          {parsed.invalid.length > 0 && (
-            <div className="text-rose-700">
-              Invalid: {parsed.invalid.slice(0, 5).join(", ")}
-              {parsed.invalid.length > 5 && ` … (+${parsed.invalid.length - 5} more)`}
-            </div>
-          )}
           <div className="italic">
-            On send, we look up each email in the alumni DB. Matched recipients use
-            their first name + tracked unsubscribe link; non-matched recipients
-            get the generic salutation. Unsubscribed alumni are auto-skipped.
+            Names parsed from before/around each address. On send we also look up
+            the alumni DB; the parsed name wins if present, otherwise the alumni
+            first name fills in. Unsubscribed alumni are auto-skipped.
           </div>
         </div>
+
+        {parsed.rows.length > 0 && (
+          <div className="mt-3 border border-[color:var(--rule)] rounded-[10px] divide-y divide-[color:var(--rule)] max-h-72 overflow-y-auto">
+            {parsed.rows.map((r) => {
+              const greeting =
+                includeFirstName && (r.firstName || "").length > 0
+                  ? `${salutation.trim() || "Hi"} ${r.firstName},`
+                  : `${salutation.trim() || "Hi"} there,`;
+              return (
+                <div
+                  key={r.email}
+                  className="px-3 py-2 flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[color:var(--navy-ink)] truncate">
+                      {r.parsedName ?? <span className="italic text-[color:var(--muted)]">(no name detected)</span>}
+                    </div>
+                    <div className="text-[color:var(--muted)] truncate">{r.email}</div>
+                  </div>
+                  <div className="text-[color:var(--muted)] font-mono whitespace-nowrap">
+                    → {greeting}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {state && !state.ok && (
@@ -188,7 +236,7 @@ export default function QuickSendForm() {
             onClick={() => setConfirming(true)}
             className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold disabled:opacity-50"
           >
-            Continue → ({parsed.valid.length})
+            Continue → ({parsed.rows.length})
           </button>
         ) : (
           <>
@@ -197,7 +245,7 @@ export default function QuickSendForm() {
               disabled={pending}
               className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold disabled:opacity-50"
             >
-              {pending ? "Sending…" : `Send to ${parsed.valid.length} recipient${parsed.valid.length === 1 ? "" : "s"}`}
+              {pending ? "Sending…" : `Send to ${parsed.rows.length} recipient${parsed.rows.length === 1 ? "" : "s"}`}
             </button>
             <button
               type="button"
