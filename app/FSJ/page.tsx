@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import PageviewBeacon from "@/components/analytics/PageviewBeacon";
 
 export const metadata = {
   title: "How to Host a UWC Bay Area Foodies Event",
@@ -20,6 +21,7 @@ export default async function FoodiesSanJosePage({
 
   return (
     <>
+      <PageviewBeacon path={view === "checklist" ? "/FSJ?view=checklist" : "/FSJ"} />
       <SiteHeader />
       <main className="bg-ivory">
         <article className="max-w-[680px] mx-auto px-5 sm:px-7 py-8 sm:py-14 text-[15px] sm:text-base">
