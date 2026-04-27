@@ -9,7 +9,7 @@ import { renderEmailHtml, renderEmailText } from "@/lib/email";
 const EMAIL_FIND_RE = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g;
 const MAX_PER_SEND = 200;
 
-export type ExtractedRecipient = {
+type ExtractedRecipient = {
   email: string;
   parsedName: string | null;
   parsedFirstName: string | null;
@@ -20,8 +20,11 @@ export type ExtractedRecipient = {
  * on the same line *before* the email (e.g. "First Last <email>" — Outlook
  * style), or the most recent non-empty line above (e.g. "First Last\nemail").
  * Best-effort heuristic; works for typical paste shapes.
+ *
+ * Internal helper, NOT exported: files with "use server" may only export
+ * async functions (server actions). Keeping this private avoids that error.
  */
-export function extractRecipients(raw: string): ExtractedRecipient[] {
+function extractRecipients(raw: string): ExtractedRecipient[] {
   const lines = raw.split(/\r?\n/);
   const seen = new Set<string>();
   const out: ExtractedRecipient[] = [];
