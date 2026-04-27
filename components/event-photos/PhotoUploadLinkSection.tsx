@@ -27,7 +27,7 @@ export function PhotoUploadLinkSection({
   const [, startTransition] = useTransition();
 
   const fullUrl = token
-    ? `${appUrl.replace(/\/+$/, "")}/events/${eventSlug}/photos/upload/${token}`
+    ? `${appUrl.replace(/\/+$/, "")}/p/${token}`
     : "";
 
   const handleGenerate = async () => {

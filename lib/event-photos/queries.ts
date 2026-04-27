@@ -117,7 +117,8 @@ export async function getEventByUploadToken(token: string): Promise<EventForUplo
 
 export async function generateUploadToken(eventId: number): Promise<string> {
   const { randomBytes } = await import("node:crypto");
-  const token = randomBytes(32).toString("hex");
+  // 12 random bytes -> 16-char base64url; ~96 bits of entropy.
+  const token = randomBytes(12).toString("base64url");
   await sql`
     UPDATE events
     SET photo_upload_token = ${token}, photo_upload_enabled = TRUE
