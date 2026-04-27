@@ -4,6 +4,8 @@ import { fmtDateTime } from "@/lib/admin-time";
 
 export const dynamic = "force-dynamic";
 
+type View = "campaigns" | "other";
+
 type CampaignRow = {
   id: string;
   subject: string;
@@ -20,6 +22,24 @@ type CampaignRow = {
   clicked: number;
 };
 
+type OtherEmailRow = {
+  id: string;
+  kind: string | null;
+  email: string;
+  subject: string;
+  status: string | null;
+  sent_at: string | null;
+  opened_at: string | null;
+  clicked_at: string | null;
+  bounced_at: string | null;
+  event_attendee_id: number | null;
+  alumni_id: number | null;
+  event_slug: string | null;
+  event_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+};
+
 const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   draft:      { label: "Draft",     bg: "#E7DFC8", fg: "#5a6477" },
   scheduled:  { label: "Scheduled", bg: "#DBE7F3", fg: "#01488A" },
@@ -29,14 +49,71 @@ const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   cancelled:  { label: "Cancelled", bg: "#F3F4F6", fg: "#6B7280" },
 };
 
+const KIND_META: Record<string, { label: string; bg: string; fg: string }> = {
+  signup_invite:  { label: "Signup invite",  bg: "#DBE7F3", fg: "#01488A" },
+  event_reminder: { label: "Event reminder", bg: "#E0F2E9", fg: "#065F46" },
+};
+
 const fmtDate = fmtDateTime;
 
 export default async function CampaignsListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; format?: string; mode?: string }>;
+  searchParams: Promise<{ status?: string; format?: string; mode?: string; view?: string; kind?: string }>;
 }) {
   const sp = await searchParams;
+  const view: View = sp.view === "other" ? "other" : "campaigns";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Campaigns</h1>
+          <p className="text-[color:var(--muted)] text-sm">
+            {view === "other"
+              ? "Signup invites and event reminders — sent ad-hoc, not part of a campaign."
+              : "Email drafts, scheduled sends, and past campaigns."}
+          </p>
+        </div>
+        {view === "campaigns" && (
+          <Link
+            href="/admin/email/campaigns/new"
+            className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold tracking-wide"
+          >
+            New campaign →
+          </Link>
+        )}
+      </div>
+
+      <div className="flex items-center gap-1 border-b border-[color:var(--rule)] mb-5">
+        <Link
+          href="/admin/email/campaigns"
+          className={`px-3 py-2 text-sm border-b-2 -mb-px ${
+            view === "campaigns"
+              ? "border-navy text-navy font-semibold"
+              : "border-transparent text-[color:var(--muted)] hover:text-navy"
+          }`}
+        >
+          Campaigns
+        </Link>
+        <Link
+          href="/admin/email/campaigns?view=other"
+          className={`px-3 py-2 text-sm border-b-2 -mb-px ${
+            view === "other"
+              ? "border-navy text-navy font-semibold"
+              : "border-transparent text-[color:var(--muted)] hover:text-navy"
+          }`}
+        >
+          Other emails
+        </Link>
+      </div>
+
+      {view === "campaigns" ? <CampaignsTable sp={sp} /> : <OtherEmailsTable sp={sp} />}
+    </div>
+  );
+}
+
+async function CampaignsTable({ sp }: { sp: { status?: string; format?: string } }) {
   const statusFilter = sp.status && sp.status !== "all" ? sp.status : null;
   const formatFilter = sp.format && sp.format !== "all" ? sp.format : null;
 
@@ -57,23 +134,7 @@ export default async function CampaignsListPage({
   `) as CampaignRow[];
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Campaigns</h1>
-          <p className="text-[color:var(--muted)] text-sm">
-            Email drafts, scheduled sends, and past campaigns.
-          </p>
-        </div>
-        <Link
-          href="/admin/email/campaigns/new"
-          className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold tracking-wide"
-        >
-          New campaign →
-        </Link>
-      </div>
-
-      {/* Filter bar */}
+    <>
       <div className="flex flex-wrap items-end gap-4 bg-white border border-[color:var(--rule)] rounded-[10px] p-4 mb-5">
         <FilterLinks
           label="Status"
@@ -87,6 +148,7 @@ export default async function CampaignsListPage({
             { value: "failed", label: "Failed" },
             { value: "cancelled", label: "Cancelled" },
           ]}
+          basePath="/admin/email/campaigns"
         />
         <FilterLinks
           label="Format"
@@ -97,6 +159,7 @@ export default async function CampaignsListPage({
             { value: "quick_note", label: "Quick note" },
             { value: "newsletter", label: "Newsletter" },
           ]}
+          basePath="/admin/email/campaigns"
         />
       </div>
 
@@ -189,17 +252,156 @@ export default async function CampaignsListPage({
           </table>
         </div>
       )}
-    </div>
+    </>
+  );
+}
+
+async function OtherEmailsTable({ sp }: { sp: { kind?: string } }) {
+  const kindFilter = sp.kind && sp.kind !== "all" ? sp.kind : null;
+
+  const rows = (await sql`
+    SELECT
+      s.id, s.kind, s.email, s.subject, s.status,
+      s.sent_at, s.opened_at, s.clicked_at, s.bounced_at,
+      s.event_attendee_id, s.alumni_id,
+      e.slug AS event_slug, e.name AS event_name,
+      a.first_name, a.last_name
+    FROM email_sends s
+    LEFT JOIN event_attendees ea ON ea.id = s.event_attendee_id
+    LEFT JOIN events e ON e.id = ea.event_id
+    LEFT JOIN alumni a ON a.id = COALESCE(s.alumni_id, ea.alumni_id)
+    WHERE s.campaign_id IS NULL
+      AND (${kindFilter}::text IS NULL OR s.kind = ${kindFilter})
+    ORDER BY s.sent_at DESC NULLS LAST, s.id DESC
+    LIMIT 200
+  `) as OtherEmailRow[];
+
+  return (
+    <>
+      <div className="flex flex-wrap items-end gap-4 bg-white border border-[color:var(--rule)] rounded-[10px] p-4 mb-5">
+        <FilterLinks
+          label="Kind"
+          param="kind"
+          current={sp.kind ?? "all"}
+          options={[
+            { value: "all", label: "All" },
+            { value: "signup_invite", label: "Signup invites" },
+            { value: "event_reminder", label: "Event reminders" },
+          ]}
+          basePath="/admin/email/campaigns?view=other"
+        />
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-12 text-center">
+          <h2 className="font-sans text-xl font-bold text-[color:var(--navy-ink)] mb-2">
+            Nothing here yet
+          </h2>
+          <p className="text-sm text-[color:var(--muted)]">
+            Signup invites and event reminders will appear here as they go out.
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-ivory-2 text-[11px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)]">
+              <tr>
+                <th className="text-left px-4 py-2.5">Kind</th>
+                <th className="text-left px-4 py-2.5">Recipient</th>
+                <th className="text-left px-4 py-2.5">Subject</th>
+                <th className="text-left px-4 py-2.5">Event</th>
+                <th className="text-left px-4 py-2.5">Status</th>
+                <th className="text-left px-4 py-2.5">Sent</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const kindMeta = KIND_META[r.kind ?? ""] ?? {
+                  label: r.kind ?? "—",
+                  bg: "#F3F4F6",
+                  fg: "#374151",
+                };
+                const fullName = [r.first_name, r.last_name].filter(Boolean).join(" ");
+                const status = r.bounced_at
+                  ? "bounced"
+                  : r.clicked_at
+                  ? "clicked"
+                  : r.opened_at
+                  ? "opened"
+                  : r.status === "sent"
+                  ? "sent"
+                  : r.status ?? "—";
+                const statusMeta: { bg: string; fg: string } =
+                  status === "clicked"
+                    ? { bg: "#D1FAE5", fg: "#065F46" }
+                    : status === "opened"
+                    ? { bg: "#DBE7F3", fg: "#01488A" }
+                    : status === "bounced"
+                    ? { bg: "#FEE2E2", fg: "#991B1B" }
+                    : status === "sent"
+                    ? { bg: "#F3F4F6", fg: "#374151" }
+                    : { bg: "#F3F4F6", fg: "#6B7280" };
+                return (
+                  <tr key={r.id} className="border-t border-[color:var(--rule)] hover:bg-ivory">
+                    <td className="px-4 py-2.5">
+                      <span
+                        className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-sm"
+                        style={{ background: kindMeta.bg, color: kindMeta.fg }}
+                      >
+                        {kindMeta.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="text-[color:var(--navy-ink)]">{fullName || r.email}</div>
+                      {fullName && (
+                        <div className="text-[11px] text-[color:var(--muted)]">{r.email}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-[color:var(--navy-ink)]">
+                      {r.subject || <span className="italic text-[color:var(--muted)]">(no subject)</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs">
+                      {r.event_slug ? (
+                        <Link
+                          href={`/admin/ticket-events/${r.event_slug}/attendees`}
+                          className="text-navy hover:underline"
+                        >
+                          {r.event_name}
+                        </Link>
+                      ) : (
+                        <span className="text-[color:var(--muted)]">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span
+                        className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-sm"
+                        style={{ background: statusMeta.bg, color: statusMeta.fg }}
+                      >
+                        {status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-[color:var(--muted)]">
+                      {fmtDate(r.sent_at)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
   );
 }
 
 function FilterLinks({
-  label, param, current, options,
+  label, param, current, options, basePath,
 }: {
   label: string;
   param: string;
   current: string;
   options: { value: string; label: string }[];
+  basePath: string;
 }) {
   return (
     <div>
@@ -209,9 +411,8 @@ function FilterLinks({
       <div className="flex flex-wrap gap-1.5 text-xs">
         {options.map((o) => {
           const active = current === o.value;
-          const href = o.value === "all"
-            ? (param === "status" ? "/admin/email/campaigns" : `/admin/email/campaigns?status=${current}`)
-            : `/admin/email/campaigns?${param}=${o.value}`;
+          const sep = basePath.includes("?") ? "&" : "?";
+          const href = o.value === "all" ? basePath : `${basePath}${sep}${param}=${o.value}`;
           return (
             <Link
               key={o.value}
