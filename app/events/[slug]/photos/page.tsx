@@ -39,9 +39,6 @@ export default async function PublicEventPhotosPage({
         {dateLabel && (
           <p className="text-[color:var(--muted)] text-sm">{dateLabel}</p>
         )}
-        {event.location && (
-          <p className="text-[color:var(--muted)] text-sm">{event.location}</p>
-        )}
 
         <div className="mt-6" />
 
