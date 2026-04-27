@@ -22,11 +22,6 @@ export function PublicGalleryGrid({ photos }: { photos: EventPhoto[] }) {
 
       {supporting.length > 0 && (
         <section>
-          {marquee.length > 0 && (
-            <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-3">
-              More photos
-            </h2>
-          )}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {supporting.map((p, i) => (
               <button
@@ -132,8 +127,8 @@ function MarqueeLayout({
   const [hero, second, third, ...rest] = marquee;
   return (
     <>
-      {/* Mobile: stack all three at 16:9. Desktop: magazine grid. */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 sm:grid-rows-2 gap-3 sm:aspect-[16/9]">
+      {/* Mobile: stack all three at 16:9. Desktop: magazine grid (3:2 container). */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 sm:grid-rows-2 gap-3 sm:aspect-[3/2]">
         <MarqueePhoto
           photo={hero}
           onClick={() => onOpen(0)}

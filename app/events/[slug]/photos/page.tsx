@@ -43,11 +43,7 @@ export default async function PublicEventPhotosPage({
           <p className="text-[color:var(--muted)] text-sm">{event.location}</p>
         )}
 
-        <p className="text-[color:var(--muted)] text-sm mt-6 mb-4">
-          {photos.length === 0
-            ? ""
-            : `${photos.length} photo${photos.length === 1 ? "" : "s"}`}
-        </p>
+        <div className="mt-6" />
 
         {photos.length === 0 ? (
           <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)]">
