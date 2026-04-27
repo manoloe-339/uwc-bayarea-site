@@ -84,6 +84,8 @@ export function PhotoUploadLinkSection({
       )}`
     : "";
 
+  const publicGalleryUrl = `${appUrl.replace(/\/+$/, "")}/events/${eventSlug}/photos`;
+
   return (
     <section className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 mb-6">
       <div className="flex items-baseline justify-between flex-wrap gap-2 mb-3">
@@ -152,7 +154,15 @@ export function PhotoUploadLinkSection({
               rel="noreferrer"
               className="text-xs font-semibold text-navy border border-navy px-3 py-1.5 rounded hover:bg-navy hover:text-white"
             >
-              Preview page
+              Open upload page
+            </a>
+            <a
+              href={publicGalleryUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs font-semibold text-navy border border-navy px-3 py-1.5 rounded hover:bg-navy hover:text-white"
+            >
+              Open public gallery
             </a>
             <button
               type="button"

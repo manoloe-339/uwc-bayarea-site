@@ -9,3 +9,4 @@ export { PhotoUploadZone } from "./PhotoUploadZone";
 export { PhotoUploadZoneWrapper } from "./PhotoUploadZoneWrapper";
 export { AttendeePhotoUploadZone } from "./AttendeePhotoUploadZone";
 export { PhotoUploadLinkSection } from "./PhotoUploadLinkSection";
+export { PublicGalleryGrid } from "./PublicGalleryGrid";
