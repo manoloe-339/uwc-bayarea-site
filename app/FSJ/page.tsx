@@ -199,7 +199,9 @@ function Playbook() {
             <UL>
               <LI>
                 <strong>Targeted email.</strong> A short note with the link to the
-                WhatsApp subgroup, sent to alumni in the area.
+                WhatsApp subgroup, sent to alumni in the area. We will be sending a
+                newsletter on Saturday May 2, right after our big May 1 event, so
+                this can be folded into that.
               </LI>
               <LI>
                 <strong>Database outreach.</strong> I can pull alumni in the relevant
