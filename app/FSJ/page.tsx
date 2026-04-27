@@ -216,19 +216,19 @@ function Playbook() {
               below. Consistent copy across all three groups keeps Foodies events
               easy to recognize and easy for the community to manage.
             </P>
-            <Template title="Announcement template (paste in General, Foodies, and the regional group):">
-{`🍜 NEW: UWC Foodies — [City], [Day Month] ([Day-of-week])
+            <Template title="Sample announcement — San Jose, May 8 (adapt for your event):">
+{`🍜 NEW: UWC Foodies — San Jose, May 8 (Friday)
 
-[1–2 sentence hook about the cuisine and feel.]
+Kicking off Foodies in the South Bay! Vietnamese dinner in Little Saigon, family-run spot, ~6:30 PM start.
 
-📅 [Day Month], [Time]
-📍 [City], [Neighborhood / general area] (exact restaurant locked in soon)
-👋 Hosted by [Host 1] ([College]) + [Host 2] ([College])
+📅 Friday May 8, 6:30 PM
+📍 San Jose, Little Saigon area (exact restaurant locked in soon)
+👋 Hosted by Lale (UWC Mostar) + Jaap (Waterford Kamhlaba)
 
-~$[low]–[high] pp before drinks. [Ordering style] — let us know in the subgroup if you have dietary needs and we'll work around it.
+~$30–35 pp before drinks. Family-style ordering — let us know in the subgroup if you have dietary needs and we'll work around it.
 
 Want in? Join the subgroup → [WhatsApp invite link]
-RSVP cutoff: [Date].
+RSVP cutoff: Tuesday May 5.
 
 Questions? DM either of us or drop them in the subgroup.`}
             </Template>
@@ -340,14 +340,14 @@ Questions? DM either of us or drop them in the subgroup.`}
                   h={630}
                   caption="Sample group description: deposit, RSVP deadline, ordering style, where to ask questions."
                 />
-                <Template title="Group description template (set on the subgroup itself):">
-{`[City] [Cuisine] [Meal] · [Day Month]
+                <Template title="Sample group description — San Jose, May 8:">
+{`San Jose Vietnamese Dinner · Friday May 8
 
-Join us for the [n-th / first] UWC Bay Area Foodies meetup in [the South Bay / East Bay / etc.]! 🍜 Details on the restaurant, time, and menu will be shared here as we confirm them.
+Join us for the first UWC Bay Area Foodies meetup in the South Bay! 🍜 Details on the restaurant, time, and menu will be shared here as we confirm them.
 
-🎫 $[amount] deposit via Venmo to confirm your spot — @[venmo-handle]
-📅 RSVP deadline: [Day Date]
-🥢 Ordering style: [family-style / individual orders with even split]
+🎫 $15 deposit via Venmo to confirm your spot — @Lale-Sample
+📅 RSVP deadline: Tuesday May 5
+🥢 Ordering style: family-style (we'll order together for the table)
 🥬 Dietary needs: drop a note here so we pick a place that works for everyone
 
 Questions? Ask here or in the main Foodies group.`}
