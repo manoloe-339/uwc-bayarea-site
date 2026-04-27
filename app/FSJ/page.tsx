@@ -151,16 +151,22 @@ function Playbook() {
               <LI>Side quest, if any.</LI>
             </UL>
 
-            <H3>Step 2: Submit the Foodies Host Form</H3>
-            <P>
-              Fill out the form (linked below) so the organizer has everything they
-              need to set up the WhatsApp subgroup and post the announcement. The form
-              has sensible defaults filled in (drinks policy, deposit amount, ordering
-              style), and is a living document you can update as details firm up.
-            </P>
-            <P className="text-[color:var(--muted)] italic">
-              [Link to form, coming soon]
-            </P>
+            <div className="line-through opacity-60">
+              <H3>Step 2: Submit the Foodies Host Form</H3>
+              <P>
+                Fill out the form (linked below) so the organizer has everything they
+                need to set up the WhatsApp subgroup and post the announcement. The form
+                has sensible defaults filled in (drinks policy, deposit amount, ordering
+                style), and is a living document you can update as details firm up.
+              </P>
+              <P className="text-[color:var(--muted)] italic">
+                [Link to form, coming soon]
+              </P>
+            </div>
+            <p className="text-xs text-[color:var(--muted)] italic mt-1">
+              Not applicable yet — the form isn&rsquo;t live. For now, send your
+              details directly to the lead organizer.
+            </p>
 
             <H3>Step 3: What the organizer sets up</H3>
             <UL>
