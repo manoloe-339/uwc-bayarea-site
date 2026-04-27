@@ -347,9 +347,19 @@ function Playbook() {
             <P>
               <strong>Day before and day of:</strong> send a reminder with address,
               time, and parking notes. Be active on WhatsApp, expect lots of
-              last-minute logistics messages. Set the payment expectation upfront: one
-              person puts the card down, everyone Venmos before leaving the table. Food
-              split evenly, drinks per your policy.
+              last-minute logistics messages.
+            </P>
+            <Screenshot
+              src="/fsj/day-of-logistics-example.png"
+              alt="Day-of WhatsApp chat: late arrivals, where to meet inside the mall, what the host is wearing, and last-minute drop-outs"
+              w={1126}
+              h={1020}
+              caption="Day-of logistics chatter: where to meet, what to wear, who can or can't make it. Plan to be on the chat."
+            />
+            <P>
+              Set the payment expectation upfront: one person puts the card down,
+              everyone Venmos before leaving the table. Food split evenly, drinks per
+              your policy.
             </P>
             <Screenshot
               src="/fsj/day-of-example.png"
