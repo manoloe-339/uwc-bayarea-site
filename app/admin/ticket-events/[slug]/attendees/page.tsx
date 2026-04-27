@@ -146,6 +146,12 @@ export default async function AttendeesPage({
           >
             Communications →
           </Link>
+          <Link
+            href={`/admin/ticket-events/${slug}/photos`}
+            className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
+          >
+            Photos →
+          </Link>
           <AddSpecialGuestButton slug={slug} />
           <a
             href={`/api/ticket-events/${slug}/export`}
