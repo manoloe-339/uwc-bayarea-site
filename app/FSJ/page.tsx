@@ -286,7 +286,7 @@ function Playbook() {
             <P>
               People trickle into the subgroup over days or weeks, often in bursts
               after announcements or reminders. New members do not see messages posted
-              before they joined. A few ways to work around this:
+              before they joined.
             </P>
             <Screenshot
               src="/fsj/late-joiners-example.png"
@@ -295,6 +295,7 @@ function Playbook() {
               h={932}
               caption="The itinerary went out at 2:42 PM. Anyone who joined after that doesn't see it."
             />
+            <P>A few ways to work around this:</P>
             <UL>
               <LI>
                 <strong>Wait for critical mass before posting key info.</strong> If you
