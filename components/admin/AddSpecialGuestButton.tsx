@@ -13,8 +13,17 @@ type AlumniHit = {
   photo_url: string | null;
 };
 
-export function AddSpecialGuestButton({ slug }: { slug: string }) {
+export function AddSpecialGuestButton({
+  slug,
+  attendeeType = "comp",
+  label,
+}: {
+  slug: string;
+  attendeeType?: "comp" | "casual";
+  label?: string;
+}) {
   const [open, setOpen] = useState(false);
+  const buttonLabel = label ?? (attendeeType === "casual" ? "+ Add attendee" : "+ Add special guest");
   return (
     <>
       <button
@@ -22,14 +31,28 @@ export function AddSpecialGuestButton({ slug }: { slug: string }) {
         onClick={() => setOpen(true)}
         className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
       >
-        + Add special guest
+        {buttonLabel}
       </button>
-      {open && <AddSpecialGuestModal slug={slug} onClose={() => setOpen(false)} />}
+      {open && (
+        <AddSpecialGuestModal
+          slug={slug}
+          attendeeType={attendeeType}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </>
   );
 }
 
-function AddSpecialGuestModal({ slug, onClose }: { slug: string; onClose: () => void }) {
+function AddSpecialGuestModal({
+  slug,
+  attendeeType,
+  onClose,
+}: {
+  slug: string;
+  attendeeType: "comp" | "casual";
+  onClose: () => void;
+}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<AlumniHit[]>([]);
   const [picked, setPicked] = useState<AlumniHit | null>(null);
@@ -90,6 +113,7 @@ function AddSpecialGuestModal({ slug, onClose }: { slug: string; onClose: () => 
           notes: notes.trim() || null,
           is_starred: starred,
           needs_followup: followup,
+          attendee_type: attendeeType,
         }),
       });
       if (!res.ok) {

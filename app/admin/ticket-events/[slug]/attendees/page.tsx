@@ -93,6 +93,7 @@ export default async function AttendeesPage({
     ? tabParam
     : "all") as Tab;
   const visible = filterForTab(tab, rows);
+  const isCasual = event.event_type === "casual";
 
   const counts = {
     all: rows.length,
@@ -134,12 +135,14 @@ export default async function AttendeesPage({
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Link
-            href={`/admin/ticket-events/${slug}/live`}
-            className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
-          >
-            Live dashboard →
-          </Link>
+          {!isCasual && (
+            <Link
+              href={`/admin/ticket-events/${slug}/live`}
+              className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
+            >
+              Live dashboard →
+            </Link>
+          )}
           <Link
             href={`/admin/ticket-events/${slug}/communications`}
             className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
@@ -152,44 +155,55 @@ export default async function AttendeesPage({
           >
             Photos →
           </Link>
-          <AddSpecialGuestButton slug={slug} />
+          <AddSpecialGuestButton slug={slug} attendeeType={isCasual ? "casual" : "comp"} />
           <a
             href={`/api/ticket-events/${slug}/export`}
             className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
           >
             Export CSV
           </a>
-          <SyncStripeButton slug={slug} lastSyncedAt={event.last_synced_at} />
+          {!isCasual && <SyncStripeButton slug={slug} lastSyncedAt={event.last_synced_at} />}
         </div>
       </div>
 
       {/* Stats */}
-      <section className="grid sm:grid-cols-4 gap-3 mb-3">
-        <Stat label="Total registered" value={rows.length} />
-        <Stat label="Paid" value={counts.paid} />
-        <Stat label="Special guests" value={counts.comp} />
-        <Stat label="Matched to alumni" value={`${matched} (${matchedPct}%)`} accent={matched < rows.length} />
-      </section>
-      <section className="grid sm:grid-cols-3 gap-3 mb-6">
-        <Stat label="Total revenue" value={fmtMoney(totalRevenue)} />
-        <Stat label="Average ticket" value={paidRows.length > 0 ? fmtMoney(avgTicket) : "—"} />
-        <Stat label="Base price (Stripe)" value={basePrice != null ? fmtMoney(basePrice) : "—"} />
-      </section>
+      {isCasual ? (
+        <section className="grid sm:grid-cols-2 gap-3 mb-6">
+          <Stat label="Total attendees" value={rows.length} />
+          <Stat label="Matched to alumni" value={`${matched} (${matchedPct}%)`} accent={matched < rows.length} />
+        </section>
+      ) : (
+        <>
+          <section className="grid sm:grid-cols-4 gap-3 mb-3">
+            <Stat label="Total registered" value={rows.length} />
+            <Stat label="Paid" value={counts.paid} />
+            <Stat label="Special guests" value={counts.comp} />
+            <Stat label="Matched to alumni" value={`${matched} (${matchedPct}%)`} accent={matched < rows.length} />
+          </section>
+          <section className="grid sm:grid-cols-3 gap-3 mb-6">
+            <Stat label="Total revenue" value={fmtMoney(totalRevenue)} />
+            <Stat label="Average ticket" value={paidRows.length > 0 ? fmtMoney(avgTicket) : "—"} />
+            <Stat label="Base price (Stripe)" value={basePrice != null ? fmtMoney(basePrice) : "—"} />
+          </section>
+        </>
+      )}
 
-      <CheckinAccessCard
-        slug={slug}
-        token={event.checkin_token}
-        pin={event.checkin_pin}
-        generatedAt={event.checkin_token_generated_at}
-      />
+      {!isCasual && (
+        <CheckinAccessCard
+          slug={slug}
+          token={event.checkin_token}
+          pin={event.checkin_pin}
+          generatedAt={event.checkin_token_generated_at}
+        />
+      )}
 
-      {(counts.review > 0 || counts.unmatched > 0 || counts.followup > 0 || counts.uwc_not_in_db > 0) && (
+      {(counts.review > 0 || counts.unmatched > 0 || counts.followup > 0 || (!isCasual && counts.uwc_not_in_db > 0)) && (
         <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 mb-6 text-sm">
           <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-2">Needs attention</div>
           <ul className="flex flex-wrap gap-4 text-[color:var(--muted)]">
             {counts.review > 0 && <li>⚠ {counts.review} needs review</li>}
             {counts.unmatched > 0 && <li>✗ {counts.unmatched} unmatched</li>}
-            {counts.uwc_not_in_db > 0 && <li>⚠ {counts.uwc_not_in_db} UWC (not in DB)</li>}
+            {!isCasual && counts.uwc_not_in_db > 0 && <li>⚠ {counts.uwc_not_in_db} UWC (not in DB)</li>}
             {counts.followup > 0 && <li>🚩 {counts.followup} follow-up</li>}
           </ul>
         </div>
@@ -198,11 +212,17 @@ export default async function AttendeesPage({
       {/* Tabs */}
       <div className="flex flex-wrap gap-1 mb-4 text-sm font-semibold">
         <Tab href={`/admin/ticket-events/${slug}/attendees?tab=all`} active={tab === "all"} count={counts.all}>All</Tab>
-        <Tab href={`/admin/ticket-events/${slug}/attendees?tab=paid`} active={tab === "paid"} count={counts.paid}>Paid</Tab>
-        <Tab href={`/admin/ticket-events/${slug}/attendees?tab=comp`} active={tab === "comp"} count={counts.comp}>Special guests</Tab>
+        {!isCasual && (
+          <>
+            <Tab href={`/admin/ticket-events/${slug}/attendees?tab=paid`} active={tab === "paid"} count={counts.paid}>Paid</Tab>
+            <Tab href={`/admin/ticket-events/${slug}/attendees?tab=comp`} active={tab === "comp"} count={counts.comp}>Special guests</Tab>
+          </>
+        )}
         <Tab href={`/admin/ticket-events/${slug}/attendees?tab=review`} active={tab === "review"} count={counts.review}>Needs review</Tab>
         <Tab href={`/admin/ticket-events/${slug}/attendees?tab=unmatched`} active={tab === "unmatched"} count={counts.unmatched}>Unmatched</Tab>
-        <Tab href={`/admin/ticket-events/${slug}/attendees?tab=uwc_not_in_db`} active={tab === "uwc_not_in_db"} count={counts.uwc_not_in_db}>⚠ UWC (not in DB)</Tab>
+        {!isCasual && (
+          <Tab href={`/admin/ticket-events/${slug}/attendees?tab=uwc_not_in_db`} active={tab === "uwc_not_in_db"} count={counts.uwc_not_in_db}>⚠ UWC (not in DB)</Tab>
+        )}
         <Tab href={`/admin/ticket-events/${slug}/attendees?tab=starred`} active={tab === "starred"} count={counts.starred}>Starred</Tab>
         <Tab href={`/admin/ticket-events/${slug}/attendees?tab=followup`} active={tab === "followup"} count={counts.followup}>Follow-up</Tab>
       </div>

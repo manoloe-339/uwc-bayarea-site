@@ -13,6 +13,7 @@ type Body = {
   notes?: string | null;
   is_starred?: boolean;
   needs_followup?: boolean;
+  attendee_type?: "comp" | "casual";
 };
 
 export async function POST(
@@ -40,6 +41,16 @@ export async function POST(
     return NextResponse.json({ error: "Invalid alumni_id" }, { status: 400 });
   }
 
+  const attendeeType = body.attendee_type === "casual" ? "casual" : "comp";
+  const isCasual = attendeeType === "casual";
+  const matchReason = alumniId
+    ? isCasual
+      ? "Casual attendee — matched to alumni"
+      : "Special guest — matched to alumni"
+    : isCasual
+    ? "Casual attendee — external"
+    : "Special guest — external";
+
   const rows = (await sql`
     INSERT INTO event_attendees (
       event_id, alumni_id, attendee_type,
@@ -48,12 +59,12 @@ export async function POST(
       match_status, match_confidence, match_reason, matched_at,
       notes, is_starred, needs_followup
     ) VALUES (
-      ${event.id}, ${alumniId}, 'comp',
+      ${event.id}, ${alumniId}, ${attendeeType},
       ${name}, ${email},
       0, NOW(),
       ${alumniId ? "matched" : "unmatched"},
       ${alumniId ? "manual" : null},
-      ${alumniId ? "Special guest — matched to alumni" : "Special guest — external"},
+      ${matchReason},
       ${alumniId ? new Date().toISOString() : null},
       ${body.notes?.trim() || null},
       ${!!body.is_starred},
