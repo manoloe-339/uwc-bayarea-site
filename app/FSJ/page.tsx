@@ -172,7 +172,7 @@ function Playbook() {
             <UL>
               <LI>
                 The WhatsApp subgroup on the Bay Area Community (e.g. &ldquo;San Jose
-                Vietnamese Dinner, Sat May 17&rdquo;), with admin approval required for
+                Vietnamese Dinner, Fri May 8&rdquo;), with admin approval required for
                 new members.
               </LI>
               <LI>Admin rights for you and your co-host.</LI>
