@@ -218,6 +218,10 @@ export default function FoodiesSanJosePage() {
               main Foodies chat and the regional group.
             </P>
             <P>
+              You and your co-host will be admins on the subgroup along with the lead
+              organizer, and approving join requests is one of your responsibilities.
+            </P>
+            <P>
               The reason: the day-of an event easily generates 50+ messages about
               parking, late arrivals, where to meet inside a mall, etc. If that traffic
               lands in the main Foodies chat or the regional group, it overwhelms
