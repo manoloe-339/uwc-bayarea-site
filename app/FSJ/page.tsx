@@ -216,6 +216,13 @@ function Playbook() {
               below. Consistent copy across all three groups keeps Foodies events
               easy to recognize and easy for the community to manage.
             </P>
+            <P>
+              This might seem like a lot, but we&rsquo;re trying a new format that we
+              hope other UWC city groups (London, Boston, etc.) will adopt — keeping
+              the look consistent makes it easy for alumni who travel between cities
+              to recognize a Foodies event the moment they see it. Thanks for your
+              understanding.
+            </P>
             <Template title="Sample announcement — San Jose, May 8 (adapt for your event):">
 {`🍜 NEW: UWC Foodies — San Jose, May 8 (Friday)
 
