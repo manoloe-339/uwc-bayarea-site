@@ -11,8 +11,8 @@ export default function FoodiesSanJosePage() {
     <>
       <SiteHeader />
       <main className="bg-ivory">
-        <article className="max-w-[760px] mx-auto px-5 sm:px-7 py-12 sm:py-16">
-          <h1 className="font-sans text-3xl sm:text-4xl font-bold text-[color:var(--navy-ink)] mb-2 leading-tight">
+        <article className="max-w-[680px] mx-auto px-5 sm:px-7 py-8 sm:py-14 text-[15px] sm:text-base">
+          <h1 className="font-sans text-[26px] sm:text-4xl font-bold text-[color:var(--navy-ink)] mb-2 leading-tight">
             How to Host a UWC Bay Area Foodies Event
           </h1>
 
@@ -151,7 +151,6 @@ export default function FoodiesSanJosePage() {
                 nudges matter more than broadcast posts.
               </LI>
             </UL>
-            <P>Just let me know if you want this kind of boost.</P>
           </Section>
 
           <Section title="Announcement now, details later">
@@ -305,8 +304,8 @@ export default function FoodiesSanJosePage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-10 first-of-type:mt-8">
-      <h2 className="font-sans text-2xl font-bold text-[color:var(--navy-ink)] mb-3 leading-tight">
+    <section className="mt-8 sm:mt-10 first-of-type:mt-7">
+      <h2 className="font-sans text-xl sm:text-2xl font-bold text-[color:var(--navy-ink)] mb-3 leading-tight">
         {title}
       </h2>
       {children}
@@ -316,7 +315,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function H3({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="font-sans text-lg font-bold text-[color:var(--navy-ink)] mt-5 mb-2">
+    <h3 className="font-sans text-[17px] sm:text-lg font-bold text-[color:var(--navy-ink)] mt-5 mb-2">
       {children}
     </h3>
   );
@@ -324,14 +323,14 @@ function H3({ children }: { children: React.ReactNode }) {
 
 function P({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <p className={`text-[color:var(--navy-ink)] leading-relaxed mb-3 ${className ?? ""}`}>
+    <p className={`text-[color:var(--navy-ink)] leading-[1.65] mb-4 ${className ?? ""}`}>
       {children}
     </p>
   );
 }
 
 function UL({ children }: { children: React.ReactNode }) {
-  return <ul className="list-disc pl-6 space-y-2 mb-3 text-[color:var(--navy-ink)] leading-relaxed">{children}</ul>;
+  return <ul className="list-disc pl-5 sm:pl-6 space-y-2 mb-4 text-[color:var(--navy-ink)] leading-[1.65]">{children}</ul>;
 }
 
 function LI({ children }: { children: React.ReactNode }) {
