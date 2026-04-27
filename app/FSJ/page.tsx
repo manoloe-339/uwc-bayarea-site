@@ -374,7 +374,7 @@ function Playbook() {
             <P>Photos go on the event page on the UWC Bay Area website.</P>
 
             <p className="text-[color:var(--muted)] text-sm mt-4 mb-2">
-              Examples — the food, people mingling, and the side quest:
+              Examples: mingling at the event, side quest, and food arrival.
             </p>
             <div className="grid grid-cols-3 gap-2 max-w-[440px]">
               {[1, 2, 3].map((n) => (
