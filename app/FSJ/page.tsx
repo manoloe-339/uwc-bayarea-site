@@ -361,17 +361,6 @@ function Playbook() {
               <strong>During:</strong> take a photo of the food when it arrives (before
               anyone digs in) and a few of people mingling. Photos are required.
             </P>
-          </Section>
-
-          <Section title="After the event">
-            <P>
-              The lead organizer will share two links with you to post in the subgroup:
-            </P>
-            <UL>
-              <LI>One for attendees to upload photos and give feedback.</LI>
-              <LI>One for hosts to give feedback.</LI>
-            </UL>
-            <P>Photos go on the event page on the UWC Bay Area website.</P>
 
             <p className="text-[color:var(--muted)] text-sm mt-4 mb-2">
               Examples: mingling at the event, side quest, and food arrival.
@@ -392,6 +381,17 @@ function Playbook() {
                 </div>
               ))}
             </div>
+          </Section>
+
+          <Section title="After the event">
+            <P>
+              The lead organizer will share two links with you to post in the subgroup:
+            </P>
+            <UL>
+              <LI>One for attendees to upload photos and give feedback.</LI>
+              <LI>One for hosts to give feedback.</LI>
+            </UL>
+            <P>Photos go on the event page on the UWC Bay Area website.</P>
           </Section>
     </>
   );
