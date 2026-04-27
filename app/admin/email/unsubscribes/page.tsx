@@ -2,6 +2,7 @@ import Link from "next/link";
 import { sql } from "@/lib/db";
 import { reasonLabel } from "@/lib/unsubscribe-reasons";
 import { fmtDate } from "@/lib/admin-time";
+import EmailTabs from "@/components/admin/EmailTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -59,10 +60,12 @@ export default async function UnsubscribesPage() {
 
   return (
     <div>
-      <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">Unsubscribes</h1>
-      <p className="text-[color:var(--muted)] text-sm mb-8">
+      <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">Emails</h1>
+      <p className="text-[color:var(--muted)] text-sm mb-4">
         {unsubscribed.toLocaleString()} unsubscribed · {subscribed.toLocaleString()} still subscribed
       </p>
+
+      <EmailTabs active="unsubscribes" />
 
       <div className="grid gap-6 lg:grid-cols-2 mb-8">
         <Card title="By reason">

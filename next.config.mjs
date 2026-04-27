@@ -28,6 +28,8 @@ const nextConfig = {
       // canonical paths so existing bookmarks keep working.
       { source: "/admin/ticket-events", destination: "/admin/events", permanent: true },
       { source: "/admin/ticket-events/:path*", destination: "/admin/events/:path*", permanent: true },
+      { source: "/admin/unsubscribes", destination: "/admin/email/unsubscribes", permanent: true },
+      { source: "/admin/unsubscribes/:path*", destination: "/admin/email/unsubscribes/:path*", permanent: true },
     ];
   },
 };
