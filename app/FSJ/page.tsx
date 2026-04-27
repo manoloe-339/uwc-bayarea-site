@@ -393,6 +393,14 @@ Questions? Ask here or in the main Foodies group.`}
                 days keeps late joiners oriented and prevents them from assuming the
                 group has gone dormant.
               </LI>
+              <LI>
+                <strong>WhatsApp&rsquo;s new &ldquo;share past messages&rdquo;
+                feature.</strong> WhatsApp recently announced a feature that lets
+                admins share past messages with new members. It wasn&rsquo;t active
+                mid-April and may not be by early May either, so don&rsquo;t count on
+                it yet — but worth checking when you set up your subgroup. If it&rsquo;s
+                live, it solves a lot of this on its own.
+              </LI>
             </UL>
           </Section>
 
