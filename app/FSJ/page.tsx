@@ -429,7 +429,6 @@ function Checklist() {
 
       <ChecklistSection title="Submit">
         <Item>Fill out the Foodies Host Form so the organizer can set things up.</Item>
-        <Item>(Optional) Ask the lead organizer for targeted email or database outreach to drive attendance.</Item>
       </ChecklistSection>
 
       <ChecklistSection title="Wait for the organizer">
@@ -457,7 +456,6 @@ function Checklist() {
       <ChecklistSection title="After the event">
         <Item>Post the attendee photo + feedback link in the subgroup.</Item>
         <Item>Post the host feedback link in the subgroup.</Item>
-        <Item>(Photos auto-flow to the event page on the UWC Bay Area website.)</Item>
       </ChecklistSection>
     </>
   );
