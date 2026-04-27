@@ -66,9 +66,10 @@ function Playbook() {
             <P>
               A UWC Bay Area Foodies event is an informal gathering of UWC alumni from
               any college, built around sharing a meal. It is inspired by the London
-              Foodies group. The format is meant to be easy to organize so we can run
-              more of these, more often, and especially outside San Francisco where
-              alumni gatherings have been harder to pull off.
+              Foodies group (h/t Michele L., UWC Mostar &rsquo;10). The format is meant
+              to be easy to organize so we can run more of these, more often, and
+              especially outside San Francisco where alumni gatherings have been harder
+              to pull off.
             </P>
             <P>
               A typical event is 5 to 12 people. Start small. Share a good meal, meet
