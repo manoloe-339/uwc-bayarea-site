@@ -116,6 +116,46 @@ export function AttendeePhotoUploadZone({ token }: { token: string }) {
 
   const doneCount = items.filter((i) => i.status === "done").length;
   const errorCount = items.filter((i) => i.status === "error").length;
+  const pendingCount = items.filter(
+    (i) => i.status === "queued" || i.status === "uploading"
+  ).length;
+
+  // "Done" state: nothing in flight, at least one success, no busy lock.
+  const showThankYou = !busy && pendingCount === 0 && doneCount > 0;
+
+  if (showThankYou) {
+    return (
+      <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-8 text-center">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-2xl">
+          ✓
+        </div>
+        <h2 className="font-sans text-2xl font-bold text-[color:var(--navy-ink)] mb-2">
+          Thanks for sharing!
+        </h2>
+        <p className="text-[color:var(--navy-ink)] mb-1">
+          {doneCount} photo{doneCount === 1 ? "" : "s"} uploaded.
+        </p>
+        <p className="text-sm text-[color:var(--muted)] mb-6">
+          We'll review and add them to the event gallery soon.
+        </p>
+        {errorCount > 0 && (
+          <p className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded px-3 py-2 mb-4">
+            {errorCount} photo{errorCount === 1 ? "" : "s"} couldn't be uploaded. You can try again.
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => setItems([])}
+          className="text-sm font-semibold text-navy border border-navy px-5 py-2 rounded hover:bg-navy hover:text-white"
+        >
+          Upload more photos
+        </button>
+        <p className="text-xs text-[color:var(--muted)] mt-6">
+          You can safely close this page.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -154,13 +194,6 @@ export function AttendeePhotoUploadZone({ token }: { token: string }) {
         </p>
       </div>
 
-      {doneCount > 0 && !busy && (
-        <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-[10px] p-4 text-sm text-emerald-900">
-          <strong>Thanks!</strong> {doneCount} photo{doneCount === 1 ? "" : "s"} uploaded.
-          They'll be reviewed before appearing in the gallery. Feel free to upload more.
-        </div>
-      )}
-
       {items.length > 0 && (
         <div className="mt-3 bg-white border border-[color:var(--rule)] rounded-[10px]">
           <div className="px-4 py-2 flex items-center justify-between border-b border-[color:var(--rule)]">
@@ -168,13 +201,6 @@ export function AttendeePhotoUploadZone({ token }: { token: string }) {
               {doneCount} / {items.length} uploaded
               {errorCount > 0 ? ` · ${errorCount} failed` : ""}
             </span>
-            <button
-              type="button"
-              onClick={() => setItems((prev) => prev.filter((it) => it.status !== "done"))}
-              className="text-xs text-[color:var(--muted)] hover:text-navy"
-            >
-              Clear completed
-            </button>
           </div>
           <ul className="divide-y divide-[color:var(--rule)] max-h-72 overflow-y-auto">
             {items.map((it) => (

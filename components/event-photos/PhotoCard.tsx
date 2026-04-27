@@ -4,9 +4,9 @@ import Image from "next/image";
 import type { EventPhoto } from "@/lib/event-photos/types";
 
 const statusBadge: Record<EventPhoto["approval_status"], { label: string; cls: string }> = {
-  approved: { label: "Approved", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  pending: { label: "Pending", cls: "bg-amber-50 text-amber-700 border-amber-200" },
-  rejected: { label: "Rejected", cls: "bg-rose-50 text-rose-700 border-rose-200" },
+  approved: { label: "Approved", cls: "bg-emerald-600 text-white border-emerald-700" },
+  pending: { label: "Pending", cls: "bg-amber-500 text-white border-amber-600" },
+  rejected: { label: "Rejected", cls: "bg-rose-600 text-white border-rose-700" },
 };
 
 export function PhotoCard({
@@ -55,7 +55,7 @@ export function PhotoCard({
         </label>
       </div>
       <div
-        className={`absolute top-2 right-2 z-10 text-[10px] tracking-[.1em] uppercase px-1.5 py-0.5 rounded border ${badge.cls}`}
+        className={`absolute top-2 right-2 z-10 text-[11px] tracking-[.1em] uppercase font-bold px-2 py-0.5 rounded border shadow-sm ${badge.cls}`}
       >
         {badge.label}
       </div>
