@@ -1,3 +1,4 @@
+import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
@@ -6,15 +7,59 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function FoodiesSanJosePage() {
+type View = "playbook" | "checklist";
+
+export default async function FoodiesSanJosePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const { view: viewParam } = await searchParams;
+  const view: View = viewParam === "checklist" ? "checklist" : "playbook";
+
   return (
     <>
       <SiteHeader />
       <main className="bg-ivory">
         <article className="max-w-[680px] mx-auto px-5 sm:px-7 py-8 sm:py-14 text-[15px] sm:text-base">
-          <h1 className="font-sans text-[26px] sm:text-4xl font-bold text-[color:var(--navy-ink)] mb-2 leading-tight">
+          <h1 className="font-sans text-[26px] sm:text-4xl font-bold text-[color:var(--navy-ink)] mb-3 leading-tight">
             How to Host a UWC Bay Area Foodies Event
           </h1>
+
+          <div className="flex items-center gap-1 border-b border-[color:var(--rule)] mb-6">
+            <Link
+              href="/FSJ"
+              className={`px-3 py-2 text-sm border-b-2 -mb-px ${
+                view === "playbook"
+                  ? "border-navy text-navy font-semibold"
+                  : "border-transparent text-[color:var(--muted)] hover:text-navy"
+              }`}
+            >
+              Playbook
+            </Link>
+            <Link
+              href="/FSJ?view=checklist"
+              className={`px-3 py-2 text-sm border-b-2 -mb-px ${
+                view === "checklist"
+                  ? "border-navy text-navy font-semibold"
+                  : "border-transparent text-[color:var(--muted)] hover:text-navy"
+              }`}
+            >
+              Checklist
+            </Link>
+          </div>
+
+          {view === "checklist" ? <Checklist /> : <Playbook />}
+        </article>
+      </main>
+      <SiteFooter />
+    </>
+  );
+}
+
+function Playbook() {
+  return (
+    <>
 
           <Section title="What this is">
             <P>
@@ -299,10 +344,85 @@ export default function FoodiesSanJosePage() {
             </UL>
             <P>Photos go on the event page on the UWC Bay Area website.</P>
           </Section>
-        </article>
-      </main>
-      <SiteFooter />
     </>
+  );
+}
+
+function Checklist() {
+  return (
+    <>
+      <p className="text-[color:var(--muted)] text-sm mb-6 leading-[1.65]">
+        A condensed working checklist of the playbook. For the full reasoning
+        behind each item, switch to the Playbook tab.
+      </p>
+
+      <ChecklistSection title="Set-up (before submitting the form)">
+        <Item>Find a co-host.</Item>
+        <Item>Pick theme or cuisine, date and time, and general area.</Item>
+        <Item>Pick a restaurant — family-run, $30–45/pp, dietary-friendly.</Item>
+        <Item>Decide ordering style: individual orders with even split, or family-style.</Item>
+        <Item>Decide drinks policy: own tab, or even split with a &ldquo;drink mindfully&rdquo; note.</Item>
+        <Item>Decide the RSVP cutoff date.</Item>
+        <Item>If a reservation is needed: agree on a $15 Venmo deposit and whose handle receives it.</Item>
+        <Item>Plan a side quest (optional).</Item>
+      </ChecklistSection>
+
+      <ChecklistSection title="Submit">
+        <Item>Fill out the Foodies Host Form so the organizer can set things up.</Item>
+        <Item>(Optional) Ask the lead organizer for targeted email or database outreach to drive attendance.</Item>
+      </ChecklistSection>
+
+      <ChecklistSection title="Wait for the organizer">
+        <Item>Confirm the WhatsApp subgroup has been created.</Item>
+        <Item>Confirm you and your co-host have admin rights.</Item>
+        <Item>Confirm the group description is populated with your details.</Item>
+      </ChecklistSection>
+
+      <ChecklistSection title="Before the event">
+        <Item>Approve join requests as they come in.</Item>
+        <Item>Track RSVPs and deposits.</Item>
+        <Item>Run a dietary poll about 4 days before; rerun if late joiners arrive.</Item>
+        <Item>Confirm the reservation with the restaurant about a week out.</Item>
+        <Item>Update the group description as details firm up.</Item>
+        <Item>Send a day-before reminder: address, time, parking notes.</Item>
+      </ChecklistSection>
+
+      <ChecklistSection title="Day of">
+        <Item>Be active on WhatsApp for last-minute logistics.</Item>
+        <Item>Set the payment expectation upfront: one card, everyone Venmos before leaving the table.</Item>
+        <Item>Take a photo of the food when it arrives, before anyone digs in.</Item>
+        <Item>Take a few photos of people mingling.</Item>
+      </ChecklistSection>
+
+      <ChecklistSection title="After the event">
+        <Item>Post the attendee photo + feedback link in the subgroup.</Item>
+        <Item>Post the host feedback link in the subgroup.</Item>
+        <Item>(Photos auto-flow to the event page on the UWC Bay Area website.)</Item>
+      </ChecklistSection>
+    </>
+  );
+}
+
+function ChecklistSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-7 first-of-type:mt-2">
+      <h2 className="font-sans text-base sm:text-lg font-bold text-[color:var(--navy-ink)] mb-3 leading-tight uppercase tracking-[.08em]">
+        {title}
+      </h2>
+      <ul className="space-y-3">{children}</ul>
+    </section>
+  );
+}
+
+function Item({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-3 text-[color:var(--navy-ink)] leading-[1.55]">
+      <span
+        aria-hidden
+        className="mt-[5px] w-[14px] h-[14px] border border-[color:var(--navy-ink)] rounded-sm shrink-0"
+      />
+      <span>{children}</span>
+    </li>
   );
 }
 
