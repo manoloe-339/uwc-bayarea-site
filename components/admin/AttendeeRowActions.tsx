@@ -25,7 +25,7 @@ type Props = {
   matchReason: string | null;
   isManualMatch: boolean;
   isStripePurchase: boolean;
-  attendeeType: "paid" | "comp" | "walk-in";
+  attendeeType: "paid" | "comp" | "walk-in" | "casual";
   displayName: string;
   associatedAlumniId: number | null;
   associatedName: string | null;

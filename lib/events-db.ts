@@ -25,6 +25,7 @@ export type EventRecord = {
   reminder_auto_sent_at: string | null;
   photo_upload_token: string | null;
   photo_upload_enabled: boolean;
+  event_type: "ticketed" | "casual";
   created_at: string;
   updated_at: string;
 };
@@ -33,7 +34,7 @@ export type AttendeeRecord = {
   id: number;
   event_id: number;
   alumni_id: number | null;
-  attendee_type: "paid" | "comp" | "walk-in";
+  attendee_type: "paid" | "comp" | "walk-in" | "casual";
   stripe_session_id: string | null;
   stripe_payment_intent_id: string | null;
   stripe_customer_email: string | null;
