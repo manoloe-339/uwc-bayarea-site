@@ -400,7 +400,7 @@ function AttendeeRow({
         uwcAffiliation={uwcAffiliation}
         eventName={eventName}
         signupInviteSentAt={a.signup_invite_sent_at}
-        canInvite={a.attendee_type === "paid" && a.alumni_id == null && !!stripeEmail}
+        canInvite={a.alumni_id == null && !!stripeEmail}
         reminderRecipient={alumniEmail ?? stripeEmail}
         qrCodeSentAt={a.qr_code_sent_at}
       />

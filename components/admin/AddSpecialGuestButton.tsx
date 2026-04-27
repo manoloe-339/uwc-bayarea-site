@@ -63,7 +63,9 @@ function AddSpecialGuestModal({
   const [followup, setFollowup] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastAdded, setLastAdded] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
   const [, startTransition] = useTransition();
   const router = useRouter();
 
@@ -95,12 +97,15 @@ function AddSpecialGuestModal({
     };
   }, [query, picked]);
 
-  const submit = async () => {
+  const submit = async (keepOpen: boolean) => {
     setError(null);
     if (!picked && !newName.trim()) {
-      setError("Pick an alumnus or enter a new guest name.");
+      setError("Pick someone or enter a new attendee name.");
       return;
     }
+    const addedDisplayName = picked
+      ? [picked.first_name, picked.last_name].filter(Boolean).join(" ") || picked.email || "attendee"
+      : newName.trim();
     setSubmitting(true);
     try {
       const res = await fetch(`/api/ticket-events/${slug}/special-guest`, {
@@ -118,10 +123,23 @@ function AddSpecialGuestModal({
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? "Failed to add guest");
+        throw new Error(body.error ?? "Failed to add attendee");
       }
       startTransition(() => router.refresh());
-      onClose();
+      if (keepOpen) {
+        setLastAdded(addedDisplayName ?? null);
+        setQuery("");
+        setResults([]);
+        setPicked(null);
+        setNewName("");
+        setNewEmail("");
+        setNotes("");
+        setStarred(false);
+        setFollowup(false);
+        setTimeout(() => searchRef.current?.focus(), 0);
+      } else {
+        onClose();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");
     } finally {
@@ -132,10 +150,19 @@ function AddSpecialGuestModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-[1px] p-4">
       <div className="bg-white rounded-[12px] shadow-xl p-6 w-full max-w-[520px] max-h-[90vh] overflow-y-auto">
-        <h2 className="font-sans font-bold text-navy text-lg mb-1">Add special guest (comp)</h2>
+        <h2 className="font-sans font-bold text-navy text-lg mb-1">
+          {attendeeType === "casual" ? "Add attendee" : "Add special guest (comp)"}
+        </h2>
         <p className="text-xs text-[color:var(--muted)] mb-4">
-          Search the alumni database to match an existing person, or enter a new guest.
+          Search the alumni database to match an existing person, or enter a new
+          {attendeeType === "casual" ? " attendee" : " guest"}.
         </p>
+
+        {lastAdded && (
+          <div className="mb-3 text-xs px-3 py-2 rounded bg-emerald-50 border border-emerald-200 text-emerald-900">
+            ✓ Added <strong>{lastAdded}</strong>. Add another below.
+          </div>
+        )}
 
         {!picked ? (
           <>
@@ -144,6 +171,7 @@ function AddSpecialGuestModal({
                 Search alumni
               </span>
               <input
+                ref={searchRef}
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -252,21 +280,29 @@ function AddSpecialGuestModal({
 
         {error && <div className="mb-3 text-sm text-red-700">{error}</div>}
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 flex-wrap">
           <button
             type="button"
             onClick={onClose}
             className="px-4 py-2 text-sm text-[color:var(--muted)] hover:text-navy"
           >
-            Cancel
+            {lastAdded ? "Done" : "Cancel"}
           </button>
           <button
             type="button"
-            onClick={submit}
+            onClick={() => submit(true)}
+            disabled={submitting}
+            className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white disabled:opacity-60"
+          >
+            {submitting ? "Adding…" : "Add another"}
+          </button>
+          <button
+            type="button"
+            onClick={() => submit(false)}
             disabled={submitting}
             className="bg-navy text-white px-5 py-2 rounded text-sm font-semibold disabled:opacity-60"
           >
-            {submitting ? "Adding…" : "Add guest"}
+            {submitting ? "Adding…" : attendeeType === "casual" ? "Add and close" : "Add guest"}
           </button>
         </div>
       </div>
