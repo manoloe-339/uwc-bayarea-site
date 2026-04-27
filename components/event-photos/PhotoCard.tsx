@@ -1,5 +1,4 @@
 "use client";
-import { useState } from "react";
 import Image from "next/image";
 import type { EventPhoto } from "@/lib/event-photos/types";
 
@@ -14,26 +13,12 @@ export function PhotoCard({
   selected,
   onToggleSelect,
   onOpen,
-  onQuickAction,
 }: {
   photo: EventPhoto;
   selected: boolean;
   onToggleSelect: (id: number, shiftKey: boolean) => void;
   onOpen: (id: number) => void;
-  onQuickAction?: (id: number, action: "approve" | "reject") => Promise<void>;
 }) {
-  const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
-  const isPending = photo.approval_status === "pending";
-
-  const runAction = async (action: "approve" | "reject") => {
-    if (!onQuickAction) return;
-    setBusy(action);
-    try {
-      await onQuickAction(photo.id, action);
-    } finally {
-      setBusy(null);
-    }
-  };
   const badge = statusBadge[photo.approval_status];
   return (
     <div
@@ -72,34 +57,6 @@ export function PhotoCard({
           className="object-cover"
         />
       </button>
-      {isPending && onQuickAction && (
-        <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              void runAction("approve");
-            }}
-            disabled={busy !== null}
-            title="Approve"
-            className="w-7 h-7 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-sm shadow disabled:opacity-50"
-          >
-            {busy === "approve" ? "…" : "✓"}
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              void runAction("reject");
-            }}
-            disabled={busy !== null}
-            title="Reject"
-            className="w-7 h-7 flex items-center justify-center bg-rose-600 hover:bg-rose-700 text-white rounded-full text-sm shadow disabled:opacity-50"
-          >
-            {busy === "reject" ? "…" : "✗"}
-          </button>
-        </div>
-      )}
     </div>
   );
 }

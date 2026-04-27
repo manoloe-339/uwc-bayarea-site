@@ -49,7 +49,14 @@ export function BulkActionsBar({
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Delete ${selectedIds.length} photo${selectedIds.length === 1 ? "" : "s"}? This cannot be undone.`)) return;
+    const n = selectedIds.length;
+    if (
+      !confirm(
+        `Permanently delete ${n} photo${n === 1 ? "" : "s"}?\n\n` +
+          `This removes ${n === 1 ? "it" : "them"} from the database AND from blob storage. This cannot be undone.`
+      )
+    )
+      return;
     setBusy("delete");
     if (await post("/api/admin/event-photos/delete")) {
       onClearSelection();

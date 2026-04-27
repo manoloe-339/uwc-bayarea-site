@@ -52,24 +52,6 @@ export function PhotoGrid({
     startTransition(() => router.refresh());
   };
 
-  const handleQuickAction = async (id: number, action: "approve" | "reject") => {
-    const path =
-      action === "approve"
-        ? "/api/admin/event-photos/approve"
-        : "/api/admin/event-photos/reject";
-    const res = await fetch(path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ photoIds: [id] }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      alert(`Error: ${err.error ?? res.statusText}`);
-      return;
-    }
-    handleMutated();
-  };
-
   if (photos.length === 0) {
     return (
       <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-sm text-[color:var(--muted)]">
@@ -103,7 +85,6 @@ export function PhotoGrid({
             selected={selectedIds.has(p.id)}
             onToggleSelect={toggleSelect}
             onOpen={() => setLightboxIndex(i)}
-            onQuickAction={handleQuickAction}
           />
         ))}
       </div>
