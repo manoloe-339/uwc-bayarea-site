@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { sql } from "@/lib/db";
 import { fmtDateTime } from "@/lib/admin-time";
+import EmailTabs from "@/components/admin/EmailTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +69,7 @@ export default async function CampaignsListPage({
     <div>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Campaigns</h1>
+          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Emails</h1>
           <p className="text-[color:var(--muted)] text-sm">
             {view === "other"
               ? "Signup invites and event reminders — sent ad-hoc, not part of a campaign."
@@ -93,28 +94,7 @@ export default async function CampaignsListPage({
         )}
       </div>
 
-      <div className="flex items-center gap-1 border-b border-[color:var(--rule)] mb-5">
-        <Link
-          href="/admin/email/campaigns"
-          className={`px-3 py-2 text-sm border-b-2 -mb-px ${
-            view === "campaigns"
-              ? "border-navy text-navy font-semibold"
-              : "border-transparent text-[color:var(--muted)] hover:text-navy"
-          }`}
-        >
-          Campaigns
-        </Link>
-        <Link
-          href="/admin/email/campaigns?view=other"
-          className={`px-3 py-2 text-sm border-b-2 -mb-px ${
-            view === "other"
-              ? "border-navy text-navy font-semibold"
-              : "border-transparent text-[color:var(--muted)] hover:text-navy"
-          }`}
-        >
-          Other emails
-        </Link>
-      </div>
+      <EmailTabs active={view === "other" ? "other" : "campaigns"} />
 
       {view === "campaigns" ? <CampaignsTable sp={sp} /> : <OtherEmailsTable sp={sp} />}
     </div>

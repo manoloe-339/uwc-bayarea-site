@@ -1,19 +1,21 @@
 import Link from "next/link";
 import { listAllInviteLists } from "@/lib/invite-lists";
 import { fmtDate } from "@/lib/admin-time";
+import EmailTabs from "@/components/admin/EmailTabs";
 
 export const dynamic = "force-dynamic";
 
-export default async function EventsIndexPage() {
+export default async function InviteListsPage() {
   const lists = await listAllInviteLists();
 
   return (
     <div className="max-w-[1000px]">
-      <div className="flex items-end justify-between mb-6">
+      <div className="flex items-end justify-between mb-4">
         <div>
-          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Event lists</h1>
+          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Emails</h1>
           <p className="text-[color:var(--muted)] text-sm">
-            {lists.length} {lists.length === 1 ? "list" : "lists"}
+            Saved alumni filters used as recipient lists for campaigns.
+            {lists.length > 0 && ` ${lists.length} ${lists.length === 1 ? "list" : "lists"}.`}
           </p>
         </div>
         <Link
@@ -23,6 +25,8 @@ export default async function EventsIndexPage() {
           Find alumni to invite
         </Link>
       </div>
+
+      <EmailTabs active="invite-lists" />
 
       {lists.length === 0 ? (
         <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-8 text-center text-sm text-[color:var(--muted)]">
