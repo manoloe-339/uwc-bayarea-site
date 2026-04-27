@@ -213,10 +213,25 @@ function Playbook() {
               If you&rsquo;d rather post the announcement yourself in any of the three
               places (General, Foodies, regional group) instead of having the
               organizer do it, that&rsquo;s fine — but use the standardized template
-              the organizer would have used. Consistent copy across all three groups
-              keeps Foodies events easy to recognize and easy for the community to
-              manage.
+              below. Consistent copy across all three groups keeps Foodies events
+              easy to recognize and easy for the community to manage.
             </P>
+            <Template title="Announcement template (paste in General, Foodies, and the regional group):">
+{`🍜 NEW: UWC Foodies — [City], [Day Month] ([Day-of-week])
+
+[1–2 sentence hook about the cuisine and feel.]
+
+📅 [Day Month], [Time]
+📍 [City], [Neighborhood / general area] (exact restaurant locked in soon)
+👋 Hosted by [Host 1] ([College]) + [Host 2] ([College])
+
+5–12 people, ~$[low]–[high] pp before drinks. [Ordering style] — let us know in the subgroup if you have dietary needs and we'll work around it.
+
+Want in? Join the subgroup → [WhatsApp invite link]
+RSVP cutoff: [Date].
+
+Questions? DM either of us or drop them in the subgroup.`}
+            </Template>
           </Section>
 
           <Section title="Hosts WhatsApp group">
@@ -325,6 +340,18 @@ function Playbook() {
                   h={630}
                   caption="Sample group description: deposit, RSVP deadline, ordering style, where to ask questions."
                 />
+                <Template title="Group description template (set on the subgroup itself):">
+{`[City] [Cuisine] [Meal] · [Day Month]
+
+Join us for the [n-th / first] UWC Bay Area Foodies meetup in [the South Bay / East Bay / etc.]! 🍜 Details on the restaurant, time, and menu will be shared here as we confirm them.
+
+🎫 $[amount] deposit via Venmo to confirm your spot — @[venmo-handle]
+📅 RSVP deadline: [Day Date]
+🥢 Ordering style: [family-style / individual orders with even split]
+🥬 Dietary needs: drop a note here so we pick a place that works for everyone
+
+Questions? Ask here or in the main Foodies group.`}
+                </Template>
               </LI>
               <LI>
                 <strong>Polls work well, but you may need to run them more than once</strong>{" "}
@@ -529,6 +556,19 @@ function UL({ children }: { children: React.ReactNode }) {
 
 function LI({ children }: { children: React.ReactNode }) {
   return <li>{children}</li>;
+}
+
+function Template({ title, children }: { title: string; children: string }) {
+  return (
+    <figure className="my-3">
+      <figcaption className="text-xs text-[color:var(--muted)] mb-1.5 italic">
+        {title}
+      </figcaption>
+      <pre className="bg-white border border-[color:var(--rule)] rounded-[10px] p-3 sm:p-4 text-[13px] leading-[1.55] whitespace-pre-wrap break-words font-sans text-[color:var(--navy-ink)]">
+        {children}
+      </pre>
+    </figure>
+  );
 }
 
 function Screenshot({
