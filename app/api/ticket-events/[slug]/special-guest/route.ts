@@ -27,7 +27,7 @@ export async function POST(
   }
 
   const body = (await req.json().catch(() => ({}))) as Body;
-  const alumniId = body.alumni_id == null ? null : Number(body.alumni_id);
+  let alumniId = body.alumni_id == null ? null : Number(body.alumni_id);
   const name = body.name?.trim() || null;
   const email = body.email?.trim() || null;
 
@@ -43,8 +43,26 @@ export async function POST(
 
   const attendeeType = body.attendee_type === "casual" ? "casual" : "comp";
   const isCasual = attendeeType === "casual";
+
+  // Auto-match by email when admin didn't pick an alumni record but
+  // typed an email that happens to match one.
+  let autoMatched = false;
+  if (alumniId == null && email) {
+    const match = (await sql`
+      SELECT id FROM alumni WHERE LOWER(email) = ${email.toLowerCase()} LIMIT 1
+    `) as { id: number }[];
+    if (match[0]) {
+      alumniId = match[0].id;
+      autoMatched = true;
+    }
+  }
+
   const matchReason = alumniId
-    ? isCasual
+    ? autoMatched
+      ? isCasual
+        ? "Casual attendee — auto-matched by email"
+        : "Special guest — auto-matched by email"
+      : isCasual
       ? "Casual attendee — matched to alumni"
       : "Special guest — matched to alumni"
     : isCasual
