@@ -1,22 +1,50 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { createEventAction } from "./actions";
 
-export const dynamic = "force-dynamic";
-
 export default function NewEventPage() {
+  const [eventType, setEventType] = useState<"ticketed" | "casual">("ticketed");
   return (
     <div className="max-w-[720px]">
       <div className="mb-4 text-sm">
         <Link href="/admin/ticket-events" className="text-[color:var(--muted)] hover:text-navy">
-          ← Ticket events
+          ← Events
         </Link>
       </div>
-      <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">New ticket event</h1>
+      <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">New event</h1>
       <p className="text-[color:var(--muted)] text-sm mb-6">
-        Create an event record. Paste the Stripe Payment Link ID so the sync button can pull purchases.
+        Ticketed events sync attendees from a Stripe Payment Link. Casual events
+        are managed manually — add attendees as RSVPs come in. Both kinds support
+        photo galleries and email reminders.
       </p>
 
       <form action={createEventAction} className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 space-y-4">
+        <fieldset>
+          <legend className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-2">
+            Event kind
+          </legend>
+          <div className="grid sm:grid-cols-2 gap-2">
+            <RadioCard
+              checked={eventType === "ticketed"}
+              onChange={() => setEventType("ticketed")}
+              name="event_type"
+              value="ticketed"
+              title="Ticketed"
+              hint="Stripe Payment Link, attendees sync from Stripe, QR check-in."
+            />
+            <RadioCard
+              checked={eventType === "casual"}
+              onChange={() => setEventType("casual")}
+              name="event_type"
+              value="casual"
+              title="Casual"
+              hint="No Stripe. Manually add attendees. Foodies, gallery-only events."
+            />
+          </div>
+        </fieldset>
+
         <Field name="name" label="Event name" placeholder="e.g. May 1 Tech Leadership Dinner" required />
         <Field name="slug" label="Slug (optional — derived from name)" placeholder="e.g. may-1-2026-dinner" />
         <div className="grid sm:grid-cols-2 gap-4">
@@ -25,10 +53,16 @@ export default function NewEventPage() {
         </div>
         <Field name="location" label="Location" placeholder="e.g. SF, TBD" />
         <TextareaField name="description" label="Description (optional)" rows={3} />
-        <Field name="stripe_payment_link_id" label="Stripe Payment Link ID" placeholder="plink_…" />
-        <p className="text-xs text-[color:var(--muted)] -mt-2">
-          Ticket price is pulled from the Payment Link on the first sync — no manual entry.
-        </p>
+
+        {eventType === "ticketed" && (
+          <>
+            <Field name="stripe_payment_link_id" label="Stripe Payment Link ID" placeholder="plink_…" />
+            <p className="text-xs text-[color:var(--muted)] -mt-2">
+              Ticket price is pulled from the Payment Link on the first sync — no manual entry.
+            </p>
+          </>
+        )}
+
         <div className="pt-2 flex justify-end gap-2">
           <Link href="/admin/ticket-events" className="px-4 py-2 text-sm text-[color:var(--muted)] hover:text-navy">
             Cancel
@@ -39,6 +73,50 @@ export default function NewEventPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+function RadioCard({
+  checked,
+  onChange,
+  name,
+  value,
+  title,
+  hint,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  name: string;
+  value: string;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <label
+      className={`block cursor-pointer border rounded-[10px] p-3 transition-colors ${
+        checked
+          ? "border-navy bg-navy/5"
+          : "border-[color:var(--rule)] hover:border-navy"
+      }`}
+    >
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={checked}
+        onChange={onChange}
+        className="sr-only"
+      />
+      <div className="flex items-center gap-2 mb-1">
+        <span
+          className={`inline-block w-3 h-3 rounded-full border-2 ${
+            checked ? "border-navy bg-navy" : "border-[color:var(--rule)]"
+          }`}
+        />
+        <span className="font-bold text-[color:var(--navy-ink)] text-sm">{title}</span>
+      </div>
+      <p className="text-xs text-[color:var(--muted)]">{hint}</p>
+    </label>
   );
 }
 
