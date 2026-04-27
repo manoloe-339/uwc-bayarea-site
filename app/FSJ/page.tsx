@@ -495,9 +495,15 @@ function Checklist() {
         <Item>Plan a side quest (optional).</Item>
       </ChecklistSection>
 
-      <ChecklistSection title="Submit">
-        <Item>Fill out the Foodies Host Form so the organizer can set things up.</Item>
-      </ChecklistSection>
+      <div className="line-through opacity-60">
+        <ChecklistSection title="Submit">
+          <Item>Fill out the Foodies Host Form so the organizer can set things up.</Item>
+        </ChecklistSection>
+      </div>
+      <p className="text-xs text-[color:var(--muted)] italic mt-1">
+        Form isn&rsquo;t live yet — for now, send your details directly to the lead
+        organizer.
+      </p>
 
       <ChecklistSection title="Wait for the organizer">
         <Item>Confirm the WhatsApp subgroup has been created.</Item>
