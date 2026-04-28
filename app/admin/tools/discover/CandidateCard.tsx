@@ -12,12 +12,12 @@ type Candidate = {
   body_snippet: string | null;
   source: string | null;
   search_query: string | null;
-  status: "new" | "probable_match" | "possible_match" | "scraped" | "added" | "rejected";
+  status: "new" | "probable_match" | "possible_match" | "confirmed" | "scraped" | "added" | "rejected";
   matched_alumni_id: number | null;
   scraped_data: unknown;
   discovered_at: string;
   triage_confidence: "high" | "medium" | "low" | null;
-  triage_role: "alum" | "teacher" | "staff" | "unrelated" | null;
+  triage_role: "alum" | "student" | "teacher" | "staff" | "unrelated" | null;
   triage_reasoning: string | null;
 };
 
@@ -29,12 +29,21 @@ const CONF_STYLE: Record<"high" | "medium" | "low", string> = {
 
 const ROLE_STYLE: Record<string, string> = {
   alum:       "bg-emerald-50 text-emerald-700 border-emerald-200",
+  student:    "bg-emerald-50 text-emerald-700 border-emerald-200",
   teacher:    "bg-amber-50 text-amber-700 border-amber-200",
   staff:      "bg-amber-50 text-amber-700 border-amber-200",
   unrelated:  "bg-rose-50 text-rose-700 border-rose-200",
 };
 
-export default function CandidateCard({ candidate }: { candidate: Candidate }) {
+export default function CandidateCard({
+  candidate,
+  selected,
+  onToggleSelect,
+}: {
+  candidate: Candidate;
+  selected?: boolean;
+  onToggleSelect?: (id: number) => void;
+}) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [busy, setBusy] = useState<"scrape" | "add" | "reject" | null>(null);
@@ -93,8 +102,20 @@ export default function CandidateCard({ candidate }: { candidate: Candidate }) {
   const displayName = sdName || candidate.name_guess || "(no name detected)";
 
   return (
-    <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4">
+    <div
+      className={`bg-white border rounded-[10px] p-4 ${
+        selected ? "border-navy ring-2 ring-navy/20" : "border-[color:var(--rule)]"
+      }`}
+    >
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
+        {onToggleSelect && (
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={() => onToggleSelect(candidate.id)}
+            className="mt-1 accent-navy w-4 h-4 cursor-pointer"
+          />
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             {candidate.triage_confidence && (

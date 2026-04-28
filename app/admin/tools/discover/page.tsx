@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { sql } from "@/lib/db";
 import DiscoverClient from "./DiscoverClient";
-import CandidateCard from "./CandidateCard";
+import CandidateList from "./CandidateList";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -14,19 +14,21 @@ type CandidateRow = {
   body_snippet: string | null;
   source: string | null;
   search_query: string | null;
-  status: "new" | "probable_match" | "possible_match" | "scraped" | "added" | "rejected";
+  status: "new" | "probable_match" | "possible_match" | "confirmed" | "scraped" | "added" | "rejected";
   matched_alumni_id: number | null;
   scraped_data: unknown;
   discovered_at: string;
   triage_confidence: "high" | "medium" | "low" | null;
-  triage_role: "alum" | "teacher" | "staff" | "unrelated" | null;
+  triage_role: "alum" | "student" | "teacher" | "staff" | "unrelated" | null;
   triage_reasoning: string | null;
+  run_id: number | null;
 };
 
 const LABEL: Record<CandidateRow["status"], string> = {
   new: "New",
   probable_match: "Probable matches",
   possible_match: "Possible matches",
+  confirmed: "Confirmed",
   scraped: "Scraped",
   added: "Added",
   rejected: "Rejected",
@@ -39,7 +41,7 @@ export default async function DiscoverPage({
 }) {
   const { tab: tabRaw } = await searchParams;
   const tab: CandidateRow["status"] = (
-    ["new", "probable_match", "possible_match", "scraped", "added", "rejected"] as const
+    ["new", "probable_match", "possible_match", "confirmed", "scraped", "added", "rejected"] as const
   ).includes(tabRaw as CandidateRow["status"])
     ? (tabRaw as CandidateRow["status"])
     : "new";
@@ -56,14 +58,20 @@ export default async function DiscoverPage({
     SELECT id, linkedin_url, name_guess, title_snippet, body_snippet,
            source, search_query, status, matched_alumni_id,
            scraped_data, discovered_at,
-           triage_confidence, triage_role, triage_reasoning
+           triage_confidence, triage_role, triage_reasoning, run_id
     FROM alumni_candidates
     WHERE status = ${tab}
     ORDER BY
+      run_id DESC NULLS LAST,
       CASE triage_confidence WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 3 END,
       discovered_at DESC, id DESC
-    LIMIT 200
+    LIMIT 500
   `) as CandidateRow[];
+
+  const recentRunRow = (await sql`
+    SELECT id FROM discovery_runs WHERE finished_at IS NOT NULL ORDER BY started_at DESC LIMIT 1
+  `) as { id: number }[];
+  const recentRunId = recentRunRow[0]?.id ?? null;
 
   return (
     <div className="max-w-[1000px]">
@@ -84,7 +92,7 @@ export default async function DiscoverPage({
       <DiscoverClient />
 
       <div className="flex flex-wrap gap-1 mb-4 text-sm font-semibold mt-8 border-b border-[color:var(--rule)]">
-        {(["new", "probable_match", "possible_match", "scraped", "added", "rejected"] as const).map((s) => (
+        {(["new", "probable_match", "possible_match", "confirmed", "scraped", "added", "rejected"] as const).map((s) => (
           <Link
             key={s}
             href={`/admin/tools/discover?tab=${s}`}
@@ -107,13 +115,7 @@ export default async function DiscoverPage({
           Nothing in this view.
         </div>
       ) : (
-        <ul className="space-y-3">
-          {rows.map((c) => (
-            <li key={c.id}>
-              <CandidateCard candidate={c} />
-            </li>
-          ))}
-        </ul>
+        <CandidateList rows={rows} recentRunId={recentRunId} />
       )}
     </div>
   );

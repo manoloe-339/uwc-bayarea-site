@@ -206,11 +206,12 @@ export async function runAndLogDiscoveryBatch(): Promise<DiscoveryRunResult> {
         INSERT INTO alumni_candidates (
           linkedin_url, name_guess, title_snippet, body_snippet,
           source, search_query, status, matched_alumni_id,
-          triage_confidence, triage_role, triage_reasoning
+          triage_confidence, triage_role, triage_reasoning, run_id
         ) VALUES (
           ${url}, ${nameGuess}, ${hit.title}, ${hit.snippet},
           ${hit.source}, ${hit.query}, ${status}, ${matchedAlumniId},
-          ${triage?.confidence ?? null}, ${triage?.role ?? null}, ${triage?.reasoning ?? null}
+          ${triage?.confidence ?? null}, ${triage?.role ?? null}, ${triage?.reasoning ?? null},
+          ${runId}
         )
         ON CONFLICT (linkedin_url) DO NOTHING
       `;

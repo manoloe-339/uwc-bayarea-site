@@ -14,46 +14,58 @@ import { ENRICHMENT_CONFIG } from "@/lib/enrichment/constants";
 export type TriageResult = {
   is_alum: "yes" | "no" | "unclear";
   in_bay_area: "yes" | "no" | "unclear";
-  role: "alum" | "teacher" | "staff" | "unrelated";
+  role: "alum" | "student" | "teacher" | "staff" | "unrelated";
   confidence: "high" | "medium" | "low";
   reasoning: string;
 };
 
-const SYSTEM_PROMPT = `You scan LinkedIn search-result snippets and decide whether the person is:
-1. A UWC alumnus (graduated from one of the 18 United World College campuses) — NOT a teacher, instructor, staff, or parent of an alumnus.
-2. Currently based in the San Francisco Bay Area (SF, Oakland, Berkeley, Palo Alto, San Jose, Marin, Peninsula, South Bay, East Bay, Mountain View, etc.).
+const SYSTEM_PROMPT = `You scan LinkedIn search-result snippets to find people we'd want in our United World College Bay Area alumni database. We want anyone with a UWC AFFILIATION:
+- a UWC ALUMNUS (graduated from one of the 18 United World College campuses), OR
+- a CURRENT UWC STUDENT (still enrolled — they may register through us if their family is here).
+
+We do NOT want teachers, instructors, staff, or unaffiliated mentions.
+
+Decisions to make for each profile:
+1. Is the person a UWC alumnus OR a current UWC student? (For "is_alum" below: count both as "yes" — we treat both as worth pursuing.)
+2. Are they currently based in the San Francisco Bay Area (SF, Oakland, Berkeley, Palo Alto, San Jose, Marin, Peninsula, South Bay, East Bay, Mountain View, etc.)?
 
 Respond ONLY with strict JSON, no markdown, no extra text:
 {
   "is_alum": "yes" | "no" | "unclear",
   "in_bay_area": "yes" | "no" | "unclear",
-  "role": "alum" | "teacher" | "staff" | "unrelated",
+  "role": "alum" | "student" | "teacher" | "staff" | "unrelated",
   "confidence": "high" | "medium" | "low",
   "reasoning": "one short sentence"
 }
 
-Important hints:
-- "UWC instructor", "teacher at UWC", "Head of school" → role: teacher.
-- "Class of [year], UWC X" or "[School name] alumna" or "Davis Scholar" → role: alum.
-- Costa Rica the country (San José, CR) is NOT the Bay Area.
-- "San Jose" without country usually means California; "San Jose, CR" or similar = Costa Rica.
-- "California" alone is broader than Bay Area; mark in_bay_area unclear unless something narrows it.
-- A profile that mentions UWC only because they live near a UWC campus (not as a student) → unrelated.
-- KNOWN FALSE POSITIVE: "University of the Western Cape" (often abbreviated UWC) is a South African university — NOT a United World College. If the snippet mentions "Western Cape", the person is almost certainly not a UWC alumnus → role: unrelated, confidence: high.
-- "Pearson College UWC" is a UWC; "Pearson Education" or "Pearson plc" is a publishing company → unrelated.
+Role rules:
+- "alum" — graduated from a UWC. is_alum = "yes".
+- "student" — currently enrolled at a UWC (no graduation year, or year is in the future). is_alum = "yes" (we treat them the same for outreach).
+- "teacher" — instructor, teacher, faculty, head of school AT a UWC. is_alum = "no".
+- "staff" — admin / support staff at a UWC, or staff at a UWC parent org (UWC International, etc.). is_alum = "no".
+- "unrelated" — page mentions UWC for unrelated reasons (e.g. lives near campus, parent name dropped). is_alum = "no".
 
-CONFIDENCE RULES — be strict, this matters:
+Geographic hints:
+- Costa Rica the country (San José, CR) is NOT the Bay Area.
+- "San Jose" without country usually means California; "San Jose, CR" / "San José, Costa Rica" = Costa Rica.
+- "California" alone is broader than Bay Area; mark in_bay_area "unclear" unless something narrows it.
+
+Known false positives:
+- "University of the Western Cape" (often abbreviated UWC) is a South African university — NOT a United World College. Snippet mentions "Western Cape" → role: "unrelated", confidence: "high".
+- "Pearson College UWC" is a UWC; "Pearson Education" or "Pearson plc" is a publishing company → "unrelated".
+
+CONFIDENCE RULES — be strict:
 - "high" REQUIRES is_alum = "yes" AND in_bay_area = "yes". Both must be clearly evidenced. ANY other combination is NOT high.
 - "medium" = one of the two is "yes" with strong evidence, the other is "unclear" or weakly hinted.
 - "low" = either is "no", or both are "unclear", or the snippet is too sparse to judge.
 
 Examples:
-- UWC alum (clear) living in Ecuador (clear) → confidence "low" (not in Bay Area).
-- UWC alum (clear) living in California unclear which city → confidence "medium".
-- UWC alum (clear) living in San Francisco (clear) → confidence "high".
-- Snippet mentions a UWC campus but person is a teacher/staff there → confidence "low" (not an alum).
+- UWC alum (clear) living in Ecuador (clear) → "low" (not in Bay Area).
+- Current UWC student in California, unclear city → "medium".
+- UWC alum (clear) living in San Francisco (clear) → "high".
+- Teacher at UWC X based in SF → "low" (not an alum/student).
 
-The point of "high" is to surface candidates the admin should action FIRST. Don't dilute it.`;
+"high" is for the candidates the admin should action FIRST. Don't dilute it.`;
 
 function safeParse(text: string): TriageResult | null {
   // Claude sometimes wraps JSON in ```json fences despite the prompt.
