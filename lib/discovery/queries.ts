@@ -1,0 +1,78 @@
+/**
+ * Search-query templates used by /admin/tools/discover.
+ * Tweak this list to broaden or narrow what we surface; the discovery
+ * tool reads this constant directly each run.
+ */
+
+export const DISCOVERY_QUERIES: { q: string; group: string }[] = [
+  // A. Broad UWC + Bay Area phrasing
+  { q: `"UWC" "San Francisco Bay Area" site:linkedin.com/in/`, group: "uwc-broad" },
+  { q: `"UWC" "Bay Area" site:linkedin.com/in/`, group: "uwc-broad" },
+  { q: `"UWC" "San Francisco" site:linkedin.com/in/`, group: "uwc-broad" },
+  { q: `"UWC" California site:linkedin.com/in/`, group: "uwc-broad" },
+
+  // B. "United World College" singular
+  { q: `"United World College" "Bay Area" site:linkedin.com/in/`, group: "united-world-college" },
+  { q: `"United World College" "San Francisco" site:linkedin.com/in/`, group: "united-world-college" },
+
+  // C. Davis Scholar
+  { q: `"Davis Scholar" "San Francisco" site:linkedin.com/in/`, group: "davis-scholar" },
+  { q: `"Davis Scholar" "Bay Area" site:linkedin.com/in/`, group: "davis-scholar" },
+
+  // D. UWC + specific Bay Area cities
+  { q: `"UWC" Berkeley site:linkedin.com/in/`, group: "uwc-city" },
+  { q: `"UWC" "Palo Alto" site:linkedin.com/in/`, group: "uwc-city" },
+  { q: `"UWC" "San Jose" site:linkedin.com/in/`, group: "uwc-city" },
+  { q: `"UWC" Oakland site:linkedin.com/in/`, group: "uwc-city" },
+  { q: `"UWC" "Mountain View" site:linkedin.com/in/`, group: "uwc-city" },
+
+  // E. Bare college names (people who don't write "UWC")
+  { q: `"Atlantic College" "Bay Area" site:linkedin.com/in/`, group: "bare-college" },
+  { q: `"Pearson College" "San Francisco" site:linkedin.com/in/`, group: "bare-college" },
+  { q: `"Li Po Chun" "Bay Area" site:linkedin.com/in/`, group: "bare-college" },
+  { q: `"Waterford Kamhlaba" "Bay Area" site:linkedin.com/in/`, group: "bare-college" },
+  { q: `"UWCSEA" "Bay Area" site:linkedin.com/in/`, group: "bare-college" },
+];
+
+const LINKEDIN_PROFILE_URL_RE = /^https?:\/\/(?:[a-z0-9]+\.)?linkedin\.com\/in\/[^/?#]+/i;
+
+/**
+ * Normalize a LinkedIn URL to a canonical form so dedup works:
+ *   https://www.linkedin.com/in/<slug>
+ * Drops protocol-www variations, regional subdomains, trailing slash,
+ * query, fragment.
+ */
+export function normalizeLinkedinUrl(raw: string): string | null {
+  const cleaned = raw.trim().split("?", 1)[0].split("#", 1)[0].replace(/\/+$/, "");
+  if (!LINKEDIN_PROFILE_URL_RE.test(cleaned)) return null;
+  try {
+    const u = new URL(cleaned);
+    const path = u.pathname.replace(/\/+$/, "");
+    const slugMatch = path.match(/\/in\/([^/]+)/i);
+    if (!slugMatch) return null;
+    return `https://www.linkedin.com/in/${slugMatch[1].toLowerCase()}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Best-effort name extraction from a LinkedIn search hit's title.
+ * Titles look like: "Lale Quezada - Software Engineer at Stripe | LinkedIn"
+ * or "Jane Doe - LinkedIn".
+ */
+export function guessNameFromTitle(title: string): string | null {
+  if (!title) return null;
+  // Strip trailing " | LinkedIn" or " - LinkedIn"
+  const stripped = title
+    .replace(/\s*[-|·]\s*LinkedIn\s*$/i, "")
+    .replace(/\s*\|\s*LinkedIn\s*$/i, "")
+    .trim();
+  // Take everything before the first " - " or " — " or " | " (job title separators).
+  const m = stripped.match(/^(.+?)\s+[-—|]\s+/);
+  const candidate = (m ? m[1] : stripped).trim();
+  // Sanity: should be 2-5 words, mostly letters / hyphens / apostrophes.
+  if (candidate.length < 2 || candidate.length > 80) return null;
+  if (!/^[\p{L}][\p{L}\s'\-.]+$/u.test(candidate)) return null;
+  return candidate;
+}

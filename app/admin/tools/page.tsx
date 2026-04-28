@@ -11,6 +11,18 @@ export default function ToolsIndex() {
       </p>
       <div className="grid sm:grid-cols-2 gap-4">
         <Link
+          href="/admin/tools/discover"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Discover alumni</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Find Bay Area UWC alumni not yet in the DB</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Runs 18 LinkedIn-targeted searches via Serper + Exa, dedupes against
+            existing alumni, surfaces new candidates. Scrape and add the ones
+            you want.
+          </p>
+        </Link>
+        <Link
           href="/admin/enrichment"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
