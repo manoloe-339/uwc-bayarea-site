@@ -1,12 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { sql } from "@/lib/db";
 import { updateSiteSettings } from "@/lib/settings";
 
 function bumpRevalidation(): void {
   revalidatePath("/admin/tools/discover");
   revalidatePath("/admin/tools/discover/settings");
+}
+
+function done(saved: "invite" | "query" | "term"): never {
+  redirect(`/admin/tools/discover/settings?saved=${saved}`);
 }
 
 /* ---------- LinkedIn invite template ---------- */
@@ -17,6 +22,7 @@ export async function saveInviteTemplate(formData: FormData): Promise<void> {
     linkedin_invite_template: raw.length > 0 ? raw : null,
   });
   bumpRevalidation();
+  done("invite");
 }
 
 /* ---------- Search queries ---------- */
@@ -35,6 +41,7 @@ export async function addQuery(formData: FormData): Promise<void> {
     ON CONFLICT (query) DO NOTHING
   `;
   bumpRevalidation();
+  done("query");
 }
 
 export async function updateQuery(formData: FormData): Promise<void> {
@@ -49,6 +56,7 @@ export async function updateQuery(formData: FormData): Promise<void> {
     WHERE id = ${id}
   `;
   bumpRevalidation();
+  done("query");
 }
 
 export async function toggleQuery(formData: FormData): Promise<void> {
@@ -60,6 +68,7 @@ export async function toggleQuery(formData: FormData): Promise<void> {
     WHERE id = ${id}
   `;
   bumpRevalidation();
+  done("query");
 }
 
 export async function deleteQuery(formData: FormData): Promise<void> {
@@ -67,6 +76,7 @@ export async function deleteQuery(formData: FormData): Promise<void> {
   if (!Number.isFinite(id) || id <= 0) return;
   await sql`DELETE FROM discovery_query_templates WHERE id = ${id}`;
   bumpRevalidation();
+  done("query");
 }
 
 /* ---------- Excluded terms ---------- */
@@ -81,6 +91,7 @@ export async function addTerm(formData: FormData): Promise<void> {
     ON CONFLICT (term) DO NOTHING
   `;
   bumpRevalidation();
+  done("term");
 }
 
 export async function deleteTerm(formData: FormData): Promise<void> {
@@ -88,4 +99,5 @@ export async function deleteTerm(formData: FormData): Promise<void> {
   if (!Number.isFinite(id) || id <= 0) return;
   await sql`DELETE FROM discovery_excluded_terms WHERE id = ${id}`;
   bumpRevalidation();
+  done("term");
 }

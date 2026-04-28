@@ -27,7 +27,19 @@ type TermRow = {
   note: string | null;
 };
 
-export default async function DiscoverySettingsPage() {
+const SAVED_LABEL: Record<string, string> = {
+  invite: "Invite template saved.",
+  query: "Search queries updated.",
+  term: "Excluded terms updated.",
+};
+
+export default async function DiscoverySettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
+  const sp = await searchParams;
+  const savedMessage = sp.saved ? SAVED_LABEL[sp.saved] : null;
   const [settings, queriesRaw, termsRaw] = await Promise.all([
     getSiteSettings(),
     sql`SELECT id, query, group_label, enabled, sort_order
@@ -51,9 +63,15 @@ export default async function DiscoverySettingsPage() {
       <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">
         Discovery settings
       </h1>
-      <p className="text-[color:var(--muted)] text-sm mb-8">
+      <p className="text-[color:var(--muted)] text-sm mb-6">
         Search queries, excluded terms, and the LinkedIn invite template.
       </p>
+
+      {savedMessage && (
+        <div className="mb-6 px-3 py-2 rounded bg-emerald-50 border border-emerald-200 text-sm text-emerald-900">
+          ✓ {savedMessage}
+        </div>
+      )}
 
       {/* LinkedIn invite */}
       <section className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 mb-8">
