@@ -22,10 +22,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <Link href="/admin/events" className="hover:text-navy">Events</Link>
               <Link href="/admin/email/campaigns" className="hover:text-navy">Email</Link>
               <Link href="/admin/email/preview" className="hover:text-navy text-[11px] text-[color:var(--muted)]">Preview</Link>
-              <Link href="/admin/email/settings" className="hover:text-navy text-[11px] text-[color:var(--muted)]">Settings</Link>
-              <Link href="/admin/import" className="hover:text-navy">Import</Link>
-              <Link href="/admin/enrichment" className="hover:text-navy text-[11px] text-[color:var(--muted)]">Enrich</Link>
-              <Link href="/admin/tools" className="hover:text-navy text-[11px] text-[color:var(--muted)]">Tools</Link>
+              <Link href="/admin/tools" className="hover:text-navy">Tools</Link>
               <Link href="/admin/analytics" className="hover:text-navy">Analytics</Link>
             </span>
           </nav>

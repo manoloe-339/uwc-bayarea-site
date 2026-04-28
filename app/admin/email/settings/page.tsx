@@ -3,6 +3,7 @@ import { getSiteSettings } from "@/lib/settings";
 import { saveSiteSettings } from "./actions";
 import LogoPreview from "./LogoPreview";
 import { fmtDate } from "@/lib/admin-time";
+import EmailTabs from "@/components/admin/EmailTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +29,9 @@ export default async function SettingsPage({
 
   return (
     <div className="max-w-[760px]">
-      <div className="flex items-baseline justify-between mb-6">
+      <div className="flex items-baseline justify-between mb-4">
         <div>
-          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Email settings</h1>
+          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Emails</h1>
           <p className="text-[color:var(--muted)] text-sm">
             Branding and default copy used by the newsletter template. Last updated {timeAgo(s.updated_at)}.
           </p>
@@ -39,6 +40,8 @@ export default async function SettingsPage({
           Preview →
         </Link>
       </div>
+
+      <EmailTabs active="settings" />
 
       {sp.saved && (
         <div className="mb-5 p-3 bg-ivory-2 border-l-4 border-navy rounded-[2px] text-sm">Saved.</div>

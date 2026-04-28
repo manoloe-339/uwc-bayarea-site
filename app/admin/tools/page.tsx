@@ -4,13 +4,34 @@ export const dynamic = "force-dynamic";
 
 export default function ToolsIndex() {
   return (
-    <div className="max-w-[800px]">
+    <div className="max-w-[900px]">
       <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">Admin tools</h1>
       <p className="text-[color:var(--muted)] text-sm mb-6">
-        LLM-assisted data-quality tools. Runs on demand, writes to tag tables
-        that alumni filters can read.
+        Data-quality, enrichment, and bulk-import tools.
       </p>
       <div className="grid sm:grid-cols-2 gap-4">
+        <Link
+          href="/admin/enrichment"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">LinkedIn enrichment</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Backfill profiles via Apify + Claude</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Triggers, review queue, failed jobs, manual overrides. The whole
+            enrichment pipeline lives here.
+          </p>
+        </Link>
+        <Link
+          href="/admin/import"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Import</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Bulk-import alumni from CSV / external sources</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Paste or upload data, preview matches against existing rows, commit
+            in one go.
+          </p>
+        </Link>
         <Link
           href="/admin/tools/classify"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
