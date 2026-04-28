@@ -1,29 +1,36 @@
 /**
  * Run a discovery batch + log it.
  *  - Loop DISCOVERY_QUERIES, hit Serper + Exa for each
+ *  - Post-filter Exa: require quoted phrases to literally appear (it's
+ *    semantic, not keyword)
  *  - Parse LinkedIn /in/ URLs, normalize, dedupe per-query and globally
- *  - Triage against alumni + alumni_candidates
- *  - Insert new candidates
+ *  - Claude-triage each unique URL (alum vs teacher; bay area vs not)
+ *  - Match against alumni table (full name + last+initial)
+ *  - Insert new candidates with triage + match annotations
  *  - Persist run + per-query stats to discovery_runs / discovery_query_logs
  */
 
-import Exa from "exa-js";
+import Anthropic from "@anthropic-ai/sdk";
 import { sql } from "@/lib/db";
 import {
   DISCOVERY_QUERIES,
   normalizeLinkedinUrl,
   guessNameFromTitle,
 } from "./queries";
+import { triageHit, type TriageResult } from "./triage-llm";
+import { buildAlumniIndex, matchName } from "./match";
 
 const SERPER_COST = 0.001;
-const EXA_COST = 0.005;
+const CLAUDE_TRIAGE_COST = 0.0001;
 
-type RawHit = {
-  url: string;
-  title: string;
-  snippet: string;
-};
+// "University of the Western Cape" (also "UWC") is a South African
+// university unrelated to United World Colleges. Drop hits that match.
+const WESTERN_CAPE_RE = /university of the western cape|western\s*cape/i;
+function isWesternCapeFalsePositive(hit: { title: string; snippet: string }): boolean {
+  return WESTERN_CAPE_RE.test(hit.title) || WESTERN_CAPE_RE.test(hit.snippet);
+}
 
+type RawHit = { url: string; title: string; snippet: string };
 type SourcedHit = RawHit & {
   source: "serper" | "exa";
   query: string;
@@ -60,27 +67,9 @@ async function serperOne(q: string): Promise<{ hits: RawHit[]; error: string | n
   }
 }
 
-async function exaOne(q: string): Promise<{ hits: RawHit[]; error: string | null }> {
-  try {
-    const exa = new Exa(requireEnv("EXA_API_KEY"));
-    const res = await exa.searchAndContents(q, {
-      numResults: 10,
-      type: "auto",
-      text: { maxCharacters: 1000 },
-      includeDomains: ["linkedin.com"],
-    });
-    return {
-      hits: (res.results ?? []).map((r) => ({
-        url: r.url ?? "",
-        title: r.title ?? "",
-        snippet: (r.text ?? "").slice(0, 500),
-      })),
-      error: null,
-    };
-  } catch (err) {
-    return { hits: [], error: err instanceof Error ? err.message : "exa error" };
-  }
-}
+// Exa was disabled in V2 — its semantic-search behavior returned too
+// many false positives even after phrase post-filtering. Keep the
+// import path warm via match.ts in case we re-enable later.
 
 export type DiscoveryRunResult = {
   run_id: number;
@@ -90,23 +79,16 @@ export type DiscoveryRunResult = {
   skipped_already_in_db: number;
   skipped_already_candidate: number;
   probable_matches: number;
+  possible_matches: number;
   cost_usd: number;
 };
 
-/**
- * One run = open a discovery_runs row, fan out queries, record per-query
- * stats, triage hits, close the run row with totals.
- */
 export async function runAndLogDiscoveryBatch(): Promise<DiscoveryRunResult> {
   const runRows = (await sql`
-    INSERT INTO discovery_runs (started_at)
-    VALUES (NOW())
-    RETURNING id
+    INSERT INTO discovery_runs (started_at) VALUES (NOW()) RETURNING id
   `) as { id: number }[];
   const runId = runRows[0].id;
 
-  // Per (query, source) we'll accumulate: hits_returned, unique_urls,
-  // and (after triage) new_in_db. Plus error, cost.
   type LogEntry = {
     query: string;
     source: "serper" | "exa";
@@ -119,50 +101,45 @@ export async function runAndLogDiscoveryBatch(): Promise<DiscoveryRunResult> {
   };
   const logs: LogEntry[] = [];
 
-  // Each (query, source) keeps its own URL set so unique_linkedin_urls
-  // counts within that one query+source combo.
-  // Globally we also dedupe so the same URL doesn't get triage-tested twice.
   const globalByUrl = new Map<string, SourcedHit>();
-  const sourcedByLog = new Map<string, Set<string>>(); // logKey -> set of urls in that log
 
   for (const { q, group } of DISCOVERY_QUERIES) {
-    for (const source of ["serper", "exa"] as const) {
-      const fn = source === "serper" ? serperOne : exaOne;
-      const cost = source === "serper" ? SERPER_COST : EXA_COST;
-      const { hits, error } = await fn(q);
+    const { hits: rawHits, error } = await serperOne(q);
+    // Drop Western Cape (different UWC) before anything else.
+    const hits = rawHits.filter((h) => !isWesternCapeFalsePositive(h));
 
-      const localUrls = new Set<string>();
-      for (const h of hits) {
-        const url = normalizeLinkedinUrl(h.url);
-        if (!url) continue;
-        if (localUrls.has(url)) continue;
-        localUrls.add(url);
-        if (!globalByUrl.has(url)) {
-          globalByUrl.set(url, { ...h, source, query: q, group });
-        }
+    const localUrls = new Set<string>();
+    for (const h of hits) {
+      const url = normalizeLinkedinUrl(h.url);
+      if (!url) continue;
+      if (localUrls.has(url)) continue;
+      localUrls.add(url);
+      if (!globalByUrl.has(url)) {
+        globalByUrl.set(url, { ...h, source: "serper", query: q, group });
       }
-
-      const logKey = `${q}::${source}`;
-      sourcedByLog.set(logKey, localUrls);
-      logs.push({
-        query: q,
-        source,
-        group_label: group,
-        hits_returned: hits.length,
-        unique_linkedin_urls: localUrls.size,
-        new_in_db: 0, // updated after triage
-        cost_usd: cost,
-        error,
-      });
     }
+
+    logs.push({
+      query: q,
+      source: "serper",
+      group_label: group,
+      hits_returned: hits.length,
+      unique_linkedin_urls: localUrls.size,
+      new_in_db: 0,
+      cost_usd: SERPER_COST,
+      error,
+    });
   }
 
-  // Triage globally-unique URLs against alumni + alumni_candidates.
+  // Triage URLs against alumni + alumni_candidates first, so we only
+  // hit Claude on URLs that will actually become candidates.
   const allUrls = [...globalByUrl.keys()];
   let inserted = 0;
   let skippedInDb = 0;
   let skippedExistingCandidate = 0;
   let probableMatches = 0;
+  let possibleMatches = 0;
+  let triageCost = 0;
 
   if (allUrls.length > 0) {
     const inAlumni = (await sql`
@@ -178,17 +155,13 @@ export async function runAndLogDiscoveryBatch(): Promise<DiscoveryRunResult> {
     const existingCandidateSet = new Set(inCandidates.map((r) => r.linkedin_url));
 
     const allAlumni = (await sql`
-      SELECT id, LOWER(first_name) AS first, LOWER(last_name) AS last
-      FROM alumni
+      SELECT id, first_name, last_name FROM alumni
       WHERE first_name IS NOT NULL AND last_name IS NOT NULL
-    `) as { id: number; first: string | null; last: string | null }[];
-    const fullNameIndex = new Map<string, number>();
-    for (const a of allAlumni) {
-      if (a.first && a.last) fullNameIndex.set(`${a.first} ${a.last}`, a.id);
-    }
+    `) as { id: number; first_name: string | null; last_name: string | null }[];
+    const alumniIndex = buildAlumniIndex(allAlumni);
 
-    // Track "new candidate" credit per (query, source) combo.
     const newCreditByLog = new Map<string, number>();
+    const anthropic = new Anthropic({ apiKey: requireEnv("ANTHROPIC_API_KEY") });
 
     for (const [url, hit] of globalByUrl.entries()) {
       if (inDbSet.has(url)) {
@@ -201,24 +174,43 @@ export async function runAndLogDiscoveryBatch(): Promise<DiscoveryRunResult> {
       }
 
       const nameGuess = guessNameFromTitle(hit.title);
-      let status: "new" | "probable_match" = "new";
+      const match = matchName(nameGuess, alumniIndex);
+
+      let status: "new" | "probable_match" | "possible_match" = "new";
       let matchedAlumniId: number | null = null;
-      if (nameGuess) {
-        const id = fullNameIndex.get(nameGuess.toLowerCase());
-        if (id) {
-          status = "probable_match";
-          matchedAlumniId = id;
-          probableMatches++;
-        }
+      if (match.kind === "probable_match") {
+        status = "probable_match";
+        matchedAlumniId = match.alumni_id;
+        probableMatches++;
+      } else if (match.kind === "possible_match") {
+        status = "possible_match";
+        matchedAlumniId = match.alumni_id;
+        possibleMatches++;
+      }
+
+      // Claude triage. Fire-and-fail-safe: if it errors, store the
+      // candidate without triage info (Anthropic may be down etc.).
+      let triage: TriageResult | null = null;
+      try {
+        triage = await triageHit(anthropic, {
+          url,
+          title: hit.title,
+          snippet: hit.snippet,
+        });
+        triageCost += CLAUDE_TRIAGE_COST;
+      } catch {
+        // already logged inside triageHit
       }
 
       await sql`
         INSERT INTO alumni_candidates (
           linkedin_url, name_guess, title_snippet, body_snippet,
-          source, search_query, status, matched_alumni_id
+          source, search_query, status, matched_alumni_id,
+          triage_confidence, triage_role, triage_reasoning
         ) VALUES (
           ${url}, ${nameGuess}, ${hit.title}, ${hit.snippet},
-          ${hit.source}, ${hit.query}, ${status}, ${matchedAlumniId}
+          ${hit.source}, ${hit.query}, ${status}, ${matchedAlumniId},
+          ${triage?.confidence ?? null}, ${triage?.role ?? null}, ${triage?.reasoning ?? null}
         )
         ON CONFLICT (linkedin_url) DO NOTHING
       `;
@@ -235,7 +227,7 @@ export async function runAndLogDiscoveryBatch(): Promise<DiscoveryRunResult> {
 
   const totalHits = logs.reduce((s, l) => s + l.hits_returned, 0);
   const uniqueUrls = globalByUrl.size;
-  const totalCost = logs.reduce((s, l) => s + l.cost_usd, 0);
+  const totalCost = logs.reduce((s, l) => s + l.cost_usd, 0) + triageCost;
 
   for (const log of logs) {
     await sql`
@@ -257,7 +249,7 @@ export async function runAndLogDiscoveryBatch(): Promise<DiscoveryRunResult> {
       total_hits = ${totalHits},
       unique_urls = ${uniqueUrls},
       new_candidates = ${inserted},
-      probable_matches = ${probableMatches},
+      probable_matches = ${probableMatches + possibleMatches},
       skipped_in_db = ${skippedInDb},
       skipped_existing_candidate = ${skippedExistingCandidate},
       cost_usd = ${totalCost}
@@ -272,6 +264,7 @@ export async function runAndLogDiscoveryBatch(): Promise<DiscoveryRunResult> {
     skipped_already_in_db: skippedInDb,
     skipped_already_candidate: skippedExistingCandidate,
     probable_matches: probableMatches,
+    possible_matches: possibleMatches,
     cost_usd: totalCost,
   };
 }

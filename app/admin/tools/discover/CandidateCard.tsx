@@ -12,10 +12,26 @@ type Candidate = {
   body_snippet: string | null;
   source: string | null;
   search_query: string | null;
-  status: "new" | "probable_match" | "scraped" | "added" | "rejected";
+  status: "new" | "probable_match" | "possible_match" | "scraped" | "added" | "rejected";
   matched_alumni_id: number | null;
   scraped_data: unknown;
   discovered_at: string;
+  triage_confidence: "high" | "medium" | "low" | null;
+  triage_role: "alum" | "teacher" | "staff" | "unrelated" | null;
+  triage_reasoning: string | null;
+};
+
+const CONF_STYLE: Record<"high" | "medium" | "low", string> = {
+  high:   "bg-emerald-600 text-white border-emerald-700",
+  medium: "bg-amber-500 text-white border-amber-600",
+  low:    "bg-[color:var(--muted)] text-white border-[color:var(--muted)]",
+};
+
+const ROLE_STYLE: Record<string, string> = {
+  alum:       "bg-emerald-50 text-emerald-700 border-emerald-200",
+  teacher:    "bg-amber-50 text-amber-700 border-amber-200",
+  staff:      "bg-amber-50 text-amber-700 border-amber-200",
+  unrelated:  "bg-rose-50 text-rose-700 border-rose-200",
 };
 
 export default function CandidateCard({ candidate }: { candidate: Candidate }) {
@@ -80,7 +96,17 @@ export default function CandidateCard({ candidate }: { candidate: Candidate }) {
     <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4">
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            {candidate.triage_confidence && (
+              <span className={`text-[10px] tracking-[.1em] uppercase font-bold px-2 py-0.5 rounded border ${CONF_STYLE[candidate.triage_confidence]}`}>
+                {candidate.triage_confidence}
+              </span>
+            )}
+            {candidate.triage_role && (
+              <span className={`text-[10px] tracking-[.1em] uppercase font-bold px-2 py-0.5 rounded border ${ROLE_STYLE[candidate.triage_role] ?? "bg-[color:var(--rule)] text-[color:var(--muted)]"}`}>
+                {candidate.triage_role}
+              </span>
+            )}
             <span className="font-bold text-[color:var(--navy-ink)]">{displayName}</span>
             <a
               href={candidate.linkedin_url}
@@ -91,6 +117,11 @@ export default function CandidateCard({ candidate }: { candidate: Candidate }) {
               {candidate.linkedin_url.replace(/^https?:\/\/(www\.)?/, "")}
             </a>
           </div>
+          {candidate.triage_reasoning && (
+            <p className="text-[11px] text-[color:var(--muted)] italic mb-1">
+              {candidate.triage_reasoning}
+            </p>
+          )}
           {(headline || candidate.title_snippet) && (
             <p className="text-sm text-[color:var(--muted)] mt-1 line-clamp-2">
               {headline ?? candidate.title_snippet}

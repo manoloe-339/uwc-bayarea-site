@@ -13,6 +13,7 @@ type Result = {
   skipped_already_in_db: number;
   skipped_already_candidate: number;
   probable_matches: number;
+  possible_matches: number;
   cost_usd: number;
 };
 
@@ -45,12 +46,13 @@ export default function DiscoverClient() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <p className="text-sm text-[color:var(--navy-ink)]">
-            Runs 26 search queries across Serper + Exa, dedupes against the alumni
-            DB, and stores new candidates below for review.
+            Runs 26 Serper queries, drops Western-Cape false positives, has
+            Claude triage every hit (alum vs teacher · Bay Area vs not), then
+            dedupes against the DB.
           </p>
           <p className="text-xs text-[color:var(--muted)] mt-1">
-            Cost ≈ $0.17 per batch. Each run takes 1–2 minutes. Each query is
-            logged with its yield so you can audit what's working.
+            Cost ≈ $0.05 per batch. Each run takes 1–2 minutes. Per-query
+            yield is logged so you can audit what's working.
           </p>
         </div>
         <div className="flex items-center gap-2">

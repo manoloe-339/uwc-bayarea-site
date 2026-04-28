@@ -14,15 +14,19 @@ type CandidateRow = {
   body_snippet: string | null;
   source: string | null;
   search_query: string | null;
-  status: "new" | "probable_match" | "scraped" | "added" | "rejected";
+  status: "new" | "probable_match" | "possible_match" | "scraped" | "added" | "rejected";
   matched_alumni_id: number | null;
   scraped_data: unknown;
   discovered_at: string;
+  triage_confidence: "high" | "medium" | "low" | null;
+  triage_role: "alum" | "teacher" | "staff" | "unrelated" | null;
+  triage_reasoning: string | null;
 };
 
 const LABEL: Record<CandidateRow["status"], string> = {
   new: "New",
   probable_match: "Probable matches",
+  possible_match: "Possible matches",
   scraped: "Scraped",
   added: "Added",
   rejected: "Rejected",
@@ -35,7 +39,7 @@ export default async function DiscoverPage({
 }) {
   const { tab: tabRaw } = await searchParams;
   const tab: CandidateRow["status"] = (
-    ["new", "probable_match", "scraped", "added", "rejected"] as const
+    ["new", "probable_match", "possible_match", "scraped", "added", "rejected"] as const
   ).includes(tabRaw as CandidateRow["status"])
     ? (tabRaw as CandidateRow["status"])
     : "new";
@@ -51,10 +55,13 @@ export default async function DiscoverPage({
   const rows = (await sql`
     SELECT id, linkedin_url, name_guess, title_snippet, body_snippet,
            source, search_query, status, matched_alumni_id,
-           scraped_data, discovered_at
+           scraped_data, discovered_at,
+           triage_confidence, triage_role, triage_reasoning
     FROM alumni_candidates
     WHERE status = ${tab}
-    ORDER BY discovered_at DESC, id DESC
+    ORDER BY
+      CASE triage_confidence WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 3 END,
+      discovered_at DESC, id DESC
     LIMIT 200
   `) as CandidateRow[];
 
@@ -77,7 +84,7 @@ export default async function DiscoverPage({
       <DiscoverClient />
 
       <div className="flex flex-wrap gap-1 mb-4 text-sm font-semibold mt-8 border-b border-[color:var(--rule)]">
-        {(["new", "probable_match", "scraped", "added", "rejected"] as const).map((s) => (
+        {(["new", "probable_match", "possible_match", "scraped", "added", "rejected"] as const).map((s) => (
           <Link
             key={s}
             href={`/admin/tools/discover?tab=${s}`}
