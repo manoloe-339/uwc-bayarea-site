@@ -19,12 +19,16 @@ export const DISCOVERY_QUERIES: { q: string; group: string }[] = [
   { q: `"Davis Scholar" "San Francisco" site:linkedin.com/in/`, group: "davis-scholar" },
   { q: `"Davis Scholar" "Bay Area" site:linkedin.com/in/`, group: "davis-scholar" },
 
-  // D. UWC + specific Bay Area cities
+  // D. UWC + specific Bay Area cities + sub-regions
   { q: `"UWC" Berkeley site:linkedin.com/in/`, group: "uwc-city" },
   { q: `"UWC" "Palo Alto" site:linkedin.com/in/`, group: "uwc-city" },
   { q: `"UWC" "San Jose" site:linkedin.com/in/`, group: "uwc-city" },
   { q: `"UWC" Oakland site:linkedin.com/in/`, group: "uwc-city" },
   { q: `"UWC" "Mountain View" site:linkedin.com/in/`, group: "uwc-city" },
+  { q: `"UWC" "Marin" site:linkedin.com/in/`, group: "uwc-city" },
+  { q: `"UWC" "South Bay" site:linkedin.com/in/`, group: "uwc-region" },
+  { q: `"UWC" "East Bay" site:linkedin.com/in/`, group: "uwc-region" },
+  { q: `"UWC" "Peninsula" site:linkedin.com/in/`, group: "uwc-region" },
 
   // E. Bare college names (people who don't write "UWC")
   { q: `"Atlantic College" "Bay Area" site:linkedin.com/in/`, group: "bare-college" },
@@ -32,6 +36,10 @@ export const DISCOVERY_QUERIES: { q: string; group: string }[] = [
   { q: `"Li Po Chun" "Bay Area" site:linkedin.com/in/`, group: "bare-college" },
   { q: `"Waterford Kamhlaba" "Bay Area" site:linkedin.com/in/`, group: "bare-college" },
   { q: `"UWCSEA" "Bay Area" site:linkedin.com/in/`, group: "bare-college" },
+  { q: `"UWC USA" "Bay Area" site:linkedin.com/in/`, group: "bare-college" },
+  { q: `"UWC Adriatic" "Bay Area" site:linkedin.com/in/`, group: "bare-college" },
+  { q: `"UWC Costa Rica" "Bay Area" site:linkedin.com/in/`, group: "bare-college" },
+  { q: `"UWC Red Cross Nordic" "San Francisco" site:linkedin.com/in/`, group: "bare-college" },
 ];
 
 const LINKEDIN_PROFILE_URL_RE = /^https?:\/\/(?:[a-z0-9]+\.)?linkedin\.com\/in\/[^/?#]+/i;
