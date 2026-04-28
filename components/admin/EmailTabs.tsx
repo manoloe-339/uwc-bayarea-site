@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-type Tab = "campaigns" | "other" | "invite-lists" | "unsubscribes" | "settings";
+type Tab = "campaigns" | "other" | "invite-lists" | "unsubscribes" | "settings" | "preview";
 
 const TABS: { key: Tab; label: string; href: string }[] = [
   { key: "campaigns", label: "Campaigns", href: "/admin/email/campaigns" },
@@ -8,6 +8,7 @@ const TABS: { key: Tab; label: string; href: string }[] = [
   { key: "invite-lists", label: "Invite lists", href: "/admin/email/invite-lists" },
   { key: "unsubscribes", label: "Unsubscribes", href: "/admin/email/unsubscribes" },
   { key: "settings", label: "Settings", href: "/admin/email/settings" },
+  { key: "preview", label: "Preview", href: "/admin/email/preview" },
 ];
 
 export default function EmailTabs({ active }: { active: Tab }) {

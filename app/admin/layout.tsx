@@ -21,7 +21,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <span className="hidden md:contents">
               <Link href="/admin/events" className="hover:text-navy">Events</Link>
               <Link href="/admin/email/campaigns" className="hover:text-navy">Email</Link>
-              <Link href="/admin/email/preview" className="hover:text-navy text-[11px] text-[color:var(--muted)]">Preview</Link>
               <Link href="/admin/tools" className="hover:text-navy">Tools</Link>
               <Link href="/admin/analytics" className="hover:text-navy">Analytics</Link>
             </span>
