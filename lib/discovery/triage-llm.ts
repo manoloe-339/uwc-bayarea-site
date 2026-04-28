@@ -41,7 +41,19 @@ Important hints:
 - A profile that mentions UWC only because they live near a UWC campus (not as a student) → unrelated.
 - KNOWN FALSE POSITIVE: "University of the Western Cape" (often abbreviated UWC) is a South African university — NOT a United World College. If the snippet mentions "Western Cape", the person is almost certainly not a UWC alumnus → role: unrelated, confidence: high.
 - "Pearson College UWC" is a UWC; "Pearson Education" or "Pearson plc" is a publishing company → unrelated.
-- High confidence requires both questions answered with evidence in the snippet. If snippet is sparse, default to medium or low.`;
+
+CONFIDENCE RULES — be strict, this matters:
+- "high" REQUIRES is_alum = "yes" AND in_bay_area = "yes". Both must be clearly evidenced. ANY other combination is NOT high.
+- "medium" = one of the two is "yes" with strong evidence, the other is "unclear" or weakly hinted.
+- "low" = either is "no", or both are "unclear", or the snippet is too sparse to judge.
+
+Examples:
+- UWC alum (clear) living in Ecuador (clear) → confidence "low" (not in Bay Area).
+- UWC alum (clear) living in California unclear which city → confidence "medium".
+- UWC alum (clear) living in San Francisco (clear) → confidence "high".
+- Snippet mentions a UWC campus but person is a teacher/staff there → confidence "low" (not an alum).
+
+The point of "high" is to surface candidates the admin should action FIRST. Don't dilute it.`;
 
 function safeParse(text: string): TriageResult | null {
   // Claude sometimes wraps JSON in ```json fences despite the prompt.

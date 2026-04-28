@@ -66,12 +66,45 @@ export default function DiscoverClient() {
             type="button"
             onClick={run}
             disabled={pending}
-            className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold disabled:opacity-50"
+            className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold disabled:opacity-60 inline-flex items-center gap-2"
           >
+            {pending && (
+              <svg
+                aria-hidden
+                className="animate-spin h-4 w-4 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                />
+              </svg>
+            )}
             {pending ? "Running…" : "Run discovery batch"}
           </button>
         </div>
       </div>
+
+      {pending && (
+        <div className="mt-3 text-sm bg-amber-50 border border-amber-200 rounded p-3 text-amber-900 flex items-start gap-3">
+          <span className="mt-0.5 inline-block w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
+          <div>
+            <strong>Discovery in progress.</strong> Searching, filtering Western
+            Cape false positives, then Claude-triaging each unique URL. Don't
+            close this tab — should finish in 1–2 minutes.
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="mt-3 text-sm bg-rose-50 border border-rose-200 rounded p-2 text-rose-900">
