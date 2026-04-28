@@ -32,9 +32,11 @@ const SELECTABLE_STATUSES: Candidate["status"][] = [
 export default function CandidateList({
   rows,
   recentRunId,
+  inviteTemplate,
 }: {
   rows: Candidate[];
   recentRunId: number | null;
+  inviteTemplate: string;
 }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState<"confirm" | "reject" | "invited_linkedin" | "already_connected" | null>(null);
@@ -108,7 +110,7 @@ export default function CandidateList({
         <ul className="space-y-3">
           {recent.map((c) => (
             <li key={c.id}>
-              <CandidateCard candidate={c} />
+              <CandidateCard candidate={c} inviteTemplate={inviteTemplate} />
             </li>
           ))}
         </ul>
@@ -121,7 +123,7 @@ export default function CandidateList({
             <ul className="space-y-3 mt-3">
               {older.map((c) => (
                 <li key={c.id}>
-                  <CandidateCard candidate={c} />
+                  <CandidateCard candidate={c} inviteTemplate={inviteTemplate} />
                 </li>
               ))}
             </ul>
@@ -155,6 +157,7 @@ export default function CandidateList({
               candidate={c}
               selected={selected.has(c.id)}
               onToggleSelect={toggle}
+              inviteTemplate={inviteTemplate}
             />
           </li>
         ))}

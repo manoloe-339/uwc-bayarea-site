@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { sql } from "@/lib/db";
+import { getSiteSettings, DEFAULT_LINKEDIN_INVITE_TEMPLATE } from "@/lib/settings";
 import DiscoverClient from "./DiscoverClient";
 import CandidateList from "./CandidateList";
 
@@ -75,6 +76,10 @@ export default async function DiscoverPage({
   `) as { id: number }[];
   const recentRunId = recentRunRow[0]?.id ?? null;
 
+  const settings = await getSiteSettings();
+  const inviteTemplate =
+    settings.linkedin_invite_template?.trim() || DEFAULT_LINKEDIN_INVITE_TEMPLATE;
+
   return (
     <div className="max-w-[1000px]">
       <div className="mb-4 text-sm">
@@ -117,7 +122,7 @@ export default async function DiscoverPage({
           Nothing in this view.
         </div>
       ) : (
-        <CandidateList rows={rows} recentRunId={recentRunId} />
+        <CandidateList rows={rows} recentRunId={recentRunId} inviteTemplate={inviteTemplate} />
       )}
     </div>
   );

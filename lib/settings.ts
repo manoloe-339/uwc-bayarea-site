@@ -14,8 +14,13 @@ export type SiteSettings = {
   foodies_default_cta_label: string | null;
   foodies_default_cta_url: string | null;
   default_from_name: string | null;
+  linkedin_invite_template: string | null;
   updated_at: string;
 };
+
+/** Default LinkedIn invite copy. ${firstName} is substituted client-side. */
+export const DEFAULT_LINKEDIN_INVITE_TEMPLATE =
+  "Hi {firstName} — Manolo here, building out the UWC Bay Area alumni network. Saw you're a UWC alum in the area. Would love to connect and keep you in the loop on our gatherings.";
 
 /**
  * Fetch the singleton site_settings row. Falls back to a minimal in-memory
@@ -40,6 +45,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     foodies_default_cta_label: "Learn more",
     foodies_default_cta_url: null,
     default_from_name: "UWC Bay Area",
+    linkedin_invite_template: DEFAULT_LINKEDIN_INVITE_TEMPLATE,
     updated_at: new Date().toISOString(),
   };
 }
@@ -59,6 +65,10 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
     foodies_default_cta_label: patch.foodies_default_cta_label ?? existing.foodies_default_cta_label,
     foodies_default_cta_url: patch.foodies_default_cta_url ?? existing.foodies_default_cta_url,
     default_from_name: patch.default_from_name ?? existing.default_from_name,
+    linkedin_invite_template:
+      patch.linkedin_invite_template !== undefined
+        ? patch.linkedin_invite_template
+        : existing.linkedin_invite_template,
   };
 
   await sql`
@@ -75,6 +85,7 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
       foodies_default_cta_label  = ${next.foodies_default_cta_label},
       foodies_default_cta_url    = ${next.foodies_default_cta_url},
       default_from_name          = ${next.default_from_name},
+      linkedin_invite_template   = ${next.linkedin_invite_template},
       updated_at                 = NOW()
     WHERE id = ${existing.id}
   `;

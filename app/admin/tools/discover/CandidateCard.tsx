@@ -39,10 +39,12 @@ export default function CandidateCard({
   candidate,
   selected,
   onToggleSelect,
+  inviteTemplate,
 }: {
   candidate: Candidate;
   selected?: boolean;
   onToggleSelect?: (id: number) => void;
+  inviteTemplate?: string;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -103,9 +105,15 @@ export default function CandidateCard({
   const displayName = sdName || candidate.name_guess || "(no name detected)";
   const firstName = (sd.firstName as string) || candidate.name_guess?.split(" ")[0] || "";
 
-  const inviteText = firstName
-    ? `Hi ${firstName} — Manolo here, building out the UWC Bay Area alumni network. Saw you're a UWC alum in the area. Would love to connect and keep you in the loop on our gatherings.`
-    : `Hi — Manolo here, building out the UWC Bay Area alumni network. Saw you're a UWC alum in the area. Would love to connect and keep you in the loop on our gatherings.`;
+  const FALLBACK_TEMPLATE =
+    "Hi {firstName} — Manolo here, building out the UWC Bay Area alumni network. Saw you're a UWC alum in the area. Would love to connect and keep you in the loop on our gatherings.";
+  const template = (inviteTemplate ?? FALLBACK_TEMPLATE).trim();
+  // Substitute {firstName} → name (or strip when blank). Then collapse
+  // any leftover double spaces from the no-name case.
+  const inviteText = template
+    .replace(/\{firstName\}/g, firstName)
+    .replace(/\s{2,}/g, " ")
+    .trim();
 
   const copyAndOpen = async () => {
     setBusy("copy");
