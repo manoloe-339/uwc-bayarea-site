@@ -94,22 +94,6 @@ export default async function SettingsPage({
           </Grid>
         </Section>
 
-        <Section title="LinkedIn invite (Discovery)">
-          <p className="text-xs text-[color:var(--muted)] mb-3 col-span-2">
-            Note copied to the clipboard when you click <strong>Copy invite + open LinkedIn</strong> on a confirmed
-            candidate. Use <code className="font-mono bg-ivory-2 px-1 rounded">{`{firstName}`}</code> as a placeholder
-            — if no first name was extracted, the placeholder is replaced with nothing. Keep it under 200 characters
-            (LinkedIn&apos;s &ldquo;Add a note&rdquo; limit on free accounts).
-          </p>
-          <Grid>
-            <Textarea
-              label="Invite note"
-              name="linkedin_invite_template"
-              defaultValue={s.linkedin_invite_template}
-            />
-          </Grid>
-        </Section>
-
         <div className="pt-4 border-t border-[color:var(--rule)]">
           <button type="submit" className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold tracking-wide">
             Save changes

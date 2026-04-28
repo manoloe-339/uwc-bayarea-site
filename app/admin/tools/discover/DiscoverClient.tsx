@@ -88,6 +88,12 @@ export default function DiscoverClient() {
             {retriaging ? "Re-triaging…" : "Re-triage"}
           </button>
           <Link
+            href="/admin/tools/discover/settings"
+            className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
+          >
+            Settings
+          </Link>
+          <Link
             href="/admin/tools/discover/runs"
             className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
           >

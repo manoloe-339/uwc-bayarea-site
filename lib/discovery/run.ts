@@ -13,7 +13,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { sql } from "@/lib/db";
 import {
-  DISCOVERY_QUERIES,
+  loadActiveQueries,
+  loadExcludedTerms,
   normalizeLinkedinUrl,
   guessNameFromTitle,
 } from "./queries";
@@ -23,11 +24,15 @@ import { buildAlumniIndex, matchName } from "./match";
 const SERPER_COST = 0.001;
 const CLAUDE_TRIAGE_COST = 0.0001;
 
-// "University of the Western Cape" (also "UWC") is a South African
-// university unrelated to United World Colleges. Drop hits that match.
-const WESTERN_CAPE_RE = /university of the western cape|western\s*cape/i;
-function isWesternCapeFalsePositive(hit: { title: string; snippet: string }): boolean {
-  return WESTERN_CAPE_RE.test(hit.title) || WESTERN_CAPE_RE.test(hit.snippet);
+// Build a case-insensitive matcher from the admin-managed excluded
+// terms list (loaded once per batch).
+function makeExclusionFilter(terms: string[]): (h: { title: string; snippet: string }) => boolean {
+  if (terms.length === 0) return () => false;
+  const lc = terms.map((t) => t.toLowerCase());
+  return (h) => {
+    const haystack = `${h.title} ${h.snippet}`.toLowerCase();
+    return lc.some((t) => haystack.includes(t));
+  };
 }
 
 type RawHit = { url: string; title: string; snippet: string };
@@ -103,10 +108,14 @@ export async function runAndLogDiscoveryBatch(): Promise<DiscoveryRunResult> {
 
   const globalByUrl = new Map<string, SourcedHit>();
 
-  for (const { q, group } of DISCOVERY_QUERIES) {
+  const queries = await loadActiveQueries();
+  const excludedTerms = await loadExcludedTerms();
+  const isExcluded = makeExclusionFilter(excludedTerms);
+
+  for (const { q, group } of queries) {
     const { hits: rawHits, error } = await serperOne(q);
-    // Drop Western Cape (different UWC) before anything else.
-    const hits = rawHits.filter((h) => !isWesternCapeFalsePositive(h));
+    // Drop excluded terms (e.g. Western Cape, the South African UWC).
+    const hits = rawHits.filter((h) => !isExcluded(h));
 
     const localUrls = new Set<string>();
     for (const h of hits) {
@@ -246,7 +255,7 @@ export async function runAndLogDiscoveryBatch(): Promise<DiscoveryRunResult> {
   await sql`
     UPDATE discovery_runs SET
       finished_at = NOW(),
-      total_queries = ${DISCOVERY_QUERIES.length},
+      total_queries = ${queries.length},
       total_hits = ${totalHits},
       unique_urls = ${uniqueUrls},
       new_candidates = ${inserted},

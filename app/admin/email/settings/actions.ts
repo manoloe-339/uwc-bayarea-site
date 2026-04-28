@@ -24,7 +24,6 @@ export async function saveSiteSettings(formData: FormData): Promise<void> {
     foodies_default_cta_label: s(formData.get("foodies_default_cta_label")),
     foodies_default_cta_url: s(formData.get("foodies_default_cta_url")),
     default_from_name: s(formData.get("default_from_name")),
-    linkedin_invite_template: s(formData.get("linkedin_invite_template")),
   });
   revalidatePath("/admin/email/settings");
   revalidatePath("/admin/email/preview");

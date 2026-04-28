@@ -1,8 +1,13 @@
 /**
  * Search-query templates used by /admin/tools/discover.
- * Tweak this list to broaden or narrow what we surface; the discovery
- * tool reads this constant directly each run.
+ *
+ * Source of truth at runtime is the `discovery_query_templates` table
+ * (admin-editable on /admin/tools/discover/settings). The constant
+ * below is the seed data + a hardcoded fallback used if the table is
+ * empty for any reason.
  */
+
+import { sql } from "@/lib/db";
 
 export const DISCOVERY_QUERIES: { q: string; group: string }[] = [
   // A. Broad UWC + Bay Area phrasing
@@ -41,6 +46,34 @@ export const DISCOVERY_QUERIES: { q: string; group: string }[] = [
   { q: `"UWC Costa Rica" "Bay Area" site:linkedin.com/in/`, group: "bare-college" },
   { q: `"UWC Red Cross Nordic" "San Francisco" site:linkedin.com/in/`, group: "bare-college" },
 ];
+
+type DBQueryRow = { query: string; group_label: string | null };
+
+/**
+ * Load enabled queries from the DB. Falls back to DISCOVERY_QUERIES if
+ * the table returns nothing (defensive against an accidentally-emptied
+ * table breaking discovery).
+ */
+export async function loadActiveQueries(): Promise<{ q: string; group: string }[]> {
+  const rows = (await sql`
+    SELECT query, group_label
+    FROM discovery_query_templates
+    WHERE enabled = TRUE
+    ORDER BY sort_order ASC, id ASC
+  `) as DBQueryRow[];
+  if (rows.length === 0) return DISCOVERY_QUERIES;
+  return rows.map((r) => ({ q: r.query, group: r.group_label ?? "" }));
+}
+
+/** Load excluded-term strings from DB. Each is matched case-insensitively
+ *  against the title + snippet of every search hit before triage. */
+export async function loadExcludedTerms(): Promise<string[]> {
+  const rows = (await sql`
+    SELECT term FROM discovery_excluded_terms ORDER BY term ASC
+  `) as { term: string }[];
+  if (rows.length === 0) return ["Western Cape"];
+  return rows.map((r) => r.term);
+}
 
 const LINKEDIN_PROFILE_URL_RE = /^https?:\/\/(?:[a-z0-9]+\.)?linkedin\.com\/in\/[^/?#]+/i;
 
