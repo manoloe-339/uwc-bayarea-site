@@ -32,11 +32,12 @@ export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { sea
         style={{ background: "#B8341F" }}
       >
         <span className="urgency-dot w-2 h-2 rounded-full bg-white inline-block shrink-0" />
-        <span>
+        <span className="flex flex-col items-center sm:flex-row sm:flex-wrap sm:justify-center sm:items-baseline sm:gap-1.5 leading-tight">
           {event.earlyBirdStatus === "sold_out" ? (
             <>
-              Early Bird Sold Out ·{" "}
-              <span className="display italic font-semibold text-[13px] tracking-[.02em] normal-case">
+              <span>Early Bird Sold Out</span>
+              <span aria-hidden className="hidden sm:inline">·</span>
+              <span className="display italic font-semibold text-[12px] tracking-[.02em] normal-case leading-tight">
                 {seatsRemaining <= event.lowSeatsThreshold
                   ? `last chance — only ${seatsRemaining} seats left`
                   : `only ${seatsRemaining} seats remain`}
@@ -44,8 +45,11 @@ export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { sea
             </>
           ) : (
             <>
-              {seatsRemaining <= event.lowSeatsThreshold ? "Last chance —" : "Selling quickly —"}{" "}
-              <span className="display italic font-semibold text-[13px] tracking-[.02em] normal-case">
+              <span>
+                {seatsRemaining <= event.lowSeatsThreshold ? "Last chance" : "Selling quickly"}
+              </span>
+              <span aria-hidden className="hidden sm:inline">—</span>
+              <span className="display italic font-semibold text-[12px] tracking-[.02em] normal-case leading-tight">
                 only {seatsRemaining} seats remain
               </span>
             </>
