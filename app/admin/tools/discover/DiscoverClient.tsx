@@ -19,8 +19,10 @@ type Result = {
 
 export default function DiscoverClient() {
   const [pending, setPending] = useState(false);
+  const [retriaging, setRetriaging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
+  const [retriageMsg, setRetriageMsg] = useState<string | null>(null);
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -41,6 +43,26 @@ export default function DiscoverClient() {
     }
   };
 
+  const retriage = async () => {
+    if (!confirm("Re-run Claude triage on all un-actioned candidates? Updates confidence/role labels with the latest prompt. ~$0.0001 per candidate, can take a couple minutes.")) {
+      return;
+    }
+    setRetriaging(true);
+    setRetriageMsg(null);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/discovery/re-triage", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "re-triage failed");
+      setRetriageMsg(`Re-triaged ${data.retriaged} candidate${data.retriaged === 1 ? "" : "s"}${data.failed > 0 ? ` · ${data.failed} failed` : ""}.`);
+      startTransition(() => router.refresh());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "failed");
+    } finally {
+      setRetriaging(false);
+    }
+  };
+
   return (
     <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -55,7 +77,16 @@ export default function DiscoverClient() {
             yield is logged so you can audit what's working.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={retriage}
+            disabled={pending || retriaging}
+            title="Re-run Claude triage on un-actioned candidates with the latest prompt"
+            className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white disabled:opacity-50"
+          >
+            {retriaging ? "Re-triaging…" : "Re-triage"}
+          </button>
           <Link
             href="/admin/tools/discover/runs"
             className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
@@ -65,7 +96,7 @@ export default function DiscoverClient() {
           <button
             type="button"
             onClick={run}
-            disabled={pending}
+            disabled={pending || retriaging}
             className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold disabled:opacity-60 inline-flex items-center gap-2"
           >
             {pending && (
@@ -103,6 +134,22 @@ export default function DiscoverClient() {
             Cape false positives, then Claude-triaging each unique URL. Don't
             close this tab — should finish in 1–2 minutes.
           </div>
+        </div>
+      )}
+
+      {retriaging && (
+        <div className="mt-3 text-sm bg-amber-50 border border-amber-200 rounded p-3 text-amber-900 flex items-start gap-3">
+          <span className="mt-0.5 inline-block w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
+          <div>
+            <strong>Re-triaging candidates.</strong> Re-running Claude on every
+            un-actioned candidate with the latest prompt. Don't close this tab.
+          </div>
+        </div>
+      )}
+
+      {retriageMsg && !retriaging && (
+        <div className="mt-3 text-sm bg-emerald-50 border border-emerald-200 rounded p-2 text-emerald-900">
+          {retriageMsg}
         </div>
       )}
 

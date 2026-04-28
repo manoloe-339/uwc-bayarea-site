@@ -4,7 +4,12 @@ import { sql } from "@/lib/db";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const VALID_STATUSES = ["confirmed", "rejected"] as const;
+const VALID_STATUSES = [
+  "confirmed",
+  "rejected",
+  "invited_linkedin",
+  "already_connected",
+] as const;
 type ValidStatus = (typeof VALID_STATUSES)[number];
 
 export async function POST(req: NextRequest): Promise<NextResponse> {

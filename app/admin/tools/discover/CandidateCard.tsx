@@ -12,7 +12,7 @@ type Candidate = {
   body_snippet: string | null;
   source: string | null;
   search_query: string | null;
-  status: "new" | "probable_match" | "possible_match" | "confirmed" | "scraped" | "added" | "rejected";
+  status: "new" | "probable_match" | "possible_match" | "confirmed" | "invited_linkedin" | "already_connected" | "scraped" | "added" | "rejected";
   matched_alumni_id: number | null;
   scraped_data: unknown;
   discovered_at: string;
@@ -46,7 +46,8 @@ export default function CandidateCard({
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [busy, setBusy] = useState<"scrape" | "add" | "reject" | null>(null);
+  const [busy, setBusy] = useState<"scrape" | "add" | "reject" | "copy" | "mark" | null>(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
 
@@ -100,6 +101,46 @@ export default function CandidateCard({
   };
 
   const displayName = sdName || candidate.name_guess || "(no name detected)";
+  const firstName = (sd.firstName as string) || candidate.name_guess?.split(" ")[0] || "";
+
+  const inviteText = firstName
+    ? `Hi ${firstName} — Manolo here, building out the UWC Bay Area alumni network. Saw you're a UWC alum in the area. Would love to connect and keep you in the loop on our gatherings.`
+    : `Hi — Manolo here, building out the UWC Bay Area alumni network. Saw you're a UWC alum in the area. Would love to connect and keep you in the loop on our gatherings.`;
+
+  const copyAndOpen = async () => {
+    setBusy("copy");
+    try {
+      await navigator.clipboard.writeText(inviteText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      window.open(candidate.linkedin_url, "_blank", "noopener,noreferrer");
+    } catch {
+      alert("Couldn't copy to clipboard. Manual copy:\n\n" + inviteText);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const markStatus = async (newStatus: "invited_linkedin" | "already_connected") => {
+    setBusy("mark");
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/discovery/bulk-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [candidate.id], status: newStatus }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "mark failed");
+      }
+      refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "failed");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div
@@ -181,6 +222,35 @@ export default function CandidateCard({
       )}
 
       <div className="mt-3 flex flex-wrap gap-2 items-center">
+        {candidate.status === "confirmed" && (
+          <>
+            <button
+              type="button"
+              onClick={copyAndOpen}
+              disabled={busy !== null}
+              className="text-xs font-semibold bg-emerald-600 text-white px-3 py-1.5 rounded hover:bg-emerald-700 disabled:opacity-50"
+              title={inviteText}
+            >
+              {copied ? "✓ Copied — paste in LinkedIn" : "Copy invite + open LinkedIn"}
+            </button>
+            <button
+              type="button"
+              onClick={() => markStatus("invited_linkedin")}
+              disabled={busy !== null}
+              className="text-xs font-semibold text-navy border border-navy px-3 py-1.5 rounded hover:bg-navy hover:text-white disabled:opacity-50"
+            >
+              {busy === "mark" ? "…" : "Mark as invited"}
+            </button>
+            <button
+              type="button"
+              onClick={() => markStatus("already_connected")}
+              disabled={busy !== null}
+              className="text-xs font-semibold text-[color:var(--muted)] border border-[color:var(--rule)] px-3 py-1.5 rounded hover:bg-ivory disabled:opacity-50"
+            >
+              Already connected
+            </button>
+          </>
+        )}
         {candidate.status !== "added" && candidate.status !== "rejected" && (
           <>
             {candidate.status !== "scraped" && (

@@ -1,6 +1,3 @@
--- Forward-compatible: include statuses from later migrations (043) so
--- re-runs of this migration succeed even when rows already use the
--- newer statuses.
 ALTER TABLE alumni_candidates DROP CONSTRAINT IF EXISTS alumni_candidates_status_check;
 ALTER TABLE alumni_candidates ADD CONSTRAINT alumni_candidates_status_check
   CHECK (status IN (

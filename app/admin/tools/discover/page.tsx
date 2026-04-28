@@ -14,7 +14,7 @@ type CandidateRow = {
   body_snippet: string | null;
   source: string | null;
   search_query: string | null;
-  status: "new" | "probable_match" | "possible_match" | "confirmed" | "scraped" | "added" | "rejected";
+  status: "new" | "probable_match" | "possible_match" | "confirmed" | "invited_linkedin" | "already_connected" | "scraped" | "added" | "rejected";
   matched_alumni_id: number | null;
   scraped_data: unknown;
   discovered_at: string;
@@ -29,6 +29,8 @@ const LABEL: Record<CandidateRow["status"], string> = {
   probable_match: "Probable matches",
   possible_match: "Possible matches",
   confirmed: "Confirmed",
+  invited_linkedin: "Invited",
+  already_connected: "Already connected",
   scraped: "Scraped",
   added: "Added",
   rejected: "Rejected",
@@ -41,7 +43,7 @@ export default async function DiscoverPage({
 }) {
   const { tab: tabRaw } = await searchParams;
   const tab: CandidateRow["status"] = (
-    ["new", "probable_match", "possible_match", "confirmed", "scraped", "added", "rejected"] as const
+    ["new", "probable_match", "possible_match", "confirmed", "invited_linkedin", "already_connected", "scraped", "added", "rejected"] as const
   ).includes(tabRaw as CandidateRow["status"])
     ? (tabRaw as CandidateRow["status"])
     : "new";
@@ -92,7 +94,7 @@ export default async function DiscoverPage({
       <DiscoverClient />
 
       <div className="flex flex-wrap gap-1 mb-4 text-sm font-semibold mt-8 border-b border-[color:var(--rule)]">
-        {(["new", "probable_match", "possible_match", "confirmed", "scraped", "added", "rejected"] as const).map((s) => (
+        {(["new", "probable_match", "possible_match", "confirmed", "invited_linkedin", "already_connected", "scraped", "added", "rejected"] as const).map((s) => (
           <Link
             key={s}
             href={`/admin/tools/discover?tab=${s}`}

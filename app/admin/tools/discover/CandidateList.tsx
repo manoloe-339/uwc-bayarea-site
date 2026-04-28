@@ -12,7 +12,7 @@ type Candidate = {
   body_snippet: string | null;
   source: string | null;
   search_query: string | null;
-  status: "new" | "probable_match" | "possible_match" | "confirmed" | "scraped" | "added" | "rejected";
+  status: "new" | "probable_match" | "possible_match" | "confirmed" | "invited_linkedin" | "already_connected" | "scraped" | "added" | "rejected";
   matched_alumni_id: number | null;
   scraped_data: unknown;
   discovered_at: string;
@@ -37,7 +37,7 @@ export default function CandidateList({
   recentRunId: number | null;
 }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [busy, setBusy] = useState<"confirm" | "reject" | null>(null);
+  const [busy, setBusy] = useState<"confirm" | "reject" | "invited_linkedin" | "already_connected" | null>(null);
   const router = useRouter();
   const [, startTransition] = useTransition();
 
@@ -57,12 +57,20 @@ export default function CandidateList({
   const selectAll = () => setSelected(new Set(rows.map((r) => r.id)));
   const clear = () => setSelected(new Set());
 
-  const bulkUpdate = async (status: "confirmed" | "rejected") => {
+  const bulkUpdate = async (
+    status: "confirmed" | "rejected" | "invited_linkedin" | "already_connected"
+  ) => {
     if (selected.size === 0) return;
     if (status === "rejected" && !confirm(`Reject ${selected.size} candidate${selected.size === 1 ? "" : "s"}?`)) {
       return;
     }
-    setBusy(status === "confirmed" ? "confirm" : "reject");
+    const busyMap: Record<typeof status, NonNullable<typeof busy>> = {
+      confirmed: "confirm",
+      rejected: "reject",
+      invited_linkedin: "invited_linkedin",
+      already_connected: "already_connected",
+    };
+    setBusy(busyMap[status]);
     try {
       const res = await fetch("/api/admin/discovery/bulk-status", {
         method: "POST",
@@ -179,8 +187,6 @@ export default function CandidateList({
               {selected.size} selected
             </span>
             <div className="ml-auto flex flex-wrap items-center gap-2">
-              {/* Confirm makes sense on new/probable/possible tabs but not on the
-                  Confirmed tab itself (already confirmed). Reject is universal. */}
               {rows[0].status !== "confirmed" && (
                 <button
                   type="button"
@@ -190,6 +196,26 @@ export default function CandidateList({
                 >
                   {busy === "confirm" ? "Confirming…" : "Confirm"}
                 </button>
+              )}
+              {rows[0].status === "confirmed" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => bulkUpdate("invited_linkedin")}
+                    disabled={busy !== null}
+                    className="text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded disabled:opacity-50"
+                  >
+                    {busy === "invited_linkedin" ? "Marking…" : "Mark invited"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => bulkUpdate("already_connected")}
+                    disabled={busy !== null}
+                    className="text-xs font-semibold bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded disabled:opacity-50"
+                  >
+                    {busy === "already_connected" ? "Marking…" : "Already connected"}
+                  </button>
+                </>
               )}
               <button
                 type="button"
