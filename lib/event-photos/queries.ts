@@ -266,11 +266,28 @@ export async function setUploadEnabled(eventId: number, enabled: boolean): Promi
  * Approved photos ordered for public gallery rendering:
  * marquee first (by display_order), then supporting (by display_order, then
  * EXIF-or-upload date). NULL display_order rows fall after numbered ones.
+ *
+ * De-duplicated by original_filename within the event so the layout view +
+ * public gallery page don't render the same photo twice when an admin
+ * approves a photo and one or more of its duplicates.
  */
 export async function getApprovedPhotosOrdered(eventId: number): Promise<EventPhoto[]> {
   return (await sql`
-    SELECT * FROM event_photos
-    WHERE event_id = ${eventId} AND approval_status = 'approved'
+    WITH ranked AS (
+      SELECT
+        *,
+        CASE
+          WHEN original_filename IS NULL OR original_filename = '' THEN 1
+          ELSE ROW_NUMBER() OVER (
+            PARTITION BY event_id, original_filename
+            ORDER BY uploaded_at ASC, id ASC
+          )
+        END AS dup_rn
+      FROM event_photos
+      WHERE event_id = ${eventId} AND approval_status = 'approved'
+    )
+    SELECT * FROM ranked
+    WHERE dup_rn = 1
     ORDER BY
       CASE WHEN display_role = 'marquee' THEN 0 ELSE 1 END,
       display_order ASC NULLS LAST,

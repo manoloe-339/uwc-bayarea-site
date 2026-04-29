@@ -48,25 +48,38 @@ type GalleryRowSqlRow = {
  */
 export async function getPublicGalleryRows(thumbsPerRow: number): Promise<GalleryRow[]> {
   const rows = (await sql`
-    WITH ranked AS (
+    WITH deduped AS (
       SELECT
-        ep.id           AS photo_id,
-        ep.event_id,
-        ep.blob_url,
-        ep.original_filename,
-        ep.width        AS photo_width,
-        ep.height       AS photo_height,
-        ROW_NUMBER() OVER (
-          PARTITION BY ep.event_id
-          ORDER BY
-            CASE WHEN ep.display_role = 'marquee' THEN 0 ELSE 1 END,
-            ep.display_order ASC NULLS LAST,
-            ep.uploaded_at DESC,
-            ep.id DESC
-        ) AS rn,
-        COUNT(*) OVER (PARTITION BY ep.event_id)::int AS total_count
+        ep.*,
+        CASE
+          WHEN ep.original_filename IS NULL OR ep.original_filename = '' THEN 1
+          ELSE ROW_NUMBER() OVER (
+            PARTITION BY ep.event_id, ep.original_filename
+            ORDER BY ep.uploaded_at ASC, ep.id ASC
+          )
+        END AS dup_rn
       FROM event_photos ep
       WHERE ep.approval_status = 'approved'
+    ),
+    ranked AS (
+      SELECT
+        d.id            AS photo_id,
+        d.event_id,
+        d.blob_url,
+        d.original_filename,
+        d.width         AS photo_width,
+        d.height        AS photo_height,
+        ROW_NUMBER() OVER (
+          PARTITION BY d.event_id
+          ORDER BY
+            CASE WHEN d.display_role = 'marquee' THEN 0 ELSE 1 END,
+            d.display_order ASC NULLS LAST,
+            d.uploaded_at DESC,
+            d.id DESC
+        ) AS rn,
+        COUNT(*) OVER (PARTITION BY d.event_id)::int AS total_count
+      FROM deduped d
+      WHERE d.dup_rn = 1
     )
     SELECT
       e.id            AS event_id,
@@ -86,7 +99,7 @@ export async function getPublicGalleryRows(thumbsPerRow: number): Promise<Galler
     WHERE r.rn <= ${thumbsPerRow}
       AND e.slug <> 'archive'
     ORDER BY e.date DESC, e.id DESC, r.rn ASC
-  `) as GalleryRowSqlRow[];
+  ` ) as GalleryRowSqlRow[];
 
   const byEvent = new Map<number, GalleryRow>();
   for (const r of rows) {
@@ -117,16 +130,30 @@ export async function getPublicGalleryRows(thumbsPerRow: number): Promise<Galler
 /**
  * Marquee photo pool for the top of the public Photos page —
  * approved + marquee-tagged photos across all events, newest event first.
+ * De-duplicated by original_filename within each event.
  */
 export async function getMarqueePool(limit = 24): Promise<MarqueePhoto[]> {
   const rows = (await sql`
-    SELECT
-      ep.id, ep.blob_url, ep.original_filename, ep.width, ep.height
-    FROM event_photos ep
-    JOIN events e ON e.id = ep.event_id
-    WHERE ep.approval_status = 'approved'
-      AND ep.display_role = 'marquee'
-    ORDER BY e.date DESC, ep.display_order ASC NULLS LAST, ep.id DESC
+    WITH deduped AS (
+      SELECT
+        ep.*,
+        e.date AS event_date,
+        CASE
+          WHEN ep.original_filename IS NULL OR ep.original_filename = '' THEN 1
+          ELSE ROW_NUMBER() OVER (
+            PARTITION BY ep.event_id, ep.original_filename
+            ORDER BY ep.uploaded_at ASC, ep.id ASC
+          )
+        END AS dup_rn
+      FROM event_photos ep
+      JOIN events e ON e.id = ep.event_id
+      WHERE ep.approval_status = 'approved'
+        AND ep.display_role = 'marquee'
+    )
+    SELECT id, blob_url, original_filename, width, height
+    FROM deduped
+    WHERE dup_rn = 1
+    ORDER BY event_date DESC, display_order ASC NULLS LAST, id DESC
     LIMIT ${limit}
   `) as Array<{
     id: number;
