@@ -12,7 +12,6 @@ const CONTACT_MAILTO = "mailto:manolo@uwcbayarea.org?subject=UWC%20Bay%20Area%20
 const secondaryLinks: { key: NavKey; label: string; href: string }[] = [
   { key: "home", label: "Home", href: "/" },
   { key: "events", label: "Events", href: "/" },
-  { key: "photos", label: "Photos", href: "/photos" },
   { key: "contact", label: "Contact", href: CONTACT_MAILTO },
 ];
 
@@ -74,7 +73,6 @@ export default function SiteHeader({ active }: { active?: NavKey }) {
         <div className="hidden md:flex items-center gap-1">
           <NavLink href="/" active={active === "home"}>Home</NavLink>
           <NavLink href="/" active={active === "events"}>Events</NavLink>
-          <NavLink href="/photos" active={active === "photos"}>Photos</NavLink>
           <NavLink href="/signup" active={active === "signup"}>Sign up</NavLink>
           <NavLink href={CONTACT_MAILTO} active={active === "contact"}>Contact</NavLink>
         </div>
