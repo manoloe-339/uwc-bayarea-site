@@ -85,7 +85,19 @@ export default async function PhotosPage({
 
       <div className="flex items-end justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Photos</h1>
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">Photos</h1>
+            {!isArchive && (
+              <a
+                href={`/events/${slug}/photos`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-semibold tracking-[.18em] uppercase text-navy border border-navy px-3 py-1.5 rounded hover:bg-navy hover:text-white"
+              >
+                View public gallery →
+              </a>
+            )}
+          </div>
           <p className="text-[color:var(--muted)] text-sm">
             {event.name}
             {event.date
