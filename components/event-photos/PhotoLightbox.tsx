@@ -141,151 +141,161 @@ export function PhotoLightbox({
 
   if (!photo) return null;
 
+  const statusText = savingErr
+    ? `Error: ${savingErr}`
+    : assigning
+    ? "Assigning…"
+    : saving
+    ? "Saving…"
+    : savedAt
+    ? "Saved"
+    : photo.taken_at
+    ? "Set"
+    : "Not set";
+
+  const statusColor = savingErr
+    ? "text-rose-300"
+    : saving || assigning
+    ? "text-white/60"
+    : savedAt
+    ? "text-emerald-300"
+    : "text-white/40";
+
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 bg-black/90 flex flex-col">
+      {/* Close button */}
       <button
         type="button"
-        className="absolute top-4 right-4 text-white text-2xl px-3 py-1 rounded hover:bg-white/10"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
+        className="absolute top-3 right-3 z-20 text-white text-2xl w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center"
+        onClick={onClose}
         aria-label="Close"
       >
         ×
       </button>
-      <button
-        type="button"
-        className="absolute left-4 top-1/2 -translate-y-1/2 text-white text-3xl px-3 py-2 rounded hover:bg-white/10"
-        onClick={(e) => {
-          e.stopPropagation();
-          prev();
-        }}
-        aria-label="Previous"
-      >
-        ‹
-      </button>
-      <button
-        type="button"
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-white text-3xl px-3 py-2 rounded hover:bg-white/10"
-        onClick={(e) => {
-          e.stopPropagation();
-          next();
-        }}
-        aria-label="Next"
-      >
-        ›
-      </button>
+
+      {/* Photo viewport — fills the space above the controls panel */}
       <div
-        className="max-w-[95vw] max-h-[90vh] flex flex-col items-center"
-        onClick={(e) => e.stopPropagation()}
+        className="flex-1 min-h-0 relative flex items-center justify-center px-2 sm:px-12"
+        onClick={onClose}
       >
+        <button
+          type="button"
+          className="absolute left-1 sm:left-3 top-1/2 -translate-y-1/2 z-10 text-white text-3xl w-11 h-11 rounded-full hover:bg-white/10 flex items-center justify-center"
+          onClick={(e) => {
+            e.stopPropagation();
+            prev();
+          }}
+          aria-label="Previous"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          className="absolute right-1 sm:right-3 top-1/2 -translate-y-1/2 z-10 text-white text-3xl w-11 h-11 rounded-full hover:bg-white/10 flex items-center justify-center"
+          onClick={(e) => {
+            e.stopPropagation();
+            next();
+          }}
+          aria-label="Next"
+        >
+          ›
+        </button>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={photo.blob_url}
           alt={photo.original_filename ?? `Photo ${photo.id}`}
-          className="max-w-full max-h-[78vh] object-contain"
+          onClick={(e) => e.stopPropagation()}
+          className="max-w-full max-h-full object-contain"
         />
-        <div className="text-white/70 text-xs mt-3 text-center">
-          {(index ?? 0) + 1} / {photos.length}
-          {photo.original_filename ? ` · ${photo.original_filename}` : ""}
-          {photo.width && photo.height ? ` · ${photo.width}×${photo.height}` : ""}
-        </div>
+      </div>
 
-        {/* Capture date editor */}
-        <div className="mt-3 flex items-center gap-2 flex-wrap justify-center bg-white/5 border border-white/15 rounded-full px-3 py-1.5">
-          <label
-            htmlFor="lightbox-taken-at"
-            className="text-[10px] tracking-[.18em] uppercase font-bold text-white/70"
-          >
-            Capture date
-          </label>
-          <input
-            id="lightbox-taken-at"
-            type="date"
-            value={takenInput}
-            onChange={(e) => setTakenInput(e.target.value)}
-            onBlur={(e) => void saveTakenAt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                void saveTakenAt(takenInput);
-              }
-            }}
-            className="bg-transparent text-white text-xs border border-white/20 rounded px-2 py-1 [color-scheme:dark]"
-            min="1990-01-01"
-            max={new Date().toISOString().slice(0, 10)}
-          />
-          {takenInput && (
-            <button
-              type="button"
-              className="text-white/60 hover:text-white text-[10px] uppercase tracking-[.18em] font-semibold"
-              onClick={() => {
-                setTakenInput("");
-                void saveTakenAt("");
-              }}
-            >
-              Clear
-            </button>
-          )}
-          <span
-            className={`text-[10px] uppercase tracking-[.18em] font-bold ${
-              savingErr
-                ? "text-rose-300"
-                : saving || assigning
-                ? "text-white/60"
-                : savedAt
-                ? "text-emerald-300"
-                : "text-white/30"
-            }`}
-            aria-live="polite"
-          >
-            {savingErr
-              ? `Error: ${savingErr}`
-              : assigning
-              ? "Assigning…"
-              : saving
-              ? "Saving…"
-              : savedAt
-              ? "Saved"
-              : photo.taken_at
-              ? "Set"
-              : "Not set"}
-          </span>
-        </div>
-
-        {/* Assign to existing gallery (archive admin only) */}
-        {sortedAssignable.length > 0 && (
-          <div className="mt-2 flex items-center gap-2 flex-wrap justify-center bg-white/5 border border-white/15 rounded-full px-3 py-1.5 max-w-full">
-            <label
-              htmlFor="lightbox-assign-event"
-              className="text-[10px] tracking-[.18em] uppercase font-bold text-white/70 whitespace-nowrap"
-            >
-              Assign to gallery
-            </label>
-            <select
-              id="lightbox-assign-event"
-              defaultValue=""
-              disabled={assigning}
-              onChange={(e) => {
-                const id = Number(e.target.value);
-                if (Number.isFinite(id) && id > 0) void assignToEvent(id);
-                e.target.value = ""; // reset so re-selecting same option works later
-              }}
-              className="bg-black/40 text-white text-xs border border-white/20 rounded px-2 py-1 max-w-[260px]"
-            >
-              <option value="">Pick an event…</option>
-              {sortedAssignable.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {toDateInputValue(e.date)} · {e.name}
-                </option>
-              ))}
-            </select>
+      {/* Controls panel — pinned to viewport bottom, always visible */}
+      <div
+        className="shrink-0 bg-black/85 backdrop-blur border-t border-white/10 text-white"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="max-w-[900px] mx-auto px-4 py-3 space-y-2.5">
+          {/* Meta line */}
+          <div className="text-[11px] text-white/65 text-center truncate">
+            {(index ?? 0) + 1} / {photos.length}
+            {photo.original_filename ? ` · ${photo.original_filename}` : ""}
+            {photo.width && photo.height ? ` · ${photo.width}×${photo.height}` : ""}
           </div>
-        )}
+
+          {/* Capture date row */}
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            <label
+              htmlFor="lightbox-taken-at"
+              className="text-[10px] tracking-[.18em] uppercase font-bold text-white/65 whitespace-nowrap"
+            >
+              Capture date
+            </label>
+            <input
+              id="lightbox-taken-at"
+              type="date"
+              value={takenInput}
+              onChange={(e) => setTakenInput(e.target.value)}
+              onBlur={(e) => void saveTakenAt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void saveTakenAt(takenInput);
+                }
+              }}
+              className="bg-white/5 text-white text-xs border border-white/20 rounded px-2 py-1 [color-scheme:dark]"
+              min="1990-01-01"
+              max={new Date().toISOString().slice(0, 10)}
+            />
+            {takenInput && (
+              <button
+                type="button"
+                className="text-white/60 hover:text-white text-[10px] uppercase tracking-[.18em] font-semibold"
+                onClick={() => {
+                  setTakenInput("");
+                  void saveTakenAt("");
+                }}
+              >
+                Clear
+              </button>
+            )}
+            <span
+              className={`text-[10px] uppercase tracking-[.18em] font-bold ${statusColor}`}
+              aria-live="polite"
+            >
+              {statusText}
+            </span>
+          </div>
+
+          {/* Assign to existing gallery (archive admin only) */}
+          {sortedAssignable.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              <label
+                htmlFor="lightbox-assign-event"
+                className="text-[10px] tracking-[.18em] uppercase font-bold text-white/65 whitespace-nowrap"
+              >
+                Assign to gallery
+              </label>
+              <select
+                id="lightbox-assign-event"
+                defaultValue=""
+                disabled={assigning}
+                onChange={(e) => {
+                  const id = Number(e.target.value);
+                  if (Number.isFinite(id) && id > 0) void assignToEvent(id);
+                  e.target.value = "";
+                }}
+                className="bg-white/5 text-white text-xs border border-white/20 rounded px-2 py-1 max-w-[260px]"
+              >
+                <option value="" className="bg-black">Pick an event…</option>
+                {sortedAssignable.map((e) => (
+                  <option key={e.id} value={e.id} className="bg-black">
+                    {toDateInputValue(e.date)} · {e.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
