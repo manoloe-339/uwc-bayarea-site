@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getEventBySlug } from "@/lib/events-db";
+import { getEventBySlug, listEvents } from "@/lib/events-db";
 import {
   getEventPhotosForTab,
   getPhotoStats,
@@ -47,7 +47,7 @@ export default async function PhotosPage({
     : "all";
 
   const isArchive = event.slug === "archive";
-  const [photos, stats, approvedOrdered, distributedPhotos] = await Promise.all([
+  const [photos, stats, approvedOrdered, distributedPhotos, allEvents] = await Promise.all([
     view === "approve" && filter !== "distributed"
       ? getEventPhotosForTab(event.id, filter)
       : Promise.resolve([]),
@@ -56,7 +56,19 @@ export default async function PhotosPage({
     view === "approve" && filter === "distributed" && isArchive
       ? getDistributedArchivePhotos(event.id)
       : Promise.resolve([]),
+    isArchive ? listEvents() : Promise.resolve([]),
   ]);
+
+  // The lightbox dropdown only needs other events (skip archive itself
+  // and the current event), as a lightweight slug/name/date list.
+  const assignableEvents = allEvents
+    .filter((e) => e.id !== event.id && e.slug !== "archive")
+    .map((e) => ({
+      id: e.id,
+      slug: e.slug,
+      name: e.name,
+      date: e.date instanceof Date ? e.date.toISOString() : (e.date as unknown as string),
+    }));
 
   const basePath = `/admin/events/${slug}/photos`;
 
@@ -135,7 +147,11 @@ export default async function PhotosPage({
           {filter === "distributed" && isArchive ? (
             <DistributedPhotoGrid photos={distributedPhotos} />
           ) : (
-            <PhotoGrid photos={photos} eventId={event.id} />
+            <PhotoGrid
+              photos={photos}
+              eventId={event.id}
+              assignableEvents={isArchive ? assignableEvents : undefined}
+            />
           )}
         </>
       ) : (

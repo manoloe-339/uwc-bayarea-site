@@ -9,9 +9,11 @@ import { BulkActionsBar } from "./BulkActionsBar";
 export function PhotoGrid({
   photos,
   eventId,
+  assignableEvents,
 }: {
   photos: EventPhoto[];
   eventId: number;
+  assignableEvents?: Array<{ id: number; slug: string; name: string; date: string }>;
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -101,6 +103,7 @@ export function PhotoGrid({
         index={lightboxIndex}
         onClose={() => setLightboxIndex(null)}
         onChangeIndex={setLightboxIndex}
+        assignableEvents={assignableEvents}
       />
     </>
   );

@@ -10,16 +10,20 @@ function toDateInputValue(d: string | Date | null | undefined): string {
   return date.toISOString().slice(0, 10);
 }
 
+type AssignableEvent = { id: number; slug: string; name: string; date: string };
+
 export function PhotoLightbox({
   photos,
   index,
   onClose,
   onChangeIndex,
+  assignableEvents,
 }: {
   photos: EventPhoto[];
   index: number | null;
   onClose: () => void;
   onChangeIndex: (i: number) => void;
+  assignableEvents?: AssignableEvent[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -29,6 +33,12 @@ export function PhotoLightbox({
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [savingErr, setSavingErr] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+
+  // Sort galleries newest-date-first for the dropdown.
+  const sortedAssignable = (assignableEvents ?? [])
+    .slice()
+    .sort((a, b) => (b.date < a.date ? -1 : b.date > a.date ? 1 : 0));
 
   // Reset the input when the active photo changes.
   useEffect(() => {
@@ -90,6 +100,43 @@ export function PhotoLightbox({
       }
     },
     [photo, router]
+  );
+
+  const assignToEvent = useCallback(
+    async (eventId: number) => {
+      if (!photo) return;
+      const target = sortedAssignable.find((e) => e.id === eventId);
+      if (!target) return;
+      if (
+        !confirm(
+          `Move this photo to "${target.name}" and set its capture date to ${toDateInputValue(target.date)}?`
+        )
+      ) {
+        return;
+      }
+      setAssigning(true);
+      setSavingErr(null);
+      try {
+        const res = await fetch("/api/admin/event-photos/assign-to-event", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ photoId: photo.id, eventId }),
+        });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(data.error ?? `HTTP ${res.status}`);
+        }
+        // Photo no longer belongs to this view — close the lightbox and
+        // refresh the parent grid so the photo disappears from the list.
+        onClose();
+        startTransition(() => router.refresh());
+      } catch (err) {
+        setSavingErr(err instanceof Error ? err.message : "Assign failed");
+      } finally {
+        setAssigning(false);
+      }
+    },
+    [photo, router, sortedAssignable, onClose]
   );
 
   if (!photo) return null;
@@ -188,7 +235,7 @@ export function PhotoLightbox({
             className={`text-[10px] uppercase tracking-[.18em] font-bold ${
               savingErr
                 ? "text-rose-300"
-                : saving
+                : saving || assigning
                 ? "text-white/60"
                 : savedAt
                 ? "text-emerald-300"
@@ -198,6 +245,8 @@ export function PhotoLightbox({
           >
             {savingErr
               ? `Error: ${savingErr}`
+              : assigning
+              ? "Assigning…"
               : saving
               ? "Saving…"
               : savedAt
@@ -207,6 +256,36 @@ export function PhotoLightbox({
               : "Not set"}
           </span>
         </div>
+
+        {/* Assign to existing gallery (archive admin only) */}
+        {sortedAssignable.length > 0 && (
+          <div className="mt-2 flex items-center gap-2 flex-wrap justify-center bg-white/5 border border-white/15 rounded-full px-3 py-1.5 max-w-full">
+            <label
+              htmlFor="lightbox-assign-event"
+              className="text-[10px] tracking-[.18em] uppercase font-bold text-white/70 whitespace-nowrap"
+            >
+              Assign to gallery
+            </label>
+            <select
+              id="lightbox-assign-event"
+              defaultValue=""
+              disabled={assigning}
+              onChange={(e) => {
+                const id = Number(e.target.value);
+                if (Number.isFinite(id) && id > 0) void assignToEvent(id);
+                e.target.value = ""; // reset so re-selecting same option works later
+              }}
+              className="bg-black/40 text-white text-xs border border-white/20 rounded px-2 py-1 max-w-[260px]"
+            >
+              <option value="">Pick an event…</option>
+              {sortedAssignable.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {toDateInputValue(e.date)} · {e.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     </div>
   );

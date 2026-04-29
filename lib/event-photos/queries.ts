@@ -288,6 +288,32 @@ export async function setPhotoTakenAt(photoId: number, takenAt: Date | null): Pr
   `;
 }
 
+/**
+ * Move a photo into a specific event and stamp its capture date with
+ * that event's date. Used by the lightbox "assign to gallery" dropdown
+ * for archive photos whose date is unknown but which clearly belong to
+ * a specific past gathering.
+ *
+ * Returns the target event's slug + name + date for the UI confirmation.
+ */
+export async function assignPhotoToEvent(
+  photoId: number,
+  eventId: number
+): Promise<{ slug: string; name: string; date: Date } | null> {
+  const evt = (await sql`
+    SELECT id, slug, name, date FROM events WHERE id = ${eventId} LIMIT 1
+  `) as Array<{ id: number; slug: string; name: string; date: Date }>;
+  if (!evt[0]) return null;
+  await sql`
+    UPDATE event_photos
+    SET event_id = ${evt[0].id},
+        taken_at = ${evt[0].date},
+        display_order = NULL
+    WHERE id = ${photoId}
+  `;
+  return { slug: evt[0].slug, name: evt[0].name, date: evt[0].date };
+}
+
 export async function setPhotoLayout(
   photoId: number,
   displayRole: DisplayRole | null,
