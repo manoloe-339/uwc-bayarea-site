@@ -41,6 +41,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
+        // Middleware lets all POSTs to this path through (so the Vercel
+        // Blob completion webhook can call us back without Basic Auth);
+        // we enforce admin auth here on the user-initiated token branch.
+        const expected = process.env.ADMIN_PASSWORD;
+        if (!expected) throw new Error("Admin disabled");
+        const authHeader = request.headers.get("authorization") || "";
+        if (!authHeader.startsWith("Basic ")) {
+          throw new Error("Authentication required");
+        }
+        try {
+          const decoded = Buffer.from(authHeader.slice(6), "base64").toString("utf8");
+          const idx = decoded.indexOf(":");
+          const pass = idx >= 0 ? decoded.slice(idx + 1) : decoded;
+          if (pass !== expected) throw new Error("Authentication required");
+        } catch {
+          throw new Error("Authentication required");
+        }
+
         let parsed: { eventId?: unknown; originalFilename?: unknown; contentType?: unknown } = {};
         if (clientPayload) {
           try {

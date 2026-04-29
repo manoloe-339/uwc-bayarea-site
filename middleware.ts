@@ -5,6 +5,19 @@ export const config = {
 };
 
 export function middleware(req: NextRequest) {
+  // Vercel Blob upload completion webhooks are POSTed to
+  // /api/admin/event-photos/upload from Vercel's infrastructure (not the
+  // user's browser), so they don't carry the admin Basic Auth header.
+  // handleUpload() verifies the signed JWT body internally, so it's safe
+  // to let any POST to this path through here. The route handler enforces
+  // admin auth itself on the initial token-generation branch.
+  if (
+    req.method === "POST" &&
+    req.nextUrl.pathname === "/api/admin/event-photos/upload"
+  ) {
+    return NextResponse.next();
+  }
+
   const expected = process.env.ADMIN_PASSWORD;
   if (!expected) {
     return new NextResponse("Admin disabled: ADMIN_PASSWORD not set", { status: 503 });
