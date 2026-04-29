@@ -2,6 +2,7 @@ import { event } from "@/lib/event";
 import TicketButton from "./TicketButton";
 
 export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { seatsRemaining?: number }) {
+  const soldOut = seatsRemaining <= 0;
   return (
     <div className="w-full max-w-[520px] mx-auto bg-ivory text-[#0b2545]">
       {/* HEADER */}
@@ -33,7 +34,15 @@ export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { sea
       >
         <span className="urgency-dot w-2 h-2 rounded-full bg-white inline-block shrink-0" />
         <span className="flex flex-col items-center sm:flex-row sm:flex-wrap sm:justify-center sm:items-baseline sm:gap-1.5 leading-tight">
-          {event.earlyBirdStatus === "sold_out" ? (
+          {soldOut ? (
+            <>
+              <span>Sold Out</span>
+              <span aria-hidden className="hidden sm:inline">·</span>
+              <span>Tix Required for Attendance</span>
+              <span aria-hidden className="hidden sm:inline">·</span>
+              <span>Limited Capacity</span>
+            </>
+          ) : event.earlyBirdStatus === "sold_out" ? (
             <>
               <span>Early Bird Sold Out</span>
               <span aria-hidden className="hidden sm:inline">·</span>
@@ -65,19 +74,29 @@ export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { sea
         <div className="display font-bold leading-none text-[32px]">
           {event.currentPrice.display}
         </div>
-        <TicketButton
-          href={event.ticketUrl}
-          className="inline-flex items-center gap-2.5 text-white no-underline rounded-full text-[12px] font-bold tracking-[.2em] uppercase transition hover:brightness-110 active:scale-[.97]"
-          style={{ background: "var(--navy)", padding: "14px 26px" }}
-        >
-          Get tickets
-          <span aria-hidden>→</span>
-        </TicketButton>
+        {soldOut ? (
+          <span
+            aria-disabled="true"
+            className="inline-flex items-center gap-2.5 text-white rounded-full text-[12px] font-bold tracking-[.2em] uppercase cursor-not-allowed opacity-90"
+            style={{ background: "#B8341F", padding: "14px 26px" }}
+          >
+            Sold Out
+          </span>
+        ) : (
+          <TicketButton
+            href={event.ticketUrl}
+            className="inline-flex items-center gap-2.5 text-white no-underline rounded-full text-[12px] font-bold tracking-[.2em] uppercase transition hover:brightness-110 active:scale-[.97]"
+            style={{ background: "var(--navy)", padding: "14px 26px" }}
+          >
+            Get tickets
+            <span aria-hidden>→</span>
+          </TicketButton>
+        )}
         <div
           className="basis-full text-center text-[10px] tracking-[.24em] uppercase font-semibold"
           style={{ color: "rgba(11,37,69,.55)" }}
         >
-          {event.priceNote}
+          {soldOut ? "Limited capacity event" : event.priceNote}
         </div>
       </div>
 

@@ -109,7 +109,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         // Extract EXIF capture date from the original buffer (HEIC conversion
         // strips metadata, so do this before any sharp pipeline runs).
-        const takenAt = await extractTakenAt(inputBuf);
+        // Falls back to parsing the filename (WhatsApp, screenshots, etc.).
+        const takenAt = await extractTakenAt(inputBuf, originalFilename);
 
         if (needsHeicConvert) {
           console.log("[photo-upload] HEIC branch: starting conversion", { originalFilename, inputBytes: inputBuf.length });

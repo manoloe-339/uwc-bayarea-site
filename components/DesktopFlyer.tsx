@@ -2,6 +2,7 @@ import { event } from "@/lib/event";
 import TicketButton from "./TicketButton";
 
 export default function DesktopFlyer({ seatsRemaining = event.totalSeats }: { seatsRemaining?: number }) {
+  const soldOut = seatsRemaining <= 0;
   return (
     <div className="w-full max-w-[1100px] mx-auto">
       <div
@@ -47,7 +48,9 @@ export default function DesktopFlyer({ seatsRemaining = event.totalSeats }: { se
           style={{ background: "#B8341F" }}
         >
           <span className="urgency-dot w-2 h-2 rounded-full bg-white inline-block" />
-          {event.earlyBirdStatus === "sold_out" ? (
+          {soldOut ? (
+            <>Sold Out · Tix Required for Attendance · Limited Capacity</>
+          ) : event.earlyBirdStatus === "sold_out" ? (
             <>
               Early Bird Sold Out · {event.currentPrice.display} tickets available —{" "}
               <span className="display italic font-semibold text-[14px] tracking-[.02em] normal-case">
@@ -74,19 +77,29 @@ export default function DesktopFlyer({ seatsRemaining = event.totalSeats }: { se
           <div className="display font-bold leading-none text-[40px]">
             {event.currentPrice.display}
           </div>
-          <TicketButton
-            href={event.ticketUrl}
-            className="inline-flex items-center gap-2.5 text-white no-underline rounded-full text-[13px] font-bold tracking-[.2em] uppercase transition hover:brightness-110 active:scale-[.97]"
-            style={{ background: "var(--navy)", padding: "16px 32px" }}
-          >
-            Get tickets
-            <span aria-hidden>→</span>
-          </TicketButton>
+          {soldOut ? (
+            <span
+              aria-disabled="true"
+              className="inline-flex items-center gap-2.5 text-white rounded-full text-[13px] font-bold tracking-[.2em] uppercase cursor-not-allowed opacity-90"
+              style={{ background: "#B8341F", padding: "16px 32px" }}
+            >
+              Sold Out
+            </span>
+          ) : (
+            <TicketButton
+              href={event.ticketUrl}
+              className="inline-flex items-center gap-2.5 text-white no-underline rounded-full text-[13px] font-bold tracking-[.2em] uppercase transition hover:brightness-110 active:scale-[.97]"
+              style={{ background: "var(--navy)", padding: "16px 32px" }}
+            >
+              Get tickets
+              <span aria-hidden>→</span>
+            </TicketButton>
+          )}
           <div
             className="text-[11px] tracking-[.28em] uppercase font-semibold"
             style={{ color: "rgba(11,37,69,.55)" }}
           >
-            {event.priceNote}
+            {soldOut ? "Limited capacity event" : event.priceNote}
           </div>
         </div>
 
