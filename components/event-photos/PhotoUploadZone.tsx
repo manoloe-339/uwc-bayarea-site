@@ -108,10 +108,13 @@ export function PhotoUploadZone({
 
     setBusy(false);
     if (completedAny) {
-      // Vercel calls onUploadCompleted via webhook (server callback); on local
-      // dev that won't fire, but on Vercel it will. Refresh shortly to pick up
-      // newly-created DB rows.
-      setTimeout(onUploaded, 1500);
+      // The blob upload finishes before Vercel's onUploadCompleted webhook
+      // fires server-side — and HEIC conversion adds another ~1-3s on top
+      // of that. So we refresh several times over the next 12 seconds to
+      // pick up rows as the webhook records them. Each refresh is cheap
+      // (force-dynamic page, single SQL query).
+      const delays = [1500, 3500, 6000, 9000, 12000];
+      delays.forEach((d) => setTimeout(onUploaded, d));
     }
   };
 
