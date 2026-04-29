@@ -4,6 +4,7 @@ import TicketButton from "./TicketButton";
 export default function DesktopFlyer({ seatsRemaining = event.totalSeats }: { seatsRemaining?: number }) {
   const soldOut = seatsRemaining <= 0;
   const seatsWord = seatsRemaining === 1 ? "seat" : "seats";
+  const seatsVerb = seatsRemaining === 1 ? "remains" : "remain";
   return (
     <div className="w-full max-w-[1100px] mx-auto">
       <div
@@ -57,14 +58,14 @@ export default function DesktopFlyer({ seatsRemaining = event.totalSeats }: { se
               <span className="display italic font-semibold text-[14px] tracking-[.02em] normal-case">
                 {seatsRemaining <= event.lowSeatsThreshold
                   ? `last chance — only ${seatsRemaining} ${seatsWord} left`
-                  : `only ${seatsRemaining} ${seatsWord} remain`}
+                  : `only ${seatsRemaining} ${seatsWord} ${seatsVerb}`}
               </span>
             </>
           ) : (
             <>
               {seatsRemaining <= event.lowSeatsThreshold ? "Last chance —" : "Selling quickly —"}{" "}
               <span className="display italic font-semibold text-[14px] tracking-[.02em] normal-case">
-                only {seatsRemaining} {seatsWord} remain
+                only {seatsRemaining} {seatsWord} {seatsVerb}
               </span>
             </>
           )}
