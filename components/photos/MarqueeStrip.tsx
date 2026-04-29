@@ -69,18 +69,20 @@ export default function MarqueeStrip({
       <button
         type="button"
         onClick={startPresent}
-        className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-[.18em] uppercase text-[color:var(--navy-ink)] cursor-pointer hover:bg-white"
+        className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 inline-flex items-center justify-center rounded-full text-[color:var(--navy-ink)] cursor-pointer hover:bg-white"
         style={{
+          width: 36,
+          height: 36,
           background: "rgba(255,255,255,.95)",
           border: "1px solid rgba(255,255,255,.4)",
           boxShadow: "0 6px 18px -6px rgba(0,0,0,.35)",
         }}
         aria-label="Start photo presentation"
+        title="Start photo presentation"
       >
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ marginLeft: 2 }}>
           <polygon points="6 4 20 12 6 20 6 4" />
         </svg>
-        Present
       </button>
 
       {presenting && (
@@ -219,25 +221,41 @@ function PresentMode({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Activity-based auto-hide of controls (3s of no movement → fade).
+  // Controls auto-hide. Mouse movement or keypress shows them and starts a
+  // 3-second hide timer; tapping/clicking the photo background TOGGLES them
+  // (mobile-style — tap to hide, tap again to show). Clicks on the control
+  // bars themselves (buttons, scrubber) are ignored here so the buttons can
+  // do their own thing.
   useEffect(() => {
-    function bump() {
+    function show() {
       setControlsVisible(true);
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
     }
-    bump();
+    function onClick(e: MouseEvent) {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("[data-control]")) return; // let buttons handle themselves
+      setControlsVisible((v) => {
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        if (v) {
+          // hiding — no timer needed
+          return false;
+        }
+        // showing via tap — start a fresh hide timer
+        hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
+        return true;
+      });
+    }
+    show();
     const el = containerRef.current;
-    el?.addEventListener("mousemove", bump);
-    el?.addEventListener("touchstart", bump);
-    el?.addEventListener("click", bump);
-    window.addEventListener("keydown", bump);
+    el?.addEventListener("mousemove", show);
+    el?.addEventListener("click", onClick);
+    window.addEventListener("keydown", show);
     return () => {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      el?.removeEventListener("mousemove", bump);
-      el?.removeEventListener("touchstart", bump);
-      el?.removeEventListener("click", bump);
-      window.removeEventListener("keydown", bump);
+      el?.removeEventListener("mousemove", show);
+      el?.removeEventListener("click", onClick);
+      window.removeEventListener("keydown", show);
     };
   }, []);
 
@@ -351,6 +369,7 @@ function PresentMode({
 
       {/* Top bar — eyebrow + title (from intro band settings) */}
       <div
+        data-control
         className="absolute top-0 left-0 right-0 z-10 px-5 sm:px-8 py-4 sm:py-6 text-white pointer-events-none"
         style={{
           background: "linear-gradient(to bottom, rgba(0,0,0,.55), transparent)",
@@ -386,6 +405,7 @@ function PresentMode({
 
       {/* Bottom: progress bar + counter + buttons */}
       <div
+        data-control
         className="absolute bottom-0 left-0 right-0 z-10 text-white"
         style={{
           background: "linear-gradient(to top, rgba(0,0,0,.55), transparent)",
