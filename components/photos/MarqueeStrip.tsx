@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MarqueePhoto } from "@/lib/photo-galleries";
 
 const TILE_VARIANTS: Array<[number, number]> = [
@@ -30,14 +30,33 @@ export default function MarqueeStrip({
 }) {
   const [presenting, setPresenting] = useState(false);
 
-  if (photos.length === 0) return null;
+  // Random starting point per visit. Initial render uses offset 0 (so server +
+  // client match for hydration), then useEffect picks a real random offset
+  // once mounted. The order from that offset onward is preserved — same loop,
+  // just starting at a different photo each time.
+  const [rotation, setRotation] = useState(0);
+  useEffect(() => {
+    if (photos.length > 0) {
+      setRotation(Math.floor(Math.random() * photos.length));
+    }
+  }, [photos.length]);
 
-  const half = Math.ceil(photos.length / 2);
-  const rowA = photos.slice(0, half);
+  const rotated = useMemo(
+    () =>
+      photos.length === 0
+        ? []
+        : [...photos.slice(rotation), ...photos.slice(0, rotation)],
+    [photos, rotation]
+  );
+
+  if (rotated.length === 0) return null;
+
+  const half = Math.ceil(rotated.length / 2);
+  const rowA = rotated.slice(0, half);
   const rowB =
-    photos.length > 2
-      ? photos.slice(half).concat(photos.slice(0, 2))
-      : [...photos];
+    rotated.length > 2
+      ? rotated.slice(half).concat(rotated.slice(0, 2))
+      : [...rotated];
 
   // Row B is intentionally a touch slower than row A for visual richness.
   const speedA = scrollSpeedSec;
