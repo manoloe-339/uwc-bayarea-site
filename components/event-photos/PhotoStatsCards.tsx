@@ -1,6 +1,12 @@
 import type { PhotoStats } from "@/lib/event-photos/types";
 
-export function PhotoStatsCards({ stats }: { stats: PhotoStats }) {
+export function PhotoStatsCards({
+  stats,
+  showDistributed,
+}: {
+  stats: PhotoStats;
+  showDistributed?: boolean;
+}) {
   const cards: { label: string; value: number; tone: string }[] = [
     { label: "Total", value: stats.total, tone: "text-[color:var(--navy-ink)]" },
     { label: "Approved", value: stats.approved, tone: "text-emerald-700" },
@@ -8,8 +14,11 @@ export function PhotoStatsCards({ stats }: { stats: PhotoStats }) {
     { label: "Rejected", value: stats.rejected, tone: "text-rose-700" },
     { label: "Duplicates", value: stats.duplicates, tone: "text-slate-600" },
   ];
+  if (showDistributed) {
+    cards.push({ label: "Distributed", value: stats.distributed, tone: "text-navy" });
+  }
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+    <div className={`grid grid-cols-2 ${showDistributed ? "sm:grid-cols-6" : "sm:grid-cols-5"} gap-3 mb-6`}>
       {cards.map((c) => (
         <div
           key={c.label}

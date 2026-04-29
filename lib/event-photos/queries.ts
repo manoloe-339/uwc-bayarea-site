@@ -91,7 +91,7 @@ export async function getPhotosByIds(ids: number[]): Promise<EventPhoto[]> {
   return (await sql`SELECT * FROM event_photos WHERE id = ANY(${ids})`) as EventPhoto[];
 }
 
-export async function getPhotoStats(eventId: number): Promise<PhotoStats> {
+export async function getPhotoStats(eventId: number, eventSlug?: string): Promise<PhotoStats> {
   const rows = (await sql`
     WITH ranked AS (
       SELECT
@@ -113,8 +113,52 @@ export async function getPhotoStats(eventId: number): Promise<PhotoStats> {
       COUNT(*) FILTER (WHERE dup_rn = 1 AND approval_status = 'rejected')::int AS rejected,
       COUNT(*) FILTER (WHERE dup_rn > 1)::int                                  AS duplicates
     FROM ranked
-  `) as PhotoStats[];
-  return rows[0];
+  `) as Array<Omit<PhotoStats, "distributed">>;
+  const main = rows[0];
+
+  // For the archive event, count photos that originated here (by blob path)
+  // but have since moved to other events via the separation routine.
+  let distributed = 0;
+  if (eventSlug === "archive") {
+    const pathPrefix = `events/${eventId}/photos/%`;
+    const r = (await sql`
+      SELECT COUNT(*)::int AS n
+      FROM event_photos
+      WHERE event_id <> ${eventId}
+        AND blob_pathname LIKE ${pathPrefix}
+    `) as { n: number }[];
+    distributed = r[0]?.n ?? 0;
+  }
+
+  return { ...main, distributed };
+}
+
+export interface DistributedPhoto extends EventPhoto {
+  current_event_slug: string;
+  current_event_name: string;
+  current_event_date: Date;
+}
+
+/**
+ * Photos that were originally uploaded to the archive event (their blob
+ * pathname still has the archive event id) but have since been moved to
+ * other events via the separation routine. Joined with the event they're
+ * currently in for "Now in: [event]" display.
+ */
+export async function getDistributedArchivePhotos(archiveEventId: number): Promise<DistributedPhoto[]> {
+  const pathPrefix = `events/${archiveEventId}/photos/%`;
+  return (await sql`
+    SELECT
+      ep.*,
+      e.slug AS current_event_slug,
+      e.name AS current_event_name,
+      e.date AS current_event_date
+    FROM event_photos ep
+    JOIN events e ON e.id = ep.event_id
+    WHERE ep.event_id <> ${archiveEventId}
+      AND ep.blob_pathname LIKE ${pathPrefix}
+    ORDER BY COALESCE(ep.taken_at, ep.uploaded_at) DESC, ep.id DESC
+  `) as DistributedPhoto[];
 }
 
 export async function approvePhotos(photoIds: number[]): Promise<number> {

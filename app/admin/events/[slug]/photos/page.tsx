@@ -5,6 +5,7 @@ import {
   getEventPhotosForTab,
   getPhotoStats,
   getApprovedPhotosOrdered,
+  getDistributedArchivePhotos,
 } from "@/lib/event-photos/queries";
 import type { PhotoFilter } from "@/lib/event-photos/types";
 import {
@@ -16,6 +17,7 @@ import {
   GalleryLayoutEditor,
   PhotoUploadLinkSection,
   SeparateArchiveButton,
+  DistributedPhotoGrid,
 } from "@/components/event-photos";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +25,7 @@ export const maxDuration = 300;
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://uwcbayarea.org").replace(/\/+$/, "");
 
-const VALID_FILTERS: PhotoFilter[] = ["all", "pending", "approved", "rejected", "duplicates"];
+const VALID_FILTERS: PhotoFilter[] = ["all", "pending", "approved", "rejected", "duplicates", "distributed"];
 type View = "approve" | "layout";
 
 export default async function PhotosPage({
@@ -44,10 +46,16 @@ export default async function PhotosPage({
     ? ((filterParam ?? "all") as PhotoFilter)
     : "all";
 
-  const [photos, stats, approvedOrdered] = await Promise.all([
-    view === "approve" ? getEventPhotosForTab(event.id, filter) : Promise.resolve([]),
-    getPhotoStats(event.id),
+  const isArchive = event.slug === "archive";
+  const [photos, stats, approvedOrdered, distributedPhotos] = await Promise.all([
+    view === "approve" && filter !== "distributed"
+      ? getEventPhotosForTab(event.id, filter)
+      : Promise.resolve([]),
+    getPhotoStats(event.id, event.slug),
     view === "layout" ? getApprovedPhotosOrdered(event.id) : Promise.resolve([]),
+    view === "approve" && filter === "distributed" && isArchive
+      ? getDistributedArchivePhotos(event.id)
+      : Promise.resolve([]),
   ]);
 
   const basePath = `/admin/events/${slug}/photos`;
@@ -115,11 +123,20 @@ export default async function PhotosPage({
 
       {view === "approve" ? (
         <>
-          <PhotoStatsCards stats={stats} />
+          <PhotoStatsCards stats={stats} showDistributed={isArchive} />
           <PhotoUploadZoneWrapper eventId={event.id} />
-          {event.slug === "archive" && <SeparateArchiveButton />}
-          <PhotoFilterTabs active={filter} basePath={basePath} stats={stats} />
-          <PhotoGrid photos={photos} eventId={event.id} />
+          {isArchive && <SeparateArchiveButton />}
+          <PhotoFilterTabs
+            active={filter}
+            basePath={basePath}
+            stats={stats}
+            showDistributed={isArchive}
+          />
+          {filter === "distributed" && isArchive ? (
+            <DistributedPhotoGrid photos={distributedPhotos} />
+          ) : (
+            <PhotoGrid photos={photos} eventId={event.id} />
+          )}
         </>
       ) : (
         <GalleryLayoutEditor photos={approvedOrdered} eventId={event.id} />

@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { PhotoFilter } from "@/lib/event-photos/types";
 import type { PhotoStats } from "@/lib/event-photos/types";
 
-const TABS: { key: PhotoFilter; label: string }[] = [
+const BASE_TABS: { key: PhotoFilter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "pending", label: "Pending" },
   { key: "approved", label: "Approved" },
@@ -15,21 +15,27 @@ export function PhotoFilterTabs({
   active,
   basePath,
   stats,
+  showDistributed,
 }: {
   active: PhotoFilter;
   basePath: string;
   stats: PhotoStats;
+  showDistributed?: boolean;
 }) {
+  const tabs = showDistributed
+    ? [...BASE_TABS, { key: "distributed" as PhotoFilter, label: "Distributed" }]
+    : BASE_TABS;
   const counts: Record<PhotoFilter, number> = {
     all: stats.total,
     pending: stats.pending,
     approved: stats.approved,
     rejected: stats.rejected,
     duplicates: stats.duplicates,
+    distributed: stats.distributed,
   };
   return (
     <div className="flex flex-wrap items-center gap-1 border-b border-[color:var(--rule)] mb-4">
-      {TABS.map((t) => {
+      {tabs.map((t) => {
         const isActive = active === t.key;
         const href = t.key === "all" ? basePath : `${basePath}?filter=${t.key}`;
         return (

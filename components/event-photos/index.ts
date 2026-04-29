@@ -12,3 +12,4 @@ export { PhotoUploadLinkSection } from "./PhotoUploadLinkSection";
 export { PublicGalleryGrid } from "./PublicGalleryGrid";
 export { GalleryLayoutEditor } from "./GalleryLayoutEditor";
 export { SeparateArchiveButton } from "./SeparateArchiveButton";
+export { DistributedPhotoGrid } from "./DistributedPhotoGrid";
