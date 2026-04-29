@@ -15,6 +15,10 @@ export type SiteSettings = {
   foodies_default_cta_url: string | null;
   default_from_name: string | null;
   linkedin_invite_template: string | null;
+  photo_gallery_thumbs_per_row: number;
+  photo_gallery_marquee_paused: boolean;
+  photo_gallery_show_intro: boolean;
+  photo_gallery_slide_duration_sec: number;
   updated_at: string;
 };
 
@@ -46,6 +50,10 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     foodies_default_cta_url: null,
     default_from_name: "UWC Bay Area",
     linkedin_invite_template: DEFAULT_LINKEDIN_INVITE_TEMPLATE,
+    photo_gallery_thumbs_per_row: 4,
+    photo_gallery_marquee_paused: false,
+    photo_gallery_show_intro: true,
+    photo_gallery_slide_duration_sec: 5,
     updated_at: new Date().toISOString(),
   };
 }
@@ -69,24 +77,36 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
       patch.linkedin_invite_template !== undefined
         ? patch.linkedin_invite_template
         : existing.linkedin_invite_template,
+    photo_gallery_thumbs_per_row:
+      patch.photo_gallery_thumbs_per_row ?? existing.photo_gallery_thumbs_per_row,
+    photo_gallery_marquee_paused:
+      patch.photo_gallery_marquee_paused ?? existing.photo_gallery_marquee_paused,
+    photo_gallery_show_intro:
+      patch.photo_gallery_show_intro ?? existing.photo_gallery_show_intro,
+    photo_gallery_slide_duration_sec:
+      patch.photo_gallery_slide_duration_sec ?? existing.photo_gallery_slide_duration_sec,
   };
 
   await sql`
     UPDATE site_settings SET
-      logo_url                   = ${next.logo_url},
-      footer_tagline             = ${next.footer_tagline},
-      physical_address           = ${next.physical_address},
-      whatsapp_url               = ${next.whatsapp_url},
-      whatsapp_default_headline  = ${next.whatsapp_default_headline},
-      whatsapp_default_body      = ${next.whatsapp_default_body},
-      whatsapp_default_cta_label = ${next.whatsapp_default_cta_label},
-      foodies_default_headline   = ${next.foodies_default_headline},
-      foodies_default_body       = ${next.foodies_default_body},
-      foodies_default_cta_label  = ${next.foodies_default_cta_label},
-      foodies_default_cta_url    = ${next.foodies_default_cta_url},
-      default_from_name          = ${next.default_from_name},
-      linkedin_invite_template   = ${next.linkedin_invite_template},
-      updated_at                 = NOW()
+      logo_url                          = ${next.logo_url},
+      footer_tagline                    = ${next.footer_tagline},
+      physical_address                  = ${next.physical_address},
+      whatsapp_url                      = ${next.whatsapp_url},
+      whatsapp_default_headline         = ${next.whatsapp_default_headline},
+      whatsapp_default_body             = ${next.whatsapp_default_body},
+      whatsapp_default_cta_label        = ${next.whatsapp_default_cta_label},
+      foodies_default_headline          = ${next.foodies_default_headline},
+      foodies_default_body              = ${next.foodies_default_body},
+      foodies_default_cta_label         = ${next.foodies_default_cta_label},
+      foodies_default_cta_url           = ${next.foodies_default_cta_url},
+      default_from_name                 = ${next.default_from_name},
+      linkedin_invite_template          = ${next.linkedin_invite_template},
+      photo_gallery_thumbs_per_row      = ${next.photo_gallery_thumbs_per_row},
+      photo_gallery_marquee_paused      = ${next.photo_gallery_marquee_paused},
+      photo_gallery_show_intro          = ${next.photo_gallery_show_intro},
+      photo_gallery_slide_duration_sec  = ${next.photo_gallery_slide_duration_sec},
+      updated_at                        = NOW()
     WHERE id = ${existing.id}
   `;
 
