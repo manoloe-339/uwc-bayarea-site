@@ -26,6 +26,7 @@ export async function savePhotoGallerySettings(formData: FormData): Promise<void
     photo_gallery_marquee_paused: bool(formData.get("marquee_paused")),
     photo_gallery_show_intro: bool(formData.get("show_intro")),
     photo_gallery_slide_duration_sec: clampInt(formData.get("slide_duration_sec"), 2, 60, 5),
+    photo_gallery_marquee_speed_sec: clampInt(formData.get("marquee_speed_sec"), 20, 200, 70),
     photo_gallery_intro_eyebrow: s(formData.get("intro_eyebrow")),
     photo_gallery_intro_headline: s(formData.get("intro_headline")),
     photo_gallery_intro_headline_accent: s(formData.get("intro_headline_accent")),

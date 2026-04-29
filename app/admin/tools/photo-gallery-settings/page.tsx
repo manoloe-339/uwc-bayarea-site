@@ -101,6 +101,14 @@ export default async function PhotoGallerySettingsPage({
               defaultChecked={s.photo_gallery_marquee_paused}
               hint="Stops the auto-scrolling photo strip at the top of the page."
             />
+            <NumberField
+              label="Marquee scroll seconds"
+              name="marquee_speed_sec"
+              defaultValue={s.photo_gallery_marquee_speed_sec}
+              min={20}
+              max={200}
+              hint="Seconds for one full loop of the top row. Lower = faster. Default 70. Range: 20–200."
+            />
           </div>
         </Section>
 

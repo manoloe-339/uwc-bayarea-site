@@ -15,10 +15,12 @@ export default function MarqueeStrip({
   photos,
   paused,
   slideDurationSec,
+  scrollSpeedSec,
 }: {
   photos: MarqueePhoto[];
   paused: boolean;
   slideDurationSec: number;
+  scrollSpeedSec: number;
 }) {
   const [presenting, setPresenting] = useState(false);
 
@@ -31,6 +33,10 @@ export default function MarqueeStrip({
       ? photos.slice(half).concat(photos.slice(0, 2))
       : [...photos];
 
+  // Row B is intentionally a touch slower than row A for visual richness.
+  const speedA = scrollSpeedSec;
+  const speedB = Math.round(scrollSpeedSec * 1.21);
+
   return (
     <div className="relative">
       <div
@@ -38,8 +44,8 @@ export default function MarqueeStrip({
         style={{ background: "var(--navy-deep)" }}
       >
         <div className="flex flex-col gap-3">
-          <MarqueeRow photos={rowA} reverse={false} speed={70} tileH={220} paused={paused} />
-          <MarqueeRow photos={rowB} reverse={true} speed={85} tileH={220} paused={paused} />
+          <MarqueeRow photos={rowA} reverse={false} speed={speedA} tileH={220} paused={paused} />
+          <MarqueeRow photos={rowB} reverse={true} speed={speedB} tileH={220} paused={paused} />
         </div>
       </div>
 

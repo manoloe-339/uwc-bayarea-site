@@ -19,6 +19,7 @@ export type SiteSettings = {
   photo_gallery_marquee_paused: boolean;
   photo_gallery_show_intro: boolean;
   photo_gallery_slide_duration_sec: number;
+  photo_gallery_marquee_speed_sec: number;
   photo_gallery_intro_eyebrow: string | null;
   photo_gallery_intro_headline: string | null;
   photo_gallery_intro_headline_accent: string | null;
@@ -67,6 +68,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     photo_gallery_marquee_paused: false,
     photo_gallery_show_intro: true,
     photo_gallery_slide_duration_sec: 5,
+    photo_gallery_marquee_speed_sec: 70,
     photo_gallery_intro_eyebrow: DEFAULT_PHOTO_GALLERY_INTRO.eyebrow,
     photo_gallery_intro_headline: DEFAULT_PHOTO_GALLERY_INTRO.headline,
     photo_gallery_intro_headline_accent: DEFAULT_PHOTO_GALLERY_INTRO.headlineAccent,
@@ -102,6 +104,8 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
       patch.photo_gallery_show_intro ?? existing.photo_gallery_show_intro,
     photo_gallery_slide_duration_sec:
       patch.photo_gallery_slide_duration_sec ?? existing.photo_gallery_slide_duration_sec,
+    photo_gallery_marquee_speed_sec:
+      patch.photo_gallery_marquee_speed_sec ?? existing.photo_gallery_marquee_speed_sec,
     photo_gallery_intro_eyebrow:
       patch.photo_gallery_intro_eyebrow !== undefined
         ? patch.photo_gallery_intro_eyebrow
@@ -139,6 +143,7 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
       photo_gallery_marquee_paused          = ${next.photo_gallery_marquee_paused},
       photo_gallery_show_intro              = ${next.photo_gallery_show_intro},
       photo_gallery_slide_duration_sec      = ${next.photo_gallery_slide_duration_sec},
+      photo_gallery_marquee_speed_sec       = ${next.photo_gallery_marquee_speed_sec},
       photo_gallery_intro_eyebrow           = ${next.photo_gallery_intro_eyebrow},
       photo_gallery_intro_headline          = ${next.photo_gallery_intro_headline},
       photo_gallery_intro_headline_accent   = ${next.photo_gallery_intro_headline_accent},

@@ -47,6 +47,7 @@ export default async function PhotosPage() {
           photos={marquee}
           paused={settings.photo_gallery_marquee_paused}
           slideDurationSec={settings.photo_gallery_slide_duration_sec}
+          scrollSpeedSec={settings.photo_gallery_marquee_speed_sec}
         />
 
         <section className="bg-ivory px-7 pt-7 pb-16">
