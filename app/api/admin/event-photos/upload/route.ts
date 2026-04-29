@@ -181,7 +181,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           height,
           taken_at: takenAt,
           uploaded_by_admin: true,
-          approval_status: "approved",
+          approval_status: "pending",
         });
         console.log("[photo-upload] recordPhoto ok", { eventId, originalFilename, finalContentType, fileSize, width, height });
         } catch (err) {
