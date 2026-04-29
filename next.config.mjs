@@ -6,7 +6,7 @@ const nextConfig = {
   // stripping proxy-agent and producing "Cannot find module" at
   // runtime. Marking them external uses node_modules at runtime
   // where dynamic requires work normally.
-  serverExternalPackages: ["apify-client", "proxy-agent"],
+  serverExternalPackages: ["apify-client", "proxy-agent", "heic-convert", "libheif-js"],
   images: {
     remotePatterns: [
       {

@@ -73,6 +73,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       onUploadCompleted: async ({ blob, tokenPayload }) => {
         const meta = (tokenPayload ? JSON.parse(tokenPayload) : {}) as TokenPayload;
         const { eventId, originalFilename } = meta;
+        console.log("[photo-upload] onUploadCompleted start", { eventId, originalFilename, blobUrl: blob.url, contentType: blob.contentType });
+        try {
 
         let finalUrl = blob.url;
         let finalPathname = blob.pathname;
@@ -152,6 +154,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           uploaded_by_admin: true,
           approval_status: "approved",
         });
+        console.log("[photo-upload] recordPhoto ok", { eventId, originalFilename, finalContentType, fileSize, width, height });
+        } catch (err) {
+          console.error("[photo-upload] onUploadCompleted FAILED", { eventId, originalFilename }, err);
+          throw err;
+        }
       },
     });
 
