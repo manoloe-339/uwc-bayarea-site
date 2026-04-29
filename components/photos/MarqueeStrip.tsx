@@ -324,17 +324,19 @@ function PresentMode({
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
-                filter: "blur(36px) saturate(1.05) brightness(0.55)",
-                transform: "scale(1.15)",
+                filter: "blur(56px) saturate(1.05) brightness(0.72)",
+                transform: "scale(1.25)",
               }}
             />
-            {/* Crisp foreground photo */}
+            {/* Crisp foreground photo (position:absolute + DOM order keeps it above
+                the backdrop without creating a stacking context that would paint
+                above the top/bottom control bars). */}
             <img
               src={p.url}
               alt=""
               style={{
-                position: "relative",
-                zIndex: 1,
+                position: "absolute",
+                inset: 0,
                 width: "100%",
                 height: "100%",
                 objectFit: "contain",
@@ -349,7 +351,7 @@ function PresentMode({
 
       {/* Top bar — eyebrow + title (from intro band settings) */}
       <div
-        className="absolute top-0 left-0 right-0 px-5 sm:px-8 py-4 sm:py-6 text-white pointer-events-none"
+        className="absolute top-0 left-0 right-0 z-10 px-5 sm:px-8 py-4 sm:py-6 text-white pointer-events-none"
         style={{
           background: "linear-gradient(to bottom, rgba(0,0,0,.55), transparent)",
           opacity: controlsVisible ? 1 : 0,
@@ -384,7 +386,7 @@ function PresentMode({
 
       {/* Bottom: progress bar + counter + buttons */}
       <div
-        className="absolute bottom-0 left-0 right-0 text-white"
+        className="absolute bottom-0 left-0 right-0 z-10 text-white"
         style={{
           background: "linear-gradient(to top, rgba(0,0,0,.55), transparent)",
           opacity: controlsVisible ? 1 : 0,
