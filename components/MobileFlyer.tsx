@@ -3,6 +3,7 @@ import TicketButton from "./TicketButton";
 
 export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { seatsRemaining?: number }) {
   const soldOut = seatsRemaining <= 0;
+  const seatsWord = seatsRemaining === 1 ? "seat" : "seats";
   return (
     <div className="w-full max-w-[520px] mx-auto bg-ivory text-[#0b2545]">
       {/* HEADER */}
@@ -48,8 +49,8 @@ export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { sea
               <span aria-hidden className="hidden sm:inline">·</span>
               <span className="display italic font-semibold text-[12px] tracking-[.02em] normal-case leading-tight">
                 {seatsRemaining <= event.lowSeatsThreshold
-                  ? `last chance — only ${seatsRemaining} seats left`
-                  : `only ${seatsRemaining} seats remain`}
+                  ? `last chance — only ${seatsRemaining} ${seatsWord} left`
+                  : `only ${seatsRemaining} ${seatsWord} remain`}
               </span>
             </>
           ) : (
@@ -59,7 +60,7 @@ export default function MobileFlyer({ seatsRemaining = event.totalSeats }: { sea
               </span>
               <span aria-hidden className="hidden sm:inline">—</span>
               <span className="display italic font-semibold text-[12px] tracking-[.02em] normal-case leading-tight">
-                only {seatsRemaining} seats remain
+                only {seatsRemaining} {seatsWord} remain
               </span>
             </>
           )}
