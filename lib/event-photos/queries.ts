@@ -279,6 +279,15 @@ export async function getApprovedPhotosOrdered(eventId: number): Promise<EventPh
   `) as EventPhoto[];
 }
 
+/** Manually set (or clear) the capture date for a photo. */
+export async function setPhotoTakenAt(photoId: number, takenAt: Date | null): Promise<void> {
+  await sql`
+    UPDATE event_photos
+    SET taken_at = ${takenAt}
+    WHERE id = ${photoId}
+  `;
+}
+
 export async function setPhotoLayout(
   photoId: number,
   displayRole: DisplayRole | null,
