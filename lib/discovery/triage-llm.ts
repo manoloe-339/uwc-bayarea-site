@@ -67,6 +67,29 @@ Examples:
 
 "high" is for the candidates the admin should action FIRST. Don't dilute it.`;
 
+/**
+ * Enforce the confidence rules deterministically — Claude can drift on
+ * "high requires both yes" even with a strict prompt. This function is
+ * the source of truth:
+ *   - is_alum=no OR in_bay_area=no  → confidence is "low"
+ *   - is_alum=yes AND in_bay_area=yes → trust Claude (high/medium/low ok)
+ *   - any combination involving "unclear" → cap at "medium" (never high)
+ */
+function enforceConfidence(t: TriageResult): TriageResult {
+  const { is_alum, in_bay_area, confidence } = t;
+  if (is_alum === "no" || in_bay_area === "no") {
+    return { ...t, confidence: "low" };
+  }
+  if (is_alum === "yes" && in_bay_area === "yes") {
+    return t; // both yes; trust Claude's call
+  }
+  // At least one "unclear" — never high.
+  if (confidence === "high") {
+    return { ...t, confidence: "medium" };
+  }
+  return t;
+}
+
 function safeParse(text: string): TriageResult | null {
   // Claude sometimes wraps JSON in ```json fences despite the prompt.
   const cleaned = text
@@ -114,7 +137,8 @@ export async function triageHit(
       .map((b) => (b.type === "text" ? b.text : ""))
       .join("")
       .trim();
-    return safeParse(text);
+    const parsed = safeParse(text);
+    return parsed ? enforceConfidence(parsed) : null;
   } catch (err) {
     console.error("[discovery/triage-llm] Claude error:", err);
     return null;
