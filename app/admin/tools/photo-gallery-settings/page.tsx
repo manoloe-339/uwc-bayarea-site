@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSiteSettings } from "@/lib/settings";
+import { getSiteSettings, DEFAULT_PHOTO_GALLERY_INTRO } from "@/lib/settings";
 import { savePhotoGallerySettings } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +45,40 @@ export default async function PhotoGallerySettingsPage({
         action={savePhotoGallerySettings}
         className="bg-white border border-[color:var(--rule)] rounded-[10px] p-6 space-y-8"
       >
+        <Section title="Intro band copy">
+          <div className="space-y-5">
+            <TextField
+              label="Eyebrow (small uppercase line above the headline)"
+              name="intro_eyebrow"
+              defaultValue={s.photo_gallery_intro_eyebrow ?? DEFAULT_PHOTO_GALLERY_INTRO.eyebrow}
+              hint='Auto-uppercased on the page. e.g. "Photographs · 1976 — present".'
+            />
+            <div className="grid sm:grid-cols-2 gap-4">
+              <TextField
+                label="Headline (regular)"
+                name="intro_headline"
+                defaultValue={s.photo_gallery_intro_headline ?? DEFAULT_PHOTO_GALLERY_INTRO.headline}
+                hint='The dark first part. e.g. "A community,".'
+              />
+              <TextField
+                label="Headline accent (italic blue)"
+                name="intro_headline_accent"
+                defaultValue={
+                  s.photo_gallery_intro_headline_accent ?? DEFAULT_PHOTO_GALLERY_INTRO.headlineAccent
+                }
+                hint='The italic blue tail. e.g. "in pictures".'
+              />
+            </div>
+            <TextareaField
+              label="Subheading"
+              name="intro_subhead"
+              defaultValue={s.photo_gallery_intro_subhead ?? DEFAULT_PHOTO_GALLERY_INTRO.subhead}
+              rows={3}
+              hint="The paragraph under the headline. Leave blank to hide it."
+            />
+          </div>
+        </Section>
+
         <Section title="Layout">
           <div className="space-y-5">
             <NumberField
@@ -76,8 +110,8 @@ export default async function PhotoGallerySettingsPage({
             name="slide_duration_sec"
             defaultValue={s.photo_gallery_slide_duration_sec}
             min={2}
-            max={12}
-            hint="How long each photo lingers before the next one fades in."
+            max={60}
+            hint="How long each photo lingers before the next one fades in. Range: 2–60 seconds."
           />
         </Section>
 
@@ -102,6 +136,62 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </h2>
       {children}
     </section>
+  );
+}
+
+function TextField({
+  label,
+  name,
+  defaultValue,
+  hint,
+}: {
+  label: string;
+  name: string;
+  defaultValue: string;
+  hint?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+        {label}
+      </span>
+      <input
+        type="text"
+        name={name}
+        defaultValue={defaultValue}
+        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+      />
+      {hint && <span className="block text-xs text-[color:var(--muted)] mt-1">{hint}</span>}
+    </label>
+  );
+}
+
+function TextareaField({
+  label,
+  name,
+  defaultValue,
+  rows = 3,
+  hint,
+}: {
+  label: string;
+  name: string;
+  defaultValue: string;
+  rows?: number;
+  hint?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+        {label}
+      </span>
+      <textarea
+        name={name}
+        defaultValue={defaultValue}
+        rows={rows}
+        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white font-sans"
+      />
+      {hint && <span className="block text-xs text-[color:var(--muted)] mt-1">{hint}</span>}
+    </label>
   );
 }
 

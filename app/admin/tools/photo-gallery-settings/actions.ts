@@ -14,12 +14,22 @@ function bool(v: FormDataEntryValue | null): boolean {
   return v != null && String(v) !== "" && String(v) !== "0" && String(v) !== "false";
 }
 
+function s(v: FormDataEntryValue | null): string | null {
+  if (v == null) return null;
+  const t = String(v).trim();
+  return t.length ? t : null;
+}
+
 export async function savePhotoGallerySettings(formData: FormData): Promise<void> {
   await updateSiteSettings({
     photo_gallery_thumbs_per_row: clampInt(formData.get("thumbs_per_row"), 3, 5, 4),
     photo_gallery_marquee_paused: bool(formData.get("marquee_paused")),
     photo_gallery_show_intro: bool(formData.get("show_intro")),
-    photo_gallery_slide_duration_sec: clampInt(formData.get("slide_duration_sec"), 2, 12, 5),
+    photo_gallery_slide_duration_sec: clampInt(formData.get("slide_duration_sec"), 2, 60, 5),
+    photo_gallery_intro_eyebrow: s(formData.get("intro_eyebrow")),
+    photo_gallery_intro_headline: s(formData.get("intro_headline")),
+    photo_gallery_intro_headline_accent: s(formData.get("intro_headline_accent")),
+    photo_gallery_intro_subhead: s(formData.get("intro_subhead")),
   });
   revalidatePath("/admin/tools/photo-gallery-settings");
   revalidatePath("/photos");

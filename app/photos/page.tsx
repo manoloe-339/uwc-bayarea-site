@@ -34,7 +34,14 @@ export default async function PhotosPage() {
     <>
       <SiteHeader active="photos" />
       <main className="bg-ivory">
-        {settings.photo_gallery_show_intro && <IntroBand />}
+        {settings.photo_gallery_show_intro && (
+          <IntroBand
+            eyebrow={settings.photo_gallery_intro_eyebrow}
+            headline={settings.photo_gallery_intro_headline}
+            headlineAccent={settings.photo_gallery_intro_headline_accent}
+            subhead={settings.photo_gallery_intro_subhead}
+          />
+        )}
 
         <MarqueeStrip
           photos={marquee}
