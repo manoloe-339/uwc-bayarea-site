@@ -2,7 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { put, del } from "@vercel/blob";
 import sharp from "sharp";
-import heicConvert from "heic-convert";
 import { sql } from "@/lib/db";
 import { recordPhoto } from "@/lib/event-photos/queries";
 import { extractTakenAt } from "@/lib/event-photos/exif";
@@ -95,16 +94,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const takenAt = await extractTakenAt(inputBuf);
 
         if (needsHeicConvert) {
+          console.log("[photo-upload] HEIC branch: starting conversion", { originalFilename, inputBytes: inputBuf.length });
           // sharp's prebuilt binaries don't include HEIC decoding, so we run
           // the HEIC -> JPEG step through heic-convert (pure JS, works on
           // Vercel without native build flags). Sharp then handles orientation
-          // and re-encoding the result.
-          const decoded = await heicConvert({
-            buffer: inputBuf as unknown as ArrayBufferLike,
-            format: "JPEG",
-            quality: 0.9,
-          });
-          const decodedBuf = Buffer.from(decoded);
+          // and re-encoding the result. Dynamic import so any module-load
+          // failure surfaces in this function's logs instead of breaking
+          // the whole route at boot.
+          let decodedBuf: Buffer;
+          try {
+            const heicConvertMod = await import("heic-convert");
+            const heicConvert = heicConvertMod.default;
+            const decoded = await heicConvert({
+              buffer: inputBuf as unknown as ArrayBufferLike,
+              format: "JPEG",
+              quality: 0.9,
+            });
+            decodedBuf = Buffer.from(decoded);
+            console.log("[photo-upload] HEIC decoded ok", { jpegBytes: decodedBuf.length });
+          } catch (heicErr) {
+            console.error("[photo-upload] HEIC decode FAILED", { originalFilename }, heicErr);
+            throw heicErr;
+          }
           const jpeg = await sharp(decodedBuf).rotate().jpeg({ quality: 88 }).toBuffer();
           const meta2 = await sharp(jpeg).metadata();
           width = meta2.width ?? null;
