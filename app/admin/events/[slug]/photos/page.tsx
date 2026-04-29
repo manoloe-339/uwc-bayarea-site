@@ -2,11 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEventBySlug } from "@/lib/events-db";
 import {
-  getEventPhotos,
+  getEventPhotosForTab,
   getPhotoStats,
   getApprovedPhotosOrdered,
 } from "@/lib/event-photos/queries";
-import type { ApprovalStatus, PhotoFilter } from "@/lib/event-photos/types";
+import type { PhotoFilter } from "@/lib/event-photos/types";
 import {
   PhotoStatsCards,
   PhotoFilterTabs,
@@ -22,7 +22,7 @@ export const maxDuration = 300;
 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://uwcbayarea.org").replace(/\/+$/, "");
 
-const VALID_FILTERS: PhotoFilter[] = ["all", "pending", "approved", "rejected"];
+const VALID_FILTERS: PhotoFilter[] = ["all", "pending", "approved", "rejected", "duplicates"];
 type View = "approve" | "layout";
 
 export default async function PhotosPage({
@@ -43,9 +43,8 @@ export default async function PhotosPage({
     ? ((filterParam ?? "all") as PhotoFilter)
     : "all";
 
-  const statusForQuery: ApprovalStatus | undefined = filter === "all" ? undefined : filter;
   const [photos, stats, approvedOrdered] = await Promise.all([
-    view === "approve" ? getEventPhotos(event.id, statusForQuery) : Promise.resolve([]),
+    view === "approve" ? getEventPhotosForTab(event.id, filter) : Promise.resolve([]),
     getPhotoStats(event.id),
     view === "layout" ? getApprovedPhotosOrdered(event.id) : Promise.resolve([]),
   ]);

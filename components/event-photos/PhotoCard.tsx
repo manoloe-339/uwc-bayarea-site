@@ -1,11 +1,16 @@
 "use client";
 import Image from "next/image";
-import type { EventPhoto } from "@/lib/event-photos/types";
+import type { ApprovalStatus, EventPhoto } from "@/lib/event-photos/types";
 
 const statusBadge: Record<EventPhoto["approval_status"], { label: string; cls: string }> = {
   approved: { label: "Approved", cls: "bg-emerald-600 text-white border-emerald-700" },
   pending: { label: "Pending", cls: "bg-amber-500 text-white border-amber-600" },
   rejected: { label: "Rejected", cls: "bg-rose-600 text-white border-rose-700" },
+};
+
+type CardPhoto = EventPhoto & {
+  is_duplicate?: boolean;
+  primary_status?: ApprovalStatus | null;
 };
 
 export function PhotoCard({
@@ -14,12 +19,13 @@ export function PhotoCard({
   onToggleSelect,
   onOpen,
 }: {
-  photo: EventPhoto;
+  photo: CardPhoto;
   selected: boolean;
   onToggleSelect: (id: number, shiftKey: boolean) => void;
   onOpen: (id: number) => void;
 }) {
   const badge = statusBadge[photo.approval_status];
+  const isDup = photo.is_duplicate === true;
   return (
     <div
       className={`group relative bg-white border rounded-[10px] overflow-hidden ${
@@ -39,11 +45,23 @@ export function PhotoCard({
           />
         </label>
       </div>
-      <div
-        className={`absolute top-2 right-2 z-10 text-[11px] tracking-[.1em] uppercase font-bold px-2 py-0.5 rounded border shadow-sm ${badge.cls}`}
-      >
-        {badge.label}
+      <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
+        <div
+          className={`text-[11px] tracking-[.1em] uppercase font-bold px-2 py-0.5 rounded border shadow-sm ${badge.cls}`}
+        >
+          {badge.label}
+        </div>
+        {isDup && (
+          <div className="text-[10px] tracking-[.1em] uppercase font-bold px-2 py-0.5 rounded border border-slate-400 bg-slate-700 text-white shadow-sm">
+            Duplicate
+          </div>
+        )}
       </div>
+      {isDup && photo.primary_status && (
+        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] tracking-[.08em] uppercase font-semibold px-2 py-1">
+          Primary: {photo.primary_status}
+        </div>
+      )}
       <button
         type="button"
         onClick={() => onOpen(photo.id)}

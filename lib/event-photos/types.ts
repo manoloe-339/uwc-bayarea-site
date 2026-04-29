@@ -1,5 +1,5 @@
 export type ApprovalStatus = "pending" | "approved" | "rejected";
-export type PhotoFilter = "all" | "pending" | "approved" | "rejected";
+export type PhotoFilter = "all" | "pending" | "approved" | "rejected" | "duplicates";
 export type DisplayRole = "marquee" | "supporting";
 
 export interface EventPhoto {
@@ -15,6 +15,7 @@ export interface EventPhoto {
   width: number | null;
   height: number | null;
   uploaded_at: string;
+  taken_at: string | null;
   approval_status: ApprovalStatus;
   approved_at: string | null;
   notes: string | null;
@@ -27,4 +28,5 @@ export interface PhotoStats {
   approved: number;
   pending: number;
   rejected: number;
+  duplicates: number;
 }

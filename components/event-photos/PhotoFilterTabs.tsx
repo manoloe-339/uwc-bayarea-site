@@ -8,6 +8,7 @@ const TABS: { key: PhotoFilter; label: string }[] = [
   { key: "pending", label: "Pending" },
   { key: "approved", label: "Approved" },
   { key: "rejected", label: "Rejected" },
+  { key: "duplicates", label: "Duplicates" },
 ];
 
 export function PhotoFilterTabs({
@@ -24,6 +25,7 @@ export function PhotoFilterTabs({
     pending: stats.pending,
     approved: stats.approved,
     rejected: stats.rejected,
+    duplicates: stats.duplicates,
   };
   return (
     <div className="flex flex-wrap items-center gap-1 border-b border-[color:var(--rule)] mb-4">

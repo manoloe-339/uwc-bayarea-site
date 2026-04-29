@@ -1,5 +1,72 @@
 import { sql } from "@/lib/db";
-import type { EventPhoto, PhotoStats, ApprovalStatus, DisplayRole } from "./types";
+import type { EventPhoto, PhotoStats, ApprovalStatus, DisplayRole, PhotoFilter } from "./types";
+
+/**
+ * Within an event, photos sharing an `original_filename` are flagged as
+ * duplicates of each other. The first uploaded (lowest uploaded_at, then id)
+ * is the "primary" — it shows up in the All / Pending / Approved / Rejected
+ * tabs as normal. The rest are siloed into the Duplicates tab so the user
+ * doesn't end up approving the same photo multiple times.
+ *
+ * Photos with NULL or empty original_filename are never flagged.
+ */
+
+export interface PhotoWithDup extends EventPhoto {
+  is_duplicate: boolean;
+  primary_filename: string | null;
+  primary_status: ApprovalStatus | null;
+}
+
+/**
+ * Tab-aware photo list. "duplicates" returns just the non-primary rows;
+ * other filters return only primary rows. Sort key is
+ * COALESCE(taken_at, uploaded_at) DESC so EXIF date wins when present.
+ */
+export async function getEventPhotosForTab(
+  eventId: number,
+  filter: PhotoFilter
+): Promise<PhotoWithDup[]> {
+  const rows = (await sql`
+    WITH ranked AS (
+      SELECT
+        ep.*,
+        CASE
+          WHEN ep.original_filename IS NULL OR ep.original_filename = '' THEN 1
+          ELSE ROW_NUMBER() OVER (
+            PARTITION BY ep.event_id, ep.original_filename
+            ORDER BY ep.uploaded_at ASC, ep.id ASC
+          )
+        END AS dup_rn
+      FROM event_photos ep
+      WHERE ep.event_id = ${eventId}
+    ),
+    primaries AS (
+      SELECT event_id, original_filename, approval_status AS primary_status
+      FROM ranked
+      WHERE dup_rn = 1
+    )
+    SELECT
+      r.*,
+      (r.dup_rn > 1) AS is_duplicate,
+      p.original_filename AS primary_filename,
+      p.primary_status
+    FROM ranked r
+    LEFT JOIN primaries p
+      ON p.event_id = r.event_id
+     AND p.original_filename = r.original_filename
+    WHERE
+      CASE
+        WHEN ${filter} = 'duplicates' THEN r.dup_rn > 1
+        WHEN ${filter} = 'all'        THEN r.dup_rn = 1
+        WHEN ${filter} = 'pending'    THEN r.dup_rn = 1 AND r.approval_status = 'pending'
+        WHEN ${filter} = 'approved'   THEN r.dup_rn = 1 AND r.approval_status = 'approved'
+        WHEN ${filter} = 'rejected'   THEN r.dup_rn = 1 AND r.approval_status = 'rejected'
+        ELSE FALSE
+      END
+    ORDER BY COALESCE(r.taken_at, r.uploaded_at) DESC, r.id DESC
+  `) as PhotoWithDup[];
+  return rows;
+}
 
 export async function getEventPhotos(
   eventId: number,
@@ -9,13 +76,13 @@ export async function getEventPhotos(
     return (await sql`
       SELECT * FROM event_photos
       WHERE event_id = ${eventId} AND approval_status = ${status}
-      ORDER BY uploaded_at DESC, id DESC
+      ORDER BY COALESCE(taken_at, uploaded_at) DESC, id DESC
     `) as EventPhoto[];
   }
   return (await sql`
     SELECT * FROM event_photos
     WHERE event_id = ${eventId}
-    ORDER BY uploaded_at DESC, id DESC
+    ORDER BY COALESCE(taken_at, uploaded_at) DESC, id DESC
   `) as EventPhoto[];
 }
 
@@ -26,13 +93,26 @@ export async function getPhotosByIds(ids: number[]): Promise<EventPhoto[]> {
 
 export async function getPhotoStats(eventId: number): Promise<PhotoStats> {
   const rows = (await sql`
+    WITH ranked AS (
+      SELECT
+        approval_status,
+        CASE
+          WHEN original_filename IS NULL OR original_filename = '' THEN 1
+          ELSE ROW_NUMBER() OVER (
+            PARTITION BY event_id, original_filename
+            ORDER BY uploaded_at ASC, id ASC
+          )
+        END AS dup_rn
+      FROM event_photos
+      WHERE event_id = ${eventId}
+    )
     SELECT
-      COUNT(*)::int AS total,
-      COUNT(*) FILTER (WHERE approval_status = 'approved')::int AS approved,
-      COUNT(*) FILTER (WHERE approval_status = 'pending')::int AS pending,
-      COUNT(*) FILTER (WHERE approval_status = 'rejected')::int AS rejected
-    FROM event_photos
-    WHERE event_id = ${eventId}
+      COUNT(*) FILTER (WHERE dup_rn = 1)::int                                  AS total,
+      COUNT(*) FILTER (WHERE dup_rn = 1 AND approval_status = 'approved')::int AS approved,
+      COUNT(*) FILTER (WHERE dup_rn = 1 AND approval_status = 'pending')::int  AS pending,
+      COUNT(*) FILTER (WHERE dup_rn = 1 AND approval_status = 'rejected')::int AS rejected,
+      COUNT(*) FILTER (WHERE dup_rn > 1)::int                                  AS duplicates
+    FROM ranked
   `) as PhotoStats[];
   return rows[0];
 }
@@ -76,6 +156,7 @@ export async function recordPhoto(data: {
   content_type: string | null;
   width: number | null;
   height: number | null;
+  taken_at: Date | null;
   uploaded_by_admin: boolean;
   approval_status?: ApprovalStatus;
 }): Promise<EventPhoto> {
@@ -84,12 +165,14 @@ export async function recordPhoto(data: {
   const rows = (await sql`
     INSERT INTO event_photos (
       event_id, blob_url, blob_pathname, original_filename, file_size_bytes,
-      content_type, width, height, uploaded_by_admin, approval_status, approved_at
+      content_type, width, height, taken_at, uploaded_by_admin,
+      approval_status, approved_at
     ) VALUES (
       ${data.event_id}, ${data.blob_url}, ${data.blob_pathname},
       ${data.original_filename}, ${data.file_size_bytes},
       ${data.content_type}, ${data.width}, ${data.height},
-      ${data.uploaded_by_admin}, ${status}, ${approvedAt}
+      ${data.taken_at}, ${data.uploaded_by_admin},
+      ${status}, ${approvedAt}
     )
     RETURNING *
   `) as EventPhoto[];
@@ -137,8 +220,8 @@ export async function setUploadEnabled(eventId: number, enabled: boolean): Promi
 
 /**
  * Approved photos ordered for public gallery rendering:
- * marquee first (by display_order), then supporting (by display_order, then newest).
- * NULL display_order rows fall after numbered ones.
+ * marquee first (by display_order), then supporting (by display_order, then
+ * EXIF-or-upload date). NULL display_order rows fall after numbered ones.
  */
 export async function getApprovedPhotosOrdered(eventId: number): Promise<EventPhoto[]> {
   return (await sql`
@@ -147,7 +230,7 @@ export async function getApprovedPhotosOrdered(eventId: number): Promise<EventPh
     ORDER BY
       CASE WHEN display_role = 'marquee' THEN 0 ELSE 1 END,
       display_order ASC NULLS LAST,
-      uploaded_at DESC,
+      COALESCE(taken_at, uploaded_at) DESC,
       id DESC
   `) as EventPhoto[];
 }

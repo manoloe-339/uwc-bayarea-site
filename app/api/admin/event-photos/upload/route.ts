@@ -4,6 +4,7 @@ import { put, del } from "@vercel/blob";
 import sharp from "sharp";
 import { sql } from "@/lib/db";
 import { recordPhoto } from "@/lib/event-photos/queries";
+import { extractTakenAt } from "@/lib/event-photos/exif";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -86,6 +87,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         if (!fetched.ok) throw new Error(`Failed to fetch uploaded blob: ${fetched.status}`);
         const inputBuf = Buffer.from(await fetched.arrayBuffer());
 
+        // Extract EXIF capture date from the original buffer (HEIC conversion
+        // strips metadata, so do this before any sharp pipeline runs).
+        const takenAt = await extractTakenAt(inputBuf);
+
         if (needsHeicConvert) {
           const jpeg = await sharp(inputBuf).rotate().jpeg({ quality: 88 }).toBuffer();
           const meta2 = await sharp(jpeg).metadata();
@@ -132,6 +137,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           content_type: finalContentType,
           width,
           height,
+          taken_at: takenAt,
           uploaded_by_admin: true,
           approval_status: "approved",
         });
