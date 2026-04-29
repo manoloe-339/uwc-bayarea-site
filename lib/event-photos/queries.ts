@@ -248,6 +248,45 @@ export async function setPhotoLayout(
 }
 
 /**
+ * One-click star/unstar for marquee.
+ * Star (not currently marquee): mark as marquee + approve if pending.
+ * Unstar (currently marquee): drop marquee role; leave approval status alone.
+ */
+export async function toggleStarMarquee(photoId: number): Promise<EventPhoto | null> {
+  const rows = (await sql`SELECT * FROM event_photos WHERE id = ${photoId} LIMIT 1`) as EventPhoto[];
+  const photo = rows[0];
+  if (!photo) return null;
+
+  if (photo.display_role === "marquee") {
+    await sql`
+      UPDATE event_photos
+      SET display_role = NULL, display_order = NULL
+      WHERE id = ${photoId}
+    `;
+  } else {
+    const promoteToApproved = photo.approval_status === "pending";
+    if (promoteToApproved) {
+      await sql`
+        UPDATE event_photos
+        SET display_role = 'marquee',
+            approval_status = 'approved',
+            approved_at = NOW()
+        WHERE id = ${photoId}
+      `;
+    } else {
+      await sql`
+        UPDATE event_photos
+        SET display_role = 'marquee'
+        WHERE id = ${photoId}
+      `;
+    }
+  }
+
+  const updated = (await sql`SELECT * FROM event_photos WHERE id = ${photoId} LIMIT 1`) as EventPhoto[];
+  return updated[0] ?? null;
+}
+
+/**
  * Re-numbers display_order = 0..n for the given photo ids in array order,
  * and assigns them to the given role. Does so for the photos in this list only.
  */
