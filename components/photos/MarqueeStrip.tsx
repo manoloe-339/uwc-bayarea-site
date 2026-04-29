@@ -55,33 +55,33 @@ export default function MarqueeStrip({
   }
 
   return (
-    <div>
+    <div className="relative">
       <div
-        className="border-b border-[color:var(--rule)]"
+        className="border-b border-[color:var(--rule)] py-7"
         style={{ background: "var(--navy-deep)" }}
       >
-        {/* Present button sits in the navy band's top area, above the photo
-            rows — so it reads as part of the marquee strip without ever
-            overlapping a photo. */}
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-7 pt-3 flex justify-end">
-          <button
-            type="button"
-            onClick={startPresent}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-[.18em] uppercase text-[color:var(--navy-ink)] cursor-pointer bg-white/95 hover:bg-white"
-            aria-label="Start photo presentation"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <polygon points="6 4 20 12 6 20 6 4" />
-            </svg>
-            Present
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-3 pt-4 pb-7">
+        <div className="flex flex-col gap-3">
           <MarqueeRow photos={rowA} reverse={false} speed={speedA} tileH={220} paused={paused} />
           <MarqueeRow photos={rowB} reverse={true} speed={speedB} tileH={220} paused={paused} />
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={startPresent}
+        className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-[.18em] uppercase text-[color:var(--navy-ink)] cursor-pointer hover:bg-white"
+        style={{
+          background: "rgba(255,255,255,.95)",
+          border: "1px solid rgba(255,255,255,.4)",
+          boxShadow: "0 6px 18px -6px rgba(0,0,0,.35)",
+        }}
+        aria-label="Start photo presentation"
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <polygon points="6 4 20 12 6 20 6 4" />
+        </svg>
+        Present
+      </button>
 
       {presenting && (
         <PresentMode
