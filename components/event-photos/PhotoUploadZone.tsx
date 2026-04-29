@@ -7,8 +7,9 @@ type FileStatus = {
   name: string;
   size: number;
   progress: number; // 0..100
-  status: "queued" | "uploading" | "done" | "error";
+  status: "queued" | "uploading" | "verifying" | "done" | "failed" | "error";
   error?: string;
+  startedAt?: number;
 };
 
 const ALLOWED = [
@@ -22,10 +23,47 @@ const ALLOWED = [
 
 const ACCEPT_ATTR = ".jpg,.jpeg,.png,.webp,.gif,.heic,.heif";
 
+const VERIFY_TIMEOUT_MS = 30_000;
+const VERIFY_INTERVAL_MS = 1_500;
+
 function isAllowed(file: File): boolean {
   if (file.type && ALLOWED.includes(file.type.toLowerCase())) return true;
   // Some browsers report empty type for HEIC; allow by extension as fallback.
   return /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(file.name);
+}
+
+function isHeicName(name: string): boolean {
+  return /\.(heic|heif)$/i.test(name);
+}
+
+/**
+ * Polls the check endpoint until a row exists for this filename + event,
+ * uploaded after `startedAt`. Resolves true on success, false on timeout.
+ */
+async function verifyUpload(
+  eventId: number,
+  filename: string,
+  startedAt: number
+): Promise<boolean> {
+  const deadline = Date.now() + VERIFY_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    try {
+      const url =
+        `/api/admin/event-photos/check` +
+        `?eventId=${encodeURIComponent(eventId)}` +
+        `&filename=${encodeURIComponent(filename)}` +
+        `&since=${encodeURIComponent(startedAt)}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = (await res.json()) as { exists?: boolean };
+        if (data.exists) return true;
+      }
+    } catch {
+      // ignore network blip; retry next tick
+    }
+    await new Promise((resolve) => setTimeout(resolve, VERIFY_INTERVAL_MS));
+  }
+  return false;
 }
 
 export function PhotoUploadZone({
@@ -77,7 +115,7 @@ export function PhotoUploadZone({
 
     setItems((prev) => [...prev, ...accepted.map((a) => a.item), ...rejected]);
 
-    let completedAny = false;
+    let confirmedAny = false;
     const concurrency = 3;
     let cursor = 0;
     const workers: Promise<void>[] = [];
@@ -86,7 +124,8 @@ export function PhotoUploadZone({
       while (cursor < accepted.length) {
         const idx = cursor++;
         const { item, file } = accepted[idx];
-        update(item.id, { status: "uploading" });
+        const startedAt = Date.now();
+        update(item.id, { status: "uploading", startedAt });
         try {
           await upload(`events/${eventId}/photos/${file.name}`, file, {
             access: "public",
@@ -100,8 +139,22 @@ export function PhotoUploadZone({
               update(item.id, { progress: Math.round(percentage) });
             },
           });
-          update(item.id, { status: "done", progress: 100 });
-          completedAny = true;
+          // Storage upload done — but the server-side conversion + DB
+          // write happens in a webhook we can't observe directly. Poll
+          // until a row appears, or mark Failed if it doesn't within 30s.
+          update(item.id, { status: "verifying", progress: 100 });
+          const ok = await verifyUpload(eventId, file.name, startedAt);
+          if (ok) {
+            update(item.id, { status: "done" });
+            confirmedAny = true;
+          } else {
+            update(item.id, {
+              status: "failed",
+              error: isHeicName(file.name)
+                ? "Server couldn't decode HEIC. The file may be a corrupt or iCloud-placeholder copy. Try Photos → File → Download Originals, or Export As JPEG."
+                : "Upload didn't land in the gallery. Try again or convert to JPEG.",
+            });
+          }
         } catch (err) {
           const msg = err instanceof Error ? err.message : "Upload failed";
           update(item.id, { status: "error", error: msg });
@@ -115,19 +168,12 @@ export function PhotoUploadZone({
     await Promise.all(workers);
 
     setBusy(false);
-    if (completedAny) {
-      // The blob upload finishes well before Vercel's onUploadCompleted
-      // webhook fires server-side — for HEIC, the webhook also runs
-      // heic-convert (~1-3s) + a re-encode + a put + a DB insert. End-to-end
-      // wall time can hit 5-10s per file, longer for batches.
-      //
-      // So we keep polling router.refresh() every 2s for 30s after the
-      // batch finishes. Each refresh is cheap (force-dynamic page, one SQL
-      // query) and the grid catches up the moment any new row is committed.
-      // The "Syncing…" pill shows the user we're actively waiting.
+    if (confirmedAny) {
+      // Verification already proved at least one row landed. Refresh the
+      // grid a few times to pick up the new rows visually.
       setSyncing(true);
       let attempt = 0;
-      const maxAttempts = 15;
+      const maxAttempts = 5;
       const tick = () => {
         onUploaded();
         attempt++;
@@ -138,7 +184,7 @@ export function PhotoUploadZone({
         }
         syncTimerRef.current = setTimeout(tick, 2000);
       };
-      syncTimerRef.current = setTimeout(tick, 1200);
+      syncTimerRef.current = setTimeout(tick, 200);
     }
   };
 
@@ -159,6 +205,8 @@ export function PhotoUploadZone({
   const clearDone = () => {
     setItems((prev) => prev.filter((it) => it.status !== "done"));
   };
+
+  const failedCount = items.filter((it) => it.status === "failed" || it.status === "error").length;
 
   return (
     <div className="mb-6">
@@ -199,13 +247,18 @@ export function PhotoUploadZone({
 
       {items.length > 0 && (
         <div className="mt-3 bg-white border border-[color:var(--rule)] rounded-[10px]">
-          <div className="px-4 py-2 flex items-center justify-between border-b border-[color:var(--rule)]">
-            <span className="text-xs font-semibold text-[color:var(--navy-ink)] flex items-center gap-2">
+          <div className="px-4 py-2 flex items-center justify-between border-b border-[color:var(--rule)] flex-wrap gap-2">
+            <span className="text-xs font-semibold text-[color:var(--navy-ink)] flex items-center gap-2 flex-wrap">
               {items.filter((i) => i.status === "done").length} / {items.length} uploaded
+              {failedCount > 0 && (
+                <span className="text-[10px] tracking-[.18em] uppercase font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+                  {failedCount} failed
+                </span>
+              )}
               {syncing && (
                 <span
                   className="inline-flex items-center gap-1.5 text-[10px] tracking-[.18em] uppercase font-bold text-navy bg-navy/10 px-2 py-0.5 rounded-full"
-                  title="Waiting for server-side conversion + DB write to land"
+                  title="Refreshing the gallery to pick up newly-recorded rows"
                 >
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-navy animate-pulse" />
                   Syncing gallery
@@ -221,41 +274,57 @@ export function PhotoUploadZone({
             </button>
           </div>
           <ul className="divide-y divide-[color:var(--rule)]">
-            {items.map((it) => (
-              <li key={it.id} className="px-4 py-2 text-xs">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="truncate flex-1" title={it.name}>{it.name}</span>
-                  <span className="text-[color:var(--muted)] tabular-nums">
-                    {(it.size / 1024 / 1024).toFixed(1)}MB
-                  </span>
-                  <span
-                    className={`tabular-nums w-24 text-right ${
-                      it.status === "error"
-                        ? "text-rose-700"
-                        : it.status === "done"
-                        ? "text-emerald-700"
-                        : "text-[color:var(--muted)]"
-                    }`}
-                  >
-                    {it.status === "error"
-                      ? it.error ?? "Error"
-                      : it.status === "done"
-                      ? "Done"
-                      : it.status === "uploading"
-                      ? `${it.progress}%`
-                      : "Queued"}
-                  </span>
-                </div>
-                {it.status === "uploading" && (
-                  <div className="mt-1 h-1 bg-[color:var(--rule)] rounded overflow-hidden">
-                    <div
-                      className="h-full bg-navy transition-[width]"
-                      style={{ width: `${it.progress}%` }}
-                    />
+            {items.map((it) => {
+              const statusColor =
+                it.status === "error" || it.status === "failed"
+                  ? "text-rose-700"
+                  : it.status === "done"
+                  ? "text-emerald-700"
+                  : it.status === "verifying"
+                  ? "text-navy"
+                  : "text-[color:var(--muted)]";
+              const statusText =
+                it.status === "error"
+                  ? "Error"
+                  : it.status === "failed"
+                  ? "Failed"
+                  : it.status === "done"
+                  ? "Done"
+                  : it.status === "verifying"
+                  ? "Verifying…"
+                  : it.status === "uploading"
+                  ? `${it.progress}%`
+                  : "Queued";
+              return (
+                <li key={it.id} className="px-4 py-2 text-xs">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="truncate flex-1" title={it.name}>{it.name}</span>
+                    <span className="text-[color:var(--muted)] tabular-nums">
+                      {(it.size / 1024 / 1024).toFixed(1)}MB
+                    </span>
+                    <span
+                      className={`tabular-nums w-24 text-right font-semibold ${statusColor}`}
+                      title={it.error}
+                    >
+                      {statusText}
+                    </span>
                   </div>
-                )}
-              </li>
-            ))}
+                  {it.status === "uploading" && (
+                    <div className="mt-1 h-1 bg-[color:var(--rule)] rounded overflow-hidden">
+                      <div
+                        className="h-full bg-navy transition-[width]"
+                        style={{ width: `${it.progress}%` }}
+                      />
+                    </div>
+                  )}
+                  {(it.status === "failed" || it.status === "error") && it.error && (
+                    <div className="mt-1 text-[11px] text-rose-700 leading-snug">
+                      {it.error}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
