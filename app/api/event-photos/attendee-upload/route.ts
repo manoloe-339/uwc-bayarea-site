@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { put, del } from "@vercel/blob";
 import sharp from "sharp";
+import heicConvert from "heic-convert";
 import { recordPhoto, getEventByUploadToken } from "@/lib/event-photos/queries";
 import { extractTakenAt } from "@/lib/event-photos/exif";
 
@@ -89,7 +90,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const takenAt = await extractTakenAt(inputBuf);
 
         if (needsHeicConvert) {
-          const jpeg = await sharp(inputBuf).rotate().jpeg({ quality: 88 }).toBuffer();
+          // sharp's prebuilt binaries don't include HEIC decoding, so we run
+          // the HEIC -> JPEG step through heic-convert (pure JS, works on
+          // Vercel without native build flags). Sharp then handles orientation
+          // and re-encoding the result.
+          const decoded = await heicConvert({
+            buffer: inputBuf as unknown as ArrayBufferLike,
+            format: "JPEG",
+            quality: 0.9,
+          });
+          const decodedBuf = Buffer.from(decoded);
+          const jpeg = await sharp(decodedBuf).rotate().jpeg({ quality: 88 }).toBuffer();
           const meta2 = await sharp(jpeg).metadata();
           width = meta2.width ?? null;
           height = meta2.height ?? null;
