@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 
 type FileStatus = {
@@ -39,6 +39,14 @@ export function PhotoUploadZone({
   const [items, setItems] = useState<FileStatus[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, []);
 
   const update = (id: string, patch: Partial<FileStatus>) => {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
@@ -108,13 +116,29 @@ export function PhotoUploadZone({
 
     setBusy(false);
     if (completedAny) {
-      // The blob upload finishes before Vercel's onUploadCompleted webhook
-      // fires server-side — and HEIC conversion adds another ~1-3s on top
-      // of that. So we refresh several times over the next 12 seconds to
-      // pick up rows as the webhook records them. Each refresh is cheap
-      // (force-dynamic page, single SQL query).
-      const delays = [1500, 3500, 6000, 9000, 12000];
-      delays.forEach((d) => setTimeout(onUploaded, d));
+      // The blob upload finishes well before Vercel's onUploadCompleted
+      // webhook fires server-side — for HEIC, the webhook also runs
+      // heic-convert (~1-3s) + a re-encode + a put + a DB insert. End-to-end
+      // wall time can hit 5-10s per file, longer for batches.
+      //
+      // So we keep polling router.refresh() every 2s for 30s after the
+      // batch finishes. Each refresh is cheap (force-dynamic page, one SQL
+      // query) and the grid catches up the moment any new row is committed.
+      // The "Syncing…" pill shows the user we're actively waiting.
+      setSyncing(true);
+      let attempt = 0;
+      const maxAttempts = 15;
+      const tick = () => {
+        onUploaded();
+        attempt++;
+        if (attempt >= maxAttempts) {
+          setSyncing(false);
+          syncTimerRef.current = null;
+          return;
+        }
+        syncTimerRef.current = setTimeout(tick, 2000);
+      };
+      syncTimerRef.current = setTimeout(tick, 1200);
     }
   };
 
@@ -176,8 +200,17 @@ export function PhotoUploadZone({
       {items.length > 0 && (
         <div className="mt-3 bg-white border border-[color:var(--rule)] rounded-[10px]">
           <div className="px-4 py-2 flex items-center justify-between border-b border-[color:var(--rule)]">
-            <span className="text-xs font-semibold text-[color:var(--navy-ink)]">
+            <span className="text-xs font-semibold text-[color:var(--navy-ink)] flex items-center gap-2">
               {items.filter((i) => i.status === "done").length} / {items.length} uploaded
+              {syncing && (
+                <span
+                  className="inline-flex items-center gap-1.5 text-[10px] tracking-[.18em] uppercase font-bold text-navy bg-navy/10 px-2 py-0.5 rounded-full"
+                  title="Waiting for server-side conversion + DB write to land"
+                >
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-navy animate-pulse" />
+                  Syncing gallery
+                </span>
+              )}
             </span>
             <button
               type="button"
