@@ -79,6 +79,17 @@ export default function ToolsIndex() {
             and never auto-overwritten.
           </p>
         </Link>
+        <Link
+          href="/admin/tools/photo-gallery-settings"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Photo galleries</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Public /photos page layout & slideshow</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Thumbnails per gallery row, marquee on/off, intro band on/off, and
+            seconds-per-slide for the Present-mode slideshow.
+          </p>
+        </Link>
       </div>
     </div>
   );
