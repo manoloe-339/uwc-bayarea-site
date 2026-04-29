@@ -51,14 +51,14 @@ export default async function PhotoGallerySettingsPage({
               label="Eyebrow (small uppercase line above the headline)"
               name="intro_eyebrow"
               defaultValue={s.photo_gallery_intro_eyebrow ?? DEFAULT_PHOTO_GALLERY_INTRO.eyebrow}
-              hint='Auto-uppercased on the page. e.g. "Photographs · 1976 — present".'
+              hint={`Auto-uppercased on the page. Leave blank to hide. Default: "${DEFAULT_PHOTO_GALLERY_INTRO.eyebrow}".`}
             />
             <div className="grid sm:grid-cols-2 gap-4">
               <TextField
                 label="Headline (regular)"
                 name="intro_headline"
                 defaultValue={s.photo_gallery_intro_headline ?? DEFAULT_PHOTO_GALLERY_INTRO.headline}
-                hint='The dark first part. e.g. "A community,".'
+                hint={`The dark first part. Leave blank to hide. Default: "${DEFAULT_PHOTO_GALLERY_INTRO.headline}".`}
               />
               <TextField
                 label="Headline accent (italic blue)"
@@ -66,7 +66,7 @@ export default async function PhotoGallerySettingsPage({
                 defaultValue={
                   s.photo_gallery_intro_headline_accent ?? DEFAULT_PHOTO_GALLERY_INTRO.headlineAccent
                 }
-                hint='The italic blue tail. e.g. "in pictures".'
+                hint={`The italic blue tail. Leave blank to hide. Default: "${DEFAULT_PHOTO_GALLERY_INTRO.headlineAccent}".`}
               />
             </div>
             <TextareaField
