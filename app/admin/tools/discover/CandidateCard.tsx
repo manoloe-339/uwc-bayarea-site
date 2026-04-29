@@ -107,16 +107,29 @@ export default function CandidateCard({
 
   const FALLBACK_TEMPLATE =
     "Hi {firstName} — Manolo here, building out the UWC Bay Area alumni network. Saw you're a UWC alum in the area. Would love to connect and keep you in the loop on our gatherings.";
-  const template = (inviteTemplate ?? FALLBACK_TEMPLATE).trim();
-  // Substitute {firstName} → name (or strip when blank). Then collapse
-  // any leftover double spaces from the no-name case.
-  const inviteText = template
-    .replace(/\{firstName\}/g, firstName)
-    .replace(/\s{2,}/g, " ")
-    .trim();
+
+  function renderInvite(template: string): string {
+    return template
+      .replace(/\{firstName\}/g, firstName)
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
 
   const copyAndOpen = async () => {
     setBusy("copy");
+    // Fetch the latest template at click time so edits in /admin/tools/
+    // discover/settings take effect immediately without a page refresh.
+    let template = (inviteTemplate ?? FALLBACK_TEMPLATE).trim();
+    try {
+      const res = await fetch("/api/admin/discovery/invite-template", { cache: "no-store" });
+      if (res.ok) {
+        const data = (await res.json()) as { template?: string };
+        if (data.template?.trim()) template = data.template.trim();
+      }
+    } catch {
+      // network blip — fall back to the prop-supplied template
+    }
+    const inviteText = renderInvite(template);
     try {
       await navigator.clipboard.writeText(inviteText);
       setCopied(true);
@@ -237,7 +250,7 @@ export default function CandidateCard({
               onClick={copyAndOpen}
               disabled={busy !== null}
               className="text-xs font-semibold bg-emerald-600 text-white px-3 py-1.5 rounded hover:bg-emerald-700 disabled:opacity-50"
-              title={inviteText}
+              title={renderInvite((inviteTemplate ?? FALLBACK_TEMPLATE).trim())}
             >
               {copied ? "✓ Copied — paste in LinkedIn" : "Copy invite + open LinkedIn"}
             </button>
