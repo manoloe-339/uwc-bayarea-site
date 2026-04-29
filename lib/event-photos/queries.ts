@@ -286,6 +286,132 @@ export async function toggleStarMarquee(photoId: number): Promise<EventPhoto | n
   return updated[0] ?? null;
 }
 
+export interface SeparateArchiveSummary {
+  events: Array<{
+    eventId: number;
+    slug: string;
+    name: string;
+    date: string; // YYYY-MM-DD
+    movedCount: number;
+    isNew: boolean;
+  }>;
+  totalMoved: number;
+  skippedNoDate: number;
+}
+
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+/**
+ * Cluster archive photos by capture date (taken_at, 3-day gap), then
+ * either create a new event per cluster or merge into the existing
+ * archive-YYYY-MM-DD event, moving photos out of the archive bucket.
+ *
+ * Preserves display_role (marquee tag) on each moved photo; resets
+ * display_order to NULL since ordering doesn't carry across events.
+ *
+ * Idempotent — re-running picks up newly-uploaded photos without
+ * disturbing photos already moved.
+ *
+ * Photos with NULL taken_at are left in archive (no clustering signal).
+ */
+export async function separateArchiveIntoEvents(): Promise<SeparateArchiveSummary> {
+  const arch = (await sql`
+    SELECT id FROM events WHERE slug = 'archive' LIMIT 1
+  `) as { id: number }[];
+  if (!arch[0]) {
+    return { events: [], totalMoved: 0, skippedNoDate: 0 };
+  }
+  const archiveId = arch[0].id;
+
+  type ArchPhoto = {
+    id: number;
+    taken_at: Date;
+  };
+  const photos = (await sql`
+    SELECT id, taken_at
+    FROM event_photos
+    WHERE event_id = ${archiveId} AND taken_at IS NOT NULL
+    ORDER BY taken_at ASC, id ASC
+  `) as ArchPhoto[];
+
+  const skippedRows = (await sql`
+    SELECT COUNT(*)::int AS n
+    FROM event_photos
+    WHERE event_id = ${archiveId} AND taken_at IS NULL
+  `) as { n: number }[];
+  const skippedNoDate = skippedRows[0]?.n ?? 0;
+
+  if (photos.length === 0) {
+    return { events: [], totalMoved: 0, skippedNoDate };
+  }
+
+  // Cluster by 3-day gap.
+  const clusters: ArchPhoto[][] = [];
+  let current: ArchPhoto[] = [];
+  let lastTime = 0;
+  for (const p of photos) {
+    const t = new Date(p.taken_at).getTime();
+    if (current.length === 0 || t - lastTime > THREE_DAYS_MS) {
+      if (current.length > 0) clusters.push(current);
+      current = [p];
+    } else {
+      current.push(p);
+    }
+    lastTime = t;
+  }
+  if (current.length > 0) clusters.push(current);
+
+  const results: SeparateArchiveSummary["events"] = [];
+  for (const cluster of clusters) {
+    const earliest = new Date(cluster[0].taken_at);
+    const date = earliest.toISOString().slice(0, 10);
+    const slug = `archive-${date}`;
+    const name = earliest.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    // Find or create event idempotently.
+    const existing = (await sql`
+      SELECT id FROM events WHERE slug = ${slug} LIMIT 1
+    `) as { id: number }[];
+    let isNew = false;
+    let eventId: number;
+    if (existing[0]) {
+      eventId = existing[0].id;
+    } else {
+      const inserted = (await sql`
+        INSERT INTO events (slug, name, date, event_type)
+        VALUES (${slug}, ${name}, ${date}, 'casual')
+        RETURNING id
+      `) as { id: number }[];
+      eventId = inserted[0].id;
+      isNew = true;
+    }
+
+    const photoIds = cluster.map((p) => p.id);
+    await sql`
+      UPDATE event_photos
+      SET event_id = ${eventId},
+          display_order = NULL
+      WHERE id = ANY(${photoIds})
+    `;
+
+    results.push({
+      eventId,
+      slug,
+      name,
+      date,
+      movedCount: photoIds.length,
+      isNew,
+    });
+  }
+
+  const totalMoved = results.reduce((s, r) => s + r.movedCount, 0);
+  return { events: results, totalMoved, skippedNoDate };
+}
+
 /**
  * Re-numbers display_order = 0..n for the given photo ids in array order,
  * and assigns them to the given role. Does so for the photos in this list only.

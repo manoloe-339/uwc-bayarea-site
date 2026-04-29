@@ -15,6 +15,7 @@ import {
   PhotoUploadZoneWrapper,
   GalleryLayoutEditor,
   PhotoUploadLinkSection,
+  SeparateArchiveButton,
 } from "@/components/event-photos";
 
 export const dynamic = "force-dynamic";
@@ -116,6 +117,7 @@ export default async function PhotosPage({
         <>
           <PhotoStatsCards stats={stats} />
           <PhotoUploadZoneWrapper eventId={event.id} />
+          {event.slug === "archive" && <SeparateArchiveButton />}
           <PhotoFilterTabs active={filter} basePath={basePath} stats={stats} />
           <PhotoGrid photos={photos} eventId={event.id} />
         </>
