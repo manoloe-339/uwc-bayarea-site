@@ -90,6 +90,18 @@ export default function ToolsIndex() {
             seconds-per-slide for the Present-mode slideshow.
           </p>
         </Link>
+        <Link
+          href="/admin/events/archive/photos"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Archive photos</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Past-website photos for the /photos marquee</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Drop in any historical photos (not tied to a specific event), approve
+            them, and tag the ones you want as marquee. They flow to the top of
+            /photos automatically and don&rsquo;t show up as their own gallery row.
+          </p>
+        </Link>
       </div>
     </div>
   );

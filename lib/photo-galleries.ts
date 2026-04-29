@@ -84,6 +84,7 @@ export async function getPublicGalleryRows(thumbsPerRow: number): Promise<Galler
     FROM ranked r
     JOIN events e ON e.id = r.event_id
     WHERE r.rn <= ${thumbsPerRow}
+      AND e.slug <> 'archive'
     ORDER BY e.date DESC, e.id DESC, r.rn ASC
   `) as GalleryRowSqlRow[];
 
