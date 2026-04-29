@@ -3,9 +3,9 @@ import { useEffect, useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { EventPhoto } from "@/lib/event-photos/types";
 
-function toDateInputValue(d: string | null): string {
+function toDateInputValue(d: string | Date | null | undefined): string {
   if (!d) return "";
-  const date = new Date(d);
+  const date = d instanceof Date ? d : new Date(d);
   if (isNaN(date.getTime())) return "";
   return date.toISOString().slice(0, 10);
 }
@@ -203,7 +203,7 @@ export function PhotoLightbox({
               : savedAt
               ? "Saved"
               : photo.taken_at
-              ? "From " + (photo.taken_at as string).slice(0, 10) === toDateInputValue(photo.taken_at) ? "" : ""
+              ? "Set"
               : "Not set"}
           </span>
         </div>
