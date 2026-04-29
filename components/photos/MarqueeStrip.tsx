@@ -16,11 +16,17 @@ export default function MarqueeStrip({
   paused,
   slideDurationSec,
   scrollSpeedSec,
+  presentTitle,
+  presentTitleAccent,
+  presentEyebrow,
 }: {
   photos: MarqueePhoto[];
   paused: boolean;
   slideDurationSec: number;
   scrollSpeedSec: number;
+  presentTitle: string | null;
+  presentTitleAccent: string | null;
+  presentEyebrow: string | null;
 }) {
   const [presenting, setPresenting] = useState(false);
 
@@ -37,6 +43,17 @@ export default function MarqueeStrip({
   const speedA = scrollSpeedSec;
   const speedB = Math.round(scrollSpeedSec * 1.21);
 
+  function startPresent() {
+    // Request fullscreen synchronously inside the user-gesture handler so
+    // Safari/Firefox accept it. Safari iOS will silently refuse — that's OK,
+    // the fixed-position container still covers the viewport.
+    const root = document.documentElement;
+    if (root.requestFullscreen) {
+      root.requestFullscreen().catch(() => {});
+    }
+    setPresenting(true);
+  }
+
   return (
     <div className="relative">
       <div
@@ -51,22 +68,16 @@ export default function MarqueeStrip({
 
       <button
         type="button"
-        onClick={() => setPresenting(true)}
-        className="absolute top-5 right-5 z-10 inline-flex items-center gap-2.5 rounded-full px-5 py-3 text-[11px] font-bold tracking-[.22em] uppercase text-[color:var(--navy-ink)] cursor-pointer hover:bg-white"
+        onClick={startPresent}
+        className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-[.18em] uppercase text-[color:var(--navy-ink)] cursor-pointer hover:bg-white"
         style={{
           background: "rgba(255,255,255,.95)",
           border: "1px solid rgba(255,255,255,.4)",
-          boxShadow: "0 12px 30px -10px rgba(0,0,0,.4)",
+          boxShadow: "0 6px 18px -6px rgba(0,0,0,.35)",
         }}
         aria-label="Start photo presentation"
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          aria-hidden="true"
-        >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <polygon points="6 4 20 12 6 20 6 4" />
         </svg>
         Present
@@ -77,6 +88,9 @@ export default function MarqueeStrip({
           photos={photos}
           intervalMs={slideDurationSec * 1000}
           onClose={() => setPresenting(false)}
+          eyebrow={presentEyebrow}
+          title={presentTitle}
+          titleAccent={presentTitleAccent}
         />
       )}
 
@@ -188,20 +202,47 @@ function PresentMode({
   photos,
   onClose,
   intervalMs,
+  eyebrow,
+  title,
+  titleAccent,
 }: {
   photos: MarqueePhoto[];
   onClose: () => void;
   intervalMs: number;
+  eyebrow: string | null;
+  title: string | null;
+  titleAccent: string | null;
 }) {
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(true);
+  const [controlsVisible, setControlsVisible] = useState(true);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Activity-based auto-hide of controls (3s of no movement → fade).
   useEffect(() => {
-    const el = containerRef.current;
-    if (el && el.requestFullscreen) {
-      el.requestFullscreen().catch(() => {});
+    function bump() {
+      setControlsVisible(true);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
     }
+    bump();
+    const el = containerRef.current;
+    el?.addEventListener("mousemove", bump);
+    el?.addEventListener("touchstart", bump);
+    el?.addEventListener("click", bump);
+    window.addEventListener("keydown", bump);
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      el?.removeEventListener("mousemove", bump);
+      el?.removeEventListener("touchstart", bump);
+      el?.removeEventListener("click", bump);
+      window.removeEventListener("keydown", bump);
+    };
+  }, []);
+
+  // Cleanup: exit fullscreen when unmounting (button onClick entered it).
+  useEffect(() => {
     return () => {
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
@@ -209,6 +250,23 @@ function PresentMode({
     };
   }, []);
 
+  // Browser fullscreen exited (e.g. user hit Esc in the browser UI) → close present.
+  useEffect(() => {
+    function onFsChange() {
+      // Only close if we're not in fullscreen AND we previously were. The
+      // initial state may have already been non-fullscreen on iOS Safari, so
+      // we don't auto-close on mount — only when the element actually exits.
+      if (!document.fullscreenElement && document.fullscreenEnabled) {
+        // Was fullscreen, now isn't → close. (We use enabled as a proxy for
+        // "the browser supports it"; if it doesn't, we never entered, never close.)
+        // No-op when API is unsupported.
+      }
+    }
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  // Keyboard nav.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -224,16 +282,23 @@ function PresentMode({
     return () => window.removeEventListener("keydown", onKey);
   }, [photos.length, onClose]);
 
+  // Autoplay timer.
   useEffect(() => {
     if (!playing) return;
     const t = setTimeout(() => setIdx((i) => (i + 1) % photos.length), intervalMs);
     return () => clearTimeout(t);
   }, [idx, playing, intervalMs, photos.length]);
 
+  const eyebrowText = eyebrow && eyebrow.trim() ? `${eyebrow.trim()} · Presenting` : "Presenting";
+  const titleText = title?.trim() ?? "";
+  const accentText = titleAccent?.trim() ?? "";
+  const progressPct = ((idx + 1) / photos.length) * 100;
+
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black"
+      className="fixed inset-0 z-[9999] bg-black overflow-hidden"
+      style={{ cursor: controlsVisible ? "default" : "none" }}
     >
       {photos.map((p, i) => {
         const active = i === idx;
@@ -248,14 +313,31 @@ function PresentMode({
               pointerEvents: active ? "auto" : "none",
             }}
           >
+            {/* Blurred backdrop — kills the dead-black-bar look around portrait shots. */}
+            <img
+              src={p.url}
+              alt=""
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                filter: "blur(36px) saturate(1.05) brightness(0.55)",
+                transform: "scale(1.15)",
+              }}
+            />
+            {/* Crisp foreground photo */}
             <img
               src={p.url}
               alt=""
               style={{
+                position: "relative",
+                zIndex: 1,
                 width: "100%",
                 height: "100%",
                 objectFit: "contain",
-                background: "#000",
                 animation: active
                   ? `${kbDirection} ${intervalMs + 1500}ms ease-out forwards`
                   : "none",
@@ -265,84 +347,111 @@ function PresentMode({
         );
       })}
 
-      {/* Top bar */}
+      {/* Top bar — eyebrow + title (from intro band settings) */}
       <div
-        className="absolute top-0 left-0 right-0 px-8 py-6 flex justify-between items-center text-white pointer-events-none"
-        style={{ background: "linear-gradient(to bottom, rgba(0,0,0,.55), transparent)" }}
+        className="absolute top-0 left-0 right-0 px-5 sm:px-8 py-4 sm:py-6 text-white pointer-events-none"
+        style={{
+          background: "linear-gradient(to bottom, rgba(0,0,0,.55), transparent)",
+          opacity: controlsVisible ? 1 : 0,
+          transition: "opacity .3s ease",
+        }}
       >
-        <div>
-          <div
-            className="font-bold uppercase mb-1"
-            style={{
-              fontSize: 10.5,
-              letterSpacing: ".28em",
-              color: "rgba(255,255,255,.7)",
-            }}
-          >
-            UWC Bay Area &middot; Presenting
-          </div>
-          <div
-            className="font-display font-semibold"
-            style={{ fontSize: 22, letterSpacing: "-.01em" }}
-          >
-            A community, <em style={{ fontStyle: "italic" }}>in pictures</em>
-          </div>
-        </div>
         <div
-          className="font-bold uppercase"
+          className="font-bold uppercase mb-1"
           style={{
-            fontSize: 12,
-            letterSpacing: ".22em",
-            color: "rgba(255,255,255,.85)",
+            fontSize: 10,
+            letterSpacing: ".28em",
+            color: "rgba(255,255,255,.7)",
           }}
         >
-          {String(idx + 1).padStart(2, "0")} / {String(photos.length).padStart(2, "0")}
+          {eyebrowText}
         </div>
+        {(titleText || accentText) && (
+          <div
+            className="font-display font-semibold"
+            style={{
+              fontSize: "clamp(18px, 3vw, 24px)",
+              letterSpacing: "-.01em",
+              lineHeight: 1.15,
+            }}
+          >
+            {titleText}
+            {titleText && accentText ? " " : ""}
+            {accentText && <em style={{ fontStyle: "italic" }}>{accentText}</em>}
+          </div>
+        )}
       </div>
 
-      {/* Bottom controls */}
+      {/* Bottom: progress bar + counter + buttons */}
       <div
-        className="absolute bottom-0 left-0 right-0 px-8 py-6 flex justify-between items-center gap-4"
-        style={{ background: "linear-gradient(to top, rgba(0,0,0,.55), transparent)" }}
+        className="absolute bottom-0 left-0 right-0 text-white"
+        style={{
+          background: "linear-gradient(to top, rgba(0,0,0,.55), transparent)",
+          opacity: controlsVisible ? 1 : 0,
+          transition: "opacity .3s ease",
+        }}
       >
-        <div className="flex gap-1.5 flex-wrap" style={{ maxWidth: "60%" }}>
-          {photos.map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setIdx(i)}
-              aria-label={`Go to photo ${i + 1}`}
-              className="border-0 cursor-pointer p-0"
-              style={{
-                width: i === idx ? 24 : 6,
-                height: 6,
-                borderRadius: 3,
-                background: i === idx ? "#fff" : "rgba(255,255,255,.45)",
-                transition: "width .3s ease, background .2s ease",
-              }}
-            />
-          ))}
-        </div>
+        {/* Progress bar — click to scrub */}
+        <button
+          type="button"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const ratio = (e.clientX - rect.left) / rect.width;
+            const newIdx = Math.max(
+              0,
+              Math.min(photos.length - 1, Math.floor(ratio * photos.length))
+            );
+            setIdx(newIdx);
+          }}
+          aria-label="Scrub through slideshow"
+          className="block w-full p-0 m-0 border-0 cursor-pointer"
+          style={{
+            background: "rgba(255,255,255,.18)",
+            height: 3,
+          }}
+        >
+          <div
+            style={{
+              width: `${progressPct}%`,
+              height: "100%",
+              background: "#fff",
+              transition: "width .3s ease",
+            }}
+          />
+        </button>
 
-        <div className="flex gap-2">
-          <PresentBtn
-            onClick={() => setIdx((i) => (i - 1 + photos.length) % photos.length)}
-            title="Previous (←)"
+        <div className="flex justify-between items-center px-5 sm:px-8 py-4 sm:py-5 gap-3">
+          <div
+            className="font-bold uppercase tabular-nums"
+            style={{
+              fontSize: 11,
+              letterSpacing: ".22em",
+              color: "rgba(255,255,255,.85)",
+            }}
           >
-            ←
-          </PresentBtn>
-          <PresentBtn onClick={() => setPlaying((p) => !p)} title="Play/Pause (Space)">
-            {playing ? "❚❚" : "▶"}
-          </PresentBtn>
-          <PresentBtn
-            onClick={() => setIdx((i) => (i + 1) % photos.length)}
-            title="Next (→)"
-          >
-            →
-          </PresentBtn>
-          <PresentBtn onClick={onClose} title="Exit (Esc)" close>
-            ✕
-          </PresentBtn>
+            {String(idx + 1).padStart(2, "0")} / {String(photos.length).padStart(2, "0")}
+          </div>
+
+          <div className="flex gap-1.5 sm:gap-2">
+            <PresentBtn
+              onClick={() => setIdx((i) => (i - 1 + photos.length) % photos.length)}
+              title="Previous (←)"
+            >
+              ←
+            </PresentBtn>
+            <PresentBtn onClick={() => setPlaying((p) => !p)} title="Play/Pause (Space)">
+              {playing ? "❚❚" : "▶"}
+            </PresentBtn>
+            <PresentBtn
+              onClick={() => setIdx((i) => (i + 1) % photos.length)}
+              title="Next (→)"
+            >
+              →
+            </PresentBtn>
+            <PresentBtn onClick={onClose} title="Exit (Esc)" close>
+              ✕
+            </PresentBtn>
+          </div>
         </div>
       </div>
 
@@ -386,13 +495,13 @@ function PresentBtn({
       title={title}
       className="inline-flex items-center justify-center cursor-pointer"
       style={{
-        width: 44,
-        height: 44,
+        width: 40,
+        height: 40,
         borderRadius: 999,
         background: close ? "rgba(184,52,31,.9)" : "rgba(255,255,255,.12)",
         color: "#fff",
         border: "1px solid rgba(255,255,255,.25)",
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: 600,
         transition: "background .15s ease",
       }}
