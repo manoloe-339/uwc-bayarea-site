@@ -219,14 +219,12 @@ function NameTagRow({
           <Field
             label="UWC college"
             value={tag.uwc_college ?? ""}
-            placeholder="UWCSEA"
             onChange={(v) => onChange({ uwc_college: v || null })}
             onBlur={(v) => onSave({ uwc_college: v || null })}
           />
           <Field
             label="Grad year"
             value={tag.grad_year == null ? "" : String(tag.grad_year)}
-            placeholder="2007"
             type="number"
             onChange={(v) => onChange({ grad_year: v ? Number(v) : null })}
             onBlur={(v) => onSave({ grad_year: v ? Number(v) : null })}
@@ -235,21 +233,18 @@ function NameTagRow({
         <Field
           label="Line 3 (optional)"
           value={tag.line_3 ?? ""}
-          placeholder="Trustee"
           onChange={(v) => onChange({ line_3: v || null })}
           onBlur={(v) => onSave({ line_3: v || null })}
         />
         <Field
           label="Line 4 (optional)"
           value={tag.line_4 ?? ""}
-          placeholder="Faculty 1996–2010"
           onChange={(v) => onChange({ line_4: v || null })}
           onBlur={(v) => onSave({ line_4: v || null })}
         />
         <Field
           label="Notes (admin only — not printed)"
           value={tag.notes ?? ""}
-          placeholder="Guest of John, has dietary restriction…"
           onChange={(v) => onChange({ notes: v || null })}
           onBlur={(v) => onSave({ notes: v || null })}
         />
