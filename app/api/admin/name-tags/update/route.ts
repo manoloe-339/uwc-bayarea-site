@@ -21,6 +21,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     line_3?: string | null;
     line_4?: string | null;
     notes?: string | null;
+    show_logo?: boolean;
   } | null;
 
   const id = Number(body?.id);
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     line_3: nullableTrim(body?.line_3),
     line_4: nullableTrim(body?.line_4),
     notes: nullableTrim(body?.notes),
+    show_logo: typeof body?.show_logo === "boolean" ? body.show_logo : undefined,
   });
 
   if (!updated) {

@@ -341,6 +341,21 @@ function NameTagRow({
           <SaveIndicator state={saveState} />
           <div className="flex items-center gap-2 ml-auto">
             <StatusButtons status={tag.status} onSet={onSetStatus} />
+            <button
+              type="button"
+              onClick={() => {
+                onChange({ show_logo: !tag.show_logo });
+                onSave({ show_logo: !tag.show_logo });
+              }}
+              title={tag.show_logo ? "Remove UWC logo" : "Add UWC logo to this tag"}
+              className={`text-[10px] tracking-[.14em] uppercase font-bold px-2 py-1 rounded-full border transition-colors ${
+                tag.show_logo
+                  ? "bg-navy text-white border-navy"
+                  : "bg-white text-[color:var(--muted)] border-[color:var(--rule)] hover:text-navy"
+              }`}
+            >
+              {tag.show_logo ? "✓ Logo" : "Logo"}
+            </button>
             {tag.attendee_id != null && (
               <button
                 type="button"
@@ -575,13 +590,22 @@ export function NameTagCard({
     ? "line4"
     : null;
 
+  const logoSize = widthPx * 0.14; // ≈54px @ 4 in
+  const logoInset = widthPx * 0.035; // ≈14px @ 4 in (gap from card edge)
+  // Reserve space at the bottom for the logo so centered text doesn't
+  // overlap with it.
+  const reservedBottom = tag.show_logo ? logoSize + logoInset * 2 : padding;
+
   const containerStyle: React.CSSProperties = {
     width: widthPx,
     height: heightPx,
     background: previewMode ? "var(--ivory-2)" : "#ffffff",
     border: previewMode ? "1px dashed var(--rule)" : "1px solid #d4d4d4",
     borderRadius: previewMode ? 10 : 6,
-    padding,
+    paddingTop: padding,
+    paddingLeft: padding,
+    paddingRight: padding,
+    paddingBottom: reservedBottom,
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
@@ -589,10 +613,28 @@ export function NameTagCard({
     textAlign: "center",
     boxSizing: "border-box",
     overflow: "hidden",
+    position: "relative",
   };
 
   return (
     <div style={containerStyle}>
+      {tag.show_logo && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src="/uwc-globe-logo.png"
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            bottom: logoInset,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: logoSize,
+            height: logoSize,
+            objectFit: "contain",
+          }}
+        />
+      )}
       {layout === "first-emphasis" ? (
         <FirstEmphasisName tag={tag} widthPx={widthPx} gap={gap} />
       ) : (

@@ -15,6 +15,7 @@ export interface NameTag {
   line_4: string | null;
   notes: string | null;
   status: NameTagStatus;
+  show_logo: boolean;
   created_at: string;
   updated_at: string;
   /** Joined for display (which ticket purchaser this tag came from). */
@@ -231,7 +232,7 @@ export async function createStandaloneNameTag(
 
 export async function updateNameTag(
   id: number,
-  patch: Partial<Pick<NameTag, "first_name" | "last_name" | "uwc_college" | "grad_year" | "line_3" | "line_4" | "notes">>
+  patch: Partial<Pick<NameTag, "first_name" | "last_name" | "uwc_college" | "grad_year" | "line_3" | "line_4" | "notes" | "show_logo">>
 ): Promise<NameTag | null> {
   const existing = (await sql`SELECT * FROM event_name_tags WHERE id = ${id} LIMIT 1`) as NameTag[];
   if (!existing[0]) return null;
@@ -243,6 +244,7 @@ export async function updateNameTag(
     line_3: patch.line_3 !== undefined ? patch.line_3 : existing[0].line_3,
     line_4: patch.line_4 !== undefined ? patch.line_4 : existing[0].line_4,
     notes: patch.notes !== undefined ? patch.notes : existing[0].notes,
+    show_logo: patch.show_logo !== undefined ? patch.show_logo : existing[0].show_logo,
   };
   const rows = (await sql`
     UPDATE event_name_tags SET
@@ -253,6 +255,7 @@ export async function updateNameTag(
       line_3      = ${next.line_3},
       line_4      = ${next.line_4},
       notes       = ${next.notes},
+      show_logo   = ${next.show_logo},
       updated_at  = NOW()
     WHERE id = ${id}
     RETURNING *
