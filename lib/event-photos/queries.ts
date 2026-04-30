@@ -508,11 +508,14 @@ export async function separateArchiveIntoEvents(): Promise<SeparateArchiveSummar
     //    galleries rather than auto-named archive-YYYY-MM-DD ones.
     // 2. Existing archive-YYYY-MM-DD event with this exact slug.
     // 3. Create a new archive-YYYY-MM-DD event.
+    // Date subtraction in Postgres returns days as an integer, so we
+    // can compare day-count directly. 3-day window matches the cluster
+    // gap threshold used above.
     const realMatch = (await sql`
       SELECT id, slug, name, date FROM events
       WHERE slug NOT LIKE 'archive%'
-        AND ABS(EXTRACT(EPOCH FROM (date - ${date}::date))) <= ${THREE_DAYS_MS / 1000}
-      ORDER BY ABS(EXTRACT(EPOCH FROM (date - ${date}::date))) ASC, id ASC
+        AND ABS(date - ${date}::date) <= 3
+      ORDER BY ABS(date - ${date}::date) ASC, id ASC
       LIMIT 1
     `) as Array<{ id: number; slug: string; name: string; date: Date }>;
 
