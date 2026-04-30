@@ -26,6 +26,7 @@ export type EventRecord = {
   photo_upload_token: string | null;
   photo_upload_enabled: boolean;
   event_type: "ticketed" | "casual";
+  name_tag_layout: "standard" | "first-emphasis";
   created_at: string;
   updated_at: string;
 };

@@ -6,13 +6,16 @@ import type { NameTag, NameTagStatus } from "@/lib/event-name-tags";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 type Filter = "all" | NameTagStatus;
+export type NameTagLayout = "standard" | "first-emphasis";
 
 export function NameTagComposer({
   eventId,
   initialTags,
+  initialLayout,
 }: {
   eventId: number;
   initialTags: NameTag[];
+  initialLayout: NameTagLayout;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -21,8 +24,19 @@ export function NameTagComposer({
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
+  const [layout, setLayout] = useState<NameTagLayout>(initialLayout);
 
   const refresh = () => startTransition(() => router.refresh());
+
+  const onLayoutChange = async (next: NameTagLayout) => {
+    setLayout(next);
+    await fetch("/api/admin/events/set-name-tag-layout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eventId, layout: next }),
+    });
+    refresh();
+  };
 
   const counts = useMemo(() => {
     const c = { all: tags.length, pending: 0, fix: 0, finalized: 0 };
@@ -178,6 +192,17 @@ export function NameTagComposer({
         >
           + Add tag
         </button>
+        <label className="ml-auto inline-flex items-center gap-2 text-xs text-[color:var(--muted)]">
+          <span className="tracking-[.18em] uppercase font-bold">Layout</span>
+          <select
+            value={layout}
+            onChange={(e) => onLayoutChange(e.target.value as NameTagLayout)}
+            className="text-sm border border-[color:var(--rule)] rounded px-2 py-1 bg-white"
+          >
+            <option value="standard">Standard (full name on one line)</option>
+            <option value="first-emphasis">First-name emphasized</option>
+          </select>
+        </label>
         {syncMsg && (
           <span className="text-xs text-[color:var(--navy-ink)] bg-ivory-2 border-l-2 border-navy px-2 py-1 rounded-[2px]">
             {syncMsg}
@@ -211,6 +236,7 @@ export function NameTagComposer({
               key={t.id}
               tag={t}
               saveState={saveStates[t.id] ?? "idle"}
+              layout={layout}
               onChange={(patch) => onChange(t.id, patch)}
               onSave={(patch) => onSave(t.id, patch)}
               onDelete={() => onDelete(t.id)}
@@ -264,6 +290,7 @@ function FilterTab({
 function NameTagRow({
   tag,
   saveState,
+  layout,
   onChange,
   onSave,
   onDelete,
@@ -272,6 +299,7 @@ function NameTagRow({
 }: {
   tag: NameTag;
   saveState: SaveState;
+  layout: NameTagLayout;
   onChange: (patch: Partial<NameTag>) => void;
   onSave: (patch: Partial<NameTag>) => void;
   onDelete: () => void;
@@ -381,7 +409,7 @@ function NameTagRow({
       </div>
 
       {/* Live preview */}
-      <NameTagPreview tag={tag} />
+      <NameTagPreview tag={tag} layout={layout} />
     </li>
   );
 }
@@ -491,10 +519,10 @@ function SaveIndicator({ state }: { state: SaveState }) {
   );
 }
 
-function NameTagPreview({ tag }: { tag: NameTag }) {
+function NameTagPreview({ tag, layout }: { tag: NameTag; layout: NameTagLayout }) {
   return (
     <div className="flex items-center justify-center">
-      <NameTagCard tag={tag} widthPx={260} previewMode />
+      <NameTagCard tag={tag} widthPx={260} previewMode layout={layout} />
     </div>
   );
 }
@@ -511,63 +539,47 @@ export function NameTagCard({
   tag,
   widthPx = 384,
   previewMode = false,
+  layout = "standard",
 }: {
   tag: NameTag;
   widthPx?: number;
   previewMode?: boolean;
+  layout?: NameTagLayout;
 }) {
   const heightPx = widthPx * (3 / 4);
-  const fullName = [tag.first_name, tag.last_name].filter(Boolean).join(" ").trim();
-
-  // Base name size = ~9.4% of width (≈36px @ 4 in). Shrink for long names.
-  const baseName = widthPx * 0.094;
-  let nameScale = 1;
-  if (fullName.length > 28) nameScale = 0.66;
-  else if (fullName.length > 22) nameScale = 0.78;
-  else if (fullName.length > 16) nameScale = 0.89;
-  const nameSize = baseName * nameScale;
-
-  const collegeSize = widthPx * 0.057; // ≈22px @ 4 in (20% bigger than the original 18)
-  const lineSize = widthPx * 0.036; // ≈14px @ 4 in
   const padding = widthPx * 0.05;
   const gap = widthPx * 0.012;
+  const collegeSize = widthPx * 0.057; // ≈22px @ 4 in
+  const lineSize = widthPx * 0.036; // ≈14px @ 4 in
 
   const collegeLine =
     tag.uwc_college && tag.grad_year
       ? `${tag.uwc_college} · ${tag.grad_year}`
       : tag.uwc_college ?? (tag.grad_year ? String(tag.grad_year) : "");
 
+  const containerStyle: React.CSSProperties = {
+    width: widthPx,
+    height: heightPx,
+    background: previewMode ? "var(--ivory-2)" : "#ffffff",
+    border: previewMode ? "1px dashed var(--rule)" : "1px solid #d4d4d4",
+    borderRadius: previewMode ? 10 : 6,
+    padding,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    textAlign: "center",
+    boxSizing: "border-box",
+    overflow: "hidden",
+  };
+
   return (
-    <div
-      style={{
-        width: widthPx,
-        height: heightPx,
-        background: previewMode ? "var(--ivory-2)" : "#ffffff",
-        border: previewMode ? "1px dashed var(--rule)" : "1px solid #d4d4d4",
-        borderRadius: previewMode ? 10 : 6,
-        padding,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        textAlign: "center",
-        boxSizing: "border-box",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          fontFamily: "Fraunces, Georgia, serif",
-          fontWeight: 700,
-          fontSize: nameSize,
-          lineHeight: 1.05,
-          letterSpacing: "-.01em",
-          color: "var(--navy-ink)",
-          wordBreak: "break-word",
-        }}
-      >
-        {fullName || <span style={{ color: "var(--muted)", fontStyle: "italic" }}>Name…</span>}
-      </div>
+    <div style={containerStyle}>
+      {layout === "first-emphasis" ? (
+        <FirstEmphasisName tag={tag} widthPx={widthPx} gap={gap} />
+      ) : (
+        <StandardName tag={tag} widthPx={widthPx} />
+      )}
       {collegeLine && (
         <div
           style={{
@@ -613,5 +625,84 @@ export function NameTagCard({
         </div>
       )}
     </div>
+  );
+}
+
+function StandardName({ tag, widthPx }: { tag: NameTag; widthPx: number }) {
+  const fullName = [tag.first_name, tag.last_name].filter(Boolean).join(" ").trim();
+  // Base name size = ~9.4% of width (≈36px @ 4 in). Shrink for long names.
+  const base = widthPx * 0.094;
+  let scale = 1;
+  if (fullName.length > 28) scale = 0.66;
+  else if (fullName.length > 22) scale = 0.78;
+  else if (fullName.length > 16) scale = 0.89;
+  return (
+    <div
+      style={{
+        fontFamily: "Fraunces, Georgia, serif",
+        fontWeight: 700,
+        fontSize: base * scale,
+        lineHeight: 1.05,
+        letterSpacing: "-.01em",
+        color: "var(--navy-ink)",
+        wordBreak: "break-word",
+      }}
+    >
+      {fullName || <span style={{ color: "var(--muted)", fontStyle: "italic" }}>Name…</span>}
+    </div>
+  );
+}
+
+function FirstEmphasisName({
+  tag,
+  widthPx,
+  gap,
+}: {
+  tag: NameTag;
+  widthPx: number;
+  gap: number;
+}) {
+  const first = tag.first_name?.trim() ?? "";
+  const last = tag.last_name?.trim() ?? "";
+  // First name dominant: ~12% width baseline (≈46px @ 4 in). Shrinks for long
+  // first names. Last name ~6% (≈23px @ 4 in) sits below at half the size.
+  const firstBase = widthPx * 0.12;
+  let firstScale = 1;
+  if (first.length > 14) firstScale = 0.66;
+  else if (first.length > 11) firstScale = 0.78;
+  else if (first.length > 8) firstScale = 0.89;
+  const lastSize = widthPx * 0.06;
+  return (
+    <>
+      <div
+        style={{
+          fontFamily: "Fraunces, Georgia, serif",
+          fontWeight: 700,
+          fontSize: firstBase * firstScale,
+          lineHeight: 1,
+          letterSpacing: "-.015em",
+          color: "var(--navy-ink)",
+          wordBreak: "break-word",
+        }}
+      >
+        {first || <span style={{ color: "var(--muted)", fontStyle: "italic" }}>First…</span>}
+      </div>
+      {last && (
+        <div
+          style={{
+            fontFamily: "Fraunces, Georgia, serif",
+            fontWeight: 600,
+            fontSize: lastSize,
+            lineHeight: 1.1,
+            color: "var(--navy-ink)",
+            marginTop: gap * 0.4,
+            wordBreak: "break-word",
+            opacity: 0.85,
+          }}
+        >
+          {last}
+        </div>
+      )}
+    </>
   );
 }

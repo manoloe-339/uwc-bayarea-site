@@ -91,7 +91,7 @@ export default async function NameTagsPrintPage({
         </div>
       </div>
 
-      <PrintSheets tags={tags} />
+      <PrintSheets tags={tags} layout={event.name_tag_layout ?? "standard"} />
 
       {tags.length === 0 && (
         <div className="print:hidden max-w-[600px] mx-auto my-16 text-center text-sm text-[color:var(--muted)]">

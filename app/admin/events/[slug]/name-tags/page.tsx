@@ -59,7 +59,11 @@ export default async function NameTagsPage({
         name, college · year, plus two free-form lines.
       </p>
 
-      <NameTagComposer eventId={event.id} initialTags={tags} />
+      <NameTagComposer
+        eventId={event.id}
+        initialTags={tags}
+        initialLayout={event.name_tag_layout ?? "standard"}
+      />
     </div>
   );
 }

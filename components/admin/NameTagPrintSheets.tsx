@@ -1,11 +1,17 @@
 "use client";
 
-import { NameTagCard } from "./NameTagComposer";
+import { NameTagCard, type NameTagLayout } from "./NameTagComposer";
 import type { NameTag } from "@/lib/event-name-tags";
 
 const PER_SHEET = 6;
 
-export function PrintSheets({ tags }: { tags: NameTag[] }) {
+export function PrintSheets({
+  tags,
+  layout = "standard",
+}: {
+  tags: NameTag[];
+  layout?: NameTagLayout;
+}) {
   // Chunk tags into sheets of 6.
   const sheets: NameTag[][] = [];
   for (let i = 0; i < tags.length; i += PER_SHEET) {
@@ -23,7 +29,7 @@ export function PrintSheets({ tags }: { tags: NameTag[] }) {
           <div className="print-grid">
             {sheet.map((tag) => (
               <div key={tag.id} className="print-cell">
-                <NameTagCard tag={tag} widthPx={384} />
+                <NameTagCard tag={tag} widthPx={384} layout={layout} />
               </div>
             ))}
           </div>
