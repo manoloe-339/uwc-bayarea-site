@@ -3,6 +3,8 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+type PreviewStatus = "finalized" | "fix" | "pending";
+
 type Props = {
   slug: string;
   initialSubject: string | null;
@@ -44,6 +46,7 @@ export function ReminderCopyEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [previewStatus, setPreviewStatus] = useState<PreviewStatus>("finalized");
   const [, startTransition] = useTransition();
   const router = useRouter();
 
@@ -162,8 +165,33 @@ export function ReminderCopyEditor({
         </div>
 
         <div className="bg-ivory-2 border border-[color:var(--rule)] rounded-[8px] p-4">
-          <div className="text-[10px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-2">
-            Preview (sample data)
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div className="text-[10px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)]">
+              Preview (sample data)
+            </div>
+            <div className="inline-flex rounded-full border border-[color:var(--rule)] bg-white p-0.5 text-[10px] tracking-[.14em] uppercase font-bold">
+              <PreviewTabBtn
+                active={previewStatus === "finalized"}
+                onClick={() => setPreviewStatus("finalized")}
+                activeCls="bg-emerald-600 text-white"
+              >
+                Finalized
+              </PreviewTabBtn>
+              <PreviewTabBtn
+                active={previewStatus === "fix"}
+                onClick={() => setPreviewStatus("fix")}
+                activeCls="bg-rose-600 text-white"
+              >
+                Fix
+              </PreviewTabBtn>
+              <PreviewTabBtn
+                active={previewStatus === "pending"}
+                onClick={() => setPreviewStatus("pending")}
+                activeCls="bg-amber-600 text-white"
+              >
+                Pending
+              </PreviewTabBtn>
+            </div>
           </div>
           <div className="text-xs text-[color:var(--muted)] mb-2 break-words">
             <span className="font-semibold">Subject:</span> {previewSubject}
@@ -189,6 +217,7 @@ export function ReminderCopyEditor({
               )}
               <div><strong>Ticket:</strong> {sampleVars.amount}</div>
             </div>
+            <NameTagPreviewBlock status={previewStatus} sampleName={sampleVars.name} />
             <p className="font-semibold text-navy">Your QR code for fast check-in</p>
             <div className="text-center py-4 text-[color:var(--muted)] text-xs">
               [QR code image]
@@ -198,6 +227,88 @@ export function ReminderCopyEditor({
         </div>
       </div>
     </section>
+  );
+}
+
+function PreviewTabBtn({
+  active,
+  onClick,
+  activeCls,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  activeCls: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-2.5 py-1 rounded-full transition-colors ${
+        active ? activeCls : "text-[color:var(--muted)] hover:text-navy"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Mirrors the three branches in lib/attendee-reminder.ts so the editor
+ * preview shows what each recipient actually sees based on the
+ * finalization status of their name tag.
+ */
+function NameTagPreviewBlock({
+  status,
+  sampleName,
+}: {
+  status: PreviewStatus;
+  sampleName: string;
+}) {
+  if (status === "finalized") {
+    const parts = sampleName.trim().split(/\s+/);
+    const first = parts[0] ?? "Alex";
+    const last = parts.slice(1).join(" ") || "Doe";
+    return (
+      <div
+        className="my-3 rounded p-4 text-center"
+        style={{ background: "#FFFFFF", border: "2px dashed #B5A88B" }}
+      >
+        <div className="text-[10px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)] mb-2">
+          At the door, we&rsquo;ll have a tag for
+        </div>
+        <div className="font-display font-bold text-[color:var(--navy-ink)] text-xl leading-tight">
+          {first} {last}
+        </div>
+        <div className="text-sm text-navy font-semibold mt-1">UWCSEA · 2007</div>
+        <div className="text-[11px] text-[color:var(--muted)] mt-3">
+          Want it different? Just reply to this email.
+        </div>
+      </div>
+    );
+  }
+  if (status === "fix") {
+    return (
+      <div
+        className="my-3 rounded text-xs"
+        style={{ background: "#FFF7ED", borderLeft: "4px solid #F59E0B", padding: "10px 14px" }}
+      >
+        <strong style={{ color: "#92400E" }}>We&rsquo;re confirming your name tag.</strong>
+        <span style={{ color: "#92400E" }}>
+          {" "}
+          Please reply with the name and UWC affiliation (college + grad year)
+          you&rsquo;d like printed on your badge.
+        </span>
+      </div>
+    );
+  }
+  // pending
+  return (
+    <div className="my-3 text-[12px] text-[color:var(--muted)] italic">
+      If you&rsquo;d like a specific name or UWC affiliation on your badge,
+      reply to this email and we&rsquo;ll print it for you.
+    </div>
   );
 }
 
