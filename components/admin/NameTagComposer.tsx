@@ -550,12 +550,15 @@ export function NameTagCard({
   const padding = widthPx * 0.05;
   const gap = widthPx * 0.012;
   const collegeSize = widthPx * 0.057; // ≈22px @ 4 in
-  const lineSize = widthPx * 0.036; // ≈14px @ 4 in
 
   const collegeLine =
     tag.uwc_college && tag.grad_year
       ? `${tag.uwc_college} · ${tag.grad_year}`
       : tag.uwc_college ?? (tag.grad_year ? String(tag.grad_year) : "");
+
+  // When there's no college/year line, promote lines 3+4 to the college
+  // line's size so the tag's visual weight stays balanced.
+  const extraLineSize = collegeLine ? widthPx * 0.036 : collegeSize;
 
   const containerStyle: React.CSSProperties = {
     width: widthPx,
@@ -600,7 +603,7 @@ export function NameTagCard({
             fontFamily: "Inter, sans-serif",
             fontWeight: 500,
             fontStyle: "italic",
-            fontSize: lineSize,
+            fontSize: extraLineSize,
             color: "var(--muted)",
             marginTop: gap * 0.6,
             wordBreak: "break-word",
@@ -615,7 +618,7 @@ export function NameTagCard({
             fontFamily: "Inter, sans-serif",
             fontWeight: 500,
             fontStyle: "italic",
-            fontSize: lineSize,
+            fontSize: extraLineSize,
             color: "var(--muted)",
             marginTop: gap * 0.4,
             wordBreak: "break-word",
