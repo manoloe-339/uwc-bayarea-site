@@ -72,6 +72,29 @@ export function NameTagComposer({
     setTags((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   };
 
+  const onRefresh = async (id: number) => {
+    setSaveState(id, "saving");
+    try {
+      const res = await fetch("/api/admin/name-tags/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as { tag?: NameTag };
+      if (data.tag) {
+        setTags((prev) => prev.map((t) => (t.id === id ? data.tag! : t)));
+      }
+      setSaveState(id, "saved");
+      refresh();
+      setTimeout(() => {
+        setSaveStates((prev) => (prev[id] === "saved" ? { ...prev, [id]: "idle" } : prev));
+      }, 2000);
+    } catch {
+      setSaveState(id, "error");
+    }
+  };
+
   const onSave = async (id: number, patch: Partial<NameTag>) => {
     setSaveState(id, "saving");
     try {
@@ -147,6 +170,7 @@ export function NameTagComposer({
               onChange={(patch) => onChange(t.id, patch)}
               onSave={(patch) => onSave(t.id, patch)}
               onDelete={() => onDelete(t.id)}
+              onRefresh={() => onRefresh(t.id)}
             />
           ))}
         </ul>
@@ -161,12 +185,14 @@ function NameTagRow({
   onChange,
   onSave,
   onDelete,
+  onRefresh,
 }: {
   tag: NameTag;
   saveState: SaveState;
   onChange: (patch: Partial<NameTag>) => void;
   onSave: (patch: Partial<NameTag>) => void;
   onDelete: () => void;
+  onRefresh: () => void;
 }) {
   const sourceLabel =
     tag.attendee_id == null
@@ -194,13 +220,25 @@ function NameTagRow({
             {sourceLabel}
           </span>
           <SaveIndicator state={saveState} />
-          <button
-            type="button"
-            onClick={onDelete}
-            className="text-[11px] text-rose-700 hover:underline ml-auto"
-          >
-            Delete
-          </button>
+          <div className="flex items-center gap-2 ml-auto">
+            {tag.attendee_id != null && (
+              <button
+                type="button"
+                onClick={onRefresh}
+                className="text-[11px] text-navy hover:underline"
+                title="Pull latest first/last/college/year from this attendee — only fills empty fields, never overwrites"
+              >
+                Refresh from source
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onDelete}
+              className="text-[11px] text-rose-700 hover:underline"
+            >
+              Delete
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">

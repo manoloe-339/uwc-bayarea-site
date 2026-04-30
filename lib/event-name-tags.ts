@@ -1,4 +1,5 @@
 import { sql } from "./db";
+import { extractUwcField, parseUwcCollegeAndYear } from "./attendee-uwc-fields";
 
 export interface NameTag {
   id: number;
@@ -56,11 +57,49 @@ export interface SyncSummary {
  * existing rows or overwrites manual edits — only inserts for attendees
  * that don't yet have a tag (matched by attendee_id).
  */
-export async function syncNameTagsFromAttendees(eventId: number): Promise<SyncSummary> {
-  const attendees = (await sql`
+interface AttendeeForSync {
+  id: number;
+  stripe_customer_name: string | null;
+  stripe_custom_fields: unknown;
+  alumni_first_name: string | null;
+  alumni_last_name: string | null;
+  uwc_college: string | null;
+  grad_year: number | null;
+}
+
+interface DerivedFields {
+  first: string;
+  last: string;
+  college: string | null;
+  year: number | null;
+}
+
+/** Compute first/last/college/year from an attendee, preferring alumni
+ * record, then Stripe custom field for college/year, then Stripe customer
+ * name for first/last. */
+function deriveFromAttendee(a: AttendeeForSync): DerivedFields {
+  const fromStripe = splitName(a.stripe_customer_name);
+  const first = a.alumni_first_name ?? fromStripe.first;
+  const last = a.alumni_last_name ?? fromStripe.last;
+  let college = a.uwc_college;
+  let year = a.grad_year;
+  if (!college || year == null) {
+    const raw = extractUwcField(a.stripe_custom_fields);
+    if (raw) {
+      const parsed = parseUwcCollegeAndYear(raw);
+      if (!college) college = parsed.college;
+      if (year == null) year = parsed.year;
+    }
+  }
+  return { first, last, college, year };
+}
+
+async function fetchAttendeesForSync(eventId: number): Promise<AttendeeForSync[]> {
+  return (await sql`
     SELECT
       a.id,
       a.stripe_customer_name,
+      a.stripe_custom_fields,
       al.first_name AS alumni_first_name,
       al.last_name  AS alumni_last_name,
       al.uwc_college,
@@ -69,15 +108,11 @@ export async function syncNameTagsFromAttendees(eventId: number): Promise<SyncSu
     LEFT JOIN alumni al ON al.id = a.alumni_id
     WHERE a.event_id = ${eventId} AND a.deleted_at IS NULL
     ORDER BY a.id ASC
-  `) as Array<{
-    id: number;
-    stripe_customer_name: string | null;
-    alumni_first_name: string | null;
-    alumni_last_name: string | null;
-    uwc_college: string | null;
-    grad_year: number | null;
-  }>;
+  `) as AttendeeForSync[];
+}
 
+export async function syncNameTagsFromAttendees(eventId: number): Promise<SyncSummary> {
+  const attendees = await fetchAttendeesForSync(eventId);
   if (attendees.length === 0) return { added: 0, skipped: 0 };
 
   const existingIds = new Set(
@@ -94,19 +129,62 @@ export async function syncNameTagsFromAttendees(eventId: number): Promise<SyncSu
       skipped++;
       continue;
     }
-    const fromStripe = splitName(a.stripe_customer_name);
-    const first = a.alumni_first_name ?? fromStripe.first;
-    const last = a.alumni_last_name ?? fromStripe.last;
+    const d = deriveFromAttendee(a);
     await sql`
       INSERT INTO event_name_tags (
         event_id, attendee_id, first_name, last_name, uwc_college, grad_year
       ) VALUES (
-        ${eventId}, ${a.id}, ${first}, ${last}, ${a.uwc_college}, ${a.grad_year}
+        ${eventId}, ${a.id}, ${d.first}, ${d.last}, ${d.college}, ${d.year}
       )
     `;
     added++;
   }
   return { added, skipped };
+}
+
+/** Per-tag refresh: fill any currently-empty fields (first/last/college/
+ * year) from the latest attendee source data. Never overwrites fields
+ * that already have a value. Only works for tags linked to an attendee. */
+export async function refreshNameTagFromSource(tagId: number): Promise<NameTag | null> {
+  const tagRows = (await sql`SELECT * FROM event_name_tags WHERE id = ${tagId} LIMIT 1`) as NameTag[];
+  const tag = tagRows[0];
+  if (!tag) return null;
+  if (tag.attendee_id == null) return tag;
+
+  const attRows = (await sql`
+    SELECT
+      a.id,
+      a.stripe_customer_name,
+      a.stripe_custom_fields,
+      al.first_name AS alumni_first_name,
+      al.last_name  AS alumni_last_name,
+      al.uwc_college,
+      al.grad_year
+    FROM event_attendees a
+    LEFT JOIN alumni al ON al.id = a.alumni_id
+    WHERE a.id = ${tag.attendee_id}
+    LIMIT 1
+  `) as AttendeeForSync[];
+  if (attRows.length === 0) return tag;
+
+  const d = deriveFromAttendee(attRows[0]);
+  const next = {
+    first_name: tag.first_name && tag.first_name.trim() ? tag.first_name : d.first,
+    last_name: tag.last_name && tag.last_name.trim() ? tag.last_name : d.last,
+    uwc_college: tag.uwc_college && tag.uwc_college.trim() ? tag.uwc_college : d.college,
+    grad_year: tag.grad_year != null ? tag.grad_year : d.year,
+  };
+  const updated = (await sql`
+    UPDATE event_name_tags SET
+      first_name  = ${next.first_name},
+      last_name   = ${next.last_name},
+      uwc_college = ${next.uwc_college},
+      grad_year   = ${next.grad_year},
+      updated_at  = NOW()
+    WHERE id = ${tagId}
+    RETURNING *
+  `) as NameTag[];
+  return updated[0] ?? null;
 }
 
 export async function createStandaloneNameTag(
