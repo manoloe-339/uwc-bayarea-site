@@ -30,33 +30,43 @@ export default function MarqueeStrip({
 }) {
   const [presenting, setPresenting] = useState(false);
 
-  // Random starting point per visit. Initial render uses offset 0 (so server +
-  // client match for hydration), then useEffect picks a real random offset
-  // once mounted. The order from that offset onward is preserved — same loop,
-  // just starting at a different photo each time.
-  const [rotation, setRotation] = useState(0);
+  // Two distinct rows: top scrolls newer photos, bottom scrolls older,
+  // so the same event doesn't dominate both rows at once. Each row picks
+  // its own random starting offset on mount so each visit enters at a
+  // different point. Initial render uses offset 0 for both so server +
+  // client hydrate identically.
+  const [rotationA, setRotationA] = useState(0);
+  const [rotationB, setRotationB] = useState(0);
   useEffect(() => {
-    if (photos.length > 0) {
-      setRotation(Math.floor(Math.random() * photos.length));
-    }
+    if (photos.length === 0) return;
+    const half = Math.ceil(photos.length / 2);
+    const newerLen = half;
+    const olderLen = photos.length - half;
+    if (newerLen > 0) setRotationA(Math.floor(Math.random() * newerLen));
+    if (olderLen > 0) setRotationB(Math.floor(Math.random() * olderLen));
   }, [photos.length]);
 
-  const rotated = useMemo(
-    () =>
-      photos.length === 0
-        ? []
-        : [...photos.slice(rotation), ...photos.slice(0, rotation)],
-    [photos, rotation]
-  );
+  const { rowA, rowB } = useMemo(() => {
+    if (photos.length === 0) return { rowA: [], rowB: [] };
+    if (photos.length <= 2) {
+      // Not enough to split meaningfully — same set both rows.
+      return { rowA: [...photos], rowB: [...photos] };
+    }
+    const half = Math.ceil(photos.length / 2);
+    const newer = photos.slice(0, half);
+    const older = photos.slice(half);
+    const rotate = <T,>(arr: T[], offset: number): T[] => {
+      if (arr.length === 0) return arr;
+      const o = offset % arr.length;
+      return [...arr.slice(o), ...arr.slice(0, o)];
+    };
+    return {
+      rowA: rotate(newer, rotationA),
+      rowB: rotate(older, rotationB),
+    };
+  }, [photos, rotationA, rotationB]);
 
-  if (rotated.length === 0) return null;
-
-  const half = Math.ceil(rotated.length / 2);
-  const rowA = rotated.slice(0, half);
-  const rowB =
-    rotated.length > 2
-      ? rotated.slice(half).concat(rotated.slice(0, 2))
-      : [...rotated];
+  if (rowA.length === 0 && rowB.length === 0) return null;
 
   // Row B is intentionally a touch slower than row A for visual richness.
   const speedA = scrollSpeedSec;
