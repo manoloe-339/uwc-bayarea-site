@@ -561,7 +561,9 @@ export function NameTagCard({
 
   // When there's no college/year line, promote lines 3+4 to the college
   // line's size so the tag's visual weight stays balanced.
-  const extraLineSize = collegeLine ? widthPx * 0.036 : collegeSize;
+  // With a college line above, lines 3+4 still need to be readable at
+  // conversation distance — sit them between line size and college size.
+  const extraLineSize = collegeLine ? widthPx * 0.05 : collegeSize;
 
   // Which element renders first after the name block? It gets the big
   // gap; later lines get tighter spacing.
