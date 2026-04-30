@@ -527,7 +527,7 @@ export function NameTagCard({
   else if (fullName.length > 16) nameScale = 0.89;
   const nameSize = baseName * nameScale;
 
-  const collegeSize = widthPx * 0.047; // ≈18px @ 4 in
+  const collegeSize = widthPx * 0.057; // ≈22px @ 4 in (20% bigger than the original 18)
   const lineSize = widthPx * 0.036; // ≈14px @ 4 in
   const padding = widthPx * 0.05;
   const gap = widthPx * 0.012;
