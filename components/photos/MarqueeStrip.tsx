@@ -251,6 +251,17 @@ function PresentMode({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Pick a random starting slide once on mount so each launch enters at
+  // a different photo. Initial render uses 0 (no hydration mismatch since
+  // this only runs client-side after first paint).
+  useEffect(() => {
+    if (photos.length > 1) {
+      setIdx(Math.floor(Math.random() * photos.length));
+    }
+    // Intentionally only on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Controls auto-hide. Mouse movement or keypress shows them and starts a
   // 3-second hide timer; tapping/clicking the photo background TOGGLES them
   // (mobile-style — tap to hide, tap again to show). Clicks on the control
