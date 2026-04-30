@@ -1,6 +1,8 @@
 import { sql } from "./db";
 import { extractUwcField } from "./attendee-uwc-fields";
 
+export type NameTagStatus = "pending" | "fix" | "finalized";
+
 export interface NameTag {
   id: number;
   event_id: number;
@@ -12,12 +14,26 @@ export interface NameTag {
   line_3: string | null;
   line_4: string | null;
   notes: string | null;
+  status: NameTagStatus;
   created_at: string;
   updated_at: string;
   /** Joined for display (which ticket purchaser this tag came from). */
   attendee_alumni_first_name?: string | null;
   attendee_alumni_last_name?: string | null;
   attendee_stripe_customer_name?: string | null;
+}
+
+export async function setNameTagStatus(
+  id: number,
+  status: NameTagStatus
+): Promise<NameTag | null> {
+  const rows = (await sql`
+    UPDATE event_name_tags
+    SET status = ${status}, updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING *
+  `) as NameTag[];
+  return rows[0] ?? null;
 }
 
 export async function listNameTagsForEvent(eventId: number): Promise<NameTag[]> {

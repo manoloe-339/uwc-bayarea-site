@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { NameTag } from "@/lib/event-name-tags";
+import type { NameTag, NameTagStatus } from "@/lib/event-name-tags";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+type Filter = "all" | NameTagStatus;
 
 export function NameTagComposer({
   eventId,
@@ -19,8 +20,20 @@ export function NameTagComposer({
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [filter, setFilter] = useState<Filter>("all");
 
   const refresh = () => startTransition(() => router.refresh());
+
+  const counts = useMemo(() => {
+    const c = { all: tags.length, pending: 0, fix: 0, finalized: 0 };
+    for (const t of tags) c[t.status]++;
+    return c;
+  }, [tags]);
+
+  const visibleTags = useMemo(
+    () => (filter === "all" ? tags : tags.filter((t) => t.status === filter)),
+    [tags, filter]
+  );
 
   const onSync = async () => {
     setSyncing(true);
@@ -70,6 +83,26 @@ export function NameTagComposer({
 
   const onChange = (id: number, patch: Partial<NameTag>) => {
     setTags((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  };
+
+  const onSetStatus = async (id: number, status: NameTagStatus) => {
+    setTags((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
+    setSaveState(id, "saving");
+    try {
+      const res = await fetch("/api/admin/name-tags/set-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setSaveState(id, "saved");
+      refresh();
+      setTimeout(() => {
+        setSaveStates((prev) => (prev[id] === "saved" ? { ...prev, [id]: "idle" } : prev));
+      }, 1500);
+    } catch {
+      setSaveState(id, "error");
+    }
   };
 
   const onRefresh = async (id: number) => {
@@ -145,9 +178,6 @@ export function NameTagComposer({
         >
           + Add tag
         </button>
-        <span className="text-xs text-[color:var(--muted)]">
-          {tags.length} tag{tags.length === 1 ? "" : "s"}
-        </span>
         {syncMsg && (
           <span className="text-xs text-[color:var(--navy-ink)] bg-ivory-2 border-l-2 border-navy px-2 py-1 rounded-[2px]">
             {syncMsg}
@@ -155,14 +185,28 @@ export function NameTagComposer({
         )}
       </div>
 
-      {tags.length === 0 ? (
+      {/* Status filter tabs */}
+      <div className="flex flex-wrap items-center gap-1 border-b border-[color:var(--rule)] mb-4">
+        <FilterTab label="All" count={counts.all} active={filter === "all"} onClick={() => setFilter("all")} />
+        <FilterTab label="Finalized" count={counts.finalized} tone="emerald" active={filter === "finalized"} onClick={() => setFilter("finalized")} />
+        <FilterTab label="Needs fix" count={counts.fix} tone="rose" active={filter === "fix"} onClick={() => setFilter("fix")} />
+        <FilterTab label="Pending" count={counts.pending} tone="amber" active={filter === "pending"} onClick={() => setFilter("pending")} />
+      </div>
+
+      {visibleTags.length === 0 ? (
         <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-sm text-[color:var(--muted)]">
-          No name tags yet. Click <strong>Sync new attendees</strong> to pull
-          from ticket purchasers, or <strong>+ Add tag</strong> for guests / VIPs.
+          {tags.length === 0 ? (
+            <>
+              No name tags yet. Click <strong>Sync new attendees</strong> to pull
+              from ticket purchasers, or <strong>+ Add tag</strong> for guests / VIPs.
+            </>
+          ) : (
+            <>No tags in this view.</>
+          )}
         </div>
       ) : (
         <ul className="space-y-3">
-          {tags.map((t) => (
+          {visibleTags.map((t) => (
             <NameTagRow
               key={t.id}
               tag={t}
@@ -171,11 +215,49 @@ export function NameTagComposer({
               onSave={(patch) => onSave(t.id, patch)}
               onDelete={() => onDelete(t.id)}
               onRefresh={() => onRefresh(t.id)}
+              onSetStatus={(s) => onSetStatus(t.id, s)}
             />
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+function FilterTab({
+  label,
+  count,
+  tone,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  tone?: "emerald" | "rose" | "amber";
+  active: boolean;
+  onClick: () => void;
+}) {
+  const activeColor =
+    tone === "emerald"
+      ? "border-emerald-600 text-emerald-700"
+      : tone === "rose"
+      ? "border-rose-600 text-rose-700"
+      : tone === "amber"
+      ? "border-amber-600 text-amber-700"
+      : "border-navy text-navy";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-2 text-sm border-b-2 -mb-px ${
+        active
+          ? `${activeColor} font-semibold`
+          : "border-transparent text-[color:var(--muted)] hover:text-navy"
+      }`}
+    >
+      {label}
+      <span className="ml-1.5 text-[11px] text-[color:var(--muted)]">({count})</span>
+    </button>
   );
 }
 
@@ -186,6 +268,7 @@ function NameTagRow({
   onSave,
   onDelete,
   onRefresh,
+  onSetStatus,
 }: {
   tag: NameTag;
   saveState: SaveState;
@@ -193,6 +276,7 @@ function NameTagRow({
   onSave: (patch: Partial<NameTag>) => void;
   onDelete: () => void;
   onRefresh: () => void;
+  onSetStatus: (s: NameTagStatus) => void;
 }) {
   const sourceLabel =
     tag.attendee_id == null
@@ -203,8 +287,15 @@ function NameTagRow({
       ? `From ticket: ${tag.attendee_stripe_customer_name}`
       : "From ticket";
 
+  const statusBorder =
+    tag.status === "finalized"
+      ? "border-l-4 border-l-emerald-500"
+      : tag.status === "fix"
+      ? "border-l-4 border-l-rose-500"
+      : "";
+
   return (
-    <li className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 grid grid-cols-1 md:grid-cols-[1fr_280px] gap-4">
+    <li className={`bg-white border border-[color:var(--rule)] rounded-[10px] p-4 grid grid-cols-1 md:grid-cols-[1fr_280px] gap-4 ${statusBorder}`}>
       <div className="space-y-2">
         <div className="flex items-center gap-2 flex-wrap mb-2">
           <span
@@ -221,6 +312,7 @@ function NameTagRow({
           </span>
           <SaveIndicator state={saveState} />
           <div className="flex items-center gap-2 ml-auto">
+            <StatusButtons status={tag.status} onSet={onSetStatus} />
             {tag.attendee_id != null && (
               <button
                 type="button"
@@ -329,6 +421,46 @@ function Field({
         className="w-full border border-[color:var(--rule)] rounded px-2 py-1 text-sm bg-white"
       />
     </label>
+  );
+}
+
+function StatusButtons({
+  status,
+  onSet,
+}: {
+  status: NameTagStatus;
+  onSet: (s: NameTagStatus) => void;
+}) {
+  const Btn = ({
+    value,
+    label,
+    activeCls,
+  }: {
+    value: NameTagStatus;
+    label: string;
+    activeCls: string;
+  }) => {
+    const isActive = status === value;
+    // Click an active status to clear back to pending; otherwise set to that value.
+    const handle = () => onSet(isActive && value !== "pending" ? "pending" : value);
+    return (
+      <button
+        type="button"
+        onClick={handle}
+        title={isActive ? `Clear ${label}` : `Mark ${label}`}
+        className={`text-[10px] tracking-[.14em] uppercase font-bold px-2 py-1 rounded-full border transition-colors ${
+          isActive ? activeCls : "bg-white text-[color:var(--muted)] border-[color:var(--rule)] hover:text-navy"
+        }`}
+      >
+        {label}
+      </button>
+    );
+  };
+  return (
+    <div className="inline-flex items-center gap-1">
+      <Btn value="finalized" label="✓ Finalized" activeCls="bg-emerald-600 text-white border-emerald-700" />
+      <Btn value="fix" label="⚠ Fix" activeCls="bg-rose-600 text-white border-rose-700" />
+    </div>
   );
 }
 
