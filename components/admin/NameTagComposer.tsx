@@ -549,6 +549,9 @@ export function NameTagCard({
   const heightPx = widthPx * (3 / 4);
   const padding = widthPx * 0.05;
   const gap = widthPx * 0.012;
+  // Visual breathing room between the name block and whatever line
+  // follows it (college, line 3, or line 4 — first non-empty wins).
+  const nameBlockGap = widthPx * 0.05; // ≈19px @ 4 in
   const collegeSize = widthPx * 0.057; // ≈22px @ 4 in
 
   const collegeLine =
@@ -559,6 +562,16 @@ export function NameTagCard({
   // When there's no college/year line, promote lines 3+4 to the college
   // line's size so the tag's visual weight stays balanced.
   const extraLineSize = collegeLine ? widthPx * 0.036 : collegeSize;
+
+  // Which element renders first after the name block? It gets the big
+  // gap; later lines get tighter spacing.
+  const firstAfterName: "college" | "line3" | "line4" | null = collegeLine
+    ? "college"
+    : tag.line_3
+    ? "line3"
+    : tag.line_4
+    ? "line4"
+    : null;
 
   const containerStyle: React.CSSProperties = {
     width: widthPx,
@@ -590,7 +603,7 @@ export function NameTagCard({
             fontWeight: 600,
             fontSize: collegeSize,
             color: "var(--navy)",
-            marginTop: gap,
+            marginTop: firstAfterName === "college" ? nameBlockGap : gap,
             wordBreak: "break-word",
           }}
         >
@@ -605,7 +618,7 @@ export function NameTagCard({
             fontStyle: "italic",
             fontSize: extraLineSize,
             color: "var(--muted)",
-            marginTop: gap * 0.6,
+            marginTop: firstAfterName === "line3" ? nameBlockGap : gap * 0.6,
             wordBreak: "break-word",
           }}
         >
@@ -620,7 +633,7 @@ export function NameTagCard({
             fontStyle: "italic",
             fontSize: extraLineSize,
             color: "var(--muted)",
-            marginTop: gap * 0.4,
+            marginTop: firstAfterName === "line4" ? nameBlockGap : gap * 0.4,
             wordBreak: "break-word",
           }}
         >
