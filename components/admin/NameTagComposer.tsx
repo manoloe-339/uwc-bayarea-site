@@ -334,9 +334,6 @@ function NameTagPreview({ tag }: { tag: NameTag }) {
       : tag.uwc_college ?? (tag.grad_year ? String(tag.grad_year) : "");
   return (
     <div className="bg-ivory-2 border border-[color:var(--rule)] rounded-[10px] p-4 flex flex-col items-center justify-center text-center min-h-[160px]">
-      <div className="text-[10px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)] mb-3">
-        Preview
-      </div>
       <div className="font-display font-bold text-[color:var(--navy-ink)] text-[22px] leading-tight">
         {fullName || <span className="text-[color:var(--muted)] italic">Name…</span>}
       </div>
