@@ -350,6 +350,13 @@ function PresentMode({
     >
       {photos.map((p, i) => {
         const active = i === idx;
+        // Distance on the circular slide list. Photos within 2 slots of the
+        // active one are eagerly loaded so transitions stay smooth; the rest
+        // lazy-load when they get closer to the active position.
+        const half = photos.length / 2;
+        const rawDistance = Math.abs(i - idx);
+        const distance = rawDistance > half ? photos.length - rawDistance : rawDistance;
+        const eager = distance <= 2;
         const kbDirection = i % 2 === 0 ? "kb-zoom-in" : "kb-zoom-out";
         return (
           <div
@@ -361,32 +368,28 @@ function PresentMode({
               pointerEvents: active ? "auto" : "none",
             }}
           >
-            {/* Blurred backdrop — kills the dead-black-bar look around portrait shots. */}
-            <img
+            {/* Blurred backdrop — heavily blurred, so a tiny variant is fine. */}
+            <Image
               src={p.url}
               alt=""
               aria-hidden="true"
+              fill
+              sizes="600px"
+              {...(eager ? { priority: true } : { loading: "lazy" as const })}
               style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
                 objectFit: "cover",
                 filter: "blur(56px) saturate(1.05) brightness(0.72)",
                 transform: "scale(1.25)",
               }}
             />
-            {/* Crisp foreground photo (position:absolute + DOM order keeps it above
-                the backdrop without creating a stacking context that would paint
-                above the top/bottom control bars). */}
-            <img
+            {/* Crisp foreground photo. */}
+            <Image
               src={p.url}
               alt=""
+              fill
+              sizes="100vw"
+              {...(eager ? { priority: true } : { loading: "lazy" as const })}
               style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
                 objectFit: "contain",
                 animation: active
                   ? `${kbDirection} ${intervalMs + 1500}ms ease-out forwards`
