@@ -54,6 +54,13 @@ export type ReminderAttendee = {
   alumni_email: string | null;
   amount_paid: string;
   qr_code_data: string | null;
+  name_tag_status: "pending" | "fix" | "finalized" | null;
+  name_tag_first_name: string | null;
+  name_tag_last_name: string | null;
+  name_tag_college: string | null;
+  name_tag_grad_year: number | null;
+  name_tag_line_3: string | null;
+  name_tag_line_4: string | null;
 };
 
 export type ReminderSummary = {
@@ -91,6 +98,92 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * Snapshot of an attendee's name tag for inclusion in the reminder email.
+ * status === 'finalized' → confidently show what we'll print.
+ * status === 'fix'       → tag known wrong; ask for correction.
+ * Anything else (pending / null) → soft prompt for last-minute changes.
+ */
+export type NameTagSummary = {
+  status: "pending" | "fix" | "finalized" | null;
+  firstName: string | null;
+  lastName: string | null;
+  college: string | null;
+  gradYear: number | null;
+  line3: string | null;
+  line4: string | null;
+};
+
+function renderNameTagBlockHtml(tag: NameTagSummary): string {
+  if (tag.status === "finalized") {
+    const fullName = [tag.firstName, tag.lastName].filter(Boolean).join(" ").trim();
+    const collegeLine =
+      tag.college && tag.gradYear
+        ? `${tag.college} · ${tag.gradYear}`
+        : tag.college ?? (tag.gradYear ? String(tag.gradYear) : "");
+    return `
+  <div style="background: #FFFFFF; border: 2px dashed #B5A88B; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+    <div style="font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #6B7280; font-weight: 700; margin-bottom: 8px;">
+      At the door, we'll have a tag for
+    </div>
+    <div style="font-family: Fraunces, Georgia, serif; font-weight: 700; font-size: 26px; color: #0A2540; line-height: 1.1;">
+      ${escapeHtml(fullName)}
+    </div>
+    ${collegeLine ? `<div style="font-size: 16px; color: #0265A8; font-weight: 600; margin-top: 6px;">${escapeHtml(collegeLine)}</div>` : ""}
+    ${tag.line3 ? `<div style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 4px;">${escapeHtml(tag.line3)}</div>` : ""}
+    ${tag.line4 ? `<div style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 2px;">${escapeHtml(tag.line4)}</div>` : ""}
+    <div style="font-size: 12px; color: #6B7280; margin-top: 14px;">
+      Want it different? Just reply to this email.
+    </div>
+  </div>`;
+  }
+  if (tag.status === "fix") {
+    return `
+  <div style="background: #FFF7ED; border-left: 4px solid #F59E0B; padding: 14px 16px; margin: 20px 0; border-radius: 4px;">
+    <strong style="color: #92400E;">We're confirming your name tag.</strong>
+    <span style="color: #92400E;"> Please reply with the name and UWC affiliation (college + grad year) you'd like printed on your badge.</span>
+  </div>`;
+  }
+  // pending / null — low-key prompt
+  return `
+  <div style="font-size: 13px; color: #6B7280; margin: 16px 0;">
+    If you'd like a specific name or UWC affiliation on your badge, reply to this email and we'll print it for you.
+  </div>`;
+}
+
+function nameTagBlockText(tag: NameTagSummary): string {
+  if (tag.status === "finalized") {
+    const fullName = [tag.firstName, tag.lastName].filter(Boolean).join(" ").trim();
+    const collegeLine =
+      tag.college && tag.gradYear
+        ? `${tag.college} · ${tag.gradYear}`
+        : tag.college ?? (tag.gradYear ? String(tag.gradYear) : "");
+    return [
+      "",
+      "At the door, we'll have a tag for:",
+      `  ${fullName}`,
+      collegeLine ? `  ${collegeLine}` : "",
+      tag.line3 ? `  ${tag.line3}` : "",
+      tag.line4 ? `  ${tag.line4}` : "",
+      "(Want it different? Just reply to this email.)",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (tag.status === "fix") {
+    return [
+      "",
+      "We're confirming your name tag — please reply with the name and",
+      "UWC affiliation (college + grad year) you'd like printed.",
+    ].join("\n");
+  }
+  return [
+    "",
+    "(If you'd like a specific name or UWC affiliation on your badge,",
+    "reply to this email and we'll print it for you.)",
+  ].join("\n");
+}
+
 /** Split a multi-paragraph body into <p> blocks for HTML. */
 function bodyParagraphsHtml(text: string): string {
   const paras = text
@@ -112,6 +205,7 @@ export function renderReminderHtml(params: {
   eventLocation: string | null;
   amountPaid: string;
   qrImageUrl: string;
+  nameTag: NameTagSummary;
 }): string {
   const whenLine = params.eventTime
     ? `${escapeHtml(params.eventDate)} at ${escapeHtml(params.eventTime)}`
@@ -127,6 +221,7 @@ export function renderReminderHtml(params: {
     ${params.eventLocation ? `<div><strong>Where:</strong> ${escapeHtml(params.eventLocation)}</div>` : ""}
     <div><strong>Ticket:</strong> $${Number(params.amountPaid || 0).toFixed(2)}</div>
   </div>
+  ${renderNameTagBlockHtml(params.nameTag)}
   <h2 style="color: #0A2540; font-size: 18px;">Your QR code for fast check-in</h2>
   <p>Show this QR code at the door for instant check-in:</p>
   <div style="text-align: center; margin: 24px 0;">
@@ -150,6 +245,7 @@ export function renderReminderText(params: {
   eventLocation: string | null;
   amountPaid: string;
   token: string;
+  nameTag: NameTagSummary;
 }): string {
   const whenLine = params.eventTime ? `${params.eventDate} at ${params.eventTime}` : params.eventDate;
   return [
@@ -162,6 +258,7 @@ export function renderReminderText(params: {
     `When: ${whenLine}`,
     params.eventLocation ? `Where: ${params.eventLocation}` : null,
     `Ticket: $${Number(params.amountPaid || 0).toFixed(2)}`,
+    nameTagBlockText(params.nameTag),
     "",
     "Your check-in code:",
     params.token,
@@ -192,9 +289,17 @@ export async function listReminderRecipients(
       a.amount_paid, a.qr_code_data, a.qr_code_sent_at,
       al.first_name AS alumni_first_name,
       al.last_name  AS alumni_last_name,
-      al.email      AS alumni_email
+      al.email      AS alumni_email,
+      nt.status     AS name_tag_status,
+      nt.first_name AS name_tag_first_name,
+      nt.last_name  AS name_tag_last_name,
+      nt.uwc_college AS name_tag_college,
+      nt.grad_year  AS name_tag_grad_year,
+      nt.line_3     AS name_tag_line_3,
+      nt.line_4     AS name_tag_line_4
     FROM event_attendees a
     LEFT JOIN alumni al ON al.id = a.alumni_id
+    LEFT JOIN event_name_tags nt ON nt.attendee_id = a.id
     WHERE a.event_id = ${eventId}
       AND a.deleted_at IS NULL
       AND a.attendee_type IN ('paid', 'comp')
@@ -261,6 +366,15 @@ export async function sendReminderToAttendee(
     event.reminder_body ?? DEFAULT_REMINDER_BODY,
     vars
   );
+  const nameTag: NameTagSummary = {
+    status: attendee.name_tag_status,
+    firstName: attendee.name_tag_first_name,
+    lastName: attendee.name_tag_last_name,
+    college: attendee.name_tag_college,
+    gradYear: attendee.name_tag_grad_year,
+    line3: attendee.name_tag_line_3,
+    line4: attendee.name_tag_line_4,
+  };
   const html = renderReminderHtml({
     heading,
     body,
@@ -271,6 +385,7 @@ export async function sendReminderToAttendee(
     eventLocation: event.location,
     amountPaid: attendee.amount_paid,
     qrImageUrl,
+    nameTag,
   });
   const text = renderReminderText({
     heading,
@@ -281,6 +396,7 @@ export async function sendReminderToAttendee(
     eventLocation: event.location,
     amountPaid: attendee.amount_paid,
     token: attendee.qr_code_data,
+    nameTag,
   });
 
   const resend = getResend();

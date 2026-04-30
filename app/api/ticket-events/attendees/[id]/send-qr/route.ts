@@ -32,10 +32,18 @@ export async function POST(
       e.id AS e_id, e.name AS e_name, e.date AS e_date,
       e.time AS e_time, e.location AS e_location, e.slug AS e_slug,
       e.reminder_subject AS e_subject, e.reminder_heading AS e_heading,
-      e.reminder_body AS e_body
+      e.reminder_body AS e_body,
+      nt.status AS name_tag_status,
+      nt.first_name AS name_tag_first_name,
+      nt.last_name  AS name_tag_last_name,
+      nt.uwc_college AS name_tag_college,
+      nt.grad_year  AS name_tag_grad_year,
+      nt.line_3     AS name_tag_line_3,
+      nt.line_4     AS name_tag_line_4
     FROM event_attendees a
     JOIN events e ON e.id = a.event_id
     LEFT JOIN alumni al ON al.id = a.alumni_id
+    LEFT JOIN event_name_tags nt ON nt.attendee_id = a.id
     WHERE a.id = ${attendeeId}
     LIMIT 1
   `) as {
@@ -60,6 +68,13 @@ export async function POST(
     e_subject: string | null;
     e_heading: string | null;
     e_body: string | null;
+    name_tag_status: "pending" | "fix" | "finalized" | null;
+    name_tag_first_name: string | null;
+    name_tag_last_name: string | null;
+    name_tag_college: string | null;
+    name_tag_grad_year: number | null;
+    name_tag_line_3: string | null;
+    name_tag_line_4: string | null;
   }[];
   const r = rows[0];
   if (!r) return NextResponse.json({ error: "Attendee not found" }, { status: 404 });
@@ -100,6 +115,13 @@ export async function POST(
     alumni_first_name: r.alumni_first_name,
     alumni_last_name: r.alumni_last_name,
     alumni_email: r.alumni_email,
+    name_tag_status: r.name_tag_status,
+    name_tag_first_name: r.name_tag_first_name,
+    name_tag_last_name: r.name_tag_last_name,
+    name_tag_college: r.name_tag_college,
+    name_tag_grad_year: r.name_tag_grad_year,
+    name_tag_line_3: r.name_tag_line_3,
+    name_tag_line_4: r.name_tag_line_4,
   };
   const event: ReminderEvent = {
     id: r.e_id,
