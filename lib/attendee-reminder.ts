@@ -123,17 +123,19 @@ function renderNameTagBlockHtml(tag: NameTagSummary): string {
         ? `${tag.college} · ${tag.gradYear}`
         : tag.college ?? (tag.gradYear ? String(tag.gradYear) : "");
     return `
-  <div style="background: #FFFFFF; border: 2px dashed #B5A88B; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-    <div style="font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #6B7280; font-weight: 700; margin-bottom: 8px;">
+  <div style="margin: 20px 0;">
+    <div style="font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #6B7280; font-weight: 700; margin-bottom: 10px;">
       At the door, we'll have a tag for
     </div>
-    <div style="font-family: Fraunces, Georgia, serif; font-weight: 700; font-size: 26px; color: #0A2540; line-height: 1.1;">
-      ${escapeHtml(fullName)}
+    <div style="background: #FFFFFF; border: 2px dashed #B5A88B; border-radius: 8px; padding: 20px; text-align: center;">
+      <div style="font-family: Fraunces, Georgia, serif; font-weight: 700; font-size: 26px; color: #0A2540; line-height: 1.1;">
+        ${escapeHtml(fullName)}
+      </div>
+      ${collegeLine ? `<div style="font-size: 16px; color: #0265A8; font-weight: 600; margin-top: 6px;">${escapeHtml(collegeLine)}</div>` : ""}
+      ${tag.line3 ? `<div style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 4px;">${escapeHtml(tag.line3)}</div>` : ""}
+      ${tag.line4 ? `<div style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 2px;">${escapeHtml(tag.line4)}</div>` : ""}
     </div>
-    ${collegeLine ? `<div style="font-size: 16px; color: #0265A8; font-weight: 600; margin-top: 6px;">${escapeHtml(collegeLine)}</div>` : ""}
-    ${tag.line3 ? `<div style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 4px;">${escapeHtml(tag.line3)}</div>` : ""}
-    ${tag.line4 ? `<div style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 2px;">${escapeHtml(tag.line4)}</div>` : ""}
-    <div style="font-size: 12px; color: #6B7280; margin-top: 14px;">
+    <div style="font-size: 12px; color: #6B7280; margin-top: 10px;">
       Want it different? Just reply to this email.
     </div>
   </div>`;
