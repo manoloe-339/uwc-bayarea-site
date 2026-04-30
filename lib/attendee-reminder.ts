@@ -10,6 +10,7 @@ export type ReminderEvent = {
   date: Date;
   time: string | null;
   location: string | null;
+  location_map_url?: string | null;
   reminder_subject?: string | null;
   reminder_heading?: string | null;
   reminder_body?: string | null;
@@ -203,13 +204,18 @@ export function renderReminderHtml(params: {
   eventDate: string;
   eventTime: string | null;
   eventLocation: string | null;
-  amountPaid: string;
+  eventLocationMapUrl: string | null;
   qrImageUrl: string;
   nameTag: NameTagSummary;
 }): string {
   const whenLine = params.eventTime
     ? `${escapeHtml(params.eventDate)} at ${escapeHtml(params.eventTime)}`
     : escapeHtml(params.eventDate);
+  const whereLine = params.eventLocation
+    ? params.eventLocationMapUrl
+      ? `<a href="${escapeHtml(params.eventLocationMapUrl)}" style="color: #0265A8; text-decoration: underline;" target="_blank" rel="noopener noreferrer">${escapeHtml(params.eventLocation)}</a>`
+      : escapeHtml(params.eventLocation)
+    : null;
   return `<!DOCTYPE html>
 <html>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #0A2540;">
@@ -218,8 +224,7 @@ export function renderReminderHtml(params: {
   ${bodyParagraphsHtml(params.body)}
   <div style="background: #F5F0E6; padding: 20px; border-radius: 8px; margin: 20px 0; line-height: 1.6;">
     <div><strong>When:</strong> ${whenLine}</div>
-    ${params.eventLocation ? `<div><strong>Where:</strong> ${escapeHtml(params.eventLocation)}</div>` : ""}
-    <div><strong>Ticket:</strong> $${Number(params.amountPaid || 0).toFixed(2)}</div>
+    ${whereLine ? `<div><strong>Where:</strong> ${whereLine}</div>` : ""}
   </div>
   ${renderNameTagBlockHtml(params.nameTag)}
   <h2 style="color: #0A2540; font-size: 18px;">Your QR code for fast check-in</h2>
@@ -243,11 +248,14 @@ export function renderReminderText(params: {
   eventDate: string;
   eventTime: string | null;
   eventLocation: string | null;
-  amountPaid: string;
+  eventLocationMapUrl: string | null;
   token: string;
   nameTag: NameTagSummary;
 }): string {
   const whenLine = params.eventTime ? `${params.eventDate} at ${params.eventTime}` : params.eventDate;
+  const whereLine = params.eventLocation
+    ? `Where: ${params.eventLocation}${params.eventLocationMapUrl ? ` (${params.eventLocationMapUrl})` : ""}`
+    : null;
   return [
     params.heading,
     "",
@@ -256,8 +264,7 @@ export function renderReminderText(params: {
     params.body,
     "",
     `When: ${whenLine}`,
-    params.eventLocation ? `Where: ${params.eventLocation}` : null,
-    `Ticket: $${Number(params.amountPaid || 0).toFixed(2)}`,
+    whereLine,
     nameTagBlockText(params.nameTag),
     "",
     "Your check-in code:",
@@ -383,7 +390,7 @@ export async function sendReminderToAttendee(
     eventDate: dateStr,
     eventTime: event.time,
     eventLocation: event.location,
-    amountPaid: attendee.amount_paid,
+    eventLocationMapUrl: event.location_map_url ?? null,
     qrImageUrl,
     nameTag,
   });
@@ -394,7 +401,7 @@ export async function sendReminderToAttendee(
     eventDate: dateStr,
     eventTime: event.time,
     eventLocation: event.location,
-    amountPaid: attendee.amount_paid,
+    eventLocationMapUrl: event.location_map_url ?? null,
     token: attendee.qr_code_data,
     nameTag,
   });

@@ -10,6 +10,7 @@ type Props = {
     date: string;
     time: string | null;
     location: string | null;
+    location_map_url: string | null;
     description: string | null;
     stripe_payment_link_id: string | null;
     ticket_price: string | null;
@@ -60,6 +61,12 @@ export default function EditEventForm({ slug, initial, action }: Props) {
         <Field name="time" label="Time" defaultValue={initial.time ?? ""} />
       </div>
       <Field name="location" label="Location" defaultValue={initial.location ?? ""} />
+      <Field
+        name="location_map_url"
+        label="Map URL (optional — Google Maps link for the address)"
+        defaultValue={initial.location_map_url ?? ""}
+        type="url"
+      />
       <TextareaField name="description" label="Description" rows={3} defaultValue={initial.description ?? ""} />
 
       {eventType === "ticketed" && (

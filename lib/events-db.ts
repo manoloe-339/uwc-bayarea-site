@@ -9,6 +9,7 @@ export type EventRecord = {
   time: string | null;
   location: string | null;
   description: string | null;
+  location_map_url: string | null;
   stripe_payment_link_id: string | null;
   stripe_price_id: string | null;
   ticket_price: string | null;

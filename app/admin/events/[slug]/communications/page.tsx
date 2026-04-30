@@ -186,6 +186,7 @@ export default async function CommunicationsPage({
           }),
           time: event.time ?? "",
           location: event.location ?? "",
+          locationMapUrl: event.location_map_url ?? null,
           amount: `$${Number(event.ticket_price ?? 0).toFixed(2)}`,
         }}
       />

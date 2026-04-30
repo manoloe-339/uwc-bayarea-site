@@ -21,6 +21,7 @@ type Props = {
     date: string;
     time: string;
     location: string;
+    locationMapUrl: string | null;
     amount: string;
   };
 };
@@ -28,7 +29,8 @@ type Props = {
 function interpolate(template: string, vars: Props["sampleVars"]): string {
   return template.replace(
     /\{(name|event|date|time|location|amount)\}/g,
-    (_, k: keyof Props["sampleVars"]) => vars[k] ?? ""
+    (_, k: "name" | "event" | "date" | "time" | "location" | "amount") =>
+      String(vars[k] ?? "")
   );
 }
 
@@ -213,9 +215,22 @@ export function ReminderCopyEditor({
                 {sampleVars.time ? ` at ${sampleVars.time}` : ""}
               </div>
               {sampleVars.location && (
-                <div><strong>Where:</strong> {sampleVars.location}</div>
+                <div>
+                  <strong>Where:</strong>{" "}
+                  {sampleVars.locationMapUrl ? (
+                    <a
+                      href={sampleVars.locationMapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-navy underline"
+                    >
+                      {sampleVars.location}
+                    </a>
+                  ) : (
+                    sampleVars.location
+                  )}
+                </div>
               )}
-              <div><strong>Ticket:</strong> {sampleVars.amount}</div>
             </div>
             <NameTagPreviewBlock status={previewStatus} sampleName={sampleVars.name} />
             <p className="font-semibold text-navy">Your QR code for fast check-in</p>

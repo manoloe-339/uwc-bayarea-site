@@ -45,6 +45,7 @@ export async function updateEventAction(id: number, formData: FormData): Promise
   const date = String(formData.get("date") ?? "").trim();
   const time = String(formData.get("time") ?? "").trim() || null;
   const location = String(formData.get("location") ?? "").trim() || null;
+  const locationMapUrl = String(formData.get("location_map_url") ?? "").trim() || null;
   const description = String(formData.get("description") ?? "").trim() || null;
   const stripeLink = String(formData.get("stripe_payment_link_id") ?? "").trim() || null;
   const eventTypeRaw = String(formData.get("event_type") ?? "ticketed").trim();
@@ -58,6 +59,7 @@ export async function updateEventAction(id: number, formData: FormData): Promise
   const rows = (await sql`
     UPDATE events SET
       name = ${name}, date = ${date}, time = ${time}, location = ${location},
+      location_map_url = ${locationMapUrl},
       description = ${description}, stripe_payment_link_id = ${finalStripeLink},
       event_type = ${eventType},
       updated_at = NOW()

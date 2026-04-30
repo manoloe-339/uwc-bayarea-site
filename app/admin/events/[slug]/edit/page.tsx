@@ -42,6 +42,7 @@ export default async function EditEventPage({
           date: toDateInputValue(event.date),
           time: event.time,
           location: event.location,
+          location_map_url: event.location_map_url,
           description: event.description,
           stripe_payment_link_id: event.stripe_payment_link_id,
           ticket_price: event.ticket_price,
