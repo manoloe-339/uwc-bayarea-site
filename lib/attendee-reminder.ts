@@ -73,8 +73,18 @@ export type ReminderSummary = {
 };
 
 function recipientName(a: ReminderAttendee): string {
-  const alumni = [a.alumni_first_name, a.alumni_last_name].filter(Boolean).join(" ");
-  return alumni || a.stripe_customer_name || a.alumni_email || a.stripe_customer_email || "there";
+  // Greeting uses first name only — feels conversational rather than formal.
+  // Fallback chain when first name isn't on file: parse the first word from
+  // stripe_customer_name, then degrade to a generic 'there'.
+  if (a.alumni_first_name && a.alumni_first_name.trim()) {
+    return a.alumni_first_name.trim();
+  }
+  const stripeFull = (a.stripe_customer_name ?? "").trim();
+  if (stripeFull) {
+    const first = stripeFull.split(/\s+/)[0];
+    if (first) return first;
+  }
+  return "there";
 }
 
 function recipientEmail(a: ReminderAttendee): string | null {
