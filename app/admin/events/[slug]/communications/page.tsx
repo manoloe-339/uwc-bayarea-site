@@ -36,6 +36,26 @@ export default async function CommunicationsPage({
   const missingQr = stats.totalEligible - stats.qrGenerated;
   const unsentCount = stats.totalEligible - stats.remindersSent;
 
+  // Name-tag finalization status — surfaced so the admin sees how many
+  // tags will appear in the QR email as confirmed vs still under review.
+  const tagCountsRows = (await sql`
+    SELECT status, COUNT(*)::int AS n
+    FROM event_name_tags
+    WHERE event_id = ${event.id}
+    GROUP BY status
+  `) as { status: "pending" | "fix" | "finalized"; n: number }[];
+  const tagCounts = {
+    finalized: 0,
+    pending: 0,
+    fix: 0,
+    total: 0,
+  };
+  for (const r of tagCountsRows) {
+    tagCounts[r.status] = r.n;
+    tagCounts.total += r.n;
+  }
+  const tagsMissing = Math.max(0, stats.totalEligible - tagCounts.total);
+
   // Recent reminder sends — simple log table at the bottom.
   const recent = (await sql`
     SELECT
@@ -95,6 +115,46 @@ export default async function CommunicationsPage({
           accent={stats.remindersSent < stats.totalEligible}
         />
         <Stat label="Last reminder sent" value={stats.lastSentAt ? fmtDateTime(stats.lastSentAt) : "Never"} />
+      </section>
+
+      <section className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 mb-6">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+              Name tag readiness
+            </div>
+            <p className="text-xs text-[color:var(--muted)] max-w-prose">
+              The reminder email shows the exact tag content for{" "}
+              <strong className="text-emerald-700">finalized</strong> tags only.
+              Pending and Fix tags get a soft prompt asking the recipient to
+              confirm. Manage tags on{" "}
+              <Link href={`/admin/events/${slug}/name-tags`} className="text-navy underline">
+                Name tags →
+              </Link>
+              .
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap text-[10px] tracking-[.18em] uppercase font-bold">
+            <span className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-2 py-1 rounded-full">
+              {tagCounts.finalized} finalized
+            </span>
+            {tagCounts.fix > 0 && (
+              <span className="bg-rose-50 border border-rose-200 text-rose-800 px-2 py-1 rounded-full">
+                {tagCounts.fix} need fix
+              </span>
+            )}
+            {tagCounts.pending > 0 && (
+              <span className="bg-amber-50 border border-amber-200 text-amber-800 px-2 py-1 rounded-full">
+                {tagCounts.pending} pending
+              </span>
+            )}
+            {tagsMissing > 0 && (
+              <span className="bg-slate-50 border border-slate-200 text-slate-700 px-2 py-1 rounded-full">
+                {tagsMissing} no tag yet
+              </span>
+            )}
+          </div>
+        </div>
       </section>
 
       <ReminderScheduleEditor
