@@ -502,22 +502,49 @@ export async function separateArchiveIntoEvents(): Promise<SeparateArchiveSummar
       day: "numeric",
     });
 
-    // Find or create event idempotently.
-    const existing = (await sql`
-      SELECT id FROM events WHERE slug = ${slug} LIMIT 1
-    `) as { id: number }[];
-    let isNew = false;
+    // Resolution order:
+    // 1. Existing real event (slug NOT LIKE 'archive%') within the same
+    //    3-day window — merge so archive imports land in user-named
+    //    galleries rather than auto-named archive-YYYY-MM-DD ones.
+    // 2. Existing archive-YYYY-MM-DD event with this exact slug.
+    // 3. Create a new archive-YYYY-MM-DD event.
+    const realMatch = (await sql`
+      SELECT id, slug, name, date FROM events
+      WHERE slug NOT LIKE 'archive%'
+        AND ABS(EXTRACT(EPOCH FROM (date - ${date}::date))) <= ${THREE_DAYS_MS / 1000}
+      ORDER BY ABS(EXTRACT(EPOCH FROM (date - ${date}::date))) ASC, id ASC
+      LIMIT 1
+    `) as Array<{ id: number; slug: string; name: string; date: Date }>;
+
     let eventId: number;
-    if (existing[0]) {
-      eventId = existing[0].id;
+    let resolvedSlug: string;
+    let resolvedName: string;
+    let resolvedDate: string;
+    let isNew = false;
+
+    if (realMatch[0]) {
+      eventId = realMatch[0].id;
+      resolvedSlug = realMatch[0].slug;
+      resolvedName = realMatch[0].name;
+      resolvedDate = new Date(realMatch[0].date).toISOString().slice(0, 10);
     } else {
-      const inserted = (await sql`
-        INSERT INTO events (slug, name, date, event_type)
-        VALUES (${slug}, ${name}, ${date}, 'casual')
-        RETURNING id
+      const existing = (await sql`
+        SELECT id FROM events WHERE slug = ${slug} LIMIT 1
       `) as { id: number }[];
-      eventId = inserted[0].id;
-      isNew = true;
+      if (existing[0]) {
+        eventId = existing[0].id;
+      } else {
+        const inserted = (await sql`
+          INSERT INTO events (slug, name, date, event_type)
+          VALUES (${slug}, ${name}, ${date}, 'casual')
+          RETURNING id
+        `) as { id: number }[];
+        eventId = inserted[0].id;
+        isNew = true;
+      }
+      resolvedSlug = slug;
+      resolvedName = name;
+      resolvedDate = date;
     }
 
     const photoIds = cluster.map((p) => p.id);
@@ -530,9 +557,9 @@ export async function separateArchiveIntoEvents(): Promise<SeparateArchiveSummar
 
     results.push({
       eventId,
-      slug,
-      name,
-      date,
+      slug: resolvedSlug,
+      name: resolvedName,
+      date: resolvedDate,
       movedCount: photoIds.length,
       isNew,
     });
