@@ -6,11 +6,13 @@
   --navy: #0265A8;
   --navy-2: #01488A;
   --navy-ink: #0B2545;
+  --navy-deep: #0f3a66; /* poster background — flyer hero, /photos marquee band */
   --ivory: #F4EFE3;
   --ivory-2: #EFE8D6;
   --ivory-3: #E7DFC8;
   --rule: rgba(11, 37, 69, 0.16);
   --muted: rgba(11, 37, 69, 0.62);
+  --muted-2: rgba(11, 37, 69, 0.55); /* tertiary labels (eyebrow gallery row count) */
 }
 
 html, body { background: var(--ivory); color: #0b2545; }

@@ -87,7 +87,7 @@ export default function MarqueeStrip({
     <div className="relative">
       <div
         className="border-b border-[color:var(--rule)] py-7"
-        style={{ background: "var(--navy-deep)" }}
+        style={{ background: "var(--navy-deep, #0f3a66)" }}
       >
         <div className="flex flex-col gap-3">
           <MarqueeRow photos={rowA} reverse={false} speed={speedA} tileH={220} paused={paused} />
