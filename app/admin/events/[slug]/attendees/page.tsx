@@ -155,6 +155,12 @@ export default async function AttendeesPage({
           >
             Photos →
           </Link>
+          <Link
+            href={`/admin/events/${slug}/name-tags`}
+            className="text-sm font-semibold text-navy border border-navy px-4 py-2 rounded hover:bg-navy hover:text-white"
+          >
+            Name tags →
+          </Link>
           <AddSpecialGuestButton slug={slug} attendeeType={isCasual ? "casual" : "comp"} />
           <a
             href={`/api/ticket-events/${slug}/export`}
