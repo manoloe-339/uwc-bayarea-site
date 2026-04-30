@@ -1,5 +1,5 @@
 import { sql } from "./db";
-import { extractUwcField, parseUwcCollegeAndYear } from "./attendee-uwc-fields";
+import { extractUwcField } from "./attendee-uwc-fields";
 
 export interface NameTag {
   id: number;
@@ -72,26 +72,26 @@ interface DerivedFields {
   last: string;
   college: string | null;
   year: number | null;
+  /** Raw UWC string from the Stripe checkout custom field — captured into
+   * the admin-only notes when no alumni match exists. The user reads it
+   * and decides for themselves what to put in college/year, instead of
+   * the system parsing it (often wrongly). */
+  stripeUwcNote: string | null;
 }
 
-/** Compute first/last/college/year from an attendee, preferring alumni
- * record, then Stripe custom field for college/year, then Stripe customer
- * name for first/last. */
+/** Pull display fields from an attendee. College + year only come from
+ * the alumni record (never auto-parsed from Stripe). When there's no
+ * alumni match, the raw Stripe UWC field is surfaced via stripeUwcNote
+ * so the admin can read it and decide. */
 function deriveFromAttendee(a: AttendeeForSync): DerivedFields {
   const fromStripe = splitName(a.stripe_customer_name);
   const first = a.alumni_first_name ?? fromStripe.first;
   const last = a.alumni_last_name ?? fromStripe.last;
-  let college = a.uwc_college;
-  let year = a.grad_year;
-  if (!college || year == null) {
-    const raw = extractUwcField(a.stripe_custom_fields);
-    if (raw) {
-      const parsed = parseUwcCollegeAndYear(raw);
-      if (!college) college = parsed.college;
-      if (year == null) year = parsed.year;
-    }
-  }
-  return { first, last, college, year };
+  const college = a.uwc_college;
+  const year = a.grad_year;
+  const stripeUwcNote =
+    !college && year == null ? extractUwcField(a.stripe_custom_fields) : null;
+  return { first, last, college, year, stripeUwcNote };
 }
 
 async function fetchAttendeesForSync(eventId: number): Promise<AttendeeForSync[]> {
@@ -130,11 +130,12 @@ export async function syncNameTagsFromAttendees(eventId: number): Promise<SyncSu
       continue;
     }
     const d = deriveFromAttendee(a);
+    const notes = d.stripeUwcNote ? `Stripe UWC: ${d.stripeUwcNote}` : null;
     await sql`
       INSERT INTO event_name_tags (
-        event_id, attendee_id, first_name, last_name, uwc_college, grad_year
+        event_id, attendee_id, first_name, last_name, uwc_college, grad_year, notes
       ) VALUES (
-        ${eventId}, ${a.id}, ${d.first}, ${d.last}, ${d.college}, ${d.year}
+        ${eventId}, ${a.id}, ${d.first}, ${d.last}, ${d.college}, ${d.year}, ${notes}
       )
     `;
     added++;
@@ -168,11 +169,13 @@ export async function refreshNameTagFromSource(tagId: number): Promise<NameTag |
   if (attRows.length === 0) return tag;
 
   const d = deriveFromAttendee(attRows[0]);
+  const stripeNote = d.stripeUwcNote ? `Stripe UWC: ${d.stripeUwcNote}` : null;
   const next = {
     first_name: tag.first_name && tag.first_name.trim() ? tag.first_name : d.first,
     last_name: tag.last_name && tag.last_name.trim() ? tag.last_name : d.last,
     uwc_college: tag.uwc_college && tag.uwc_college.trim() ? tag.uwc_college : d.college,
     grad_year: tag.grad_year != null ? tag.grad_year : d.year,
+    notes: tag.notes && tag.notes.trim() ? tag.notes : stripeNote,
   };
   const updated = (await sql`
     UPDATE event_name_tags SET
@@ -180,6 +183,7 @@ export async function refreshNameTagFromSource(tagId: number): Promise<NameTag |
       last_name   = ${next.last_name},
       uwc_college = ${next.uwc_college},
       grad_year   = ${next.grad_year},
+      notes       = ${next.notes},
       updated_at  = NOW()
     WHERE id = ${tagId}
     RETURNING *
