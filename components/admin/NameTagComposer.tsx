@@ -492,28 +492,123 @@ function SaveIndicator({ state }: { state: SaveState }) {
 }
 
 function NameTagPreview({ tag }: { tag: NameTag }) {
+  return (
+    <div className="flex items-center justify-center">
+      <NameTagCard tag={tag} widthPx={260} previewMode />
+    </div>
+  );
+}
+
+/**
+ * Renders one printable name tag at exactly 4:3 aspect ratio. All sizes
+ * scale with widthPx, so the on-screen preview is a faithful miniature of
+ * what prints. For real printing, pass widthPx={384} (4 inches at 96dpi).
+ *
+ * Auto-shrinks line 1 based on full-name length so long names stay on one
+ * line without manual tuning.
+ */
+export function NameTagCard({
+  tag,
+  widthPx = 384,
+  previewMode = false,
+}: {
+  tag: NameTag;
+  widthPx?: number;
+  previewMode?: boolean;
+}) {
+  const heightPx = widthPx * (3 / 4);
   const fullName = [tag.first_name, tag.last_name].filter(Boolean).join(" ").trim();
+
+  // Base name size = ~9.4% of width (≈36px @ 4 in). Shrink for long names.
+  const baseName = widthPx * 0.094;
+  let nameScale = 1;
+  if (fullName.length > 28) nameScale = 0.66;
+  else if (fullName.length > 22) nameScale = 0.78;
+  else if (fullName.length > 16) nameScale = 0.89;
+  const nameSize = baseName * nameScale;
+
+  const collegeSize = widthPx * 0.047; // ≈18px @ 4 in
+  const lineSize = widthPx * 0.036; // ≈14px @ 4 in
+  const padding = widthPx * 0.05;
+  const gap = widthPx * 0.012;
+
   const collegeLine =
     tag.uwc_college && tag.grad_year
       ? `${tag.uwc_college} · ${tag.grad_year}`
       : tag.uwc_college ?? (tag.grad_year ? String(tag.grad_year) : "");
+
   return (
-    <div className="bg-ivory-2 border border-[color:var(--rule)] rounded-[10px] p-4 flex flex-col items-center justify-center text-center min-h-[160px]">
-      <div className="font-display font-bold text-[color:var(--navy-ink)] text-[22px] leading-tight">
-        {fullName || <span className="text-[color:var(--muted)] italic">Name…</span>}
+    <div
+      style={{
+        width: widthPx,
+        height: heightPx,
+        background: previewMode ? "var(--ivory-2)" : "#ffffff",
+        border: previewMode ? "1px dashed var(--rule)" : "1px solid #d4d4d4",
+        borderRadius: previewMode ? 10 : 6,
+        padding,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        textAlign: "center",
+        boxSizing: "border-box",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "Fraunces, Georgia, serif",
+          fontWeight: 700,
+          fontSize: nameSize,
+          lineHeight: 1.05,
+          letterSpacing: "-.01em",
+          color: "var(--navy-ink)",
+          wordBreak: "break-word",
+        }}
+      >
+        {fullName || <span style={{ color: "var(--muted)", fontStyle: "italic" }}>Name…</span>}
       </div>
       {collegeLine && (
-        <div className="font-sans text-sm text-[color:var(--navy)] mt-1.5 font-semibold">
+        <div
+          style={{
+            fontFamily: "Inter, sans-serif",
+            fontWeight: 600,
+            fontSize: collegeSize,
+            color: "var(--navy)",
+            marginTop: gap,
+            wordBreak: "break-word",
+          }}
+        >
           {collegeLine}
         </div>
       )}
       {tag.line_3 && (
-        <div className="font-sans text-xs text-[color:var(--muted)] mt-1 italic">
+        <div
+          style={{
+            fontFamily: "Inter, sans-serif",
+            fontWeight: 500,
+            fontStyle: "italic",
+            fontSize: lineSize,
+            color: "var(--muted)",
+            marginTop: gap * 0.6,
+            wordBreak: "break-word",
+          }}
+        >
           {tag.line_3}
         </div>
       )}
       {tag.line_4 && (
-        <div className="font-sans text-xs text-[color:var(--muted)] mt-0.5 italic">
+        <div
+          style={{
+            fontFamily: "Inter, sans-serif",
+            fontWeight: 500,
+            fontStyle: "italic",
+            fontSize: lineSize,
+            color: "var(--muted)",
+            marginTop: gap * 0.4,
+            wordBreak: "break-word",
+          }}
+        >
           {tag.line_4}
         </div>
       )}
