@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { NameTag } from "@/lib/event-name-tags";
 
+type SaveState = "idle" | "saving" | "saved" | "error";
+
 export function NameTagComposer({
   eventId,
   initialTags,
@@ -62,17 +64,32 @@ export function NameTagComposer({
     }
   };
 
+  const [saveStates, setSaveStates] = useState<Record<number, SaveState>>({});
+  const setSaveState = (id: number, state: SaveState) =>
+    setSaveStates((prev) => ({ ...prev, [id]: state }));
+
   const onChange = (id: number, patch: Partial<NameTag>) => {
     setTags((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   };
 
   const onSave = async (id: number, patch: Partial<NameTag>) => {
-    await fetch("/api/admin/name-tags/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ...patch }),
-    });
-    refresh();
+    setSaveState(id, "saving");
+    try {
+      const res = await fetch("/api/admin/name-tags/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...patch }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setSaveState(id, "saved");
+      refresh();
+      // Drop back to idle after 2s so the indicator doesn't linger forever.
+      setTimeout(() => {
+        setSaveStates((prev) => (prev[id] === "saved" ? { ...prev, [id]: "idle" } : prev));
+      }, 2000);
+    } catch {
+      setSaveState(id, "error");
+    }
   };
 
   const onDelete = async (id: number) => {
@@ -126,6 +143,7 @@ export function NameTagComposer({
             <NameTagRow
               key={t.id}
               tag={t}
+              saveState={saveStates[t.id] ?? "idle"}
               onChange={(patch) => onChange(t.id, patch)}
               onSave={(patch) => onSave(t.id, patch)}
               onDelete={() => onDelete(t.id)}
@@ -139,11 +157,13 @@ export function NameTagComposer({
 
 function NameTagRow({
   tag,
+  saveState,
   onChange,
   onSave,
   onDelete,
 }: {
   tag: NameTag;
+  saveState: SaveState;
   onChange: (patch: Partial<NameTag>) => void;
   onSave: (patch: Partial<NameTag>) => void;
   onDelete: () => void;
@@ -173,6 +193,7 @@ function NameTagRow({
           <span className="text-[11px] text-[color:var(--muted)] truncate">
             {sourceLabel}
           </span>
+          <SaveIndicator state={saveState} />
           <button
             type="button"
             onClick={onDelete}
@@ -266,9 +287,42 @@ function Field({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         onBlur={(e) => onBlur(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            (e.currentTarget as HTMLInputElement).blur();
+          }
+        }}
         className="w-full border border-[color:var(--rule)] rounded px-2 py-1 text-sm bg-white"
       />
     </label>
+  );
+}
+
+function SaveIndicator({ state }: { state: SaveState }) {
+  if (state === "idle") return null;
+  const map: Record<Exclude<SaveState, "idle">, { label: string; cls: string }> = {
+    saving: {
+      label: "Saving…",
+      cls: "bg-white text-[color:var(--muted)] border border-[color:var(--rule)]",
+    },
+    saved: {
+      label: "✓ Saved",
+      cls: "bg-emerald-50 text-emerald-800 border border-emerald-200",
+    },
+    error: {
+      label: "Error",
+      cls: "bg-rose-50 text-rose-800 border border-rose-200",
+    },
+  };
+  const { label, cls } = map[state];
+  return (
+    <span
+      className={`text-[10px] tracking-[.18em] uppercase font-bold px-2 py-0.5 rounded-full ${cls}`}
+      aria-live="polite"
+    >
+      {label}
+    </span>
   );
 }
 
