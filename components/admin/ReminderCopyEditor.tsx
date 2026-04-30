@@ -320,11 +320,28 @@ function NameTagPreviewBlock({
       </div>
     );
   }
-  // pending
+  // pending — show what we have on file with a soft confirmation ask
+  const parts = sampleName.trim().split(/\s+/);
+  const first = parts[0] ?? "Alex";
+  const last = parts.slice(1).join(" ") || "Doe";
   return (
-    <div className="my-3 text-[12px] text-[color:var(--muted)] italic">
-      If you&rsquo;d like a specific name or UWC affiliation on your badge,
-      reply to this email and we&rsquo;ll print it for you.
+    <div className="my-3">
+      <div className="text-[10px] tracking-[.18em] uppercase font-bold text-amber-800 mb-2">
+        Please confirm your name tag
+      </div>
+      <div
+        className="rounded p-4 text-center"
+        style={{ background: "#FFFFFF", border: "2px dashed #B5A88B" }}
+      >
+        <div className="font-display font-bold text-[color:var(--navy-ink)] text-xl leading-tight">
+          {first} {last}
+        </div>
+        <div className="text-sm text-navy font-semibold mt-1">UWCSEA · 2007</div>
+      </div>
+      <div className="text-[11px] text-[color:var(--muted)] mt-2">
+        This is what we have on file. Reply with any corrections —
+        different name, college, grad year — and we&rsquo;ll print it the way you want.
+      </div>
     </div>
   );
 }

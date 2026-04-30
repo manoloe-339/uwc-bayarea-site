@@ -115,26 +115,43 @@ export type NameTagSummary = {
   line4: string | null;
 };
 
+function tagHasAnyContent(tag: NameTagSummary): boolean {
+  return Boolean(
+    (tag.firstName && tag.firstName.trim()) ||
+      (tag.lastName && tag.lastName.trim()) ||
+      tag.college ||
+      tag.gradYear ||
+      tag.line3 ||
+      tag.line4
+  );
+}
+
+function tagBlockBody(tag: NameTagSummary): string {
+  const fullName = [tag.firstName, tag.lastName].filter(Boolean).join(" ").trim();
+  const collegeLine =
+    tag.college && tag.gradYear
+      ? `${tag.college} · ${tag.gradYear}`
+      : tag.college ?? (tag.gradYear ? String(tag.gradYear) : "");
+  return `
+    <div style="background: #FFFFFF; border: 2px dashed #B5A88B; border-radius: 8px; padding: 20px; text-align: center;">
+      ${
+        fullName
+          ? `<div style="font-family: Fraunces, Georgia, serif; font-weight: 700; font-size: 26px; color: #0A2540; line-height: 1.1;">${escapeHtml(fullName)}</div>`
+          : `<div style="font-family: Fraunces, Georgia, serif; font-weight: 700; font-size: 26px; color: #9CA3AF; line-height: 1.1; font-style: italic;">(name not set)</div>`
+      }
+      ${collegeLine ? `<div style="font-size: 16px; color: #0265A8; font-weight: 600; margin-top: 6px;">${escapeHtml(collegeLine)}</div>` : ""}
+      ${tag.line3 ? `<div style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 4px;">${escapeHtml(tag.line3)}</div>` : ""}
+      ${tag.line4 ? `<div style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 2px;">${escapeHtml(tag.line4)}</div>` : ""}
+    </div>`;
+}
+
 function renderNameTagBlockHtml(tag: NameTagSummary): string {
   if (tag.status === "finalized") {
-    const fullName = [tag.firstName, tag.lastName].filter(Boolean).join(" ").trim();
-    const collegeLine =
-      tag.college && tag.gradYear
-        ? `${tag.college} · ${tag.gradYear}`
-        : tag.college ?? (tag.gradYear ? String(tag.gradYear) : "");
     return `
   <div style="margin: 20px 0;">
     <div style="font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #6B7280; font-weight: 700; margin-bottom: 10px;">
       At the door, we'll have a tag for
-    </div>
-    <div style="background: #FFFFFF; border: 2px dashed #B5A88B; border-radius: 8px; padding: 20px; text-align: center;">
-      <div style="font-family: Fraunces, Georgia, serif; font-weight: 700; font-size: 26px; color: #0A2540; line-height: 1.1;">
-        ${escapeHtml(fullName)}
-      </div>
-      ${collegeLine ? `<div style="font-size: 16px; color: #0265A8; font-weight: 600; margin-top: 6px;">${escapeHtml(collegeLine)}</div>` : ""}
-      ${tag.line3 ? `<div style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 4px;">${escapeHtml(tag.line3)}</div>` : ""}
-      ${tag.line4 ? `<div style="font-size: 14px; color: #6B7280; font-style: italic; margin-top: 2px;">${escapeHtml(tag.line4)}</div>` : ""}
-    </div>
+    </div>${tagBlockBody(tag)}
     <div style="font-size: 12px; color: #6B7280; margin-top: 10px;">
       Want it different? Just reply to this email.
     </div>
@@ -147,37 +164,63 @@ function renderNameTagBlockHtml(tag: NameTagSummary): string {
     <span style="color: #92400E;"> Please reply with the name and UWC affiliation (college + grad year) you'd like printed on your badge.</span>
   </div>`;
   }
-  // pending / null — low-key prompt
+  // pending / null — show what we have on file (if anything) and ask
+  // for confirmation; fall back to a soft prompt when there's nothing.
+  if (tagHasAnyContent(tag)) {
+    return `
+  <div style="margin: 20px 0;">
+    <div style="font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #92400E; font-weight: 700; margin-bottom: 10px;">
+      Please confirm your name tag
+    </div>${tagBlockBody(tag)}
+    <div style="font-size: 12px; color: #6B7280; margin-top: 10px;">
+      This is what we have on file. Reply with any corrections — different name, college, grad year — and we'll print it the way you want.
+    </div>
+  </div>`;
+  }
   return `
   <div style="font-size: 13px; color: #6B7280; margin: 16px 0;">
     If you'd like a specific name or UWC affiliation on your badge, reply to this email and we'll print it for you.
   </div>`;
 }
 
+function tagBlockBodyText(tag: NameTagSummary): string[] {
+  const fullName = [tag.firstName, tag.lastName].filter(Boolean).join(" ").trim();
+  const collegeLine =
+    tag.college && tag.gradYear
+      ? `${tag.college} · ${tag.gradYear}`
+      : tag.college ?? (tag.gradYear ? String(tag.gradYear) : "");
+  return [
+    `  ${fullName || "(name not set)"}`,
+    collegeLine ? `  ${collegeLine}` : "",
+    tag.line3 ? `  ${tag.line3}` : "",
+    tag.line4 ? `  ${tag.line4}` : "",
+  ].filter(Boolean);
+}
+
 function nameTagBlockText(tag: NameTagSummary): string {
   if (tag.status === "finalized") {
-    const fullName = [tag.firstName, tag.lastName].filter(Boolean).join(" ").trim();
-    const collegeLine =
-      tag.college && tag.gradYear
-        ? `${tag.college} · ${tag.gradYear}`
-        : tag.college ?? (tag.gradYear ? String(tag.gradYear) : "");
     return [
       "",
       "At the door, we'll have a tag for:",
-      `  ${fullName}`,
-      collegeLine ? `  ${collegeLine}` : "",
-      tag.line3 ? `  ${tag.line3}` : "",
-      tag.line4 ? `  ${tag.line4}` : "",
+      ...tagBlockBodyText(tag),
       "(Want it different? Just reply to this email.)",
-    ]
-      .filter(Boolean)
-      .join("\n");
+    ].join("\n");
   }
   if (tag.status === "fix") {
     return [
       "",
       "We're confirming your name tag — please reply with the name and",
       "UWC affiliation (college + grad year) you'd like printed.",
+    ].join("\n");
+  }
+  // pending / null — show what we have on file (if anything)
+  if (tagHasAnyContent(tag)) {
+    return [
+      "",
+      "Please confirm your name tag — this is what we have on file:",
+      ...tagBlockBodyText(tag),
+      "(Reply with any corrections — different name, college, grad year",
+      "— and we'll print it the way you want.)",
     ].join("\n");
   }
   return [
