@@ -74,7 +74,7 @@ export async function getPublicGalleryRows(thumbsPerRow: number): Promise<Galler
           ORDER BY
             CASE WHEN d.display_role = 'marquee' THEN 0 ELSE 1 END,
             d.display_order ASC NULLS LAST,
-            d.uploaded_at DESC,
+            COALESCE(d.taken_at, d.uploaded_at) DESC,
             d.id DESC
         ) AS rn,
         COUNT(*) OVER (PARTITION BY d.event_id)::int AS total_count
@@ -153,7 +153,7 @@ export async function getMarqueePool(limit = 24): Promise<MarqueePhoto[]> {
     SELECT id, blob_url, original_filename, width, height
     FROM deduped
     WHERE dup_rn = 1
-    ORDER BY event_date DESC, display_order ASC NULLS LAST, id DESC
+    ORDER BY event_date DESC, display_order ASC NULLS LAST, COALESCE(taken_at, uploaded_at) DESC, id DESC
     LIMIT ${limit}
   `) as Array<{
     id: number;
