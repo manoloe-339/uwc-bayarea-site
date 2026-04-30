@@ -132,7 +132,7 @@ export async function getPublicGalleryRows(thumbsPerRow: number): Promise<Galler
  * approved + marquee-tagged photos across all events, newest event first.
  * De-duplicated by original_filename within each event.
  */
-export async function getMarqueePool(limit = 24): Promise<MarqueePhoto[]> {
+export async function getMarqueePool(limit = 200): Promise<MarqueePhoto[]> {
   const rows = (await sql`
     WITH deduped AS (
       SELECT

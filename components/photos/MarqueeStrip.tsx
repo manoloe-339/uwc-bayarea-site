@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import type { MarqueePhoto } from "@/lib/photo-galleries";
 
 const TILE_VARIANTS: Array<[number, number]> = [
@@ -201,6 +202,7 @@ function MarqueeRow({
             <div
               key={i}
               style={{
+                position: "relative",
                 flex: "0 0 auto",
                 width: tileW,
                 height: tileH,
@@ -209,13 +211,12 @@ function MarqueeRow({
                   "0 2px 0 var(--ivory-3), 0 12px 24px -12px rgba(11,37,69,.18)",
               }}
             >
-              <img
+              <Image
                 src={p.url}
                 alt=""
-                loading="lazy"
+                fill
+                sizes={`${tileW * 2}px`}
                 style={{
-                  width: "100%",
-                  height: "100%",
                   objectFit: "cover",
                   display: "block",
                   filter: "saturate(.9)",
