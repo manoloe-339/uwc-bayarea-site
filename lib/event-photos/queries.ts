@@ -296,6 +296,40 @@ export async function getApprovedPhotosOrdered(eventId: number): Promise<EventPh
   `) as EventPhoto[];
 }
 
+/**
+ * One representative thumbnail per event id — preferring marquee-tagged
+ * approved photos, falling back to any approved photo. Used by the admin
+ * Events list to make rows easy to identify at a glance.
+ */
+export async function getEventThumbnails(
+  eventIds: number[]
+): Promise<Map<number, { id: number; blob_url: string }>> {
+  if (eventIds.length === 0) return new Map();
+  const rows = (await sql`
+    WITH ranked AS (
+      SELECT
+        ep.event_id,
+        ep.id,
+        ep.blob_url,
+        ROW_NUMBER() OVER (
+          PARTITION BY ep.event_id
+          ORDER BY
+            CASE WHEN ep.display_role = 'marquee' THEN 0 ELSE 1 END,
+            ep.display_order ASC NULLS LAST,
+            COALESCE(ep.taken_at, ep.uploaded_at) DESC,
+            ep.id DESC
+        ) AS rn
+      FROM event_photos ep
+      WHERE ep.event_id = ANY(${eventIds})
+        AND ep.approval_status = 'approved'
+    )
+    SELECT event_id, id, blob_url FROM ranked WHERE rn = 1
+  `) as Array<{ event_id: number; id: number; blob_url: string }>;
+  const map = new Map<number, { id: number; blob_url: string }>();
+  for (const r of rows) map.set(r.event_id, { id: r.id, blob_url: r.blob_url });
+  return map;
+}
+
 /** Manually set (or clear) the capture date for a photo. */
 export async function setPhotoTakenAt(photoId: number, takenAt: Date | null): Promise<void> {
   await sql`
