@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getEventBySlug } from "@/lib/events-db";
 import { listNameTagsForEvent, type NameTag } from "@/lib/event-name-tags";
 import { PrintSheets } from "@/components/admin/NameTagPrintSheets";
+import { PrintButton } from "@/components/admin/PrintButton";
 
 export const dynamic = "force-dynamic";
 
@@ -101,25 +102,6 @@ export default async function NameTagsPrintPage({
         </div>
       )}
     </div>
-  );
-}
-
-function PrintButton({ disabled }: { disabled: boolean }) {
-  return (
-    <form
-      action="javascript:window.print()"
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
-    >
-      <button
-        type="submit"
-        disabled={disabled}
-        className="text-sm font-semibold text-white bg-navy px-5 py-2.5 rounded hover:opacity-90 disabled:opacity-50"
-      >
-        Print sheets
-      </button>
-    </form>
   );
 }
 
