@@ -493,15 +493,23 @@ export async function sendReminderToAttendee(
 }
 
 /**
- * Send reminders to every eligible attendee, with a small concurrency
- * cap so Resend doesn't rate-limit. Resumes naturally: onlyUnsent default
- * skips attendees whose qr_code_sent_at is already set.
+ * Send reminders to every eligible attendee. Sends are throttled so we
+ * stay under Resend's per-second rate limit (5 req/s on Pro). Each
+ * worker waits a minimum interval between requests; with 2 workers and
+ * 500ms each, we top out around 4 req/s — safely under the cap.
+ *
+ * Resumes naturally: onlyUnsent default skips attendees whose
+ * qr_code_sent_at is already set, so re-running picks up only the
+ * failures from a previous attempt.
  */
 export async function sendRemindersForEvent(
   event: ReminderEvent,
   opts: { concurrency?: number; onlyUnsent?: boolean } = {}
 ): Promise<ReminderSummary> {
-  const concurrency = Math.max(1, Math.min(opts.concurrency ?? 5, 10));
+  const concurrency = Math.max(1, Math.min(opts.concurrency ?? 2, 5));
+  // Per-worker minimum interval. With concurrency=2 and 500ms, we cap
+  // around 4 req/s overall.
+  const MIN_INTERVAL_MS = 500;
   const attendees = await listReminderRecipients(event.id, { onlyUnsent: opts.onlyUnsent });
   const summary: ReminderSummary = {
     eligible: attendees.length,
@@ -511,6 +519,7 @@ export async function sendRemindersForEvent(
     errors: [],
   };
 
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   let cursor = 0;
   const next = () => (cursor < attendees.length ? attendees[cursor++] : null);
   const workers: Promise<void>[] = [];
@@ -520,12 +529,35 @@ export async function sendRemindersForEvent(
         while (true) {
           const a = next();
           if (!a) return;
+          const startedAt = Date.now();
           try {
             await sendReminderToAttendee(a, event);
             summary.sent++;
           } catch (err) {
-            summary.failed++;
-            summary.errors.push(`attendee ${a.id}: ${err instanceof Error ? err.message : String(err)}`);
+            const msg = err instanceof Error ? err.message : String(err);
+            // Retry once after a short wait if Resend rate-limited us —
+            // happens when concurrent sends across workers spike past
+            // the 5/sec cap momentarily.
+            if (/too many requests|rate limit/i.test(msg)) {
+              await sleep(1500);
+              try {
+                await sendReminderToAttendee(a, event);
+                summary.sent++;
+                continue;
+              } catch (err2) {
+                summary.failed++;
+                summary.errors.push(
+                  `attendee ${a.id}: ${err2 instanceof Error ? err2.message : String(err2)}`
+                );
+              }
+            } else {
+              summary.failed++;
+              summary.errors.push(`attendee ${a.id}: ${msg}`);
+            }
+          }
+          const elapsed = Date.now() - startedAt;
+          if (elapsed < MIN_INTERVAL_MS) {
+            await sleep(MIN_INTERVAL_MS - elapsed);
           }
         }
       })()
