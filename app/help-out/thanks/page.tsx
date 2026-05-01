@@ -1,6 +1,7 @@
 import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import { ScrollToTop } from "./ScrollToTop";
 
 export const metadata = {
   title: "Thank you · UWC Bay Area",
@@ -10,6 +11,7 @@ export const metadata = {
 export default function HelpOutThanksPage() {
   return (
     <>
+      <ScrollToTop />
       <SiteHeader active="help" />
       <main className="bg-ivory min-h-screen">
         <section className="px-7 pt-20 pb-20">
@@ -56,16 +58,7 @@ export default function HelpOutThanksPage() {
               person and follow up. If you&rsquo;re a UWC alum and not yet in
               our directory, please sign up so we can stay in touch.
             </p>
-            <div
-              className="mt-11 inline-flex items-center gap-4 flex-wrap justify-center"
-            >
-              <Link
-                href="/help-out"
-                className="font-bold uppercase text-navy border-b border-navy pb-2"
-                style={{ fontSize: 12, letterSpacing: ".22em" }}
-              >
-                &larr; Submit another
-              </Link>
+            <div className="mt-11 inline-flex items-center justify-center">
               <Link
                 href="/signup"
                 className="font-bold uppercase text-white"
