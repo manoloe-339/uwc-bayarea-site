@@ -7,14 +7,7 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function HelpOutThanksPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ matched?: string }>;
-}) {
-  const { matched: matchedParam } = await searchParams;
-  const matched = matchedParam === "1";
-
+export default function HelpOutThanksPage() {
   return (
     <>
       <SiteHeader active="help" />
@@ -59,10 +52,9 @@ export default async function HelpOutThanksPage({
                 maxWidth: 560,
               }}
             >
-              We received your interest.{" "}
-              {matched
-                ? "We'll match you with the right person and follow up."
-                : "If you're a UWC alum, please sign up to our directory — it helps us match you faster."}
+              We received your interest. We&rsquo;ll match you with the right
+              person and follow up. If you&rsquo;re a UWC alum and not yet in
+              our directory, please sign up so we can stay in touch.
             </p>
             <div
               className="mt-11 inline-flex items-center gap-4 flex-wrap justify-center"
@@ -74,20 +66,18 @@ export default async function HelpOutThanksPage({
               >
                 &larr; Submit another
               </Link>
-              {!matched && (
-                <Link
-                  href="/signup"
-                  className="font-bold uppercase text-white"
-                  style={{
-                    background: "var(--navy)",
-                    padding: "16px 28px",
-                    fontSize: 12,
-                    letterSpacing: ".24em",
-                  }}
-                >
-                  Sign up to the directory &rarr;
-                </Link>
-              )}
+              <Link
+                href="/signup"
+                className="font-bold uppercase text-white"
+                style={{
+                  background: "var(--navy)",
+                  padding: "16px 28px",
+                  fontSize: 12,
+                  letterSpacing: ".24em",
+                }}
+              >
+                Sign up to the directory &rarr;
+              </Link>
             </div>
           </div>
         </section>

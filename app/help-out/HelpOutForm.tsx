@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { submitHelpOutAction } from "./actions";
 import {
   VOLUNTEER_AREAS,
   type VolunteerArea,
-  type AlumniLookupResult,
 } from "@/lib/volunteer-signups-shared";
 
 type Areas = Record<VolunteerArea, boolean>;
@@ -20,35 +19,11 @@ const EMPTY_AREAS: Areas = {
 export function HelpOutForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [lookup, setLookup] = useState<{ status: "idle" | "checking" } | AlumniLookupResult>({
-    status: "idle",
-  });
   const [areas, setAreas] = useState<Areas>(EMPTY_AREAS);
   const [committee, setCommittee] = useState("");
   const [note, setNote] = useState("");
   const [submitting, startTransition] = useTransition();
   const [submitErr, setSubmitErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!name.trim() && !email.trim()) {
-      setLookup({ status: "idle" });
-      return;
-    }
-    setLookup({ status: "checking" });
-    const t = setTimeout(async () => {
-      try {
-        const url =
-          `/api/alumni-lookup?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as AlumniLookupResult;
-        setLookup(data);
-      } catch {
-        setLookup({ status: "nomatch" });
-      }
-    }, 700);
-    return () => clearTimeout(t);
-  }, [name, email]);
 
   const toggleArea = (id: VolunteerArea) => {
     setAreas((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -63,8 +38,6 @@ export function HelpOutForm() {
     e.preventDefault();
     if (!canSubmit) return;
     setSubmitErr(null);
-    const matchedAlumniId =
-      lookup.status === "match" && lookup.member ? lookup.member.id : null;
     const selectedAreas = (Object.entries(areas) as [VolunteerArea, boolean][])
       .filter(([, v]) => v)
       .map(([k]) => k);
@@ -74,14 +47,12 @@ export function HelpOutForm() {
     formData.set("areas", selectedAreas.join(","));
     formData.set("national_committee", committee.trim());
     formData.set("note", note.trim());
-    formData.set("matched_alumni_id", matchedAlumniId == null ? "" : String(matchedAlumniId));
     startTransition(async () => {
       try {
         await submitHelpOutAction(formData);
       } catch (err) {
-        // Server action throws redirect on success, so anything here is a real error.
         const msg = err instanceof Error ? err.message : "Submit failed";
-        // NEXT_REDIRECT is how Next.js signals a redirect from a server action.
+        // NEXT_REDIRECT is how Next.js signals a redirect from a server action — not a real error.
         if (msg.includes("NEXT_REDIRECT")) return;
         setSubmitErr(msg);
       }
@@ -95,15 +66,15 @@ export function HelpOutForm() {
         title="Tell us who you are"
         subtitle={
           <>
-            We&rsquo;ll try to match you with our UWC Bay Area alumni database.
-            If you haven&rsquo;t signed up yet,{" "}
+            Already in our directory? Great — we&rsquo;ll match you up.
+            If not,{" "}
             <a
               href="/signup"
               className="text-navy underline font-semibold hover:opacity-80"
             >
               please sign up here
-            </a>
-            .
+            </a>{" "}
+            so we can stay in touch.
           </>
         }
       >
@@ -131,7 +102,6 @@ export function HelpOutForm() {
             />
           </FormField>
         </div>
-        <LookupStatus lookup={lookup} />
       </Step>
 
       <Step
@@ -303,131 +273,6 @@ function FormField({
         {label}
       </label>
       {children}
-    </div>
-  );
-}
-
-function LookupStatus({
-  lookup,
-}: {
-  lookup: { status: "idle" | "checking" } | AlumniLookupResult;
-}) {
-  if (lookup.status === "idle") return null;
-  if (lookup.status === "checking") {
-    return (
-      <div className="lookup-pill checking">
-        <span className="lookup-dot" />
-        Checking the database…
-      </div>
-    );
-  }
-  if (lookup.status === "match" && lookup.member) {
-    const initials = lookup.member.name
-      .split(/\s+/)
-      .map((s) => s[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-    const sub = [lookup.member.school, lookup.member.year]
-      .filter(Boolean)
-      .join(" · ");
-    return (
-      <div
-        className="mt-3 flex items-center gap-3 flex-wrap"
-        style={{
-          padding: "16px 18px",
-          background: "rgba(2,101,168,.06)",
-          borderLeft: "3px solid var(--navy)",
-        }}
-      >
-        <span
-          className="inline-flex items-center justify-center font-display italic font-semibold"
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            background: "var(--navy)",
-            color: "#fff",
-            fontSize: 16,
-          }}
-        >
-          {initials}
-        </span>
-        <div className="flex-1 min-w-[200px]">
-          <div
-            className="font-bold uppercase"
-            style={{
-              fontSize: 11,
-              letterSpacing: ".22em",
-              color: "var(--navy)",
-            }}
-          >
-            Found you in our database
-          </div>
-          <div
-            className="font-display font-semibold mt-1"
-            style={{
-              fontSize: 18,
-              color: "var(--navy-ink)",
-              textTransform: "capitalize",
-            }}
-          >
-            {lookup.member.name}
-            {sub && (
-              <span
-                style={{
-                  fontStyle: "italic",
-                  color: "var(--muted)",
-                  fontWeight: 500,
-                }}
-              >
-                {" "}
-                &middot; {sub}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-  // nomatch
-  return (
-    <div
-      className="mt-3"
-      style={{
-        padding: "16px 18px",
-        background: "rgba(184,52,31,.06)",
-        borderLeft: "3px solid #B8341F",
-      }}
-    >
-      <div
-        className="font-bold uppercase"
-        style={{
-          fontSize: 11,
-          letterSpacing: ".22em",
-          color: "#B8341F",
-        }}
-      >
-        Not in our database yet
-      </div>
-      <div
-        className="mt-1.5 font-sans"
-        style={{
-          fontSize: 14,
-          color: "var(--navy-ink)",
-          lineHeight: 1.5,
-        }}
-      >
-        No problem &mdash; you can keep going. If you&rsquo;re a UWC alum,
-        please{" "}
-        <a
-          href="/signup"
-          className="text-navy underline font-semibold"
-        >
-          sign up to the directory
-        </a>{" "}
-        so we can find you next time.
-      </div>
     </div>
   );
 }

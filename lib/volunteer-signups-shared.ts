@@ -13,12 +13,5 @@ export const VOLUNTEER_AREAS: { value: VolunteerArea; label: string; desc: strin
   { value: "other", label: "Something else", desc: "Tell us in the box below." },
 ];
 
-export interface AlumniLookupResult {
-  status: "match" | "nomatch";
-  member?: {
-    id: number;
-    name: string;
-    school: string | null;
-    year: number | null;
-  };
-}
+export type VolunteerMatchStatus = "matched" | "needs_review" | "unmatched";
+export type VolunteerMatchConfidence = "high" | "medium" | "low" | "manual";

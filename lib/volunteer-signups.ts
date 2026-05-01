@@ -1,89 +1,14 @@
 import { sql } from "./db";
 import {
   VOLUNTEER_AREAS,
-  type AlumniLookupResult,
   type VolunteerArea,
+  type VolunteerMatchStatus,
+  type VolunteerMatchConfidence,
 } from "./volunteer-signups-shared";
 
 // Re-export so existing server-side imports keep working.
 export { VOLUNTEER_AREAS };
-export type { AlumniLookupResult, VolunteerArea };
-
-/**
- * Lightweight match used by the public Help Out form. Email match wins
- * (case-insensitive); name match is exact-but-case/diacritic-insensitive
- * on first + last together. Deliberately not fuzzy — bad matches are
- * worse than no match because the user thinks we have them when we don't.
- */
-export async function lookupAlumniForHelpOut(params: {
-  name: string;
-  email: string;
-}): Promise<AlumniLookupResult> {
-  const name = params.name.trim();
-  const email = params.email.trim().toLowerCase();
-
-  if (email && /.+@.+\..+/.test(email)) {
-    const rows = (await sql`
-      SELECT id, first_name, last_name, uwc_college, grad_year
-      FROM alumni
-      WHERE deceased IS NOT TRUE
-        AND lower(email) = ${email}
-      LIMIT 1
-    `) as Array<{
-      id: number;
-      first_name: string | null;
-      last_name: string | null;
-      uwc_college: string | null;
-      grad_year: number | null;
-    }>;
-    if (rows[0]) {
-      return {
-        status: "match",
-        member: {
-          id: rows[0].id,
-          name: [rows[0].first_name, rows[0].last_name].filter(Boolean).join(" ").trim(),
-          school: rows[0].uwc_college,
-          year: rows[0].grad_year,
-        },
-      };
-    }
-  }
-
-  if (name.length >= 3) {
-    const parts = name.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) {
-      const first = parts[0];
-      const last = parts.slice(1).join(" ");
-      const rows = (await sql`
-        SELECT id, first_name, last_name, uwc_college, grad_year
-        FROM alumni
-        WHERE deceased IS NOT TRUE
-          AND unaccent(lower(COALESCE(first_name, ''))) = unaccent(lower(${first}))
-          AND unaccent(lower(COALESCE(last_name, ''))) = unaccent(lower(${last}))
-        LIMIT 1
-      `) as Array<{
-        id: number;
-        first_name: string | null;
-        last_name: string | null;
-        uwc_college: string | null;
-        grad_year: number | null;
-      }>;
-      if (rows[0]) {
-        return {
-          status: "match",
-          member: {
-            id: rows[0].id,
-            name: [rows[0].first_name, rows[0].last_name].filter(Boolean).join(" ").trim(),
-            school: rows[0].uwc_college,
-            year: rows[0].grad_year,
-          },
-        };
-      }
-    }
-  }
-
-  return { status: "nomatch" };
-}
+export type { VolunteerArea, VolunteerMatchStatus, VolunteerMatchConfidence };
 
 export interface VolunteerSignupRow {
   id: number;
@@ -94,6 +19,10 @@ export interface VolunteerSignupRow {
   national_committee_choice: string | null;
   note: string | null;
   contacted_at: string | null;
+  match_status: VolunteerMatchStatus | null;
+  match_confidence: VolunteerMatchConfidence | null;
+  match_reason: string | null;
+  matched_at: string | null;
   created_at: string;
   // Joined for display in admin
   alumni_first_name: string | null;
@@ -109,18 +38,27 @@ export async function createVolunteerSignup(data: {
   areas: VolunteerArea[];
   nationalCommitteeChoice: string | null;
   note: string | null;
+  matchStatus: VolunteerMatchStatus;
+  matchConfidence: VolunteerMatchConfidence | null;
+  matchReason: string;
 }): Promise<VolunteerSignupRow> {
+  const matchedAt = data.alumniId != null ? new Date() : null;
   const rows = (await sql`
     INSERT INTO volunteer_signups (
       alumni_id, submitted_name, submitted_email, areas,
-      national_committee_choice, note
+      national_committee_choice, note,
+      match_status, match_confidence, match_reason, matched_at
     ) VALUES (
       ${data.alumniId},
       ${data.submittedName},
       ${data.submittedEmail},
       ${data.areas},
       ${data.nationalCommitteeChoice},
-      ${data.note}
+      ${data.note},
+      ${data.matchStatus},
+      ${data.matchConfidence},
+      ${data.matchReason},
+      ${matchedAt}
     )
     RETURNING *
   `) as VolunteerSignupRow[];
@@ -150,4 +88,68 @@ export async function setVolunteerSignupContacted(
     SET contacted_at = ${contacted ? new Date() : null}
     WHERE id = ${id}
   `;
+}
+
+/**
+ * Manually attach (or clear) the alumni link on a volunteer signup.
+ * Used by the admin UI when the auto-matcher couldn't pick a single
+ * candidate or got it wrong. Bumps the match metadata to 'manual'.
+ */
+export async function setVolunteerSignupAlumni(
+  id: number,
+  alumniId: number | null
+): Promise<void> {
+  if (alumniId == null) {
+    await sql`
+      UPDATE volunteer_signups
+      SET alumni_id = NULL,
+          match_status = 'unmatched',
+          match_confidence = NULL,
+          match_reason = 'Manually unlinked',
+          matched_at = NULL
+      WHERE id = ${id}
+    `;
+    return;
+  }
+  await sql`
+    UPDATE volunteer_signups
+    SET alumni_id = ${alumniId},
+        match_status = 'matched',
+        match_confidence = 'manual',
+        match_reason = 'Manually linked',
+        matched_at = NOW()
+    WHERE id = ${id}
+  `;
+}
+
+/** Lightweight alumni search for the manual-link UI in admin. */
+export interface AlumniSearchHit {
+  id: number;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  uwc_college: string | null;
+  grad_year: number | null;
+}
+
+export async function searchAlumniForVolunteerLink(
+  query: string,
+  limit = 10
+): Promise<AlumniSearchHit[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const like = `%${q.toLowerCase()}%`;
+  return (await sql`
+    SELECT id, first_name, last_name, email, uwc_college, grad_year
+    FROM alumni
+    WHERE deceased IS NOT TRUE
+      AND (
+        lower(email) LIKE ${like}
+        OR unaccent(lower(COALESCE(first_name, ''))) LIKE unaccent(${like})
+        OR unaccent(lower(COALESCE(last_name, ''))) LIKE unaccent(${like})
+        OR unaccent(lower(COALESCE(first_name, '') || ' ' || COALESCE(last_name, ''))) LIKE unaccent(${like})
+      )
+    ORDER BY last_name ASC NULLS LAST, first_name ASC NULLS LAST
+    LIMIT ${limit}
+  `) as AlumniSearchHit[];
 }

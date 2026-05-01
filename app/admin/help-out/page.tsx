@@ -3,8 +3,10 @@ import {
   listVolunteerSignups,
   VOLUNTEER_AREAS,
   type VolunteerArea,
+  type VolunteerMatchStatus,
 } from "@/lib/volunteer-signups";
 import { toggleContactedAction } from "./actions";
+import { VolunteerLinkPicker } from "@/components/admin/VolunteerLinkPicker";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,8 @@ export default async function HelpOutAdminPage() {
   const rows = await listVolunteerSignups();
 
   const total = rows.length;
-  const matchedCount = rows.filter((r) => r.alumni_id != null).length;
+  const matchedCount = rows.filter((r) => r.match_status === "matched").length;
+  const reviewCount = rows.filter((r) => r.match_status === "needs_review").length;
   const pendingCount = rows.filter((r) => !r.contacted_at).length;
 
   return (
@@ -41,14 +44,17 @@ export default async function HelpOutAdminPage() {
             <Link href="/help-out" className="text-navy underline">
               /help-out
             </Link>
-            . Mark as contacted once you&rsquo;ve followed up.
+            . The matcher (same one used for ticket purchases) auto-links
+            high-confidence matches; ambiguous and unmatched ones show
+            &ldquo;Link to alumni&rdquo; for manual triage.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <Stat label="Total" value={total} />
-        <Stat label="Matched in DB" value={matchedCount} tone="emerald" />
+        <Stat label="Matched" value={matchedCount} tone="emerald" />
+        <Stat label="Needs review" value={reviewCount} tone="amber" />
         <Stat label="Pending follow-up" value={pendingCount} tone="amber" />
       </div>
 
@@ -85,15 +91,10 @@ export default async function HelpOutAdminPage() {
                       <span className="font-semibold text-[color:var(--navy-ink)] text-base">
                         {r.submitted_name || "(no name)"}
                       </span>
-                      {r.alumni_id ? (
-                        <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] tracking-[.18em] uppercase font-bold px-2 py-0.5 rounded-full">
-                          Matched
-                        </span>
-                      ) : (
-                        <span className="bg-amber-50 text-amber-800 border border-amber-200 text-[10px] tracking-[.18em] uppercase font-bold px-2 py-0.5 rounded-full">
-                          Not in DB
-                        </span>
-                      )}
+                      <MatchBadge
+                        status={r.match_status}
+                        confidence={r.match_confidence}
+                      />
                       {r.contacted_at && (
                         <span className="bg-slate-50 text-slate-700 border border-slate-200 text-[10px] tracking-[.18em] uppercase font-bold px-2 py-0.5 rounded-full">
                           Contacted
@@ -109,10 +110,10 @@ export default async function HelpOutAdminPage() {
                       </a>{" "}
                       · {fmtDateTime(r.created_at)}
                     </div>
-                    {matchedDisplay && (
+                    {matchedDisplay ? (
                       <div className="text-xs text-[color:var(--muted)] mb-2">
                         <span className="font-semibold text-[color:var(--navy-ink)]">
-                          Directory match:
+                          Linked to:
                         </span>{" "}
                         {matchedDisplay}
                         {matchedSub && (
@@ -128,6 +129,21 @@ export default async function HelpOutAdminPage() {
                         >
                           open record →
                         </Link>
+                        {r.match_reason && (
+                          <span className="italic ml-1 text-[color:var(--muted-2)]">
+                            ({r.match_reason})
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs mb-2">
+                        <span className="text-[color:var(--muted)]">
+                          {r.match_reason || "Not matched."}
+                        </span>{" "}
+                        <VolunteerLinkPicker
+                          signupId={r.id}
+                          initialQuery={r.submitted_name || r.submitted_email}
+                        />
                       </div>
                     )}
                     <div className="flex gap-1.5 flex-wrap mb-2">
@@ -179,6 +195,34 @@ export default async function HelpOutAdminPage() {
         </ul>
       )}
     </div>
+  );
+}
+
+function MatchBadge({
+  status,
+  confidence,
+}: {
+  status: VolunteerMatchStatus | null;
+  confidence: string | null;
+}) {
+  if (status === "matched") {
+    return (
+      <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] tracking-[.18em] uppercase font-bold px-2 py-0.5 rounded-full">
+        Matched{confidence ? ` · ${confidence}` : ""}
+      </span>
+    );
+  }
+  if (status === "needs_review") {
+    return (
+      <span className="bg-amber-50 text-amber-800 border border-amber-200 text-[10px] tracking-[.18em] uppercase font-bold px-2 py-0.5 rounded-full">
+        Needs review
+      </span>
+    );
+  }
+  return (
+    <span className="bg-slate-50 text-slate-700 border border-slate-200 text-[10px] tracking-[.18em] uppercase font-bold px-2 py-0.5 rounded-full">
+      Not in DB
+    </span>
   );
 }
 

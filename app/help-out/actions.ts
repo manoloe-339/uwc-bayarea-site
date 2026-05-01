@@ -8,7 +8,7 @@ import {
   VOLUNTEER_AREAS,
   type VolunteerArea,
 } from "@/lib/volunteer-signups";
-import { sql } from "@/lib/db";
+import { matchAlumniForAttendee } from "@/lib/alumni-matcher";
 
 const VALID_AREAS = new Set<VolunteerArea>([
   "national",
@@ -35,7 +35,6 @@ export async function submitHelpOutAction(formData: FormData): Promise<void> {
   const areasRaw = String(formData.get("areas") ?? "").trim();
   const committee = String(formData.get("national_committee") ?? "").trim();
   const note = String(formData.get("note") ?? "").trim();
-  const matchedAlumniIdRaw = String(formData.get("matched_alumni_id") ?? "").trim();
 
   if (!name && !email) {
     throw new Error("Add your name or email to continue.");
@@ -52,33 +51,39 @@ export async function submitHelpOutAction(formData: FormData): Promise<void> {
     throw new Error("Pick at least one area to continue.");
   }
 
-  // Re-verify the matched alumni id server-side so the form can't lie.
-  let alumniId: number | null = null;
-  if (matchedAlumniIdRaw) {
-    const n = Number(matchedAlumniIdRaw);
-    if (Number.isFinite(n) && n > 0) {
-      const rows = (await sql`
-        SELECT id FROM alumni WHERE id = ${n} AND deceased IS NOT TRUE LIMIT 1
-      `) as { id: number }[];
-      if (rows[0]) alumniId = n;
-    }
-  }
+  // Run the same matcher used for ticket purchases. Only auto-attach the
+  // alumni id when the match is high-confidence; ambiguous matches are
+  // recorded as 'needs_review' (no link yet) so admin reviews and links
+  // manually from /admin/help-out.
+  const match = await matchAlumniForAttendee({
+    name: name || null,
+    email: email || null,
+    uwcCollege: null,
+  });
+  const autoLinkAlumniId =
+    match.matchConfidence === "high" ? match.alumniId : null;
 
   await createVolunteerSignup({
-    alumniId,
+    alumniId: autoLinkAlumniId,
     submittedName: name,
     submittedEmail: email,
     areas,
     nationalCommitteeChoice: areas.includes("national") ? (committee || null) : null,
     note: note || null,
+    matchStatus: match.matchStatus,
+    matchConfidence: match.matchConfidence,
+    matchReason: match.matchReason,
   });
 
   // Notify the admin. Best-effort — never block submit on email failure.
   try {
     const resend = getResend();
-    const matchedLine = alumniId
-      ? "Yes (matched in directory)"
-      : "No (not in directory)";
+    const matchedLine =
+      match.matchStatus === "matched"
+        ? `Yes (${match.matchConfidence ?? "auto"}: ${match.matchReason})`
+        : match.matchStatus === "needs_review"
+          ? `Needs review — ${match.matchReason}`
+          : `No (not in directory)`;
     const areaLabels = areas.map(
       (a) => VOLUNTEER_AREAS.find((x) => x.value === a)?.label ?? a
     );
@@ -88,7 +93,7 @@ export async function submitHelpOutAction(formData: FormData): Promise<void> {
       ``,
       `Name: ${name || "(blank)"}`,
       `Email: ${email || "(blank)"}`,
-      `Matched in directory: ${matchedLine}`,
+      `In directory: ${matchedLine}`,
       `Areas: ${areaLabels.join(", ")}`,
     ];
     if (areas.includes("national")) {
@@ -124,5 +129,5 @@ export async function submitHelpOutAction(formData: FormData): Promise<void> {
   }
 
   revalidatePath("/admin/help-out");
-  redirect(alumniId ? "/help-out/thanks?matched=1" : "/help-out/thanks");
+  redirect("/help-out/thanks");
 }
