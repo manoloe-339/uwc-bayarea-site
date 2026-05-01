@@ -44,12 +44,20 @@ export default async function NameTagsPage({
               : ""}
           </p>
         </div>
-        <Link
-          href={`/admin/events/${slug}/name-tags/print`}
-          className="text-sm font-semibold text-white bg-navy px-5 py-2.5 rounded hover:opacity-90"
-        >
-          Print sheets →
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/admin/events/${slug}/name-tags/print-blank`}
+            className="text-sm font-semibold text-navy border border-navy px-4 py-2.5 rounded hover:bg-navy hover:text-white"
+          >
+            Blank sheets →
+          </Link>
+          <Link
+            href={`/admin/events/${slug}/name-tags/print`}
+            className="text-sm font-semibold text-white bg-navy px-5 py-2.5 rounded hover:opacity-90"
+          >
+            Print sheets →
+          </Link>
+        </div>
       </div>
 
       <p className="text-xs text-[color:var(--muted)] mb-5 max-w-prose">
