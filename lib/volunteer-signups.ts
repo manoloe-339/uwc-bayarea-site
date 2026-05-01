@@ -1,24 +1,13 @@
 import { sql } from "./db";
+import {
+  VOLUNTEER_AREAS,
+  type AlumniLookupResult,
+  type VolunteerArea,
+} from "./volunteer-signups-shared";
 
-export type VolunteerArea = "national" | "outreach" | "events" | "donors" | "other";
-
-export const VOLUNTEER_AREAS: { value: VolunteerArea; label: string; desc: string }[] = [
-  { value: "national", label: "A national committee", desc: "Interview, review, and select students." },
-  { value: "outreach", label: "Encourage local students to apply", desc: "Work with our admissions teams." },
-  { value: "events", label: "Organizing Bay Area events", desc: "Plan dinners, mixers, send-offs." },
-  { value: "donors", label: "Working with donors", desc: "Steward, thank, fundraise." },
-  { value: "other", label: "Something else", desc: "Tell us in the box below." },
-];
-
-export interface AlumniLookupResult {
-  status: "match" | "nomatch";
-  member?: {
-    id: number;
-    name: string;
-    school: string | null;
-    year: number | null;
-  };
-}
+// Re-export so existing server-side imports keep working.
+export { VOLUNTEER_AREAS };
+export type { AlumniLookupResult, VolunteerArea };
 
 /**
  * Lightweight match used by the public Help Out form. Email match wins

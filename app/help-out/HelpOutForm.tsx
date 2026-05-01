@@ -2,7 +2,11 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { submitHelpOutAction } from "./actions";
-import { VOLUNTEER_AREAS, type VolunteerArea, type AlumniLookupResult } from "@/lib/volunteer-signups";
+import {
+  VOLUNTEER_AREAS,
+  type VolunteerArea,
+  type AlumniLookupResult,
+} from "@/lib/volunteer-signups-shared";
 
 type Areas = Record<VolunteerArea, boolean>;
 const EMPTY_AREAS: Areas = {
