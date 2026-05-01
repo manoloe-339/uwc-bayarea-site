@@ -48,7 +48,7 @@ export async function listNameTagsForEvent(eventId: number): Promise<NameTag[]> 
     LEFT JOIN event_attendees a ON a.id = t.attendee_id
     LEFT JOIN alumni al ON al.id = a.alumni_id
     WHERE t.event_id = ${eventId}
-    ORDER BY t.last_name ASC, t.first_name ASC, t.id ASC
+    ORDER BY LOWER(t.first_name) ASC, LOWER(t.last_name) ASC, t.id ASC
   `) as NameTag[];
 }
 
