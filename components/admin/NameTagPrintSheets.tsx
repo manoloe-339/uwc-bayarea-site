@@ -50,28 +50,21 @@ export function PrintSheets({
         .print-sheet {
           background: white;
           width: 8in; /* matches 8.5in - 0.25in margins */
+          height: 9in; /* matches 11in - 1in margins */
           margin: 0 auto 24px;
           box-shadow: 0 4px 16px -4px rgba(11, 37, 69, 0.18);
           page-break-after: always;
-          break-after: page;
         }
         .print-sheet:last-child {
           page-break-after: auto;
-          break-after: auto;
         }
 
-        /* Grid auto-sizes to its 3 rows of 3in cells = 9in tall.
-           Don't pin .print-sheet to a fixed 9in height — when Chrome
-           is set to 'Margins: None' it ignores @page and our 9in
-           sheet would float at the top of an 11in paper, leaving
-           visible empty space at the bottom. Auto height + page-break
-           means the sheet stretches to fit content and pages cleanly
-           on whatever margins the browser ends up using. */
         .print-grid {
           display: grid;
           grid-template-columns: repeat(2, 4in);
           grid-template-rows: repeat(3, 3in);
           width: 8in;
+          height: 9in;
         }
 
         .print-cell {
@@ -90,11 +83,9 @@ export function PrintSheets({
             box-shadow: none;
             margin: 0;
             page-break-after: always;
-            break-after: page;
           }
           .print-sheet:last-child {
             page-break-after: auto;
-            break-after: auto;
           }
         }
       `}</style>
