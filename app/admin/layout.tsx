@@ -10,7 +10,7 @@ export const metadata = {
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-ivory">
-      <header className="border-b border-[color:var(--rule)] bg-white/60">
+      <header className="border-b border-[color:var(--rule)] bg-white/60 print:hidden">
         <div className="max-w-[1200px] mx-auto px-5 sm:px-7 py-4 flex items-center gap-4 md:gap-8">
           <Link href="/admin" className="font-sans font-bold text-navy text-[15px] tracking-tight whitespace-nowrap">
             UWC · Admin
@@ -31,7 +31,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <MobileNavMenu />
         </div>
       </header>
-      <main className="max-w-[1200px] mx-auto px-5 sm:px-7 py-10">{children}</main>
+      <main className="max-w-[1200px] mx-auto px-5 sm:px-7 py-10 print:max-w-none print:p-0 print:m-0">
+        {children}
+      </main>
     </div>
   );
 }
