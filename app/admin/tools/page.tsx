@@ -91,6 +91,19 @@ export default function ToolsIndex() {
           </p>
         </Link>
         <Link
+          href="/admin/help-out"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Help Out signups</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Volunteer interest from /help-out</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Triage submissions from the public Help Out form. Each shows
+            whether the person matched your alumni directory, which areas
+            they want to help with, and any free-text note. Mark contacted
+            once you&rsquo;ve followed up.
+          </p>
+        </Link>
+        <Link
           href="/admin/events/archive/photos"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
