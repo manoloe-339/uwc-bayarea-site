@@ -505,7 +505,7 @@ function JoinInterrupt({ alumniCount }: { alumniCount: number }) {
   );
 }
 
-/* ─── Alumni in the news ──────────────────────────────────────── */
+/* ─── Alumni updates and news ─────────────────────────────────── */
 
 function AlumniNewsSection({ display }: { display: NewsFeatureDisplay }) {
   if (display.layout === "hidden") return null;
@@ -514,7 +514,7 @@ function AlumniNewsSection({ display }: { display: NewsFeatureDisplay }) {
     <section className="bg-white px-6 py-14 sm:px-16 sm:py-24">
       <div className={`mx-auto ${single ? "max-w-[1080px]" : "max-w-[1180px]"}`}>
         <div className="mb-8 sm:mb-12">
-          <Eyebrow>Alumni in the news</Eyebrow>
+          <Eyebrow>Alumni updates and news</Eyebrow>
           <h2 className="mt-2.5 font-serif font-semibold leading-[1.04] tracking-[-0.01em] text-[color:var(--navy-ink)] text-[32px] sm:text-[48px]">
             {single ? <>One <em className="italic">spotlight</em></> : <>Out in the <em className="italic">world</em></>}
           </h2>

@@ -125,7 +125,7 @@ export default async function HomepageSettingsPage({
       <div className="mt-12 flex justify-between items-center mb-3">
         <div>
           <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
-            Alumni in the news
+            Alumni updates and news
           </h2>
           <p className="text-xs text-[color:var(--muted)] mt-1">
             {enabledNewsCount === 0 && "Section hidden — enable a feature below to show it."}
