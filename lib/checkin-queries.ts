@@ -28,6 +28,21 @@ export type CheckinHit = {
   name_tag_status: "pending" | "fix" | "finalized" | null;
 };
 
+/** SQL fragment that's TRUE when a finalized name tag has actually
+ * overridden the displayed name to something different from the
+ * linked alumni's name (i.e., this ticket is for someone else).
+ *
+ * When this is true, the alumni record's photo / origin / college /
+ * year all belong to the original PURCHASER, not the actual attendee
+ * — we suppress them so the check-in card doesn't show the wrong
+ * person's photo or country. */
+const NAME_OVERRIDDEN = `
+  nt.status = 'finalized' AND (
+    (nt.first_name <> '' AND COALESCE(nt.first_name, '') IS DISTINCT FROM COALESCE(al.first_name, ''))
+    OR (nt.last_name  <> '' AND COALESCE(nt.last_name,  '') IS DISTINCT FROM COALESCE(al.last_name,  ''))
+  )
+`;
+
 /** Shared SELECT clause + LEFT JOINs that produce a CheckinHit row. */
 const CHECKIN_HIT_SELECT = `
   SELECT
@@ -52,17 +67,24 @@ const CHECKIN_HIT_SELECT = `
       END
     ) AS display_last,
     COALESCE(al.email, a.stripe_customer_email) AS display_email,
-    -- College + year: prefer finalized tag, else alumni record.
+    -- College + year: prefer the tag's value when set; otherwise fall
+    -- back to alumni record ONLY if the tag didn't override the name.
+    -- Otherwise the alumni record belongs to the purchaser, not the
+    -- attendee.
     COALESCE(
       CASE WHEN nt.status = 'finalized' AND nt.uwc_college IS NOT NULL THEN nt.uwc_college END,
-      al.uwc_college
+      CASE WHEN ${NAME_OVERRIDDEN} THEN NULL ELSE al.uwc_college END
     ) AS uwc_college,
     COALESCE(
       CASE WHEN nt.status = 'finalized' AND nt.grad_year IS NOT NULL THEN nt.grad_year END,
-      al.grad_year
+      CASE WHEN ${NAME_OVERRIDDEN} THEN NULL ELSE al.grad_year END
     ) AS grad_year,
-    al.origin AS origin,
-    al.photo_url AS photo_url,
+    -- Origin and photo only make sense for the actual attendee. When the
+    -- name tag override has changed the displayed name, suppress these
+    -- so we don't show the purchaser's photo + country on someone else's
+    -- check-in card.
+    CASE WHEN ${NAME_OVERRIDDEN} THEN NULL ELSE al.origin END AS origin,
+    CASE WHEN ${NAME_OVERRIDDEN} THEN NULL ELSE al.photo_url END AS photo_url,
     -- Original ticket-purchaser name (only populated when a finalized
     -- override actually changes the displayed name).
     CASE
