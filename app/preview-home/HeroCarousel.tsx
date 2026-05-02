@@ -12,6 +12,8 @@ export interface HeroSlide {
   cta_href: string;
   /** Background image URL. When null, a striped placeholder shows. */
   image_url: string | null;
+  /** How the photo is anchored when cropped. Defaults to "center". */
+  focal_point?: "top" | "center" | "bottom";
 }
 
 interface Props {
@@ -54,6 +56,7 @@ export function HeroCarousel({ slides, intervalSec = 7 }: Props) {
                 priority={i === 0}
                 sizes="100vw"
                 className="object-cover"
+                style={{ objectPosition: s.focal_point ?? "center" }}
               />
             ) : (
               <div

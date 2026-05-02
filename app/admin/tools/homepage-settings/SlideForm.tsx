@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import type { HeroFocalPoint } from "@/lib/hero-slides";
 
 interface EventOption {
   id: number;
@@ -19,6 +20,7 @@ export interface SlideFormInitial {
   cta_label: string;
   cta_href: string;
   image_url: string;
+  focal_point: HeroFocalPoint;
   sort_order: number;
   enabled: boolean;
 }
@@ -115,6 +117,24 @@ export default function SlideForm({ events, initial, action, submitLabel }: Prop
         onChange={setImageUrl}
         placeholder="https://…"
       />
+
+      <label className="block">
+        <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+          Photo focal point
+        </span>
+        <select
+          name="focal_point"
+          defaultValue={initial.focal_point}
+          className="w-full sm:w-[280px] border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+        >
+          <option value="top">Top — keep the top of the photo, crop bottom</option>
+          <option value="center">Center — crop top and bottom equally</option>
+          <option value="bottom">Bottom — keep the bottom, crop top</option>
+        </select>
+        <span className="block mt-1 text-xs text-[color:var(--muted)]">
+          Use Top when faces / action are near the top of the photo.
+        </span>
+      </label>
 
       <div className="grid sm:grid-cols-[140px_1fr] gap-4 items-end">
         <label className="block">

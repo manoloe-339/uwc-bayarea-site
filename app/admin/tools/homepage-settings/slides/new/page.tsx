@@ -33,6 +33,7 @@ export default async function NewSlidePage() {
           cta_label: "See more photos →",
           cta_href: "",
           image_url: "",
+          focal_point: "center",
           sort_order: 0,
           enabled: true,
         }}

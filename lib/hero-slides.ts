@@ -1,6 +1,14 @@
 import { sql } from "./db";
 import { getApprovedPhotosOrdered } from "./event-photos/queries";
 
+export type HeroFocalPoint = "top" | "center" | "bottom";
+
+export const HERO_FOCAL_POINTS: HeroFocalPoint[] = ["top", "center", "bottom"];
+
+export function isHeroFocalPoint(v: string): v is HeroFocalPoint {
+  return (HERO_FOCAL_POINTS as string[]).includes(v);
+}
+
 export interface HeroSlideRow {
   id: number;
   event_id: number | null;
@@ -11,6 +19,7 @@ export interface HeroSlideRow {
   cta_label: string | null;
   cta_href: string | null;
   image_url: string | null;
+  focal_point: HeroFocalPoint;
   sort_order: number;
   enabled: boolean;
   created_at: string;
@@ -31,6 +40,7 @@ export interface ResolvedHeroSlide {
   cta_label: string;
   cta_href: string;
   image_url: string | null;
+  focal_point: HeroFocalPoint;
 }
 
 /** Format a Date as "Mon DD · YYYY". */
@@ -114,6 +124,7 @@ export async function getActiveHeroSlides(): Promise<ResolvedHeroSlide[]> {
       cta_label: r.cta_label ?? "See more photos →",
       cta_href: r.cta_href ?? (r.event_slug ? `/events/${r.event_slug}/photos` : "/photos"),
       image_url: image,
+      focal_point: r.focal_point,
     });
   }
   return resolved;
@@ -153,6 +164,7 @@ async function deriveSlidesFromRecentEvents(limit: number): Promise<ResolvedHero
       cta_label: "See more photos →",
       cta_href: `/events/${e.slug}/photos`,
       image_url: photos[0]?.blob_url ?? null,
+      focal_point: "center",
     });
   }
   return slides;
@@ -171,7 +183,7 @@ export async function listEventsForHeroPicker(): Promise<
   `) as Array<{ id: number; slug: string; name: string; date: Date }>;
 }
 
-export async function createHeroSlide(data: {
+export interface HeroSlideInput {
   event_id: number | null;
   eyebrow: string | null;
   title: string;
@@ -180,16 +192,20 @@ export async function createHeroSlide(data: {
   cta_label: string | null;
   cta_href: string | null;
   image_url: string | null;
+  focal_point: HeroFocalPoint;
   sort_order: number;
   enabled: boolean;
-}): Promise<number> {
+}
+
+export async function createHeroSlide(data: HeroSlideInput): Promise<number> {
   const rows = (await sql`
     INSERT INTO homepage_hero_slides (
       event_id, eyebrow, title, emphasis, byline,
-      cta_label, cta_href, image_url, sort_order, enabled
+      cta_label, cta_href, image_url, focal_point, sort_order, enabled
     ) VALUES (
       ${data.event_id}, ${data.eyebrow}, ${data.title}, ${data.emphasis}, ${data.byline},
-      ${data.cta_label}, ${data.cta_href}, ${data.image_url}, ${data.sort_order}, ${data.enabled}
+      ${data.cta_label}, ${data.cta_href}, ${data.image_url}, ${data.focal_point},
+      ${data.sort_order}, ${data.enabled}
     )
     RETURNING id
   `) as { id: number }[];
@@ -198,18 +214,7 @@ export async function createHeroSlide(data: {
 
 export async function updateHeroSlide(
   id: number,
-  data: {
-    event_id: number | null;
-    eyebrow: string | null;
-    title: string;
-    emphasis: string | null;
-    byline: string | null;
-    cta_label: string | null;
-    cta_href: string | null;
-    image_url: string | null;
-    sort_order: number;
-    enabled: boolean;
-  }
+  data: HeroSlideInput
 ): Promise<void> {
   await sql`
     UPDATE homepage_hero_slides SET
@@ -221,6 +226,7 @@ export async function updateHeroSlide(
       cta_label   = ${data.cta_label},
       cta_href    = ${data.cta_href},
       image_url   = ${data.image_url},
+      focal_point = ${data.focal_point},
       sort_order  = ${data.sort_order},
       enabled     = ${data.enabled},
       updated_at  = NOW()

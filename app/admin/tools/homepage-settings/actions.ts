@@ -7,6 +7,8 @@ import {
   updateHeroSlide,
   deleteHeroSlide,
   setHeroSlideEnabled,
+  isHeroFocalPoint,
+  type HeroFocalPoint,
 } from "@/lib/hero-slides";
 
 function txt(v: FormDataEntryValue | null): string | null {
@@ -34,6 +36,11 @@ function maybeId(v: FormDataEntryValue | null): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function readFocalPoint(v: FormDataEntryValue | null): HeroFocalPoint {
+  const s = String(v ?? "").trim();
+  return isHeroFocalPoint(s) ? s : "center";
+}
+
 function readSlideForm(formData: FormData) {
   return {
     event_id: maybeId(formData.get("event_id")),
@@ -44,6 +51,7 @@ function readSlideForm(formData: FormData) {
     cta_label: txt(formData.get("cta_label")),
     cta_href: txt(formData.get("cta_href")),
     image_url: txt(formData.get("image_url")),
+    focal_point: readFocalPoint(formData.get("focal_point")),
     sort_order: intOr(formData.get("sort_order"), 0),
     enabled: formData.get("enabled") != null,
   };

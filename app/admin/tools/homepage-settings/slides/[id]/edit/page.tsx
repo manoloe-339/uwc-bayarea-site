@@ -50,6 +50,7 @@ export default async function EditSlidePage({
           cta_label: slide.cta_label ?? "",
           cta_href: slide.cta_href ?? "",
           image_url: slide.image_url ?? "",
+          focal_point: slide.focal_point,
           sort_order: slide.sort_order,
           enabled: slide.enabled,
         }}
