@@ -581,6 +581,11 @@ function NewsSpotlight({ feature }: { feature: ResolvedNewsFeature }) {
             <div className="mt-0.5 text-[12px] text-[color:var(--muted)]">
               {alumByline(feature)}
             </div>
+            {feature.current_role && (
+              <div className="mt-0.5 text-[12px] text-[color:var(--navy-ink)]">
+                {feature.current_role}
+              </div>
+            )}
           </div>
         </div>
         {feature.article_url && (
@@ -624,6 +629,11 @@ function NewsPair({ features }: { features: ResolvedNewsFeature[] }) {
               <div className="mt-0.5 text-[12px] text-[color:var(--muted)]">
                 {alumByline(f)}
               </div>
+              {f.current_role && (
+                <div className="mt-0.5 text-[12px] text-[color:var(--navy-ink)]">
+                  {f.current_role}
+                </div>
+              )}
             </div>
           </div>
           {f.article_url && (

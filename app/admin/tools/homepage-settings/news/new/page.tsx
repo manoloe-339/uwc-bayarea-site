@@ -28,6 +28,7 @@ export default function NewNewsFeaturePage() {
           pull_quote: "",
           article_url: "",
           portrait_override_url: "",
+          current_role_override: "",
           sort_order: 0,
           enabled: true,
         }}

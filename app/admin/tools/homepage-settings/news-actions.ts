@@ -42,6 +42,7 @@ function readNewsForm(formData: FormData) {
     pull_quote: reqText(formData.get("pull_quote"), "Pull quote"),
     article_url: txt(formData.get("article_url")),
     portrait_override_url: txt(formData.get("portrait_override_url")),
+    current_role_override: txt(formData.get("current_role_override")),
     sort_order: intOr(formData.get("sort_order"), 0),
     enabled: formData.get("enabled") != null,
   };

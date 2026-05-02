@@ -52,6 +52,7 @@ export default async function EditNewsFeaturePage({
           pull_quote: feature.pull_quote,
           article_url: feature.article_url ?? "",
           portrait_override_url: feature.portrait_override_url ?? "",
+          current_role_override: feature.current_role_override ?? "",
           sort_order: feature.sort_order,
           enabled: feature.enabled,
         }}

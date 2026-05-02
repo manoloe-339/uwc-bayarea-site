@@ -10,6 +10,7 @@ export interface NewsFeatureFormInitial {
   pull_quote: string;
   article_url: string;
   portrait_override_url: string;
+  current_role_override: string;
   sort_order: number;
   enabled: boolean;
 }
@@ -60,6 +61,13 @@ export default function NewsFeatureForm({ initial, action, submitLabel }: Props)
         type="url"
         defaultValue={initial.portrait_override_url}
         placeholder="https://…"
+      />
+
+      <Field
+        name="current_role_override"
+        label="Current role line (leave blank to auto-fill from alumni record)"
+        defaultValue={initial.current_role_override}
+        placeholder="e.g. Senior Analyst at Goldman Sachs"
       />
 
       <div className="grid sm:grid-cols-[140px_1fr] gap-4 items-end">

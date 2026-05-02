@@ -8,6 +8,7 @@ export interface NewsFeatureRow {
   pull_quote: string;
   article_url: string | null;
   portrait_override_url: string | null;
+  current_role_override: string | null;
   sort_order: number;
   enabled: boolean;
   created_at: string;
@@ -18,10 +19,13 @@ export interface NewsFeatureRow {
   alumni_uwc_college: string | null;
   alumni_grad_year: number | null;
   alumni_photo_url: string | null;
+  alumni_current_title: string | null;
+  alumni_current_company: string | null;
 }
 
 /** Resolved shape for the public homepage. portrait_url falls back to
- * the alumni record's photo when no override is set. */
+ * the alumni record's photo when no override is set. current_role
+ * falls back to alumni.current_title + alumni.current_company. */
 export interface ResolvedNewsFeature {
   id: number;
   alumni_id: number | null;
@@ -30,6 +34,7 @@ export interface ResolvedNewsFeature {
   pull_quote: string;
   article_url: string | null;
   portrait_url: string | null;
+  current_role: string | null;
   alumni_first_name: string | null;
   alumni_last_name: string | null;
   alumni_uwc_college: string | null;
@@ -50,6 +55,7 @@ export interface NewsFeatureInput {
   pull_quote: string;
   article_url: string | null;
   portrait_override_url: string | null;
+  current_role_override: string | null;
   sort_order: number;
   enabled: boolean;
 }
@@ -57,14 +63,28 @@ export interface NewsFeatureInput {
 const SELECT_WITH_ALUMNI = `
   SELECT
     nf.*,
-    al.first_name AS alumni_first_name,
-    al.last_name  AS alumni_last_name,
-    al.uwc_college AS alumni_uwc_college,
-    al.grad_year  AS alumni_grad_year,
-    al.photo_url  AS alumni_photo_url
+    al.first_name      AS alumni_first_name,
+    al.last_name       AS alumni_last_name,
+    al.uwc_college     AS alumni_uwc_college,
+    al.grad_year       AS alumni_grad_year,
+    al.photo_url       AS alumni_photo_url,
+    al.current_title   AS alumni_current_title,
+    al.current_company AS alumni_current_company
   FROM news_features nf
   LEFT JOIN alumni al ON al.id = nf.alumni_id
 `;
+
+function deriveCurrentRole(r: NewsFeatureRow): string | null {
+  if (r.current_role_override && r.current_role_override.trim()) {
+    return r.current_role_override.trim();
+  }
+  const title = (r.alumni_current_title ?? "").trim();
+  const company = (r.alumni_current_company ?? "").trim();
+  if (title && company) return `${title} at ${company}`;
+  if (title) return title;
+  if (company) return `At ${company}`;
+  return null;
+}
 
 export async function listNewsFeaturesForAdmin(): Promise<NewsFeatureRow[]> {
   return (await sql.query(
@@ -95,6 +115,7 @@ export async function getNewsFeatureDisplay(): Promise<NewsFeatureDisplay> {
     pull_quote: r.pull_quote,
     article_url: r.article_url,
     portrait_url: r.portrait_override_url ?? r.alumni_photo_url,
+    current_role: deriveCurrentRole(r),
     alumni_first_name: r.alumni_first_name,
     alumni_last_name: r.alumni_last_name,
     alumni_uwc_college: r.alumni_uwc_college,
@@ -111,10 +132,11 @@ export async function createNewsFeature(data: NewsFeatureInput): Promise<number>
   const rows = (await sql`
     INSERT INTO news_features (
       alumni_id, publication, date_label, pull_quote, article_url,
-      portrait_override_url, sort_order, enabled
+      portrait_override_url, current_role_override, sort_order, enabled
     ) VALUES (
       ${data.alumni_id}, ${data.publication}, ${data.date_label}, ${data.pull_quote},
-      ${data.article_url}, ${data.portrait_override_url}, ${data.sort_order}, ${data.enabled}
+      ${data.article_url}, ${data.portrait_override_url},
+      ${data.current_role_override}, ${data.sort_order}, ${data.enabled}
     )
     RETURNING id
   `) as { id: number }[];
@@ -133,6 +155,7 @@ export async function updateNewsFeature(
       pull_quote            = ${data.pull_quote},
       article_url           = ${data.article_url},
       portrait_override_url = ${data.portrait_override_url},
+      current_role_override = ${data.current_role_override},
       sort_order            = ${data.sort_order},
       enabled               = ${data.enabled},
       updated_at            = NOW()
