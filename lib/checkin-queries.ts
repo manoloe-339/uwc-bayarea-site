@@ -26,6 +26,12 @@ export type CheckinHit = {
   /** Status of the linked name tag, if any — lets the check-in UI flag
    * tags that still need review. */
   name_tag_status: "pending" | "fix" | "finalized" | null;
+  /** Free-form lines 3 and 4 from a FINALIZED name tag — e.g. "Trustee",
+   * "Faculty 1996–2010". Surfaced on the check-in card so the volunteer
+   * sees the same info they'd read off the printed badge. Null when no
+   * tag, tag isn't finalized, or the line isn't set. */
+  tag_line_3: string | null;
+  tag_line_4: string | null;
 };
 
 /** SQL fragment that's TRUE when a finalized name tag has actually
@@ -101,7 +107,13 @@ const CHECKIN_HIT_SELECT = `
       THEN COALESCE(al.last_name, NULL)
       ELSE NULL
     END AS original_ticket_last,
-    nt.status AS name_tag_status
+    nt.status AS name_tag_status,
+    -- Optional 3rd / 4th lines from a finalized tag (e.g. "Trustee",
+    -- "Faculty 1996–2010"). Match the printed badge — only surface
+    -- them when the tag is finalized so the volunteer's view reflects
+    -- what's actually on the physical badge.
+    CASE WHEN nt.status = 'finalized' THEN nt.line_3 END AS tag_line_3,
+    CASE WHEN nt.status = 'finalized' THEN nt.line_4 END AS tag_line_4
   FROM event_attendees a
   LEFT JOIN alumni al ON al.id = a.alumni_id
   LEFT JOIN event_name_tags nt ON nt.attendee_id = a.id
