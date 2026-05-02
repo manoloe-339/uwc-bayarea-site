@@ -514,9 +514,9 @@ function AlumniNewsSection({ display }: { display: NewsFeatureDisplay }) {
     <section className="bg-white px-6 py-14 sm:px-16 sm:py-24">
       <div className={`mx-auto ${single ? "max-w-[1080px]" : "max-w-[1180px]"}`}>
         <div className="mb-8 sm:mb-12">
-          <Eyebrow>Alumni updates and news</Eyebrow>
+          <Eyebrow>Updates and news</Eyebrow>
           <h2 className="mt-2.5 font-serif font-semibold leading-[1.04] tracking-[-0.01em] text-[color:var(--navy-ink)] text-[32px] sm:text-[48px]">
-            {single ? <>One <em className="italic">spotlight</em></> : <>Out in the <em className="italic">world</em></>}
+            {single ? <>One <em className="italic">spotlight</em></> : <>Local <em className="italic">Alumni</em></>}
           </h2>
         </div>
         {single ? (
