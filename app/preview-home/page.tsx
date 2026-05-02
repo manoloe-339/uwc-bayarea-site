@@ -16,6 +16,11 @@ import {
   type RecentFoodiesDisplay,
 } from "@/lib/homepage";
 import { getActiveHeroSlides } from "@/lib/hero-slides";
+import {
+  getNewsFeatureDisplay,
+  type ResolvedNewsFeature,
+  type NewsFeatureDisplay,
+} from "@/lib/news-features";
 import { HeroCarousel, type HeroSlide } from "./HeroCarousel";
 
 export const dynamic = "force-dynamic";
@@ -26,15 +31,23 @@ export const metadata: Metadata = {
 };
 
 export default async function PreviewHomePage() {
-  const [settings, foodies, otherGatherings, recentFoodies, alumniCount, heroSlides] =
-    await Promise.all([
-      getSiteSettings(),
-      getUpcomingFoodies(4),
-      getOtherUpcomingGatherings(6),
-      getRecentFoodiesDisplay(),
-      getAlumniCount(),
-      getActiveHeroSlides(),
-    ]);
+  const [
+    settings,
+    foodies,
+    otherGatherings,
+    recentFoodies,
+    alumniCount,
+    heroSlides,
+    newsDisplay,
+  ] = await Promise.all([
+    getSiteSettings(),
+    getUpcomingFoodies(4),
+    getOtherUpcomingGatherings(6),
+    getRecentFoodiesDisplay(),
+    getAlumniCount(),
+    getActiveHeroSlides(),
+    getNewsFeatureDisplay(),
+  ]);
 
   // ResolvedHeroSlide → HeroSlide are interchangeable shapes (same fields).
   const slides: HeroSlide[] = heroSlides.map((s) => ({ ...s }));
@@ -52,7 +65,7 @@ export default async function PreviewHomePage() {
       <FoodiesSection meals={foodies} recent={recentFoodies} />
       <OtherGatheringsSection gatherings={otherGatherings} />
       <JoinInterrupt alumniCount={alumniCount} />
-      <AlumniNewsSection />
+      <AlumniNewsSection display={newsDisplay} />
       <SiteFooter />
     </div>
   );
@@ -492,27 +505,150 @@ function JoinInterrupt({ alumniCount }: { alumniCount: number }) {
   );
 }
 
-/* ─── Alumni in the news (placeholder) ────────────────────────── */
+/* ─── Alumni in the news ──────────────────────────────────────── */
 
-function AlumniNewsSection() {
-  // Phase 1: hardcoded placeholder. Phase 2: news_features table + admin.
+function AlumniNewsSection({ display }: { display: NewsFeatureDisplay }) {
+  if (display.layout === "hidden") return null;
+  const single = display.layout === "spotlight";
   return (
     <section className="bg-white px-6 py-14 sm:px-16 sm:py-24">
-      <div className="max-w-[1080px] mx-auto">
+      <div className={`mx-auto ${single ? "max-w-[1080px]" : "max-w-[1180px]"}`}>
         <div className="mb-8 sm:mb-12">
           <Eyebrow>Alumni in the news</Eyebrow>
           <h2 className="mt-2.5 font-serif font-semibold leading-[1.04] tracking-[-0.01em] text-[color:var(--navy-ink)] text-[32px] sm:text-[48px]">
-            Out in the <em className="italic">world</em>
+            {single ? <>One <em className="italic">spotlight</em></> : <>Out in the <em className="italic">world</em></>}
           </h2>
         </div>
-        <div
-          className="border border-dashed border-[color:var(--rule)] rounded-md p-8 sm:p-12 text-center text-[color:var(--muted)] text-sm"
-        >
-          Alumni features will appear here once the editorial table + admin tooling lands.
-        </div>
+        {single ? (
+          <NewsSpotlight feature={display.features[0]} />
+        ) : (
+          <NewsPair features={display.features} />
+        )}
       </div>
     </section>
   );
+}
+
+function NewsSpotlight({ feature }: { feature: ResolvedNewsFeature }) {
+  return (
+    <article className="grid grid-cols-1 sm:grid-cols-[1fr_1.25fr] gap-7 sm:gap-16 items-center">
+      <div className="relative aspect-[4/5] sm:max-w-[460px] w-full bg-[color:var(--ivory-2)] overflow-hidden"
+           style={{ boxShadow: "0 24px 60px -20px rgba(11,37,69,.3)" }}>
+        {feature.portrait_url ? (
+          <Image
+            src={feature.portrait_url}
+            alt=""
+            fill
+            sizes="(min-width: 640px) 460px, 100vw"
+            className="object-cover"
+          />
+        ) : (
+          <div
+            className="w-full h-full"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(135deg, transparent 0 14px, rgba(11,37,69,.05) 14px 28px)",
+            }}
+          />
+        )}
+      </div>
+      <div>
+        {(feature.publication || feature.date_label) && (
+          <Eyebrow muted>
+            {[feature.publication, feature.date_label].filter(Boolean).join(" · ")}
+          </Eyebrow>
+        )}
+        <div
+          aria-hidden
+          className="font-serif font-semibold text-navy mt-6 mb-2"
+          style={{ fontSize: 90, lineHeight: 0.6 }}
+        >
+          “
+        </div>
+        <blockquote className="m-0 font-serif italic font-medium text-[color:var(--navy-ink)] text-[26px] sm:text-[38px] leading-[1.18] tracking-[-0.005em] text-balance">
+          {feature.pull_quote}
+        </blockquote>
+        <div className="mt-8 flex items-center gap-4">
+          {feature.portrait_url && (
+            <div className="relative w-14 h-14 rounded-full overflow-hidden bg-[color:var(--ivory-2)] shrink-0">
+              <Image src={feature.portrait_url} alt="" fill sizes="56px" className="object-cover" />
+            </div>
+          )}
+          <div>
+            <div className="font-sans text-[15px] font-semibold text-[color:var(--navy-ink)]">
+              {alumDisplayName(feature)}
+            </div>
+            <div className="mt-0.5 text-[12px] text-[color:var(--muted)]">
+              {alumByline(feature)}
+            </div>
+          </div>
+        </div>
+        {feature.article_url && (
+          <a
+            href={feature.article_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-7 inline-block text-[12px] font-bold tracking-[.22em] uppercase text-navy border-b border-navy pb-1"
+          >
+            Read the article →
+          </a>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function NewsPair({ features }: { features: ResolvedNewsFeature[] }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-9 sm:gap-14">
+      {features.map((f) => (
+        <article key={f.id} className="pl-6 border-l-[3px] border-navy">
+          {(f.publication || f.date_label) && (
+            <Eyebrow muted>
+              {[f.publication, f.date_label].filter(Boolean).join(" · ")}
+            </Eyebrow>
+          )}
+          <blockquote className="m-0 mt-3.5 font-serif italic font-medium text-[color:var(--navy-ink)] text-[22px] sm:text-[26px] leading-[1.25] text-balance">
+            &ldquo;{f.pull_quote}&rdquo;
+          </blockquote>
+          <div className="mt-6 flex items-center gap-3.5">
+            {f.portrait_url && (
+              <div className="relative w-[50px] h-[50px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] shrink-0">
+                <Image src={f.portrait_url} alt="" fill sizes="50px" className="object-cover" />
+              </div>
+            )}
+            <div>
+              <div className="font-sans text-[14px] font-semibold text-[color:var(--navy-ink)]">
+                {alumDisplayName(f)}
+              </div>
+              <div className="mt-0.5 text-[12px] text-[color:var(--muted)]">
+                {alumByline(f)}
+              </div>
+            </div>
+          </div>
+          {f.article_url && (
+            <a
+              href={f.article_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-block text-[11px] font-bold tracking-[.22em] uppercase text-navy border-b border-navy pb-1"
+            >
+              Read article →
+            </a>
+          )}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function alumDisplayName(f: ResolvedNewsFeature): string {
+  return [f.alumni_first_name, f.alumni_last_name].filter(Boolean).join(" ") || "Alumna";
+}
+
+function alumByline(f: ResolvedNewsFeature): string {
+  const yy = f.alumni_grad_year ? `'${String(f.alumni_grad_year).slice(-2)}` : "";
+  return [f.alumni_uwc_college, yy].filter(Boolean).join(" · ");
 }
 
 /* ─── Shared bits ─────────────────────────────────────────────── */
