@@ -30,6 +30,31 @@ interface Props {
   initial: SlideFormInitial;
   action: (formData: FormData) => void;
   submitLabel: string;
+  /** Used to seed the focal-point preview when image_url is blank
+   * but a linked event has photos. Resolved server-side. */
+  defaultImagePreviewUrl?: string | null;
+}
+
+type FocalMode = "top" | "center" | "bottom" | "custom";
+
+function parseFocalPoint(raw: string): { mode: FocalMode; x: number; y: number } {
+  const v = (raw ?? "").trim().toLowerCase();
+  if (v === "top") return { mode: "top", x: 50, y: 0 };
+  if (v === "bottom") return { mode: "bottom", x: 50, y: 100 };
+  if (v === "center" || v === "") return { mode: "center", x: 50, y: 50 };
+  // Custom "X% Y%"
+  const m = v.match(/^(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%$/);
+  if (m) {
+    const x = Math.max(0, Math.min(100, Number(m[1])));
+    const y = Math.max(0, Math.min(100, Number(m[2])));
+    return { mode: "custom", x, y };
+  }
+  return { mode: "center", x: 50, y: 50 };
+}
+
+function focalPointValue(mode: FocalMode, x: number, y: number): string {
+  if (mode === "custom") return `${x}% ${y}%`;
+  return mode;
 }
 
 function fmtDate(d: Date | string): string {
@@ -38,7 +63,9 @@ function fmtDate(d: Date | string): string {
   return dd.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
-export default function SlideForm({ events, initial, action, submitLabel }: Props) {
+export default function SlideForm({
+  events, initial, action, submitLabel, defaultImagePreviewUrl,
+}: Props) {
   const [eventId, setEventId] = useState<number | null>(initial.event_id);
   const [eyebrow, setEyebrow] = useState(initial.eyebrow);
   const [title, setTitle] = useState(initial.title);
@@ -47,6 +74,14 @@ export default function SlideForm({ events, initial, action, submitLabel }: Prop
   const [ctaLabel, setCtaLabel] = useState(initial.cta_label);
   const [ctaHref, setCtaHref] = useState(initial.cta_href);
   const [imageUrl, setImageUrl] = useState(initial.image_url);
+
+  const initialFocal = parseFocalPoint(initial.focal_point);
+  const [focalMode, setFocalMode] = useState<FocalMode>(initialFocal.mode);
+  const [focalX, setFocalX] = useState<number>(initialFocal.x);
+  const [focalY, setFocalY] = useState<number>(initialFocal.y);
+
+  const previewSrc = imageUrl || defaultImagePreviewUrl || null;
+  const previewObjectPosition = focalPointValue(focalMode, focalX, focalY);
 
   const linkedEvent = useMemo(
     () => (eventId ? events.find((e) => e.id === eventId) ?? null : null),
@@ -118,23 +153,76 @@ export default function SlideForm({ events, initial, action, submitLabel }: Prop
         placeholder="https://…"
       />
 
-      <label className="block">
-        <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+      <fieldset className="border border-[color:var(--rule)] rounded p-4 space-y-3">
+        <legend className="text-[11px] tracking-[.22em] uppercase font-bold text-navy px-1">
           Photo focal point
-        </span>
-        <select
+        </legend>
+        <input
+          type="hidden"
           name="focal_point"
-          defaultValue={initial.focal_point}
-          className="w-full sm:w-[280px] border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
-        >
-          <option value="top">Top — keep the top of the photo, crop bottom</option>
-          <option value="center">Center — crop top and bottom equally</option>
-          <option value="bottom">Bottom — keep the bottom, crop top</option>
-        </select>
-        <span className="block mt-1 text-xs text-[color:var(--muted)]">
-          Use Top when faces / action are near the top of the photo.
-        </span>
-      </label>
+          value={previewObjectPosition}
+        />
+        <div className="grid sm:grid-cols-[280px_1fr] gap-4">
+          <div className="space-y-2">
+            <select
+              value={focalMode}
+              onChange={(e) => setFocalMode(e.target.value as FocalMode)}
+              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            >
+              <option value="top">Top — keep the top, crop bottom</option>
+              <option value="center">Center — crop top and bottom equally</option>
+              <option value="bottom">Bottom — keep the bottom, crop top</option>
+              <option value="custom">Custom — pick exact X/Y</option>
+            </select>
+            {focalMode === "custom" && (
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span className="block text-[10px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)] mb-1">
+                    X (% from left)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={focalX}
+                    onChange={(e) => setFocalX(clamp(Number(e.target.value), 0, 100))}
+                    className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
+                  />
+                </label>
+                <label className="block">
+                  <span className="block text-[10px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)] mb-1">
+                    Y (% from top)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={focalY}
+                    onChange={(e) => setFocalY(clamp(Number(e.target.value), 0, 100))}
+                    className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
+                  />
+                </label>
+              </div>
+            )}
+            <p className="text-xs text-[color:var(--muted)]">
+              {focalMode === "custom"
+                ? "Click on the preview to set the focal point, or type X/Y values directly."
+                : "Use Top when faces / action are near the top of the photo. Pick Custom for fine control."}
+            </p>
+          </div>
+          <FocalPreview
+            src={previewSrc}
+            objectPosition={previewObjectPosition}
+            onPick={(x, y) => {
+              setFocalMode("custom");
+              setFocalX(Math.round(x));
+              setFocalY(Math.round(y));
+            }}
+          />
+        </div>
+      </fieldset>
 
       <div className="grid sm:grid-cols-[140px_1fr] gap-4 items-end">
         <label className="block">
@@ -202,6 +290,57 @@ function Field({
         className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
       />
     </label>
+  );
+}
+
+function clamp(n: number, lo: number, hi: number): number {
+  if (!Number.isFinite(n)) return lo;
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function FocalPreview({
+  src, objectPosition, onPick,
+}: {
+  src: string | null;
+  objectPosition: string;
+  onPick: (xPct: number, yPct: number) => void;
+}) {
+  if (!src) {
+    return (
+      <div className="flex items-center justify-center text-xs text-[color:var(--muted)] border border-dashed border-[color:var(--rule)] rounded p-4 min-h-[120px]">
+        Pick an image URL or link an event to preview the crop.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      {/* Desktop hero crop: 21:9 */}
+      <button
+        type="button"
+        onClick={(e) => {
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          const x = ((e.clientX - rect.left) / rect.width) * 100;
+          const y = ((e.clientY - rect.top) / rect.height) * 100;
+          onPick(clamp(x, 0, 100), clamp(y, 0, 100));
+        }}
+        className="block relative w-full bg-[color:var(--ivory-2)] overflow-hidden rounded cursor-crosshair border border-[color:var(--rule)]"
+        style={{ aspectRatio: "21 / 9" }}
+        aria-label="Click to set focal point"
+      >
+        {/* Using <img> intentionally — Next/Image fill needs known sizes
+            and this preview is admin-only (not perf-critical). */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ objectPosition }}
+        />
+      </button>
+      <div className="text-[10px] text-[color:var(--muted)] tracking-[.16em] uppercase">
+        Desktop crop preview · click to pin focal point · current: {objectPosition}
+      </div>
+    </div>
   );
 }
 

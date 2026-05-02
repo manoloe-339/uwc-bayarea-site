@@ -12,8 +12,9 @@ export interface HeroSlide {
   cta_href: string;
   /** Background image URL. When null, a striped placeholder shows. */
   image_url: string | null;
-  /** How the photo is anchored when cropped. Defaults to "center". */
-  focal_point?: "top" | "center" | "bottom";
+  /** How the photo is anchored when cropped. CSS object-position value:
+   * "top" / "center" / "bottom" or a custom "X% Y%" pair. Defaults to "center". */
+  focal_point?: string;
 }
 
 interface Props {

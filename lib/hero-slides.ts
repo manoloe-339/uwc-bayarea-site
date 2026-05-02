@@ -1,12 +1,17 @@
 import { sql } from "./db";
 import { getApprovedPhotosOrdered } from "./event-photos/queries";
 
-export type HeroFocalPoint = "top" | "center" | "bottom";
+/** CSS object-position value. Either a named preset (top/center/bottom)
+ * or a custom "X% Y%" pair. Stored as raw CSS so it can be passed to
+ * the rendered <Image> directly. */
+export type HeroFocalPoint = string;
 
-export const HERO_FOCAL_POINTS: HeroFocalPoint[] = ["top", "center", "bottom"];
+export const HERO_FOCAL_POINT_PRESETS = ["top", "center", "bottom"] as const;
+const CUSTOM_FOCAL_RE = /^\s*\d+(?:\.\d+)?%\s+\d+(?:\.\d+)?%\s*$/;
 
-export function isHeroFocalPoint(v: string): v is HeroFocalPoint {
-  return (HERO_FOCAL_POINTS as string[]).includes(v);
+export function isHeroFocalPoint(v: string): boolean {
+  if ((HERO_FOCAL_POINT_PRESETS as readonly string[]).includes(v)) return true;
+  return CUSTOM_FOCAL_RE.test(v);
 }
 
 export interface HeroSlideRow {
