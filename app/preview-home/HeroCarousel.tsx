@@ -123,9 +123,21 @@ export function HeroCarousel({ slides, intervalSec = 7 }: Props) {
           </div>
         </div>
 
+        {/* Full-bleed overlay link — taps anywhere on the hero open the
+            event gallery. Sits above the image + gradient but BELOW the
+            slide dots and the top-right "See more photos" link, so
+            those keep their own click handlers. */}
+        {slide.cta_href && (
+          <a
+            href={slide.cta_href}
+            aria-label={[slide.title, slide.emphasis].filter(Boolean).join(" ") || slide.cta_label}
+            className="absolute inset-0 z-[3]"
+          />
+        )}
+
         {/* Slide dots */}
         {slides.length > 1 && (
-          <div className="absolute bottom-5 right-5 sm:bottom-7 sm:right-8 flex gap-2 items-center">
+          <div className="absolute bottom-5 right-5 sm:bottom-7 sm:right-8 flex gap-2 items-center z-10">
             {slides.map((_, i) => (
               <button
                 key={i}
@@ -144,7 +156,7 @@ export function HeroCarousel({ slides, intervalSec = 7 }: Props) {
         {slide.cta_href && (
           <a
             href={slide.cta_href}
-            className="hidden sm:inline-block absolute top-7 right-8 text-[11px] font-bold tracking-[.22em] uppercase text-white/80 hover:text-white border-b border-white/50 hover:border-white pb-1"
+            className="hidden sm:inline-block absolute top-7 right-8 z-10 text-[11px] font-bold tracking-[.22em] uppercase text-white/80 hover:text-white border-b border-white/50 hover:border-white pb-1"
           >
             {slide.cta_label}
           </a>

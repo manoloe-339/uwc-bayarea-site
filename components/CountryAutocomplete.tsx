@@ -139,7 +139,20 @@ export function CountryAutocomplete({
                       role="option"
                       aria-selected={i === highlight}
                       onMouseEnter={() => setHighlight(i)}
-                      onClick={() => choose(c)}
+                      // Use onMouseDown + preventDefault so the country
+                      // is picked BEFORE the input blur fires. On mobile
+                      // (iOS Safari especially) the synthesized touch →
+                      // blur sequence can otherwise eat the tap and the
+                      // user has to type + hit Enter to select.
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        choose(c);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        choose(c);
+                      }}
+                      style={{ touchAction: "manipulation" }}
                       className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 ${
                         i === highlight ? "bg-ivory-2" : "bg-white"
                       } hover:bg-ivory-2`}
