@@ -59,9 +59,9 @@ export default async function PreviewHomePage() {
       <HeroCarousel slides={slides} />
       <WhatsAppBand
         url={settings.whatsapp_url}
-        headline={settings.whatsapp_default_headline ?? "Most of us live on WhatsApp"}
-        body="Connect with local alumni. Must be registered in our SF Bay Area mailing list or a UWC alumnus visiting. All Foodie events are coordinated through WhatsApp."
-        ctaLabel={settings.whatsapp_default_cta_label ?? "Join the group →"}
+        headline="Connect with local alumni"
+        body="We have a WhatsApp Community for UWC Bay Area. Must be registered in our SF Bay Area mailing list or a UWC alumnus visiting. All Foodie events are coordinated through WhatsApp."
+        ctaLabel="Join UWC Bay Area →"
       />
       <FoodiesSection meals={foodies} recent={recentFoodies} />
       <OtherGatheringsSection gatherings={otherGatherings} />

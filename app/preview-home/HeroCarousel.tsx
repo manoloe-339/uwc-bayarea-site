@@ -12,13 +12,14 @@ export interface HeroSlide {
   cta_href: string;
   /** Background image URL. When null, a striped placeholder shows. */
   image_url: string | null;
-  /** How the photo is anchored when cropped. CSS object-position value:
-   * "top" / "center" / "bottom" or a custom "X% Y%" pair. Defaults to "center". */
+  /** Desktop focal point (21:9 crop). */
   focal_point?: string;
-  /** Zoom factor. 1.0 = object-cover (default fills container).
-   * <1.0 switches to object-contain so the whole photo shows (letterboxed).
-   * >1.0 stays on cover and scales up for a tighter crop. */
+  /** Desktop zoom factor. */
   zoom?: number;
+  /** Mobile focal point (4:5 crop). Falls back to focal_point. */
+  mobile_focal_point?: string;
+  /** Mobile zoom factor. Falls back to zoom. */
+  mobile_zoom?: number;
 }
 
 interface Props {
@@ -54,19 +55,36 @@ export function HeroCarousel({ slides, intervalSec = 7 }: Props) {
             }`}
           >
             {s.image_url ? (
-              <Image
-                src={s.image_url}
-                alt=""
-                fill
-                priority={i === 0}
-                sizes="100vw"
-                className={(s.zoom ?? 1) < 1 ? "object-contain" : "object-cover"}
-                style={{
-                  objectPosition: s.focal_point ?? "center",
-                  transform: (s.zoom ?? 1) !== 1 ? `scale(${s.zoom})` : undefined,
-                  transformOrigin: s.focal_point ?? "center",
-                }}
-              />
+              <>
+                {/* Desktop variant */}
+                <Image
+                  src={s.image_url}
+                  alt=""
+                  fill
+                  priority={i === 0}
+                  sizes="100vw"
+                  className={`hidden sm:block ${(s.zoom ?? 1) < 1 ? "object-contain" : "object-cover"}`}
+                  style={{
+                    objectPosition: s.focal_point ?? "center",
+                    transform: (s.zoom ?? 1) !== 1 ? `scale(${s.zoom})` : undefined,
+                    transformOrigin: s.focal_point ?? "center",
+                  }}
+                />
+                {/* Mobile variant — separate calibration for the 4:5 crop */}
+                <Image
+                  src={s.image_url}
+                  alt=""
+                  fill
+                  priority={i === 0}
+                  sizes="100vw"
+                  className={`block sm:hidden ${(s.mobile_zoom ?? s.zoom ?? 1) < 1 ? "object-contain" : "object-cover"}`}
+                  style={{
+                    objectPosition: s.mobile_focal_point ?? s.focal_point ?? "center",
+                    transform: (s.mobile_zoom ?? s.zoom ?? 1) !== 1 ? `scale(${s.mobile_zoom ?? s.zoom})` : undefined,
+                    transformOrigin: s.mobile_focal_point ?? s.focal_point ?? "center",
+                  }}
+                />
+              </>
             ) : (
               <div
                 className="w-full h-full bg-[color:var(--navy-deep)]"
@@ -93,7 +111,11 @@ export function HeroCarousel({ slides, intervalSec = 7 }: Props) {
             </div>
             <h1 className="mt-3.5 text-white font-serif font-semibold leading-[1.04] tracking-[-0.01em] text-balance text-[34px] sm:text-[64px]">
               {slide.title}{" "}
-              <em className="not-italic italic font-semibold">{slide.emphasis}</em>
+              <em
+                className="italic font-semibold underline decoration-white/70 underline-offset-[8px] decoration-[3px]"
+              >
+                {slide.emphasis}
+              </em>
             </h1>
             <div className="mt-4 text-white/80 text-[14px] sm:text-base leading-[1.5] max-w-[540px]">
               {slide.byline}

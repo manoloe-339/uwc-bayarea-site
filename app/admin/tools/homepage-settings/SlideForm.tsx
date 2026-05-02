@@ -28,6 +28,8 @@ export interface SlideFormInitial {
   image_url: string;
   focal_point: HeroFocalPoint;
   zoom: number;
+  mobile_focal_point: HeroFocalPoint;
+  mobile_zoom: number;
   extra_image_settings: ExtraImageSetting[];
   sort_order: number;
   enabled: boolean;
@@ -94,6 +96,13 @@ export default function SlideForm({
   const [focalY, setFocalY] = useState<number>(initialFocal.y);
   const [zoom, setZoom] = useState<number>(initial.zoom ?? 1);
 
+  const initialMobile = parseFocalPoint(initial.mobile_focal_point);
+  const [mobileFocalMode, setMobileFocalMode] = useState<FocalMode>(initialMobile.mode);
+  const [mobileFocalX, setMobileFocalX] = useState<number>(initialMobile.x);
+  const [mobileFocalY, setMobileFocalY] = useState<number>(initialMobile.y);
+  const [mobileZoom, setMobileZoom] = useState<number>(initial.mobile_zoom ?? 1);
+  const mobileObjectPosition = focalPointValue(mobileFocalMode, mobileFocalX, mobileFocalY);
+
   const [extras, setExtras] = useState<ExtraImageSetting[]>(initial.extra_image_settings ?? []);
   const maxExtras = extraGalleryPhotos.length;
   const updateExtra = (i: number, patch: Partial<ExtraImageSetting>) => {
@@ -103,7 +112,13 @@ export default function SlideForm({
     const clamped = Math.max(0, Math.min(maxExtras, n));
     setExtras((prev) => {
       const next = [...prev];
-      while (next.length < clamped) next.push({ focal_point: "center", zoom: 1 });
+      while (next.length < clamped)
+        next.push({
+          focal_point: "center",
+          zoom: 1,
+          mobile_focal_point: "center",
+          mobile_zoom: 1,
+        });
       next.length = clamped;
       return next;
     });
@@ -282,6 +297,81 @@ export default function SlideForm({
 
       <fieldset className="border border-[color:var(--rule)] rounded p-4 space-y-3">
         <legend className="text-[11px] tracking-[.22em] uppercase font-bold text-navy px-1">
+          Photo focal point — Mobile (4:5)
+        </legend>
+        <input type="hidden" name="mobile_focal_point" value={mobileObjectPosition} />
+        <div className="grid sm:grid-cols-[280px_1fr] gap-4">
+          <div className="space-y-2">
+            <select
+              value={mobileFocalMode}
+              onChange={(e) => setMobileFocalMode(e.target.value as FocalMode)}
+              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            >
+              <option value="top">Top — keep the top, crop bottom</option>
+              <option value="center">Center — crop top and bottom equally</option>
+              <option value="bottom">Bottom — keep the bottom, crop top</option>
+              <option value="custom">Custom — pick exact X/Y</option>
+            </select>
+            {mobileFocalMode === "custom" && (
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span className="block text-[10px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)] mb-1">X (%)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={mobileFocalX}
+                    onChange={(e) => setMobileFocalX(clamp(Number(e.target.value), 0, 100))}
+                    className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
+                  />
+                </label>
+                <label className="block">
+                  <span className="block text-[10px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)] mb-1">Y (%)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={mobileFocalY}
+                    onChange={(e) => setMobileFocalY(clamp(Number(e.target.value), 0, 100))}
+                    className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
+                  />
+                </label>
+              </div>
+            )}
+            <div className="border-t border-[color:var(--rule)] pt-2">
+              <input type="hidden" name="mobile_zoom" value={mobileZoom.toFixed(2)} />
+              <div className="flex items-baseline justify-between mb-1">
+                <span className="text-[10px] tracking-[.18em] uppercase font-bold text-navy">Mobile zoom</span>
+                <span className="text-xs text-[color:var(--muted)] font-mono">{mobileZoom.toFixed(2)}×</span>
+              </div>
+              <input
+                type="range"
+                min={0.5}
+                max={2}
+                step={0.05}
+                value={mobileZoom}
+                onChange={(e) => setMobileZoom(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+          </div>
+          <MobileFocalPreview
+            src={previewSrc}
+            objectPosition={mobileObjectPosition}
+            zoom={mobileZoom}
+            onPick={(x, y) => {
+              setMobileFocalMode("custom");
+              setMobileFocalX(Math.round(x));
+              setMobileFocalY(Math.round(y));
+            }}
+          />
+        </div>
+      </fieldset>
+
+      <fieldset className="border border-[color:var(--rule)] rounded p-4 space-y-3">
+        <legend className="text-[11px] tracking-[.22em] uppercase font-bold text-navy px-1">
           Show more photos from this event
         </legend>
         <input
@@ -402,6 +492,56 @@ function Field({
   );
 }
 
+function MobileFocalPreview({
+  src, objectPosition, zoom, onPick,
+}: {
+  src: string | null;
+  objectPosition: string;
+  zoom: number;
+  onPick: (xPct: number, yPct: number) => void;
+}) {
+  if (!src) {
+    return (
+      <div className="flex items-center justify-center text-xs text-[color:var(--muted)] border border-dashed border-[color:var(--rule)] rounded p-4 min-h-[120px]">
+        Pick an image URL or link an event to preview the crop.
+      </div>
+    );
+  }
+  const isContain = zoom < 1;
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        onClick={(e) => {
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          const x = ((e.clientX - rect.left) / rect.width) * 100;
+          const y = ((e.clientY - rect.top) / rect.height) * 100;
+          onPick(clamp(x, 0, 100), clamp(y, 0, 100));
+        }}
+        className="block relative bg-[color:var(--navy-ink)] overflow-hidden rounded cursor-crosshair border border-[color:var(--rule)] mx-auto"
+        style={{ aspectRatio: "4 / 5", width: "min(100%, 220px)" }}
+        aria-label="Click to set mobile focal point"
+      >
+        <Image
+          src={src}
+          alt=""
+          fill
+          sizes="220px"
+          className={`pointer-events-none ${isContain ? "object-contain" : "object-cover"}`}
+          style={{
+            objectPosition,
+            transform: zoom !== 1 ? `scale(${zoom})` : undefined,
+            transformOrigin: objectPosition,
+          }}
+        />
+      </button>
+      <div className="text-[10px] text-[color:var(--muted)] tracking-[.16em] uppercase text-center">
+        Mobile preview · {objectPosition} · {zoom.toFixed(2)}×
+      </div>
+    </div>
+  );
+}
+
 function ExtraImageCard({
   index, photoUrl, setting, onChange,
 }: {
@@ -412,23 +552,109 @@ function ExtraImageCard({
 }) {
   const focal = parseFocalPoint(setting.focal_point);
   const objectPosition = focalPointValue(focal.mode, focal.x, focal.y);
+  const mobileFocal = parseFocalPoint(setting.mobile_focal_point);
+  const mobileObjectPosition = focalPointValue(mobileFocal.mode, mobileFocal.x, mobileFocal.y);
   const isContain = setting.zoom < 1;
+  const isMobileContain = setting.mobile_zoom < 1;
   return (
-    <div className="border border-[color:var(--rule)] rounded p-3 bg-[color:var(--ivory)]/30">
-      <div className="text-[10px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-2">
+    <div className="border border-[color:var(--rule)] rounded p-3 bg-[color:var(--ivory)]/30 space-y-3">
+      <div className="text-[10px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)]">
         Image #{index + 2} from gallery
       </div>
-      <div className="grid sm:grid-cols-[200px_1fr] gap-3">
+
+      <CalibrationRow
+        label="Desktop (21:9)"
+        photoUrl={photoUrl}
+        previewAspect="21 / 9"
+        previewWidth="100%"
+        objectPosition={objectPosition}
+        zoom={setting.zoom}
+        isContain={isContain}
+        focalMode={focal.mode}
+        onModeChange={(mode) => onChange({ focal_point: focalPointValue(mode, focal.x, focal.y) })}
+        onPick={(x, y) => onChange({ focal_point: `${Math.round(clamp(x, 0, 100))}% ${Math.round(clamp(y, 0, 100))}%` })}
+        onZoom={(z) => onChange({ zoom: z })}
+      />
+
+      <CalibrationRow
+        label="Mobile (4:5)"
+        photoUrl={photoUrl}
+        previewAspect="4 / 5"
+        previewWidth="160px"
+        objectPosition={mobileObjectPosition}
+        zoom={setting.mobile_zoom}
+        isContain={isMobileContain}
+        focalMode={mobileFocal.mode}
+        onModeChange={(mode) =>
+          onChange({ mobile_focal_point: focalPointValue(mode, mobileFocal.x, mobileFocal.y) })
+        }
+        onPick={(x, y) =>
+          onChange({
+            mobile_focal_point: `${Math.round(clamp(x, 0, 100))}% ${Math.round(clamp(y, 0, 100))}%`,
+          })
+        }
+        onZoom={(z) => onChange({ mobile_zoom: z })}
+      />
+    </div>
+  );
+}
+
+function CalibrationRow({
+  label, photoUrl, previewAspect, previewWidth,
+  objectPosition, zoom, isContain, focalMode,
+  onModeChange, onPick, onZoom,
+}: {
+  label: string;
+  photoUrl: string;
+  previewAspect: string;
+  previewWidth: string;
+  objectPosition: string;
+  zoom: number;
+  isContain: boolean;
+  focalMode: FocalMode;
+  onModeChange: (mode: FocalMode) => void;
+  onPick: (x: number, y: number) => void;
+  onZoom: (z: number) => void;
+}) {
+  return (
+    <div>
+      <div className="text-[10px] tracking-[.18em] uppercase font-bold text-navy mb-1.5">{label}</div>
+      <div className="grid sm:grid-cols-[1fr_180px] gap-3 items-start">
+        <div className="space-y-2">
+          <select
+            value={focalMode}
+            onChange={(e) => onModeChange(e.target.value as FocalMode)}
+            className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
+          >
+            <option value="top">Top</option>
+            <option value="center">Center</option>
+            <option value="bottom">Bottom</option>
+            <option value="custom">Custom (click preview)</option>
+          </select>
+          <div className="flex items-baseline justify-between text-[10px] text-[color:var(--muted)]">
+            <span>Zoom</span>
+            <span className="font-mono">{zoom.toFixed(2)}×</span>
+          </div>
+          <input
+            type="range"
+            min={0.5}
+            max={2}
+            step={0.05}
+            value={zoom}
+            onChange={(e) => onZoom(Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
         <button
           type="button"
           onClick={(e) => {
             const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
             const x = ((e.clientX - rect.left) / rect.width) * 100;
             const y = ((e.clientY - rect.top) / rect.height) * 100;
-            onChange({ focal_point: `${Math.round(clamp(x, 0, 100))}% ${Math.round(clamp(y, 0, 100))}%` });
+            onPick(clamp(x, 0, 100), clamp(y, 0, 100));
           }}
-          className="block relative w-full bg-[color:var(--navy-ink)] overflow-hidden rounded cursor-crosshair border border-[color:var(--rule)]"
-          style={{ aspectRatio: "21 / 9" }}
+          className="block relative bg-[color:var(--navy-ink)] overflow-hidden rounded cursor-crosshair border border-[color:var(--rule)] mx-auto"
+          style={{ aspectRatio: previewAspect, width: previewWidth }}
           aria-label="Click to set focal point"
         >
           <Image
@@ -439,46 +665,11 @@ function ExtraImageCard({
             className={`pointer-events-none ${isContain ? "object-contain" : "object-cover"}`}
             style={{
               objectPosition,
-              transform: setting.zoom !== 1 ? `scale(${setting.zoom})` : undefined,
+              transform: zoom !== 1 ? `scale(${zoom})` : undefined,
               transformOrigin: objectPosition,
             }}
           />
         </button>
-        <div className="space-y-2">
-          <label className="block">
-            <span className="block text-[10px] tracking-[.18em] uppercase font-bold text-navy mb-1">
-              Focal point
-            </span>
-            <select
-              value={focal.mode}
-              onChange={(e) => {
-                const mode = e.target.value as FocalMode;
-                onChange({ focal_point: focalPointValue(mode, focal.x, focal.y) });
-              }}
-              className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
-            >
-              <option value="top">Top</option>
-              <option value="center">Center</option>
-              <option value="bottom">Bottom</option>
-              <option value="custom">Custom (click preview)</option>
-            </select>
-          </label>
-          <label className="block">
-            <div className="flex items-baseline justify-between mb-1">
-              <span className="text-[10px] tracking-[.18em] uppercase font-bold text-navy">Zoom</span>
-              <span className="text-xs text-[color:var(--muted)] font-mono">{setting.zoom.toFixed(2)}×</span>
-            </div>
-            <input
-              type="range"
-              min={0.5}
-              max={2}
-              step={0.05}
-              value={setting.zoom}
-              onChange={(e) => onChange({ zoom: Number(e.target.value) })}
-              className="w-full"
-            />
-          </label>
-        </div>
       </div>
     </div>
   );

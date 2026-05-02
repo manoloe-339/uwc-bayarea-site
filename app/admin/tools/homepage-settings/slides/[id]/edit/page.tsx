@@ -78,6 +78,11 @@ export default async function EditSlidePage({
           image_url: slide.image_url ?? "",
           focal_point: slide.focal_point,
           zoom: typeof slide.zoom === "number" ? slide.zoom : Number(slide.zoom ?? 1),
+          mobile_focal_point: slide.mobile_focal_point ?? slide.focal_point,
+          mobile_zoom:
+            typeof slide.mobile_zoom === "number"
+              ? slide.mobile_zoom
+              : Number(slide.mobile_zoom ?? slide.zoom ?? 1),
           extra_image_settings: extras,
           sort_order: slide.sort_order,
           enabled: slide.enabled,

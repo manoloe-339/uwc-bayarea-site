@@ -72,6 +72,8 @@ function readSlideForm(formData: FormData) {
     image_url: txt(formData.get("image_url")),
     focal_point: readFocalPoint(formData.get("focal_point")),
     zoom: readZoom(formData.get("zoom")),
+    mobile_focal_point: readFocalPoint(formData.get("mobile_focal_point")),
+    mobile_zoom: readZoom(formData.get("mobile_zoom")),
     extra_image_settings: readExtras(formData.get("extra_image_settings")),
     sort_order: intOr(formData.get("sort_order"), 0),
     enabled: formData.get("enabled") != null,

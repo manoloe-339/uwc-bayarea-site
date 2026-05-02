@@ -17,6 +17,8 @@ export function isHeroFocalPoint(v: string): boolean {
 export interface ExtraImageSetting {
   focal_point: HeroFocalPoint;
   zoom: number;
+  mobile_focal_point: HeroFocalPoint;
+  mobile_zoom: number;
 }
 
 export interface HeroSlideRow {
@@ -32,6 +34,8 @@ export interface HeroSlideRow {
   focal_point: HeroFocalPoint;
   /** Numeric stored by Neon as string. Coerce when reading. */
   zoom: number | string;
+  mobile_focal_point: HeroFocalPoint;
+  mobile_zoom: number | string;
   /** JSON array of per-image calibration for positions 1..N when the
    * admin wants to show multiple photos from a single event's gallery. */
   extra_image_settings: ExtraImageSetting[] | string;
@@ -62,7 +66,15 @@ function normalizeExtra(raw: unknown): ExtraImageSetting {
   const fp = typeof r.focal_point === "string" && isHeroFocalPoint(r.focal_point) ? r.focal_point : "center";
   const zoomNum = Number(r.zoom);
   const zoom = Number.isFinite(zoomNum) ? Math.max(0.5, Math.min(2, zoomNum)) : 1;
-  return { focal_point: fp, zoom };
+  // Mobile defaults to desktop values for legacy rows that lack the
+  // mobile_* keys, so existing slides don't suddenly look broken.
+  const mfp =
+    typeof r.mobile_focal_point === "string" && isHeroFocalPoint(r.mobile_focal_point)
+      ? r.mobile_focal_point
+      : fp;
+  const mZoomNum = Number(r.mobile_zoom);
+  const mZoom = Number.isFinite(mZoomNum) ? Math.max(0.5, Math.min(2, mZoomNum)) : zoom;
+  return { focal_point: fp, zoom, mobile_focal_point: mfp, mobile_zoom: mZoom };
 }
 
 /** Resolved slide ready for the public hero carousel. */
@@ -76,6 +88,8 @@ export interface ResolvedHeroSlide {
   image_url: string | null;
   focal_point: HeroFocalPoint;
   zoom: number;
+  mobile_focal_point: HeroFocalPoint;
+  mobile_zoom: number;
 }
 
 function coerceZoom(v: number | string | null | undefined): number {
@@ -175,6 +189,8 @@ export async function getActiveHeroSlides(): Promise<ResolvedHeroSlide[]> {
       image_url: primaryImage,
       focal_point: r.focal_point,
       zoom: coerceZoom(r.zoom),
+      mobile_focal_point: r.mobile_focal_point ?? r.focal_point,
+      mobile_zoom: coerceZoom(r.mobile_zoom),
     });
 
     // Positions 1..N: pull from the event's gallery in order, skipping
@@ -189,6 +205,8 @@ export async function getActiveHeroSlides(): Promise<ResolvedHeroSlide[]> {
           image_url: remaining[i].blob_url,
           focal_point: extras[i].focal_point,
           zoom: extras[i].zoom,
+          mobile_focal_point: extras[i].mobile_focal_point,
+          mobile_zoom: extras[i].mobile_zoom,
         });
       }
     }
@@ -232,6 +250,8 @@ async function deriveSlidesFromRecentEvents(limit: number): Promise<ResolvedHero
       image_url: photos[0]?.blob_url ?? null,
       focal_point: "center",
       zoom: 1,
+      mobile_focal_point: "center",
+      mobile_zoom: 1,
     });
   }
   return slides;
@@ -261,6 +281,8 @@ export interface HeroSlideInput {
   image_url: string | null;
   focal_point: HeroFocalPoint;
   zoom: number;
+  mobile_focal_point: HeroFocalPoint;
+  mobile_zoom: number;
   extra_image_settings: ExtraImageSetting[];
   sort_order: number;
   enabled: boolean;
@@ -275,11 +297,13 @@ export async function createHeroSlide(data: HeroSlideInput): Promise<number> {
     INSERT INTO homepage_hero_slides (
       event_id, eyebrow, title, emphasis, byline,
       cta_label, cta_href, image_url, focal_point, zoom,
+      mobile_focal_point, mobile_zoom,
       extra_image_settings, sort_order, enabled
     ) VALUES (
       ${data.event_id}, ${data.eyebrow}, ${data.title}, ${data.emphasis}, ${data.byline},
       ${data.cta_label}, ${data.cta_href}, ${data.image_url}, ${data.focal_point},
       ${coerceZoom(data.zoom)},
+      ${data.mobile_focal_point}, ${coerceZoom(data.mobile_zoom)},
       ${serializeExtras(data.extra_image_settings)}::jsonb,
       ${data.sort_order}, ${data.enabled}
     )
@@ -304,6 +328,8 @@ export async function updateHeroSlide(
       image_url   = ${data.image_url},
       focal_point = ${data.focal_point},
       zoom        = ${coerceZoom(data.zoom)},
+      mobile_focal_point = ${data.mobile_focal_point},
+      mobile_zoom        = ${coerceZoom(data.mobile_zoom)},
       extra_image_settings = ${serializeExtras(data.extra_image_settings)}::jsonb,
       sort_order  = ${data.sort_order},
       enabled     = ${data.enabled},
