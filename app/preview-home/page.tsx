@@ -530,28 +530,39 @@ function AlumniNewsSection({ display }: { display: NewsFeatureDisplay }) {
 }
 
 function NewsSpotlight({ feature }: { feature: ResolvedNewsFeature }) {
+  // When an article preview is set, swap the large left portrait for the
+  // article card — the alum is already shown in the small circled byline
+  // avatar, so the large portrait would be redundant.
+  const hasArticleCard = !!feature.article_image_url;
+
   return (
     <article className="grid grid-cols-1 sm:grid-cols-[1fr_1.25fr] gap-7 sm:gap-16 items-center">
-      <div className="relative aspect-[4/5] sm:max-w-[460px] w-full bg-[color:var(--ivory-2)] overflow-hidden"
-           style={{ boxShadow: "0 24px 60px -20px rgba(11,37,69,.3)" }}>
-        {feature.portrait_url ? (
-          <Image
-            src={feature.portrait_url}
-            alt=""
-            fill
-            sizes="(min-width: 640px) 460px, 100vw"
-            className="object-cover"
-          />
-        ) : (
-          <div
-            className="w-full h-full"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(135deg, transparent 0 14px, rgba(11,37,69,.05) 14px 28px)",
-            }}
-          />
-        )}
-      </div>
+      {hasArticleCard ? (
+        <ArticleCard feature={feature} className="w-full sm:max-w-[480px]" />
+      ) : (
+        <div
+          className="relative aspect-[4/5] sm:max-w-[460px] w-full bg-[color:var(--ivory-2)] overflow-hidden"
+          style={{ boxShadow: "0 24px 60px -20px rgba(11,37,69,.3)" }}
+        >
+          {feature.portrait_url ? (
+            <Image
+              src={feature.portrait_url}
+              alt=""
+              fill
+              sizes="(min-width: 640px) 460px, 100vw"
+              className="object-cover"
+            />
+          ) : (
+            <div
+              className="w-full h-full"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(135deg, transparent 0 14px, rgba(11,37,69,.05) 14px 28px)",
+              }}
+            />
+          )}
+        </div>
+      )}
       <div>
         {(feature.publication || feature.date_label) && (
           <Eyebrow muted>
@@ -588,9 +599,7 @@ function NewsSpotlight({ feature }: { feature: ResolvedNewsFeature }) {
             )}
           </div>
         </div>
-        {feature.article_image_url ? (
-          <ArticleCard feature={feature} sizeClass="max-w-[480px]" />
-        ) : feature.article_url ? (
+        {!hasArticleCard && feature.article_url && (
           <a
             href={feature.article_url}
             target="_blank"
@@ -599,7 +608,7 @@ function NewsSpotlight({ feature }: { feature: ResolvedNewsFeature }) {
           >
             Read the article →
           </a>
-        ) : null}
+        )}
       </div>
     </article>
   );
@@ -639,7 +648,7 @@ function NewsPair({ features }: { features: ResolvedNewsFeature[] }) {
             </div>
           </div>
           {f.article_image_url ? (
-            <ArticleCard feature={f} sizeClass="max-w-[420px]" />
+            <ArticleCard feature={f} className="mt-6 max-w-[420px]" />
           ) : f.article_url ? (
             <a
               href={f.article_url}
@@ -666,11 +675,11 @@ function alumByline(f: ResolvedNewsFeature): string {
 }
 
 function ArticleCard({
-  feature, sizeClass,
+  feature, className,
 }: {
   feature: ResolvedNewsFeature;
-  /** Tailwind class for the card's max width. */
-  sizeClass: string;
+  /** Tailwind classes (e.g. "mt-6 max-w-[420px]") applied to the outer wrapper. */
+  className?: string;
 }) {
   if (!feature.article_image_url) return null;
   const isClipping = feature.article_card_style === "clipping";
@@ -704,7 +713,7 @@ function ArticleCard({
       };
 
   return (
-    <div className={`mt-6 ${sizeClass}`}>
+    <div className={className ?? ""}>
       <Wrapper>
         <figure className={cardOuter} style={cardStyle}>
           <div className="relative aspect-[16/10] bg-[color:var(--ivory-2)] overflow-hidden">
