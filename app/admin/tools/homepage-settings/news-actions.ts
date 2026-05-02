@@ -48,6 +48,7 @@ function readNewsForm(formData: FormData) {
     date_label: txt(formData.get("date_label")),
     pull_quote: reqText(formData.get("pull_quote"), "Pull quote"),
     article_url: txt(formData.get("article_url")),
+    article_title: txt(formData.get("article_title")),
     article_image_url: txt(formData.get("article_image_url")),
     article_card_style: readCardStyle(formData.get("article_card_style")),
     portrait_override_url: txt(formData.get("portrait_override_url")),

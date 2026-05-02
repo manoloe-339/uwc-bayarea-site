@@ -717,25 +717,35 @@ function ArticleCard({
       <Wrapper>
         <figure className={cardOuter} style={cardStyle}>
           <div className="relative aspect-[16/10] bg-[color:var(--ivory-2)] overflow-hidden">
-            <Image
+            {/* Plain <img> intentionally — article_image_url can come from
+                any external host (publication's CDN). Whitelisting every
+                possible domain in next/image's remotePatterns isn't viable
+                for an admin-pasted URL field. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
               src={feature.article_image_url}
               alt=""
-              fill
-              sizes="(min-width: 640px) 520px, 100vw"
-              className="object-cover"
+              className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
           </div>
           <figcaption
             className={
               isClipping
-                ? "px-1 pt-2 pb-0.5"
-                : "px-3 pt-2.5 pb-3 border-t border-[color:var(--rule)]"
+                ? "px-1.5 pt-2.5 pb-1"
+                : "px-3.5 pt-3 pb-3.5 border-t border-[color:var(--rule)]"
             }
           >
             <div className="text-[10px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)]">
               {[feature.publication, feature.date_label].filter(Boolean).join(" · ") || "Article"}
             </div>
-            <div className="mt-1 text-[11px] font-bold tracking-[.18em] uppercase text-navy">
+            {feature.article_title && (
+              <div className="mt-1.5 font-serif font-semibold text-[color:var(--navy-ink)] leading-[1.2] text-[15px] sm:text-[17px]">
+                {feature.article_title}
+              </div>
+            )}
+            <div className="mt-2 text-[10.5px] font-bold tracking-[.22em] uppercase text-navy">
               Read the article →
             </div>
           </figcaption>

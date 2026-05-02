@@ -51,6 +51,7 @@ export default async function EditNewsFeaturePage({
           date_label: feature.date_label ?? "",
           pull_quote: feature.pull_quote,
           article_url: feature.article_url ?? "",
+          article_title: feature.article_title ?? "",
           article_image_url: feature.article_image_url ?? "",
           article_card_style: feature.article_card_style ?? "clean",
           portrait_override_url: feature.portrait_override_url ?? "",

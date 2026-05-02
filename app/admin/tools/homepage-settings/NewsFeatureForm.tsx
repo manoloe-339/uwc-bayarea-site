@@ -10,6 +10,7 @@ export interface NewsFeatureFormInitial {
   date_label: string;
   pull_quote: string;
   article_url: string;
+  article_title: string;
   article_image_url: string;
   article_card_style: ArticleCardStyle;
   portrait_override_url: string;
@@ -62,6 +63,12 @@ export default function NewsFeatureForm({ initial, action, submitLabel }: Props)
         <legend className="text-[11px] tracking-[.22em] uppercase font-bold text-navy px-1">
           Article preview card (optional)
         </legend>
+        <Field
+          name="article_title"
+          label="Article title"
+          defaultValue={initial.article_title}
+          placeholder="e.g. The fascinating history of eSwatini"
+        />
         <Field
           name="article_image_url"
           label="Article preview image URL"
