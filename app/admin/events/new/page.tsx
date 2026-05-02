@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { createEventAction } from "./actions";
 import { FOODIES_REGIONS } from "@/lib/foodies-shared";
+import { FoodiesHostPicker } from "@/components/admin/FoodiesHostPicker";
 
 export default function NewEventPage() {
   const [eventType, setEventType] = useState<"ticketed" | "casual">("ticketed");
@@ -89,8 +90,8 @@ export default function NewEventPage() {
             </div>
             <Field name="foodies_neighborhood" label="Neighborhood" placeholder="e.g. Hayes Valley" />
             <div className="grid sm:grid-cols-2 gap-4">
-              <Field name="foodies_host_1" label="Host 1" placeholder="e.g. Maria '12" />
-              <Field name="foodies_host_2" label="Host 2" placeholder="e.g. Lior '10" />
+              <FoodiesHostPicker name="foodies_host_1_alumni_id" label="Host 1" initial={null} />
+              <FoodiesHostPicker name="foodies_host_2_alumni_id" label="Host 2" initial={null} />
             </div>
           </fieldset>
         )}

@@ -25,6 +25,13 @@ function pickText(raw: string): string | null {
   return v ? v : null;
 }
 
+function pickAlumniId(raw: string): number | null {
+  const v = raw.trim();
+  if (!v) return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 export async function createEventAction(formData: FormData): Promise<void> {
   const name = String(formData.get("name") ?? "").trim();
   const slugRaw = String(formData.get("slug") ?? "").trim();
@@ -40,8 +47,8 @@ export async function createEventAction(formData: FormData): Promise<void> {
   const foodiesRegion = isFoodies ? pickRegion(String(formData.get("foodies_region") ?? "")) : null;
   const foodiesCuisine = isFoodies ? pickText(String(formData.get("foodies_cuisine") ?? "")) : null;
   const foodiesNeighborhood = isFoodies ? pickText(String(formData.get("foodies_neighborhood") ?? "")) : null;
-  const foodiesHost1 = isFoodies ? pickText(String(formData.get("foodies_host_1") ?? "")) : null;
-  const foodiesHost2 = isFoodies ? pickText(String(formData.get("foodies_host_2") ?? "")) : null;
+  const foodiesHost1 = isFoodies ? pickAlumniId(String(formData.get("foodies_host_1_alumni_id") ?? "")) : null;
+  const foodiesHost2 = isFoodies ? pickAlumniId(String(formData.get("foodies_host_2_alumni_id") ?? "")) : null;
 
   if (!name || !date) throw new Error("Name and date are required");
   const slug = slugify(slugRaw || name);
@@ -56,7 +63,7 @@ export async function createEventAction(formData: FormData): Promise<void> {
       slug, name, date, time, location, description,
       stripe_payment_link_id, event_type,
       is_foodies, foodies_region, foodies_cuisine,
-      foodies_neighborhood, foodies_host_1, foodies_host_2
+      foodies_neighborhood, foodies_host_1_alumni_id, foodies_host_2_alumni_id
     )
     VALUES (
       ${slug}, ${name}, ${date}, ${time}, ${location}, ${description},
@@ -84,8 +91,8 @@ export async function updateEventAction(id: number, formData: FormData): Promise
   const foodiesRegion = isFoodies ? pickRegion(String(formData.get("foodies_region") ?? "")) : null;
   const foodiesCuisine = isFoodies ? pickText(String(formData.get("foodies_cuisine") ?? "")) : null;
   const foodiesNeighborhood = isFoodies ? pickText(String(formData.get("foodies_neighborhood") ?? "")) : null;
-  const foodiesHost1 = isFoodies ? pickText(String(formData.get("foodies_host_1") ?? "")) : null;
-  const foodiesHost2 = isFoodies ? pickText(String(formData.get("foodies_host_2") ?? "")) : null;
+  const foodiesHost1 = isFoodies ? pickAlumniId(String(formData.get("foodies_host_1_alumni_id") ?? "")) : null;
+  const foodiesHost2 = isFoodies ? pickAlumniId(String(formData.get("foodies_host_2_alumni_id") ?? "")) : null;
 
   if (!name || !date) throw new Error("Name and date are required");
 
@@ -102,8 +109,8 @@ export async function updateEventAction(id: number, formData: FormData): Promise
       foodies_region = ${foodiesRegion},
       foodies_cuisine = ${foodiesCuisine},
       foodies_neighborhood = ${foodiesNeighborhood},
-      foodies_host_1 = ${foodiesHost1},
-      foodies_host_2 = ${foodiesHost2},
+      foodies_host_1_alumni_id = ${foodiesHost1},
+      foodies_host_2_alumni_id = ${foodiesHost2},
       updated_at = NOW()
     WHERE id = ${id}
     RETURNING slug

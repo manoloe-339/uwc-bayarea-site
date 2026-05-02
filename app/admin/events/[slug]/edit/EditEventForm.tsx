@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { FOODIES_REGIONS } from "@/lib/foodies-shared";
+import { FoodiesHostPicker, type HostAlumnus } from "@/components/admin/FoodiesHostPicker";
 
 type Props = {
   slug: string;
@@ -20,8 +21,8 @@ type Props = {
     foodies_region: string | null;
     foodies_cuisine: string | null;
     foodies_neighborhood: string | null;
-    foodies_host_1: string | null;
-    foodies_host_2: string | null;
+    foodies_host_1: HostAlumnus | null;
+    foodies_host_2: HostAlumnus | null;
   };
   action: (formData: FormData) => void;
 };
@@ -119,15 +120,15 @@ export default function EditEventForm({ slug, initial, action }: Props) {
             defaultValue={initial.foodies_neighborhood ?? ""}
           />
           <div className="grid sm:grid-cols-2 gap-4">
-            <Field
-              name="foodies_host_1"
+            <FoodiesHostPicker
+              name="foodies_host_1_alumni_id"
               label="Host 1"
-              defaultValue={initial.foodies_host_1 ?? ""}
+              initial={initial.foodies_host_1}
             />
-            <Field
-              name="foodies_host_2"
+            <FoodiesHostPicker
+              name="foodies_host_2_alumni_id"
               label="Host 2"
-              defaultValue={initial.foodies_host_2 ?? ""}
+              initial={initial.foodies_host_2}
             />
           </div>
         </fieldset>

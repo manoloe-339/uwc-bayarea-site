@@ -31,8 +31,8 @@ export type EventRecord = {
   foodies_region: string | null;
   foodies_cuisine: string | null;
   foodies_neighborhood: string | null;
-  foodies_host_1: string | null;
-  foodies_host_2: string | null;
+  foodies_host_1_alumni_id: number | null;
+  foodies_host_2_alumni_id: number | null;
   name_tag_layout: "standard" | "first-emphasis";
   created_at: string;
   updated_at: string;
@@ -89,6 +89,34 @@ export async function getEventBySlug(slug: string): Promise<EventRecord | null> 
 
 export async function listEvents(): Promise<EventRecord[]> {
   return (await sql`SELECT * FROM events ORDER BY date DESC, id DESC`) as EventRecord[];
+}
+
+export type FoodiesHostSummary = {
+  id: number;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  uwc_college: string | null;
+  grad_year: number | null;
+  photo_url: string | null;
+};
+
+/** Fetch slim alumni records for Foodies host display (admin picker
+ * initial state + homepage card rendering). Returns a Map keyed by id
+ * so callers can look up either host slot directly. */
+export async function getFoodiesHostsByIds(
+  ids: number[]
+): Promise<Map<number, FoodiesHostSummary>> {
+  const map = new Map<number, FoodiesHostSummary>();
+  const cleaned = Array.from(new Set(ids.filter((n) => Number.isFinite(n) && n > 0)));
+  if (cleaned.length === 0) return map;
+  const rows = (await sql`
+    SELECT id, first_name, last_name, email, uwc_college, grad_year, photo_url
+    FROM alumni
+    WHERE id = ANY(${cleaned})
+  `) as FoodiesHostSummary[];
+  for (const r of rows) map.set(r.id, r);
+  return map;
 }
 
 export type CommunicationStats = {
