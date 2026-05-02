@@ -383,7 +383,7 @@ function VisitingForm({
           <textarea
             name="note"
             rows={3}
-            placeholder="What brings you here, how can we help!"
+            placeholder="What brings you here, how can we help?"
             className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
           />
         </label>
