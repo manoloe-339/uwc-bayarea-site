@@ -15,6 +15,7 @@ import {
   type RecentEventCover,
   type RecentFoodiesDisplay,
 } from "@/lib/homepage";
+import { getActiveHeroSlides } from "@/lib/hero-slides";
 import { HeroCarousel, type HeroSlide } from "./HeroCarousel";
 
 export const dynamic = "force-dynamic";
@@ -24,52 +25,24 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Phase 1: hero slides + alumni news are hardcoded sample data. They'll
-// move to admin-managed tables in a follow-up commit.
-const SAMPLE_HERO_SLIDES: HeroSlide[] = [
-  {
-    eyebrow: "May 1 · 2026 · A look back",
-    title: "The fascinating history of",
-    emphasis: "eSwatini",
-    byline: "Fireside with Gil Yaron · 47 alumni gathered",
-    cta_label: "See more photos →",
-    cta_href: "/photos",
-    image_url: null,
-  },
-  {
-    eyebrow: "Apr 18 · 2026",
-    title: "Spring picnic at",
-    emphasis: "Crissy Field",
-    byline: "Multi-generational, multi-college, mostly sunny",
-    cta_label: "See more photos →",
-    cta_href: "/photos",
-    image_url: null,
-  },
-  {
-    eyebrow: "Mar 21 · 2026",
-    title: "Foodies dinner at",
-    emphasis: "State Bird",
-    byline: "Twelve seats, one long conversation",
-    cta_label: "See more photos →",
-    cta_href: "/photos",
-    image_url: null,
-  },
-];
-
 export default async function PreviewHomePage() {
-  const [settings, foodies, otherGatherings, recentFoodies, alumniCount] =
+  const [settings, foodies, otherGatherings, recentFoodies, alumniCount, heroSlides] =
     await Promise.all([
       getSiteSettings(),
       getUpcomingFoodies(4),
       getOtherUpcomingGatherings(6),
       getRecentFoodiesDisplay(),
       getAlumniCount(),
+      getActiveHeroSlides(),
     ]);
+
+  // ResolvedHeroSlide → HeroSlide are interchangeable shapes (same fields).
+  const slides: HeroSlide[] = heroSlides.map((s) => ({ ...s }));
 
   return (
     <div className="bg-[color:var(--ivory)] text-[color:var(--navy-ink)]">
       <SiteHeader active="home" />
-      <HeroCarousel slides={SAMPLE_HERO_SLIDES} />
+      <HeroCarousel slides={slides} />
       <WhatsAppBand
         url={settings.whatsapp_url}
         headline={settings.whatsapp_default_headline ?? "Most of us live on WhatsApp"}
