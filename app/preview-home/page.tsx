@@ -59,7 +59,7 @@ export default async function PreviewHomePage() {
       <HeroCarousel slides={slides} />
       <WhatsAppBand
         url={settings.whatsapp_url}
-        headline="Connect with local alumni"
+        headline="Connect"
         body="We have a WhatsApp Community for UWC Bay Area. Must be registered in our SF Bay Area mailing list or a UWC alumnus visiting. All Foodie events are coordinated through WhatsApp."
         ctaLabel="Join UWC Bay Area →"
       />
