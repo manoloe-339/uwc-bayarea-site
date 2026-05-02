@@ -22,6 +22,7 @@ import {
   type NewsFeatureDisplay,
 } from "@/lib/news-features";
 import { HeroCarousel, type HeroSlide } from "./HeroCarousel";
+import { JoinWhatsAppModal } from "./JoinWhatsAppModal";
 
 export const dynamic = "force-dynamic";
 
@@ -103,21 +104,7 @@ function WhatsAppBand({
           </p>
         </div>
         <div className="shrink-0">
-          {url ? (
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2.5 rounded-full px-7 py-4 text-[13px] font-bold tracking-[.2em] uppercase text-white bg-[#25D366] hover:opacity-90"
-            >
-              <WhatsAppMark className="w-4 h-4" />
-              {ctaLabel}
-            </a>
-          ) : (
-            <span className="inline-flex items-center gap-2.5 rounded-full px-7 py-4 text-[13px] font-bold tracking-[.2em] uppercase text-white/70 bg-white/10 cursor-not-allowed">
-              No WhatsApp link set
-            </span>
-          )}
+          <JoinWhatsAppModal whatsappUrl={url} ctaLabel={ctaLabel} />
         </div>
       </div>
     </section>
