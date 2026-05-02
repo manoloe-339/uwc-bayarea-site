@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import type { HeroFocalPoint } from "@/lib/hero-slides";
 
@@ -327,13 +328,12 @@ function FocalPreview({
         style={{ aspectRatio: "21 / 9" }}
         aria-label="Click to set focal point"
       >
-        {/* Using <img> intentionally — Next/Image fill needs known sizes
-            and this preview is admin-only (not perf-critical). */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={src}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          fill
+          sizes="(min-width: 768px) 480px, 100vw"
+          className="object-cover pointer-events-none"
           style={{ objectPosition }}
         />
       </button>
