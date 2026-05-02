@@ -60,8 +60,13 @@ export async function submitSignup(formData: FormData): Promise<void> {
   const affiliation = s(formData.get("affiliation"));
   const consent = formData.get("consent") === "on";
 
+  const origin = s(formData.get("origin"));
+
   if (!firstName || !lastName || !email || !affiliation) {
     redirect("/signup?error=missing_required");
+  }
+  if (!origin) {
+    redirect("/signup?error=missing_origin");
   }
   if (!consent) {
     redirect("/signup?error=consent_required");
@@ -84,7 +89,6 @@ export async function submitSignup(formData: FormData): Promise<void> {
   const region = cityToRegion(currentCity);
   const mobile = s(formData.get("mobile"));
   const linkedinUrl = s(formData.get("linkedin_url"));
-  const origin = s(formData.get("origin"));
   const company = s(formData.get("company"));
   const working = s(formData.get("working"));
   const workLocation = s(formData.get("work_location"));

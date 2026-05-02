@@ -226,9 +226,10 @@ export default function SignupForm() {
         {affiliation && (
           <div className="mt-5">
             <CountryAutocomplete
-              label="Origin (country, optional)"
+              label="Origin (country)"
               name="origin"
               placeholder="Type a country (e.g. Brazil)"
+              required
               full
             />
           </div>

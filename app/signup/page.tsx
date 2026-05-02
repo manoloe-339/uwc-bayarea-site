@@ -13,6 +13,8 @@ export const metadata: Metadata = {
 const ERROR_MESSAGES: Record<string, string> = {
   missing_required:
     "Please fill in the required fields (name, email, and how you're connected to UWC).",
+  missing_origin:
+    "Please pick the country you're originally from.",
   consent_required:
     "We need your consent to send you UWC Bay Area emails before we can add you.",
   rate_limit:
