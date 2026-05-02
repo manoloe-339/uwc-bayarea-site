@@ -34,6 +34,7 @@ export default async function NewSlidePage() {
           cta_href: "",
           image_url: "",
           focal_point: "center",
+          zoom: 1,
           sort_order: 0,
           enabled: true,
         }}

@@ -22,6 +22,7 @@ export interface SlideFormInitial {
   cta_href: string;
   image_url: string;
   focal_point: HeroFocalPoint;
+  zoom: number;
   sort_order: number;
   enabled: boolean;
 }
@@ -80,6 +81,7 @@ export default function SlideForm({
   const [focalMode, setFocalMode] = useState<FocalMode>(initialFocal.mode);
   const [focalX, setFocalX] = useState<number>(initialFocal.x);
   const [focalY, setFocalY] = useState<number>(initialFocal.y);
+  const [zoom, setZoom] = useState<number>(initial.zoom ?? 1);
 
   const previewSrc = imageUrl || defaultImagePreviewUrl || null;
   const previewObjectPosition = focalPointValue(focalMode, focalX, focalY);
@@ -216,12 +218,39 @@ export default function SlideForm({
           <FocalPreview
             src={previewSrc}
             objectPosition={previewObjectPosition}
+            zoom={zoom}
             onPick={(x, y) => {
               setFocalMode("custom");
               setFocalX(Math.round(x));
               setFocalY(Math.round(y));
             }}
           />
+        </div>
+
+        <div className="border-t border-[color:var(--rule)] pt-3">
+          <input type="hidden" name="zoom" value={zoom.toFixed(2)} />
+          <div className="flex items-baseline justify-between mb-1.5">
+            <span className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
+              Zoom
+            </span>
+            <span className="text-xs text-[color:var(--muted)] font-mono">
+              {zoom.toFixed(2)}× {zoom < 1 ? "(letterboxed)" : zoom > 1 ? "(tighter crop)" : "(default cover)"}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={0.5}
+            max={2}
+            step={0.05}
+            value={zoom}
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className="w-full"
+          />
+          <div className="flex justify-between text-[10px] text-[color:var(--muted)] mt-1">
+            <span>0.5× — show whole photo</span>
+            <span>1.0× — fill (default)</span>
+            <span>2.0× — zoomed in</span>
+          </div>
         </div>
       </fieldset>
 
@@ -300,10 +329,11 @@ function clamp(n: number, lo: number, hi: number): number {
 }
 
 function FocalPreview({
-  src, objectPosition, onPick,
+  src, objectPosition, zoom, onPick,
 }: {
   src: string | null;
   objectPosition: string;
+  zoom: number;
   onPick: (xPct: number, yPct: number) => void;
 }) {
   if (!src) {
@@ -313,9 +343,12 @@ function FocalPreview({
       </div>
     );
   }
+  // Below 1.0, switch to contain so the whole photo shows + scales smaller.
+  // At/above 1.0, stay on cover and scale up via transform.
+  const isContain = zoom < 1;
   return (
     <div className="space-y-1">
-      {/* Desktop hero crop: 21:9 */}
+      {/* Desktop hero crop: 21:9, on dark bg so letterbox is visible */}
       <button
         type="button"
         onClick={(e) => {
@@ -324,7 +357,7 @@ function FocalPreview({
           const y = ((e.clientY - rect.top) / rect.height) * 100;
           onPick(clamp(x, 0, 100), clamp(y, 0, 100));
         }}
-        className="block relative w-full bg-[color:var(--ivory-2)] overflow-hidden rounded cursor-crosshair border border-[color:var(--rule)]"
+        className="block relative w-full bg-[color:var(--navy-ink)] overflow-hidden rounded cursor-crosshair border border-[color:var(--rule)]"
         style={{ aspectRatio: "21 / 9" }}
         aria-label="Click to set focal point"
       >
@@ -333,12 +366,16 @@ function FocalPreview({
           alt=""
           fill
           sizes="(min-width: 768px) 480px, 100vw"
-          className="object-cover pointer-events-none"
-          style={{ objectPosition }}
+          className={`pointer-events-none ${isContain ? "object-contain" : "object-cover"}`}
+          style={{
+            objectPosition,
+            transform: zoom !== 1 ? `scale(${zoom})` : undefined,
+            transformOrigin: objectPosition,
+          }}
         />
       </button>
       <div className="text-[10px] text-[color:var(--muted)] tracking-[.16em] uppercase">
-        Desktop crop preview · click to pin focal point · current: {objectPosition}
+        Desktop crop preview · {objectPosition} · {zoom.toFixed(2)}×
       </div>
     </div>
   );

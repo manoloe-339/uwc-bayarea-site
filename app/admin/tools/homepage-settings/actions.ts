@@ -41,6 +41,12 @@ function readFocalPoint(v: FormDataEntryValue | null): HeroFocalPoint {
   return isHeroFocalPoint(s) ? s : "center";
 }
 
+function readZoom(v: FormDataEntryValue | null): number {
+  const n = Number(String(v ?? "1").trim());
+  if (!Number.isFinite(n)) return 1;
+  return Math.max(0.5, Math.min(2, n));
+}
+
 function readSlideForm(formData: FormData) {
   return {
     event_id: maybeId(formData.get("event_id")),
@@ -52,6 +58,7 @@ function readSlideForm(formData: FormData) {
     cta_href: txt(formData.get("cta_href")),
     image_url: txt(formData.get("image_url")),
     focal_point: readFocalPoint(formData.get("focal_point")),
+    zoom: readZoom(formData.get("zoom")),
     sort_order: intOr(formData.get("sort_order"), 0),
     enabled: formData.get("enabled") != null,
   };

@@ -25,6 +25,8 @@ export interface HeroSlideRow {
   cta_href: string | null;
   image_url: string | null;
   focal_point: HeroFocalPoint;
+  /** Numeric stored by Neon as string. Coerce when reading. */
+  zoom: number | string;
   sort_order: number;
   enabled: boolean;
   created_at: string;
@@ -46,6 +48,13 @@ export interface ResolvedHeroSlide {
   cta_href: string;
   image_url: string | null;
   focal_point: HeroFocalPoint;
+  zoom: number;
+}
+
+function coerceZoom(v: number | string | null | undefined): number {
+  const n = typeof v === "number" ? v : Number(v ?? 1);
+  if (!Number.isFinite(n)) return 1;
+  return Math.max(0.5, Math.min(2, n));
 }
 
 /** Format a Date as "Mon DD · YYYY". */
@@ -130,6 +139,7 @@ export async function getActiveHeroSlides(): Promise<ResolvedHeroSlide[]> {
       cta_href: r.cta_href ?? (r.event_slug ? `/events/${r.event_slug}/photos` : "/photos"),
       image_url: image,
       focal_point: r.focal_point,
+      zoom: coerceZoom(r.zoom),
     });
   }
   return resolved;
@@ -170,6 +180,7 @@ async function deriveSlidesFromRecentEvents(limit: number): Promise<ResolvedHero
       cta_href: `/events/${e.slug}/photos`,
       image_url: photos[0]?.blob_url ?? null,
       focal_point: "center",
+      zoom: 1,
     });
   }
   return slides;
@@ -198,6 +209,7 @@ export interface HeroSlideInput {
   cta_href: string | null;
   image_url: string | null;
   focal_point: HeroFocalPoint;
+  zoom: number;
   sort_order: number;
   enabled: boolean;
 }
@@ -206,11 +218,11 @@ export async function createHeroSlide(data: HeroSlideInput): Promise<number> {
   const rows = (await sql`
     INSERT INTO homepage_hero_slides (
       event_id, eyebrow, title, emphasis, byline,
-      cta_label, cta_href, image_url, focal_point, sort_order, enabled
+      cta_label, cta_href, image_url, focal_point, zoom, sort_order, enabled
     ) VALUES (
       ${data.event_id}, ${data.eyebrow}, ${data.title}, ${data.emphasis}, ${data.byline},
       ${data.cta_label}, ${data.cta_href}, ${data.image_url}, ${data.focal_point},
-      ${data.sort_order}, ${data.enabled}
+      ${coerceZoom(data.zoom)}, ${data.sort_order}, ${data.enabled}
     )
     RETURNING id
   `) as { id: number }[];
@@ -232,6 +244,7 @@ export async function updateHeroSlide(
       cta_href    = ${data.cta_href},
       image_url   = ${data.image_url},
       focal_point = ${data.focal_point},
+      zoom        = ${coerceZoom(data.zoom)},
       sort_order  = ${data.sort_order},
       enabled     = ${data.enabled},
       updated_at  = NOW()

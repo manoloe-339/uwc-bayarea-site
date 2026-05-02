@@ -15,6 +15,10 @@ export interface HeroSlide {
   /** How the photo is anchored when cropped. CSS object-position value:
    * "top" / "center" / "bottom" or a custom "X% Y%" pair. Defaults to "center". */
   focal_point?: string;
+  /** Zoom factor. 1.0 = object-cover (default fills container).
+   * <1.0 switches to object-contain so the whole photo shows (letterboxed).
+   * >1.0 stays on cover and scales up for a tighter crop. */
+  zoom?: number;
 }
 
 interface Props {
@@ -56,8 +60,12 @@ export function HeroCarousel({ slides, intervalSec = 7 }: Props) {
                 fill
                 priority={i === 0}
                 sizes="100vw"
-                className="object-cover"
-                style={{ objectPosition: s.focal_point ?? "center" }}
+                className={(s.zoom ?? 1) < 1 ? "object-contain" : "object-cover"}
+                style={{
+                  objectPosition: s.focal_point ?? "center",
+                  transform: (s.zoom ?? 1) !== 1 ? `scale(${s.zoom})` : undefined,
+                  transformOrigin: s.focal_point ?? "center",
+                }}
               />
             ) : (
               <div
