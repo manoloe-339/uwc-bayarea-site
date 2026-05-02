@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 export interface HeroSlide {
   eyebrow: string;
@@ -46,10 +47,13 @@ export function HeroCarousel({ slides, intervalSec = 7 }: Props) {
             }`}
           >
             {s.image_url ? (
-              <img
+              <Image
                 src={s.image_url}
                 alt=""
-                className="w-full h-full object-cover"
+                fill
+                priority={i === 0}
+                sizes="100vw"
+                className="object-cover"
               />
             ) : (
               <div

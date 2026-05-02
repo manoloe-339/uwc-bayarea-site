@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { getSiteSettings } from "@/lib/settings";
@@ -72,10 +73,7 @@ export default async function PreviewHomePage() {
       <WhatsAppBand
         url={settings.whatsapp_url}
         headline={settings.whatsapp_default_headline ?? "Most of us live on WhatsApp"}
-        body={
-          settings.whatsapp_default_body ??
-          "Foodies dinners, housing pings, picnic threads, last-minute drinks — all coordinated in one group chat."
-        }
+        body="Connect with local alumni. Must be registered in our SF Bay Area mailing list. All Foodie events are coordinated through WhatsApp."
         ctaLabel={settings.whatsapp_default_cta_label ?? "Join the group →"}
       />
       <FoodiesSection meals={foodies} recent={recentFoodies} />
@@ -305,12 +303,18 @@ function HostAvatar({
   const stackOffset = firstInRow ? 0 : -8;
   return (
     <div
-      className="rounded-full border-2 border-white bg-[color:var(--ivory-2)] overflow-hidden flex items-center justify-center text-[color:var(--navy)] text-[10px] font-bold"
+      className="relative rounded-full border-2 border-white bg-[color:var(--ivory-2)] overflow-hidden flex items-center justify-center text-[color:var(--navy)] text-[10px] font-bold"
       style={{ width: sizePx, height: sizePx, marginLeft: stackOffset }}
       title={hostDisplay(host)}
     >
       {host.photo_url ? (
-        <img src={host.photo_url} alt="" className="w-full h-full object-cover" />
+        <Image
+          src={host.photo_url}
+          alt=""
+          fill
+          sizes="32px"
+          className="object-cover"
+        />
       ) : (
         <span>{initial}</span>
       )}
@@ -366,12 +370,14 @@ function RecentFoodiesRow({ recent }: { recent: RecentFoodiesDisplay }) {
           <Link
             key={p.id}
             href={`/events/${recent.event.slug}/photos`}
-            className="block aspect-square bg-[color:var(--ivory-2)] overflow-hidden group"
+            className="relative block aspect-square bg-[color:var(--ivory-2)] overflow-hidden group"
           >
-            <img
+            <Image
               src={p.url}
               alt=""
-              className="w-full h-full object-cover group-hover:opacity-95"
+              fill
+              sizes="(min-width: 640px) 290px, 50vw"
+              className="object-cover group-hover:opacity-95"
             />
           </Link>
         ))}
@@ -383,12 +389,14 @@ function RecentFoodiesRow({ recent }: { recent: RecentFoodiesDisplay }) {
 function RecentEventThumb({ event }: { event: RecentEventCover }) {
   return (
     <Link href={`/events/${event.slug}/photos`} className="block group">
-      <div className="aspect-square bg-[color:var(--ivory-2)] overflow-hidden">
+      <div className="relative aspect-square bg-[color:var(--ivory-2)] overflow-hidden">
         {event.cover_url ? (
-          <img
+          <Image
             src={event.cover_url}
             alt=""
-            className="w-full h-full object-cover group-hover:opacity-95"
+            fill
+            sizes="(min-width: 640px) 290px, 50vw"
+            className="object-cover group-hover:opacity-95"
           />
         ) : (
           <div
