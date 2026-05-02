@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { createEventAction } from "./actions";
+import { FOODIES_REGIONS } from "@/lib/foodies-shared";
 
 export default function NewEventPage() {
   const [eventType, setEventType] = useState<"ticketed" | "casual">("ticketed");
+  const [isFoodies, setIsFoodies] = useState<boolean>(false);
   return (
     <div className="max-w-[720px]">
       <div className="mb-4 text-sm">
@@ -43,6 +45,24 @@ export default function NewEventPage() {
               hint="No Stripe. Manually add attendees. Foodies, gallery-only events."
             />
           </div>
+
+          {eventType === "casual" && (
+            <label className="mt-3 flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                name="is_foodies"
+                checked={isFoodies}
+                onChange={(e) => setIsFoodies(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span className="text-sm">
+                <span className="font-bold text-[color:var(--navy-ink)]">This is a Foodies meal</span>
+                <span className="block text-xs text-[color:var(--muted)]">
+                  Surfaces this event in the Foodies section on the homepage.
+                </span>
+              </span>
+            </label>
+          )}
         </fieldset>
 
         <Field name="name" label="Event name" placeholder="e.g. May 1 Tech Leadership Dinner" required />
@@ -53,6 +73,27 @@ export default function NewEventPage() {
         </div>
         <Field name="location" label="Location" placeholder="e.g. SF, TBD" />
         <TextareaField name="description" label="Description (optional)" rows={3} />
+
+        {eventType === "casual" && isFoodies && (
+          <fieldset className="border border-[color:var(--rule)] rounded-[10px] p-4 space-y-3 bg-ivory/40">
+            <legend className="text-[11px] tracking-[.22em] uppercase font-bold text-navy px-1">
+              Foodies meal details
+            </legend>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <SelectField
+                name="foodies_region"
+                label="Region"
+                options={["", ...FOODIES_REGIONS]}
+              />
+              <Field name="foodies_cuisine" label="Cuisine" placeholder="e.g. Burmese" />
+            </div>
+            <Field name="foodies_neighborhood" label="Neighborhood" placeholder="e.g. Hayes Valley" />
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Field name="foodies_host_1" label="Host 1" placeholder="e.g. Maria '12" />
+              <Field name="foodies_host_2" label="Host 2" placeholder="e.g. Lior '10" />
+            </div>
+          </fieldset>
+        )}
 
         {eventType === "ticketed" && (
           <>
@@ -137,6 +178,31 @@ function Field({
         required={required}
         className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
       />
+    </label>
+  );
+}
+
+function SelectField({
+  name, label, options,
+}: {
+  name: string; label: string; options: readonly string[];
+}) {
+  return (
+    <label className="block">
+      <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+        {label}
+      </span>
+      <select
+        name={name}
+        defaultValue=""
+        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+      >
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt === "" ? "— choose —" : opt}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }

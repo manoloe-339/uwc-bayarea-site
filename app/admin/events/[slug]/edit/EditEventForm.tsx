@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { FOODIES_REGIONS } from "@/lib/foodies-shared";
 
 type Props = {
   slug: string;
@@ -15,12 +16,19 @@ type Props = {
     stripe_payment_link_id: string | null;
     ticket_price: string | null;
     event_type: "ticketed" | "casual";
+    is_foodies: boolean;
+    foodies_region: string | null;
+    foodies_cuisine: string | null;
+    foodies_neighborhood: string | null;
+    foodies_host_1: string | null;
+    foodies_host_2: string | null;
   };
   action: (formData: FormData) => void;
 };
 
 export default function EditEventForm({ slug, initial, action }: Props) {
   const [eventType, setEventType] = useState<"ticketed" | "casual">(initial.event_type);
+  const [isFoodies, setIsFoodies] = useState<boolean>(initial.is_foodies);
 
   return (
     <form action={action} className="bg-white border border-[color:var(--rule)] rounded-[10px] p-5 space-y-4">
@@ -53,6 +61,24 @@ export default function EditEventForm({ slug, initial, action }: Props) {
               : " will surface Stripe sync — paste a Payment Link to enable it."}
           </p>
         )}
+
+        {eventType === "casual" && (
+          <label className="mt-3 flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              name="is_foodies"
+              checked={isFoodies}
+              onChange={(e) => setIsFoodies(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span className="text-sm">
+              <span className="font-bold text-[color:var(--navy-ink)]">This is a Foodies meal</span>
+              <span className="block text-xs text-[color:var(--muted)]">
+                Surfaces this event in the Foodies section on the homepage.
+              </span>
+            </span>
+          </label>
+        )}
       </fieldset>
 
       <Field name="name" label="Event name" defaultValue={initial.name} required />
@@ -68,6 +94,44 @@ export default function EditEventForm({ slug, initial, action }: Props) {
         type="url"
       />
       <TextareaField name="description" label="Description" rows={3} defaultValue={initial.description ?? ""} />
+
+      {eventType === "casual" && isFoodies && (
+        <fieldset className="border border-[color:var(--rule)] rounded-[10px] p-4 space-y-3 bg-ivory/40">
+          <legend className="text-[11px] tracking-[.22em] uppercase font-bold text-navy px-1">
+            Foodies meal details
+          </legend>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <SelectField
+              name="foodies_region"
+              label="Region"
+              defaultValue={initial.foodies_region ?? ""}
+              options={["", ...FOODIES_REGIONS]}
+            />
+            <Field
+              name="foodies_cuisine"
+              label="Cuisine"
+              defaultValue={initial.foodies_cuisine ?? ""}
+            />
+          </div>
+          <Field
+            name="foodies_neighborhood"
+            label="Neighborhood"
+            defaultValue={initial.foodies_neighborhood ?? ""}
+          />
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field
+              name="foodies_host_1"
+              label="Host 1"
+              defaultValue={initial.foodies_host_1 ?? ""}
+            />
+            <Field
+              name="foodies_host_2"
+              label="Host 2"
+              defaultValue={initial.foodies_host_2 ?? ""}
+            />
+          </div>
+        </fieldset>
+      )}
 
       {eventType === "ticketed" && (
         <>
@@ -161,6 +225,31 @@ function Field({
         required={required}
         className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
       />
+    </label>
+  );
+}
+
+function SelectField({
+  name, label, defaultValue, options,
+}: {
+  name: string; label: string; defaultValue?: string; options: readonly string[];
+}) {
+  return (
+    <label className="block">
+      <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+        {label}
+      </span>
+      <select
+        name={name}
+        defaultValue={defaultValue ?? ""}
+        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+      >
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt === "" ? "— choose —" : opt}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }

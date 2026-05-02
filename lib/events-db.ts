@@ -27,6 +27,12 @@ export type EventRecord = {
   photo_upload_token: string | null;
   photo_upload_enabled: boolean;
   event_type: "ticketed" | "casual";
+  is_foodies: boolean;
+  foodies_region: string | null;
+  foodies_cuisine: string | null;
+  foodies_neighborhood: string | null;
+  foodies_host_1: string | null;
+  foodies_host_2: string | null;
   name_tag_layout: "standard" | "first-emphasis";
   created_at: string;
   updated_at: string;

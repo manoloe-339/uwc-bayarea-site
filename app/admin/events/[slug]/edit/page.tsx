@@ -47,6 +47,12 @@ export default async function EditEventPage({
           stripe_payment_link_id: event.stripe_payment_link_id,
           ticket_price: event.ticket_price,
           event_type: event.event_type,
+          is_foodies: event.is_foodies,
+          foodies_region: event.foodies_region,
+          foodies_cuisine: event.foodies_cuisine,
+          foodies_neighborhood: event.foodies_neighborhood,
+          foodies_host_1: event.foodies_host_1,
+          foodies_host_2: event.foodies_host_2,
         }}
       />
     </div>
