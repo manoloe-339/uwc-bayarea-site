@@ -209,16 +209,37 @@ export async function getLatestFoodiesPhotoSet(
   const event = eventRows[0];
   if (!event) return null;
 
+  // De-dupe by original_filename so the same photo uploaded twice
+  // doesn't fill multiple slots. Matches the pattern used for the
+  // public /photos gallery and marquee.
   const photoRows = (await sql`
-    SELECT ep.id, ep.blob_url AS url
-    FROM event_photos ep
-    WHERE ep.event_id = ${event.id}
-      AND ep.approval_status = 'approved'
+    WITH deduped AS (
+      SELECT
+        ep.id,
+        ep.blob_url,
+        ep.display_role,
+        ep.display_order,
+        ep.taken_at,
+        ep.uploaded_at,
+        CASE
+          WHEN ep.original_filename IS NULL OR ep.original_filename = '' THEN 1
+          ELSE ROW_NUMBER() OVER (
+            PARTITION BY ep.event_id, ep.original_filename
+            ORDER BY ep.uploaded_at ASC, ep.id ASC
+          )
+        END AS dup_rn
+      FROM event_photos ep
+      WHERE ep.event_id = ${event.id}
+        AND ep.approval_status = 'approved'
+    )
+    SELECT id, blob_url AS url
+    FROM deduped
+    WHERE dup_rn = 1
     ORDER BY
-      CASE WHEN ep.display_role = 'marquee' THEN 0 ELSE 1 END,
-      ep.display_order ASC NULLS LAST,
-      COALESCE(ep.taken_at, ep.uploaded_at) DESC,
-      ep.id DESC
+      CASE WHEN display_role = 'marquee' THEN 0 ELSE 1 END,
+      display_order ASC NULLS LAST,
+      COALESCE(taken_at, uploaded_at) DESC,
+      id DESC
     LIMIT ${perEvent}
   `) as FoodiesPhoto[];
 
