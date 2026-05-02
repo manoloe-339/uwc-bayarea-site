@@ -247,7 +247,7 @@ function RegisteredChoiceView({
           href="/signup"
           className="block w-full bg-white border border-[color:var(--rule)] text-navy text-center px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase hover:border-navy"
         >
-          Not registered — sign up now →
+          Not registered — sign up →
         </Link>
       </div>
 

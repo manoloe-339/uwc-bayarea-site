@@ -88,15 +88,21 @@ function WhatsAppBand({
             "radial-gradient(800px 200px at 80% 50%, rgba(37,211,102,.08), transparent)",
         }}
       />
-      <div className="max-w-[1100px] mx-auto flex flex-col sm:flex-row items-center sm:items-center gap-5 sm:gap-9 text-center sm:text-left relative">
-        <div
-          className="rounded-full bg-[#25D366] flex items-center justify-center shrink-0 w-16 h-16 sm:w-[84px] sm:h-[84px]"
-          style={{ boxShadow: "0 8px 24px rgba(37,211,102,.35)" }}
-        >
-          <WhatsAppMark className="w-9 h-9 sm:w-[46px] sm:h-[46px]" />
+      <div className="max-w-[1100px] mx-auto flex flex-col sm:flex-row items-center gap-5 sm:gap-9 text-center sm:text-left relative">
+        {/* Mobile: logo + headline share one row. Desktop: standalone logo medallion. */}
+        <div className="flex items-center justify-center gap-3.5 sm:contents">
+          <div
+            className="rounded-full bg-[#25D366] flex items-center justify-center shrink-0 w-14 h-14 sm:w-[84px] sm:h-[84px]"
+            style={{ boxShadow: "0 8px 24px rgba(37,211,102,.35)" }}
+          >
+            <WhatsAppMark className="w-8 h-8 sm:w-[46px] sm:h-[46px]" />
+          </div>
+          <h2 className="sm:hidden font-serif font-semibold text-white leading-[1.1] tracking-[-0.005em] text-[28px] m-0">
+            {headline}
+          </h2>
         </div>
         <div className="flex-1">
-          <h2 className="font-serif font-semibold text-white leading-[1.1] tracking-[-0.005em] text-[28px] sm:text-[40px] m-0">
+          <h2 className="hidden sm:block font-serif font-semibold text-white leading-[1.1] tracking-[-0.005em] sm:text-[40px] m-0">
             {headline}
           </h2>
           <p className="mt-3 text-white/80 leading-[1.55] text-[14px] sm:text-base max-w-[580px] sm:mx-0 mx-auto">
