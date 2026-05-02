@@ -183,14 +183,14 @@ function ChooseView({
           onClick={onBayArea}
           className="block w-full bg-navy text-white text-center px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase hover:opacity-90"
         >
-          I&rsquo;m an alum in the Bay Area →
+          I&rsquo;m an alum in the Bay Area
         </button>
         <button
           type="button"
           onClick={onVisiting}
           className="block w-full bg-white border border-[color:var(--rule)] text-navy text-center px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase hover:border-navy"
         >
-          I&rsquo;m an alum just visiting →
+          I&rsquo;m an alum just visiting
         </button>
       </div>
 
@@ -241,13 +241,13 @@ function RegisteredChoiceView({
           onClick={onAlreadyRegistered}
           className="block w-full bg-navy text-white text-center px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase hover:opacity-90"
         >
-          I&rsquo;m already registered →
+          I&rsquo;m already registered
         </button>
         <Link
           href="/signup"
           className="block w-full bg-white border border-[color:var(--rule)] text-navy text-center px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase hover:border-navy"
         >
-          Not registered — sign up →
+          Not registered — sign up
         </Link>
       </div>
 
@@ -302,7 +302,7 @@ function RegisteredForm({
         disabled={isPending}
         className="mt-5 w-full bg-navy text-white px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase disabled:opacity-60"
       >
-        {isPending ? "Sending…" : "Send the link →"}
+        {isPending ? "Sending…" : "Send the link"}
       </button>
 
       <ManoloWhatsAppHint />
@@ -400,7 +400,7 @@ function VisitingForm({
         disabled={isPending}
         className="mt-5 w-full bg-navy text-white px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase disabled:opacity-60"
       >
-        {isPending ? "Sending…" : "Send request →"}
+        {isPending ? "Sending…" : "Send request"}
       </button>
     </form>
   );
