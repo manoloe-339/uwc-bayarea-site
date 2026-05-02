@@ -52,6 +52,7 @@ function readNewsForm(formData: FormData) {
     article_title: txt(formData.get("article_title")),
     article_image_url: txt(formData.get("article_image_url")),
     article_card_style: readCardStyle(formData.get("article_card_style")),
+    publication_logo_url: txt(formData.get("publication_logo_url")),
     portrait_override_url: txt(formData.get("portrait_override_url")),
     current_role_override: txt(formData.get("current_role_override")),
     sort_order: intOr(formData.get("sort_order"), 0),

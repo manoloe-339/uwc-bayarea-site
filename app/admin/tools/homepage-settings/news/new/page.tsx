@@ -31,6 +31,7 @@ export default function NewNewsFeaturePage() {
           article_title: "",
           article_image_url: "",
           article_card_style: "clean",
+          publication_logo_url: "",
           portrait_override_url: "",
           current_role_override: "",
           sort_order: 0,

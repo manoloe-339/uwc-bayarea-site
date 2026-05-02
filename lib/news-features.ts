@@ -19,6 +19,7 @@ export interface NewsFeatureRow {
   article_title: string | null;
   article_image_url: string | null;
   article_card_style: ArticleCardStyle;
+  publication_logo_url: string | null;
   portrait_override_url: string | null;
   current_role_override: string | null;
   sort_order: number;
@@ -63,6 +64,9 @@ export interface ResolvedNewsFeature {
   article_title: string | null;
   article_image_url: string | null;
   article_card_style: ArticleCardStyle;
+  /** Resolved publication logo: explicit override OR derived favicon
+   * from article_url's domain OR null when neither is available. */
+  publication_logo_url: string | null;
   /** Primary portrait — override or first alum's photo. */
   portrait_url: string | null;
   current_role: string | null;
@@ -92,6 +96,7 @@ export interface NewsFeatureInput {
   article_title: string | null;
   article_image_url: string | null;
   article_card_style: ArticleCardStyle;
+  publication_logo_url: string | null;
   portrait_override_url: string | null;
   current_role_override: string | null;
   sort_order: number;
@@ -117,6 +122,18 @@ const SELECT_WITH_ALUMNI = `
   LEFT JOIN alumni al  ON al.id  = nf.alumni_id
   LEFT JOIN alumni al2 ON al2.id = nf.alumni_id_2
 `;
+
+/** Build a favicon URL from an article URL via Google's S2 favicon
+ * service. Works for any public domain — no whitelist needed. */
+function deriveFaviconUrl(articleUrl: string | null): string | null {
+  if (!articleUrl) return null;
+  try {
+    const u = new URL(articleUrl);
+    return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=64`;
+  } catch {
+    return null;
+  }
+}
 
 function deriveCurrentRole(r: NewsFeatureRow): string | null {
   if (r.current_role_override && r.current_role_override.trim()) {
@@ -162,6 +179,7 @@ export async function getNewsFeatureDisplay(): Promise<NewsFeatureDisplay> {
     article_title: r.article_title,
     article_image_url: r.article_image_url,
     article_card_style: r.article_card_style ?? "clean",
+    publication_logo_url: r.publication_logo_url ?? deriveFaviconUrl(r.article_url),
     portrait_url: r.portrait_override_url ?? r.alumni_photo_url,
     current_role: deriveCurrentRole(r),
     alumni_first_name: r.alumni_first_name,
@@ -189,11 +207,12 @@ export async function createNewsFeature(data: NewsFeatureInput): Promise<number>
   const rows = (await sql`
     INSERT INTO news_features (
       alumni_id, alumni_id_2, publication, date_label, pull_quote, article_url,
-      article_title, article_image_url, article_card_style,
+      article_title, article_image_url, article_card_style, publication_logo_url,
       portrait_override_url, current_role_override, sort_order, enabled
     ) VALUES (
       ${data.alumni_id}, ${data.alumni_id_2}, ${data.publication}, ${data.date_label}, ${data.pull_quote},
       ${data.article_url}, ${data.article_title}, ${data.article_image_url}, ${data.article_card_style},
+      ${data.publication_logo_url},
       ${data.portrait_override_url}, ${data.current_role_override},
       ${data.sort_order}, ${data.enabled}
     )
@@ -217,6 +236,7 @@ export async function updateNewsFeature(
       article_title         = ${data.article_title},
       article_image_url     = ${data.article_image_url},
       article_card_style    = ${data.article_card_style},
+      publication_logo_url  = ${data.publication_logo_url},
       portrait_override_url = ${data.portrait_override_url},
       current_role_override = ${data.current_role_override},
       sort_order            = ${data.sort_order},

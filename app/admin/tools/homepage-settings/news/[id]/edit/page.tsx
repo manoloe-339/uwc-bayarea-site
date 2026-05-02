@@ -65,6 +65,7 @@ export default async function EditNewsFeaturePage({
           article_title: feature.article_title ?? "",
           article_image_url: feature.article_image_url ?? "",
           article_card_style: feature.article_card_style ?? "clean",
+          publication_logo_url: feature.publication_logo_url ?? "",
           portrait_override_url: feature.portrait_override_url ?? "",
           current_role_override: feature.current_role_override ?? "",
           sort_order: feature.sort_order,

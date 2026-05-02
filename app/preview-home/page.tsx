@@ -551,11 +551,11 @@ function NewsSpotlight({ feature }: { feature: ResolvedNewsFeature }) {
         </div>
       )}
       <div>
-        {(feature.publication || feature.date_label) && (
-          <Eyebrow muted>
-            {[feature.publication, feature.date_label].filter(Boolean).join(" · ")}
-          </Eyebrow>
-        )}
+        <NewsPublicationLine
+          publication={feature.publication}
+          dateLabel={feature.date_label}
+          logoUrl={feature.publication_logo_url}
+        />
         <div
           aria-hidden
           className="font-serif font-semibold text-navy mt-6 mb-2"
@@ -602,11 +602,11 @@ function NewsPair({ features }: { features: ResolvedNewsFeature[] }) {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-9 sm:gap-14">
       {features.map((f) => (
         <article key={f.id} className="pl-6 border-l-[3px] border-navy">
-          {(f.publication || f.date_label) && (
-            <Eyebrow muted>
-              {[f.publication, f.date_label].filter(Boolean).join(" · ")}
-            </Eyebrow>
-          )}
+          <NewsPublicationLine
+            publication={f.publication}
+            dateLabel={f.date_label}
+            logoUrl={f.publication_logo_url}
+          />
           <blockquote className="m-0 mt-3.5 font-serif italic font-medium text-[color:var(--navy-ink)] text-[22px] sm:text-[26px] leading-[1.25] text-balance">
             &ldquo;{f.pull_quote}&rdquo;
           </blockquote>
@@ -640,6 +640,32 @@ function NewsPair({ features }: { features: ResolvedNewsFeature[] }) {
           ) : null}
         </article>
       ))}
+    </div>
+  );
+}
+
+function NewsPublicationLine({
+  publication, dateLabel, logoUrl,
+}: {
+  publication: string | null;
+  dateLabel: string | null;
+  logoUrl: string | null;
+}) {
+  const text = [publication, dateLabel].filter(Boolean).join(" · ");
+  if (!text && !logoUrl) return null;
+  return (
+    <div className="flex items-center gap-2 text-[11px] font-bold tracking-[.28em] uppercase text-[color:var(--muted)]">
+      {logoUrl && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={logoUrl}
+          alt=""
+          className="w-[18px] h-[18px] rounded-sm object-contain shrink-0"
+          loading="lazy"
+          decoding="async"
+        />
+      )}
+      {text && <span>{text}</span>}
     </div>
   );
 }
@@ -771,8 +797,20 @@ function ArticleCard({
                 : "px-3.5 pt-3 pb-3.5 border-t border-[color:var(--rule)]"
             }
           >
-            <div className="text-[10px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)]">
-              {[feature.publication, feature.date_label].filter(Boolean).join(" · ") || "Article"}
+            <div className="flex items-center gap-2 text-[10px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)]">
+              {feature.publication_logo_url && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={feature.publication_logo_url}
+                  alt=""
+                  className="w-4 h-4 rounded-sm object-contain shrink-0"
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
+              <span>
+                {[feature.publication, feature.date_label].filter(Boolean).join(" · ") || "Article"}
+              </span>
             </div>
             {feature.article_title && (
               <div className="mt-1.5 font-serif font-semibold text-[color:var(--navy-ink)] leading-[1.2] text-[15px] sm:text-[17px]">

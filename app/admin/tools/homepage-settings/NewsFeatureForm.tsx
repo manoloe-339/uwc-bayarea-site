@@ -14,6 +14,7 @@ export interface NewsFeatureFormInitial {
   article_title: string;
   article_image_url: string;
   article_card_style: ArticleCardStyle;
+  publication_logo_url: string;
   portrait_override_url: string;
   current_role_override: string;
   sort_order: number;
@@ -82,6 +83,13 @@ export default function NewsFeatureForm({ initial, action, submitLabel }: Props)
           type="url"
           defaultValue={initial.article_image_url}
           placeholder="Paste the og:image URL or a screenshot — leave blank to skip"
+        />
+        <Field
+          name="publication_logo_url"
+          label="Publication logo URL (leave blank to auto-fetch favicon from article URL)"
+          type="url"
+          defaultValue={initial.publication_logo_url}
+          placeholder="e.g. https://…/haitiantimes-logo.png"
         />
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
