@@ -41,6 +41,29 @@ export interface RecentEventCover {
   cover_url: string | null;
 }
 
+export interface FoodiesPhoto {
+  id: number;
+  url: string;
+}
+
+export interface FoodiesEventLite {
+  id: number;
+  slug: string;
+  name: string;
+  date: Date;
+}
+
+/** Two display shapes for the "Recent Foodies" row at the bottom of
+ * the Foodies section:
+ *   - one_per_event: ≥2 past Foodies have photos; show 1 cover per event.
+ *   - photos_from_latest: only 1 past Foodies has photos; show up to 4 of
+ *     its photos, all linking to that event's gallery.
+ *   - empty: no past Foodies have photos. Caller hides the row. */
+export type RecentFoodiesDisplay =
+  | { mode: "one_per_event"; events: RecentEventCover[] }
+  | { mode: "photos_from_latest"; event: FoodiesEventLite; photos: FoodiesPhoto[] }
+  | { mode: "empty" };
+
 type FoodiesRow = {
   id: number;
   slug: string;
@@ -131,16 +154,16 @@ export async function getOtherUpcomingGatherings(limit = 6): Promise<OtherGather
   `) as OtherGathering[];
 }
 
-/** Past events from the last ~4 months that have at least one approved
- * cover-style photo, with that photo's blob URL. Drives the
- * "Recent events" thumbnail row at the bottom of the Foodies section. */
-export async function getRecentEventCovers(limit = 4): Promise<RecentEventCover[]> {
+/** Past Foodies events that have at least one approved photo, plus
+ * one cover image per event. Drives the "one cover per event" mode of
+ * the Recent Foodies row when ≥2 such events exist. */
+export async function getRecentFoodiesCovers(limit = 4): Promise<RecentEventCover[]> {
   const rows = (await sql`
-    WITH recent AS (
+    WITH past_foodies AS (
       SELECT id, slug, name, date, location
       FROM events
-      WHERE date < CURRENT_DATE
-        AND date >= CURRENT_DATE - INTERVAL '120 days'
+      WHERE is_foodies = TRUE
+        AND date < CURRENT_DATE
         AND slug <> 'archive'
       ORDER BY date DESC
       LIMIT ${limit}
@@ -149,19 +172,73 @@ export async function getRecentEventCovers(limit = 4): Promise<RecentEventCover[
       SELECT DISTINCT ON (ep.event_id)
         ep.event_id, ep.blob_url
       FROM event_photos ep
-      JOIN recent r ON r.id = ep.event_id
+      JOIN past_foodies pf ON pf.id = ep.event_id
       WHERE ep.approval_status = 'approved'
       ORDER BY ep.event_id,
         CASE WHEN ep.display_role = 'marquee' THEN 0 ELSE 1 END,
         ep.display_order ASC NULLS LAST,
         ep.id ASC
     )
-    SELECT r.id, r.slug, r.name, r.date, r.location, c.blob_url AS cover_url
-    FROM recent r
-    LEFT JOIN cover c ON c.event_id = r.id
-    ORDER BY r.date DESC
+    SELECT pf.id, pf.slug, pf.name, pf.date, pf.location, c.blob_url AS cover_url
+    FROM past_foodies pf
+    JOIN cover c ON c.event_id = pf.id
+    ORDER BY pf.date DESC
   `) as RecentEventCover[];
   return rows;
+}
+
+/** Up to N approved photos from the most recent past Foodies event that
+ * has any photos. Used for "photos from latest" mode when only one
+ * past Foodies has photos. */
+export async function getLatestFoodiesPhotoSet(
+  perEvent = 4
+): Promise<{ event: FoodiesEventLite; photos: FoodiesPhoto[] } | null> {
+  const eventRows = (await sql`
+    SELECT e.id, e.slug, e.name, e.date
+    FROM events e
+    WHERE e.is_foodies = TRUE
+      AND e.date < CURRENT_DATE
+      AND e.slug <> 'archive'
+      AND EXISTS (
+        SELECT 1 FROM event_photos ep
+        WHERE ep.event_id = e.id AND ep.approval_status = 'approved'
+      )
+    ORDER BY e.date DESC
+    LIMIT 1
+  `) as FoodiesEventLite[];
+  const event = eventRows[0];
+  if (!event) return null;
+
+  const photoRows = (await sql`
+    SELECT ep.id, ep.blob_url AS url
+    FROM event_photos ep
+    WHERE ep.event_id = ${event.id}
+      AND ep.approval_status = 'approved'
+    ORDER BY
+      CASE WHEN ep.display_role = 'marquee' THEN 0 ELSE 1 END,
+      ep.display_order ASC NULLS LAST,
+      COALESCE(ep.taken_at, ep.uploaded_at) DESC,
+      ep.id DESC
+    LIMIT ${perEvent}
+  `) as FoodiesPhoto[];
+
+  return { event, photos: photoRows };
+}
+
+/** Resolve the right display shape for the Recent Foodies row.
+ * Auto-falls back to "photos from latest" when only one past Foodies
+ * event has photos — keeps the row populated until you have ≥2
+ * past Foodies events with galleries. */
+export async function getRecentFoodiesDisplay(): Promise<RecentFoodiesDisplay> {
+  const covers = await getRecentFoodiesCovers(4);
+  if (covers.length >= 2) {
+    return { mode: "one_per_event", events: covers };
+  }
+  const latest = await getLatestFoodiesPhotoSet(4);
+  if (!latest || latest.photos.length === 0) {
+    return { mode: "empty" };
+  }
+  return { mode: "photos_from_latest", event: latest.event, photos: latest.photos };
 }
 
 /** Total active alumni — drives the "over 400 alumni" number in the Join interrupt. */

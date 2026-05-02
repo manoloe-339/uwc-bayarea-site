@@ -6,12 +6,13 @@ import { getSiteSettings } from "@/lib/settings";
 import {
   getUpcomingFoodies,
   getOtherUpcomingGatherings,
-  getRecentEventCovers,
+  getRecentFoodiesDisplay,
   getAlumniCount,
   type FoodiesUpcoming,
   type FoodiesHost,
   type OtherGathering,
   type RecentEventCover,
+  type RecentFoodiesDisplay,
 } from "@/lib/homepage";
 import { HeroCarousel, type HeroSlide } from "./HeroCarousel";
 
@@ -55,12 +56,12 @@ const SAMPLE_HERO_SLIDES: HeroSlide[] = [
 ];
 
 export default async function PreviewHomePage() {
-  const [settings, foodies, otherGatherings, recentEvents, alumniCount] =
+  const [settings, foodies, otherGatherings, recentFoodies, alumniCount] =
     await Promise.all([
       getSiteSettings(),
       getUpcomingFoodies(4),
       getOtherUpcomingGatherings(6),
-      getRecentEventCovers(4),
+      getRecentFoodiesDisplay(),
       getAlumniCount(),
     ]);
 
@@ -77,7 +78,7 @@ export default async function PreviewHomePage() {
         }
         ctaLabel={settings.whatsapp_default_cta_label ?? "Join the group →"}
       />
-      <FoodiesSection meals={foodies} recent={recentEvents} />
+      <FoodiesSection meals={foodies} recent={recentFoodies} />
       <OtherGatheringsSection gatherings={otherGatherings} />
       <JoinInterrupt alumniCount={alumniCount} />
       <AlumniNewsSection />
@@ -153,7 +154,7 @@ function WhatsAppMark({ className }: { className?: string }) {
 function FoodiesSection({
   meals, recent,
 }: {
-  meals: FoodiesUpcoming[]; recent: RecentEventCover[];
+  meals: FoodiesUpcoming[]; recent: RecentFoodiesDisplay;
 }) {
   const count = meals.length;
   const featured = meals[0];
@@ -209,25 +210,8 @@ function FoodiesSection({
           </div>
         ) : null}
 
-        {/* Recent events thumbnails */}
-        {recent.length > 0 && (
-          <div className="mt-12 sm:mt-[72px]">
-            <div className="flex items-baseline justify-between flex-wrap gap-2 mb-4">
-              <Eyebrow muted>Recent events · past 4 months</Eyebrow>
-              <Link
-                href="/photos"
-                className="text-[11px] font-bold tracking-[.22em] uppercase text-navy hover:underline"
-              >
-                See more photos →
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
-              {recent.map((e) => (
-                <RecentEventThumb key={e.id} event={e} />
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Recent Foodies row — adapts when only one past Foodies has photos */}
+        {recent.mode !== "empty" && <RecentFoodiesRow recent={recent} />}
       </div>
     </section>
   );
@@ -341,6 +325,59 @@ function hostDisplay(host: FoodiesHost): string {
     return `${name} '${yy}`;
   }
   return name;
+}
+
+function RecentFoodiesRow({ recent }: { recent: RecentFoodiesDisplay }) {
+  if (recent.mode === "empty") return null;
+  if (recent.mode === "one_per_event") {
+    return (
+      <div className="mt-12 sm:mt-[72px]">
+        <div className="flex items-baseline justify-between flex-wrap gap-2 mb-4">
+          <Eyebrow muted>Recent Foodies · past meals</Eyebrow>
+          <Link
+            href="/photos"
+            className="text-[11px] font-bold tracking-[.22em] uppercase text-navy hover:underline"
+          >
+            See more photos →
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+          {recent.events.map((e) => (
+            <RecentEventThumb key={e.id} event={e} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  // photos_from_latest — single most recent past Foodies, up to 4 photos.
+  return (
+    <div className="mt-12 sm:mt-[72px]">
+      <div className="flex items-baseline justify-between flex-wrap gap-2 mb-4">
+        <Eyebrow muted>From our last meal · {recent.event.name}</Eyebrow>
+        <Link
+          href={`/events/${recent.event.slug}/photos`}
+          className="text-[11px] font-bold tracking-[.22em] uppercase text-navy hover:underline"
+        >
+          See more photos →
+        </Link>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+        {recent.photos.map((p) => (
+          <Link
+            key={p.id}
+            href={`/events/${recent.event.slug}/photos`}
+            className="block aspect-square bg-[color:var(--ivory-2)] overflow-hidden group"
+          >
+            <img
+              src={p.url}
+              alt=""
+              className="w-full h-full object-cover group-hover:opacity-95"
+            />
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function RecentEventThumb({ event }: { event: RecentEventCover }) {
