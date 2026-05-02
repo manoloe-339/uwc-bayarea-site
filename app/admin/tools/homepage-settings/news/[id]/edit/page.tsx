@@ -28,6 +28,16 @@ export default async function EditNewsFeaturePage({
         grad_year: feature.alumni_grad_year,
       }
     : null;
+  const alumni2 = feature.alumni_id_2
+    ? {
+        id: feature.alumni_id_2,
+        first_name: feature.alumni2_first_name,
+        last_name: feature.alumni2_last_name,
+        email: null,
+        uwc_college: feature.alumni2_uwc_college,
+        grad_year: feature.alumni2_grad_year,
+      }
+    : null;
 
   return (
     <div className="max-w-[760px]">
@@ -47,6 +57,7 @@ export default async function EditNewsFeaturePage({
         submitLabel="Save changes"
         initial={{
           alumni,
+          alumni_2: alumni2,
           publication: feature.publication ?? "",
           date_label: feature.date_label ?? "",
           pull_quote: feature.pull_quote,

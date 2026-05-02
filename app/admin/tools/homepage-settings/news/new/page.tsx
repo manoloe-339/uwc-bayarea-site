@@ -23,6 +23,7 @@ export default function NewNewsFeaturePage() {
         submitLabel="Create feature"
         initial={{
           alumni: null,
+          alumni_2: null,
           publication: "",
           date_label: "",
           pull_quote: "",

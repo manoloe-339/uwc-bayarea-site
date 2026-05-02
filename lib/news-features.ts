@@ -11,6 +11,7 @@ export function isArticleCardStyle(v: string): v is ArticleCardStyle {
 export interface NewsFeatureRow {
   id: number;
   alumni_id: number | null;
+  alumni_id_2: number | null;
   publication: string | null;
   date_label: string | null;
   pull_quote: string;
@@ -24,7 +25,7 @@ export interface NewsFeatureRow {
   enabled: boolean;
   created_at: string;
   updated_at: string;
-  // Joined alumni fields (for admin display + public render).
+  // Joined alumni fields (primary).
   alumni_first_name: string | null;
   alumni_last_name: string | null;
   alumni_uwc_college: string | null;
@@ -32,14 +33,29 @@ export interface NewsFeatureRow {
   alumni_photo_url: string | null;
   alumni_current_title: string | null;
   alumni_current_company: string | null;
+  // Joined alumni fields (second alumnus, when present).
+  alumni2_first_name: string | null;
+  alumni2_last_name: string | null;
+  alumni2_uwc_college: string | null;
+  alumni2_grad_year: number | null;
+  alumni2_photo_url: string | null;
 }
 
 /** Resolved shape for the public homepage. portrait_url falls back to
  * the alumni record's photo when no override is set. current_role
  * falls back to alumni.current_title + alumni.current_company. */
+export interface ResolvedNewsAlumnus {
+  first_name: string | null;
+  last_name: string | null;
+  uwc_college: string | null;
+  grad_year: number | null;
+  photo_url: string | null;
+}
+
 export interface ResolvedNewsFeature {
   id: number;
   alumni_id: number | null;
+  alumni_id_2: number | null;
   publication: string | null;
   date_label: string | null;
   pull_quote: string;
@@ -47,12 +63,16 @@ export interface ResolvedNewsFeature {
   article_title: string | null;
   article_image_url: string | null;
   article_card_style: ArticleCardStyle;
+  /** Primary portrait — override or first alum's photo. */
   portrait_url: string | null;
   current_role: string | null;
+  /** Primary alumnus name fields (kept flat for backwards compat). */
   alumni_first_name: string | null;
   alumni_last_name: string | null;
   alumni_uwc_college: string | null;
   alumni_grad_year: number | null;
+  /** Second alumnus, only set when alumni_id_2 is present. */
+  alumni_2: ResolvedNewsAlumnus | null;
 }
 
 export type NewsFeatureLayout = "spotlight" | "pair" | "hidden";
@@ -64,6 +84,7 @@ export interface NewsFeatureDisplay {
 
 export interface NewsFeatureInput {
   alumni_id: number | null;
+  alumni_id_2: number | null;
   publication: string | null;
   date_label: string | null;
   pull_quote: string;
@@ -86,9 +107,15 @@ const SELECT_WITH_ALUMNI = `
     al.grad_year       AS alumni_grad_year,
     al.photo_url       AS alumni_photo_url,
     al.current_title   AS alumni_current_title,
-    al.current_company AS alumni_current_company
+    al.current_company AS alumni_current_company,
+    al2.first_name     AS alumni2_first_name,
+    al2.last_name      AS alumni2_last_name,
+    al2.uwc_college    AS alumni2_uwc_college,
+    al2.grad_year      AS alumni2_grad_year,
+    al2.photo_url      AS alumni2_photo_url
   FROM news_features nf
-  LEFT JOIN alumni al ON al.id = nf.alumni_id
+  LEFT JOIN alumni al  ON al.id  = nf.alumni_id
+  LEFT JOIN alumni al2 ON al2.id = nf.alumni_id_2
 `;
 
 function deriveCurrentRole(r: NewsFeatureRow): string | null {
@@ -127,6 +154,7 @@ export async function getNewsFeatureDisplay(): Promise<NewsFeatureDisplay> {
   const features: ResolvedNewsFeature[] = rows.map((r) => ({
     id: r.id,
     alumni_id: r.alumni_id,
+    alumni_id_2: r.alumni_id_2,
     publication: r.publication,
     date_label: r.date_label,
     pull_quote: r.pull_quote,
@@ -140,6 +168,15 @@ export async function getNewsFeatureDisplay(): Promise<NewsFeatureDisplay> {
     alumni_last_name: r.alumni_last_name,
     alumni_uwc_college: r.alumni_uwc_college,
     alumni_grad_year: r.alumni_grad_year,
+    alumni_2: r.alumni_id_2
+      ? {
+          first_name: r.alumni2_first_name,
+          last_name: r.alumni2_last_name,
+          uwc_college: r.alumni2_uwc_college,
+          grad_year: r.alumni2_grad_year,
+          photo_url: r.alumni2_photo_url,
+        }
+      : null,
   }));
 
   return {
@@ -151,11 +188,11 @@ export async function getNewsFeatureDisplay(): Promise<NewsFeatureDisplay> {
 export async function createNewsFeature(data: NewsFeatureInput): Promise<number> {
   const rows = (await sql`
     INSERT INTO news_features (
-      alumni_id, publication, date_label, pull_quote, article_url,
+      alumni_id, alumni_id_2, publication, date_label, pull_quote, article_url,
       article_title, article_image_url, article_card_style,
       portrait_override_url, current_role_override, sort_order, enabled
     ) VALUES (
-      ${data.alumni_id}, ${data.publication}, ${data.date_label}, ${data.pull_quote},
+      ${data.alumni_id}, ${data.alumni_id_2}, ${data.publication}, ${data.date_label}, ${data.pull_quote},
       ${data.article_url}, ${data.article_title}, ${data.article_image_url}, ${data.article_card_style},
       ${data.portrait_override_url}, ${data.current_role_override},
       ${data.sort_order}, ${data.enabled}
@@ -172,6 +209,7 @@ export async function updateNewsFeature(
   await sql`
     UPDATE news_features SET
       alumni_id             = ${data.alumni_id},
+      alumni_id_2           = ${data.alumni_id_2},
       publication           = ${data.publication},
       date_label            = ${data.date_label},
       pull_quote            = ${data.pull_quote},

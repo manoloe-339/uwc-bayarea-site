@@ -44,6 +44,7 @@ function readCardStyle(v: FormDataEntryValue | null): ArticleCardStyle {
 function readNewsForm(formData: FormData) {
   return {
     alumni_id: maybeId(formData.get("alumni_id")),
+    alumni_id_2: maybeId(formData.get("alumni_id_2")),
     publication: txt(formData.get("publication")),
     date_label: txt(formData.get("date_label")),
     pull_quote: reqText(formData.get("pull_quote"), "Pull quote"),

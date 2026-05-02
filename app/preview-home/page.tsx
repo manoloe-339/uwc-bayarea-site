@@ -580,11 +580,7 @@ function NewsSpotlight({ feature }: { feature: ResolvedNewsFeature }) {
           {feature.pull_quote}
         </blockquote>
         <div className="mt-8 flex items-center gap-4">
-          {feature.portrait_url && (
-            <div className="relative w-14 h-14 rounded-full overflow-hidden bg-[color:var(--ivory-2)] shrink-0">
-              <Image src={feature.portrait_url} alt="" fill sizes="56px" className="object-cover" />
-            </div>
-          )}
+          <NewsBylineAvatars feature={feature} sizePx={56} />
           <div>
             <div className="font-sans text-[15px] font-semibold text-[color:var(--navy-ink)]">
               {alumDisplayName(feature)}
@@ -628,11 +624,7 @@ function NewsPair({ features }: { features: ResolvedNewsFeature[] }) {
             &ldquo;{f.pull_quote}&rdquo;
           </blockquote>
           <div className="mt-6 flex items-center gap-3.5">
-            {f.portrait_url && (
-              <div className="relative w-[50px] h-[50px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] shrink-0">
-                <Image src={f.portrait_url} alt="" fill sizes="50px" className="object-cover" />
-              </div>
-            )}
+            <NewsBylineAvatars feature={f} sizePx={50} />
             <div>
               <div className="font-sans text-[14px] font-semibold text-[color:var(--navy-ink)]">
                 {alumDisplayName(f)}
@@ -665,13 +657,68 @@ function NewsPair({ features }: { features: ResolvedNewsFeature[] }) {
   );
 }
 
+function NewsBylineAvatars({
+  feature, sizePx,
+}: {
+  feature: ResolvedNewsFeature;
+  sizePx: number;
+}) {
+  const second = feature.alumni_2;
+  const showSecond = !!second;
+  return (
+    <div className="flex items-center shrink-0">
+      {feature.portrait_url && (
+        <div
+          className="relative rounded-full overflow-hidden bg-[color:var(--ivory-2)] border-2 border-white"
+          style={{ width: sizePx, height: sizePx }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={feature.portrait_url}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      )}
+      {showSecond && second.photo_url && (
+        <div
+          className="relative rounded-full overflow-hidden bg-[color:var(--ivory-2)] border-2 border-white"
+          style={{ width: sizePx, height: sizePx, marginLeft: -Math.round(sizePx * 0.3) }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={second.photo_url}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function alumDisplayName(f: ResolvedNewsFeature): string {
-  return [f.alumni_first_name, f.alumni_last_name].filter(Boolean).join(" ") || "Alumna";
+  const first = [f.alumni_first_name, f.alumni_last_name].filter(Boolean).join(" ") || "Alumna";
+  if (!f.alumni_2) return first;
+  const second = [f.alumni_2.first_name, f.alumni_2.last_name].filter(Boolean).join(" ") || "Alumna";
+  return `${first} & ${second}`;
+}
+
+function shortByline(college: string | null, year: number | null): string {
+  const yy = year ? `'${String(year).slice(-2)}` : "";
+  return [college, yy].filter(Boolean).join(" · ");
 }
 
 function alumByline(f: ResolvedNewsFeature): string {
-  const yy = f.alumni_grad_year ? `'${String(f.alumni_grad_year).slice(-2)}` : "";
-  return [f.alumni_uwc_college, yy].filter(Boolean).join(" · ");
+  const first = shortByline(f.alumni_uwc_college, f.alumni_grad_year);
+  if (!f.alumni_2) return first;
+  const second = shortByline(f.alumni_2.uwc_college, f.alumni_2.grad_year);
+  if (first && second) return `${first}  ·  ${second}`;
+  return first || second;
 }
 
 function ArticleCard({

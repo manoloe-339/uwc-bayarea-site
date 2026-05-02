@@ -6,6 +6,7 @@ import type { ArticleCardStyle } from "@/lib/news-features";
 
 export interface NewsFeatureFormInitial {
   alumni: HostAlumnus | null;
+  alumni_2: HostAlumnus | null;
   publication: string;
   date_label: string;
   pull_quote: string;
@@ -35,6 +36,12 @@ export default function NewsFeatureForm({ initial, action, submitLabel }: Props)
         name="alumni_id"
         label="Featured alumnus"
         initial={initial.alumni}
+      />
+
+      <FoodiesHostPicker
+        name="alumni_id_2"
+        label="Second alumnus (optional — for stories featuring two alumni together)"
+        initial={initial.alumni_2}
       />
 
       <div className="grid sm:grid-cols-2 gap-4">
