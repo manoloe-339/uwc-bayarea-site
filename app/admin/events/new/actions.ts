@@ -39,6 +39,7 @@ export async function createEventAction(formData: FormData): Promise<void> {
   const time = String(formData.get("time") ?? "").trim() || null;
   const location = String(formData.get("location") ?? "").trim() || null;
   const description = String(formData.get("description") ?? "").trim() || null;
+  const galleryDescription = pickText(String(formData.get("gallery_description_md") ?? ""));
   const stripeLink = String(formData.get("stripe_payment_link_id") ?? "").trim() || null;
   const eventTypeRaw = String(formData.get("event_type") ?? "ticketed").trim();
   const eventType = eventTypeRaw === "casual" ? "casual" : "ticketed";
@@ -61,12 +62,14 @@ export async function createEventAction(formData: FormData): Promise<void> {
   await sql`
     INSERT INTO events (
       slug, name, date, time, location, description,
+      gallery_description_md,
       stripe_payment_link_id, event_type,
       is_foodies, foodies_region, foodies_cuisine,
       foodies_neighborhood, foodies_host_1_alumni_id, foodies_host_2_alumni_id
     )
     VALUES (
       ${slug}, ${name}, ${date}, ${time}, ${location}, ${description},
+      ${galleryDescription},
       ${finalStripeLink}, ${eventType},
       ${isFoodies}, ${foodiesRegion}, ${foodiesCuisine},
       ${foodiesNeighborhood}, ${foodiesHost1}, ${foodiesHost2}
@@ -83,6 +86,7 @@ export async function updateEventAction(id: number, formData: FormData): Promise
   const location = String(formData.get("location") ?? "").trim() || null;
   const locationMapUrl = String(formData.get("location_map_url") ?? "").trim() || null;
   const description = String(formData.get("description") ?? "").trim() || null;
+  const galleryDescription = pickText(String(formData.get("gallery_description_md") ?? ""));
   const stripeLink = String(formData.get("stripe_payment_link_id") ?? "").trim() || null;
   const eventTypeRaw = String(formData.get("event_type") ?? "ticketed").trim();
   const eventType = eventTypeRaw === "casual" ? "casual" : "ticketed";
@@ -103,7 +107,9 @@ export async function updateEventAction(id: number, formData: FormData): Promise
     UPDATE events SET
       name = ${name}, date = ${date}, time = ${time}, location = ${location},
       location_map_url = ${locationMapUrl},
-      description = ${description}, stripe_payment_link_id = ${finalStripeLink},
+      description = ${description},
+      gallery_description_md = ${galleryDescription},
+      stripe_payment_link_id = ${finalStripeLink},
       event_type = ${eventType},
       is_foodies = ${isFoodies},
       foodies_region = ${foodiesRegion},

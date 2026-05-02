@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { FOODIES_REGIONS } from "@/lib/foodies-shared";
 import { FoodiesHostPicker, type HostAlumnus } from "@/components/admin/FoodiesHostPicker";
+import { MarkdownTextarea } from "@/components/admin/MarkdownTextarea";
 
 type Props = {
   slug: string;
@@ -18,6 +19,7 @@ type Props = {
     ticket_price: string | null;
     event_type: "ticketed" | "casual";
     is_foodies: boolean;
+    gallery_description_md: string | null;
     foodies_region: string | null;
     foodies_cuisine: string | null;
     foodies_neighborhood: string | null;
@@ -95,6 +97,14 @@ export default function EditEventForm({ slug, initial, action }: Props) {
         type="url"
       />
       <TextareaField name="description" label="Description" rows={3} defaultValue={initial.description ?? ""} />
+
+      <MarkdownTextarea
+        name="gallery_description_md"
+        label="Gallery page description (shown above the photos on /events/[slug]/photos)"
+        rows={4}
+        defaultValue={initial.gallery_description_md ?? ""}
+        placeholder="e.g. Forty-seven alumni gathered for [Gil Yaron's fireside on eSwatini](https://example.com)…"
+      />
 
       {eventType === "casual" && isFoodies && (
         <fieldset className="border border-[color:var(--rule)] rounded-[10px] p-4 space-y-3 bg-ivory/40">

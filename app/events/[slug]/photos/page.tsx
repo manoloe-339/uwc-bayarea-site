@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getEventBySlug } from "@/lib/events-db";
 import { getApprovedPhotosOrdered } from "@/lib/event-photos/queries";
 import { PublicGalleryGrid } from "@/components/event-photos/PublicGalleryGrid";
+import { renderSimpleMarkdown } from "@/lib/simple-markdown";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
@@ -42,6 +43,15 @@ export default async function PublicEventPhotosPage({
           </h1>
           {dateLabel && (
             <p className="text-[color:var(--muted)] text-sm">{dateLabel}</p>
+          )}
+
+          {event.gallery_description_md && (
+            <div
+              className="mt-5 max-w-[68ch] text-[15px] sm:text-base leading-[1.6] text-[color:var(--navy-ink)] [&_p]:mb-3 [&_p:last-child]:mb-0 [&_a]:text-navy"
+              dangerouslySetInnerHTML={{
+                __html: renderSimpleMarkdown(event.gallery_description_md),
+              }}
+            />
           )}
 
           <div className="mt-6" />

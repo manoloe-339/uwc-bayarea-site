@@ -59,6 +59,7 @@ export default async function EditEventPage({
           ticket_price: event.ticket_price,
           event_type: event.event_type,
           is_foodies: event.is_foodies,
+          gallery_description_md: event.gallery_description_md,
           foodies_region: event.foodies_region,
           foodies_cuisine: event.foodies_cuisine,
           foodies_neighborhood: event.foodies_neighborhood,
