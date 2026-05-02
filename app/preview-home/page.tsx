@@ -588,7 +588,9 @@ function NewsSpotlight({ feature }: { feature: ResolvedNewsFeature }) {
             )}
           </div>
         </div>
-        {feature.article_url && (
+        {feature.article_image_url ? (
+          <ArticleCard feature={feature} sizeClass="max-w-[480px]" />
+        ) : feature.article_url ? (
           <a
             href={feature.article_url}
             target="_blank"
@@ -597,7 +599,7 @@ function NewsSpotlight({ feature }: { feature: ResolvedNewsFeature }) {
           >
             Read the article →
           </a>
-        )}
+        ) : null}
       </div>
     </article>
   );
@@ -636,7 +638,9 @@ function NewsPair({ features }: { features: ResolvedNewsFeature[] }) {
               )}
             </div>
           </div>
-          {f.article_url && (
+          {f.article_image_url ? (
+            <ArticleCard feature={f} sizeClass="max-w-[420px]" />
+          ) : f.article_url ? (
             <a
               href={f.article_url}
               target="_blank"
@@ -645,7 +649,7 @@ function NewsPair({ features }: { features: ResolvedNewsFeature[] }) {
             >
               Read article →
             </a>
-          )}
+          ) : null}
         </article>
       ))}
     </div>
@@ -659,6 +663,77 @@ function alumDisplayName(f: ResolvedNewsFeature): string {
 function alumByline(f: ResolvedNewsFeature): string {
   const yy = f.alumni_grad_year ? `'${String(f.alumni_grad_year).slice(-2)}` : "";
   return [f.alumni_uwc_college, yy].filter(Boolean).join(" · ");
+}
+
+function ArticleCard({
+  feature, sizeClass,
+}: {
+  feature: ResolvedNewsFeature;
+  /** Tailwind class for the card's max width. */
+  sizeClass: string;
+}) {
+  if (!feature.article_image_url) return null;
+  const isClipping = feature.article_card_style === "clipping";
+
+  // Outer wrapper: anchor when article_url present, otherwise a plain div.
+  const Wrapper = (props: { children: React.ReactNode }) =>
+    feature.article_url ? (
+      <a
+        href={feature.article_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block group"
+      >
+        {props.children}
+      </a>
+    ) : (
+      <div>{props.children}</div>
+    );
+
+  const cardOuter = isClipping
+    ? "bg-[color:var(--ivory)] border border-[color:var(--rule)] p-2 sm:p-2.5 transition-transform group-hover:rotate-0"
+    : "bg-white border border-[color:var(--rule)] rounded-md overflow-hidden transition-shadow";
+
+  const cardStyle: React.CSSProperties = isClipping
+    ? {
+        transform: "rotate(-1.4deg)",
+        boxShadow: "0 24px 50px -22px rgba(11,37,69,.35), 0 4px 0 rgba(11,37,69,.04)",
+      }
+    : {
+        boxShadow: "0 2px 0 var(--ivory-3), 0 24px 60px -30px rgba(11,37,69,.18)",
+      };
+
+  return (
+    <div className={`mt-6 ${sizeClass}`}>
+      <Wrapper>
+        <figure className={cardOuter} style={cardStyle}>
+          <div className="relative aspect-[16/10] bg-[color:var(--ivory-2)] overflow-hidden">
+            <Image
+              src={feature.article_image_url}
+              alt=""
+              fill
+              sizes="(min-width: 640px) 520px, 100vw"
+              className="object-cover"
+            />
+          </div>
+          <figcaption
+            className={
+              isClipping
+                ? "px-1 pt-2 pb-0.5"
+                : "px-3 pt-2.5 pb-3 border-t border-[color:var(--rule)]"
+            }
+          >
+            <div className="text-[10px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)]">
+              {[feature.publication, feature.date_label].filter(Boolean).join(" · ") || "Article"}
+            </div>
+            <div className="mt-1 text-[11px] font-bold tracking-[.18em] uppercase text-navy">
+              Read the article →
+            </div>
+          </figcaption>
+        </figure>
+      </Wrapper>
+    </div>
+  );
 }
 
 /* ─── Shared bits ─────────────────────────────────────────────── */

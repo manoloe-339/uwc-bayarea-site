@@ -7,6 +7,8 @@ import {
   updateNewsFeature,
   deleteNewsFeature,
   setNewsFeatureEnabled,
+  isArticleCardStyle,
+  type ArticleCardStyle,
 } from "@/lib/news-features";
 
 function txt(v: FormDataEntryValue | null): string | null {
@@ -34,6 +36,11 @@ function maybeId(v: FormDataEntryValue | null): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function readCardStyle(v: FormDataEntryValue | null): ArticleCardStyle {
+  const s = String(v ?? "").trim();
+  return isArticleCardStyle(s) ? s : "clean";
+}
+
 function readNewsForm(formData: FormData) {
   return {
     alumni_id: maybeId(formData.get("alumni_id")),
@@ -41,6 +48,8 @@ function readNewsForm(formData: FormData) {
     date_label: txt(formData.get("date_label")),
     pull_quote: reqText(formData.get("pull_quote"), "Pull quote"),
     article_url: txt(formData.get("article_url")),
+    article_image_url: txt(formData.get("article_image_url")),
+    article_card_style: readCardStyle(formData.get("article_card_style")),
     portrait_override_url: txt(formData.get("portrait_override_url")),
     current_role_override: txt(formData.get("current_role_override")),
     sort_order: intOr(formData.get("sort_order"), 0),

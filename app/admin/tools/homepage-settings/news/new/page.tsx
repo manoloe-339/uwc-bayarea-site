@@ -27,6 +27,8 @@ export default function NewNewsFeaturePage() {
           date_label: "",
           pull_quote: "",
           article_url: "",
+          article_image_url: "",
+          article_card_style: "clean",
           portrait_override_url: "",
           current_role_override: "",
           sort_order: 0,

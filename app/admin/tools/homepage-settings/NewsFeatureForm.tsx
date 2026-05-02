@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FoodiesHostPicker, type HostAlumnus } from "@/components/admin/FoodiesHostPicker";
+import type { ArticleCardStyle } from "@/lib/news-features";
 
 export interface NewsFeatureFormInitial {
   alumni: HostAlumnus | null;
@@ -9,6 +10,8 @@ export interface NewsFeatureFormInitial {
   date_label: string;
   pull_quote: string;
   article_url: string;
+  article_image_url: string;
+  article_card_style: ArticleCardStyle;
   portrait_override_url: string;
   current_role_override: string;
   sort_order: number;
@@ -54,6 +57,37 @@ export default function NewsFeatureForm({ initial, action, submitLabel }: Props)
         defaultValue={initial.article_url}
         placeholder="https://…"
       />
+
+      <fieldset className="border border-[color:var(--rule)] rounded p-4 space-y-3">
+        <legend className="text-[11px] tracking-[.22em] uppercase font-bold text-navy px-1">
+          Article preview card (optional)
+        </legend>
+        <Field
+          name="article_image_url"
+          label="Article preview image URL"
+          type="url"
+          defaultValue={initial.article_image_url}
+          placeholder="Paste the og:image URL or a screenshot — leave blank to skip"
+        />
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            Card style
+          </span>
+          <select
+            name="article_card_style"
+            defaultValue={initial.article_card_style}
+            className="w-full sm:w-[320px] border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          >
+            <option value="clean">Clean — modern card with thin border + shadow</option>
+            <option value="clipping">Clipping — slight rotation, paper feel</option>
+          </select>
+          <span className="block mt-1 text-xs text-[color:var(--muted)]">
+            Tip: right-click the article&rsquo;s hero image and copy its URL,
+            or grab the og:image from the page source. Card only appears
+            when an image URL is set.
+          </span>
+        </label>
+      </fieldset>
 
       <Field
         name="portrait_override_url"

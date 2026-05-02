@@ -1,5 +1,13 @@
 import { sql } from "./db";
 
+export type ArticleCardStyle = "clean" | "clipping";
+
+const ARTICLE_CARD_STYLES: ArticleCardStyle[] = ["clean", "clipping"];
+
+export function isArticleCardStyle(v: string): v is ArticleCardStyle {
+  return (ARTICLE_CARD_STYLES as string[]).includes(v);
+}
+
 export interface NewsFeatureRow {
   id: number;
   alumni_id: number | null;
@@ -7,6 +15,8 @@ export interface NewsFeatureRow {
   date_label: string | null;
   pull_quote: string;
   article_url: string | null;
+  article_image_url: string | null;
+  article_card_style: ArticleCardStyle;
   portrait_override_url: string | null;
   current_role_override: string | null;
   sort_order: number;
@@ -33,6 +43,8 @@ export interface ResolvedNewsFeature {
   date_label: string | null;
   pull_quote: string;
   article_url: string | null;
+  article_image_url: string | null;
+  article_card_style: ArticleCardStyle;
   portrait_url: string | null;
   current_role: string | null;
   alumni_first_name: string | null;
@@ -54,6 +66,8 @@ export interface NewsFeatureInput {
   date_label: string | null;
   pull_quote: string;
   article_url: string | null;
+  article_image_url: string | null;
+  article_card_style: ArticleCardStyle;
   portrait_override_url: string | null;
   current_role_override: string | null;
   sort_order: number;
@@ -114,6 +128,8 @@ export async function getNewsFeatureDisplay(): Promise<NewsFeatureDisplay> {
     date_label: r.date_label,
     pull_quote: r.pull_quote,
     article_url: r.article_url,
+    article_image_url: r.article_image_url,
+    article_card_style: r.article_card_style ?? "clean",
     portrait_url: r.portrait_override_url ?? r.alumni_photo_url,
     current_role: deriveCurrentRole(r),
     alumni_first_name: r.alumni_first_name,
@@ -132,11 +148,13 @@ export async function createNewsFeature(data: NewsFeatureInput): Promise<number>
   const rows = (await sql`
     INSERT INTO news_features (
       alumni_id, publication, date_label, pull_quote, article_url,
+      article_image_url, article_card_style,
       portrait_override_url, current_role_override, sort_order, enabled
     ) VALUES (
       ${data.alumni_id}, ${data.publication}, ${data.date_label}, ${data.pull_quote},
-      ${data.article_url}, ${data.portrait_override_url},
-      ${data.current_role_override}, ${data.sort_order}, ${data.enabled}
+      ${data.article_url}, ${data.article_image_url}, ${data.article_card_style},
+      ${data.portrait_override_url}, ${data.current_role_override},
+      ${data.sort_order}, ${data.enabled}
     )
     RETURNING id
   `) as { id: number }[];
@@ -154,6 +172,8 @@ export async function updateNewsFeature(
       date_label            = ${data.date_label},
       pull_quote            = ${data.pull_quote},
       article_url           = ${data.article_url},
+      article_image_url     = ${data.article_image_url},
+      article_card_style    = ${data.article_card_style},
       portrait_override_url = ${data.portrait_override_url},
       current_role_override = ${data.current_role_override},
       sort_order            = ${data.sort_order},
