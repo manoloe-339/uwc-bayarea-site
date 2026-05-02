@@ -3,13 +3,18 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useMemo, useState } from "react";
-import type { HeroFocalPoint } from "@/lib/hero-slides";
+import type { HeroFocalPoint, ExtraImageSetting } from "@/lib/hero-slides";
 
 interface EventOption {
   id: number;
   slug: string;
   name: string;
   date: Date | string;
+}
+
+export interface ExtraGalleryPhoto {
+  id: number;
+  url: string;
 }
 
 export interface SlideFormInitial {
@@ -23,6 +28,7 @@ export interface SlideFormInitial {
   image_url: string;
   focal_point: HeroFocalPoint;
   zoom: number;
+  extra_image_settings: ExtraImageSetting[];
   sort_order: number;
   enabled: boolean;
 }
@@ -35,6 +41,10 @@ interface Props {
   /** Used to seed the focal-point preview when image_url is blank
    * but a linked event has photos. Resolved server-side. */
   defaultImagePreviewUrl?: string | null;
+  /** Photos available for positions 1..N when admin chooses to show
+   * multiple images from the linked event's gallery. Excludes the
+   * primary photo. Resolved server-side. */
+  extraGalleryPhotos?: ExtraGalleryPhoto[];
 }
 
 type FocalMode = "top" | "center" | "bottom" | "custom";
@@ -67,6 +77,7 @@ function fmtDate(d: Date | string): string {
 
 export default function SlideForm({
   events, initial, action, submitLabel, defaultImagePreviewUrl,
+  extraGalleryPhotos = [],
 }: Props) {
   const [eventId, setEventId] = useState<number | null>(initial.event_id);
   const [eyebrow, setEyebrow] = useState(initial.eyebrow);
@@ -82,6 +93,21 @@ export default function SlideForm({
   const [focalX, setFocalX] = useState<number>(initialFocal.x);
   const [focalY, setFocalY] = useState<number>(initialFocal.y);
   const [zoom, setZoom] = useState<number>(initial.zoom ?? 1);
+
+  const [extras, setExtras] = useState<ExtraImageSetting[]>(initial.extra_image_settings ?? []);
+  const maxExtras = extraGalleryPhotos.length;
+  const updateExtra = (i: number, patch: Partial<ExtraImageSetting>) => {
+    setExtras((prev) => prev.map((e, idx) => (idx === i ? { ...e, ...patch } : e)));
+  };
+  const setExtraCount = (n: number) => {
+    const clamped = Math.max(0, Math.min(maxExtras, n));
+    setExtras((prev) => {
+      const next = [...prev];
+      while (next.length < clamped) next.push({ focal_point: "center", zoom: 1 });
+      next.length = clamped;
+      return next;
+    });
+  };
 
   const previewSrc = imageUrl || defaultImagePreviewUrl || null;
   const previewObjectPosition = focalPointValue(focalMode, focalX, focalY);
@@ -254,6 +280,59 @@ export default function SlideForm({
         </div>
       </fieldset>
 
+      <fieldset className="border border-[color:var(--rule)] rounded p-4 space-y-3">
+        <legend className="text-[11px] tracking-[.22em] uppercase font-bold text-navy px-1">
+          Show more photos from this event
+        </legend>
+        <input
+          type="hidden"
+          name="extra_image_settings"
+          value={JSON.stringify(extras)}
+        />
+        {maxExtras === 0 ? (
+          <p className="text-xs text-[color:var(--muted)]">
+            Save the slide with a linked event first. Then come back here
+            to pull additional photos from the event&rsquo;s gallery.
+          </p>
+        ) : (
+          <>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm">
+                <span className="font-semibold">Additional images:</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={maxExtras}
+                  value={extras.length}
+                  onChange={(e) => setExtraCount(Number(e.target.value))}
+                  className="w-[64px] border border-[color:var(--rule)] rounded px-2 py-1 text-sm bg-white"
+                />
+                <span className="text-xs text-[color:var(--muted)]">
+                  (up to {maxExtras} available in the event gallery)
+                </span>
+              </label>
+            </div>
+            {extras.length > 0 && (
+              <div className="space-y-3">
+                {extras.map((ex, i) => {
+                  const photo = extraGalleryPhotos[i];
+                  if (!photo) return null;
+                  return (
+                    <ExtraImageCard
+                      key={`${photo.id}-${i}`}
+                      index={i}
+                      photoUrl={photo.url}
+                      setting={ex}
+                      onChange={(patch) => updateExtra(i, patch)}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </fieldset>
+
       <div className="grid sm:grid-cols-[140px_1fr] gap-4 items-end">
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
@@ -320,6 +399,88 @@ function Field({
         className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
       />
     </label>
+  );
+}
+
+function ExtraImageCard({
+  index, photoUrl, setting, onChange,
+}: {
+  index: number;
+  photoUrl: string;
+  setting: ExtraImageSetting;
+  onChange: (patch: Partial<ExtraImageSetting>) => void;
+}) {
+  const focal = parseFocalPoint(setting.focal_point);
+  const objectPosition = focalPointValue(focal.mode, focal.x, focal.y);
+  const isContain = setting.zoom < 1;
+  return (
+    <div className="border border-[color:var(--rule)] rounded p-3 bg-[color:var(--ivory)]/30">
+      <div className="text-[10px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-2">
+        Image #{index + 2} from gallery
+      </div>
+      <div className="grid sm:grid-cols-[200px_1fr] gap-3">
+        <button
+          type="button"
+          onClick={(e) => {
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            onChange({ focal_point: `${Math.round(clamp(x, 0, 100))}% ${Math.round(clamp(y, 0, 100))}%` });
+          }}
+          className="block relative w-full bg-[color:var(--navy-ink)] overflow-hidden rounded cursor-crosshair border border-[color:var(--rule)]"
+          style={{ aspectRatio: "21 / 9" }}
+          aria-label="Click to set focal point"
+        >
+          <Image
+            src={photoUrl}
+            alt=""
+            fill
+            sizes="200px"
+            className={`pointer-events-none ${isContain ? "object-contain" : "object-cover"}`}
+            style={{
+              objectPosition,
+              transform: setting.zoom !== 1 ? `scale(${setting.zoom})` : undefined,
+              transformOrigin: objectPosition,
+            }}
+          />
+        </button>
+        <div className="space-y-2">
+          <label className="block">
+            <span className="block text-[10px] tracking-[.18em] uppercase font-bold text-navy mb-1">
+              Focal point
+            </span>
+            <select
+              value={focal.mode}
+              onChange={(e) => {
+                const mode = e.target.value as FocalMode;
+                onChange({ focal_point: focalPointValue(mode, focal.x, focal.y) });
+              }}
+              className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
+            >
+              <option value="top">Top</option>
+              <option value="center">Center</option>
+              <option value="bottom">Bottom</option>
+              <option value="custom">Custom (click preview)</option>
+            </select>
+          </label>
+          <label className="block">
+            <div className="flex items-baseline justify-between mb-1">
+              <span className="text-[10px] tracking-[.18em] uppercase font-bold text-navy">Zoom</span>
+              <span className="text-xs text-[color:var(--muted)] font-mono">{setting.zoom.toFixed(2)}×</span>
+            </div>
+            <input
+              type="range"
+              min={0.5}
+              max={2}
+              step={0.05}
+              value={setting.zoom}
+              onChange={(e) => onChange({ zoom: Number(e.target.value) })}
+              className="w-full"
+            />
+          </label>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -35,6 +35,7 @@ export default async function NewSlidePage() {
           image_url: "",
           focal_point: "center",
           zoom: 1,
+          extra_image_settings: [],
           sort_order: 0,
           enabled: true,
         }}

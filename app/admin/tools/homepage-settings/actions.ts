@@ -8,7 +8,9 @@ import {
   deleteHeroSlide,
   setHeroSlideEnabled,
   isHeroFocalPoint,
+  parseExtraImageSettings,
   type HeroFocalPoint,
+  type ExtraImageSetting,
 } from "@/lib/hero-slides";
 
 function txt(v: FormDataEntryValue | null): string | null {
@@ -47,6 +49,17 @@ function readZoom(v: FormDataEntryValue | null): number {
   return Math.max(0.5, Math.min(2, n));
 }
 
+function readExtras(v: FormDataEntryValue | null): ExtraImageSetting[] {
+  const raw = String(v ?? "").trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return parseExtraImageSettings(parsed);
+  } catch {
+    return [];
+  }
+}
+
 function readSlideForm(formData: FormData) {
   return {
     event_id: maybeId(formData.get("event_id")),
@@ -59,6 +72,7 @@ function readSlideForm(formData: FormData) {
     image_url: txt(formData.get("image_url")),
     focal_point: readFocalPoint(formData.get("focal_point")),
     zoom: readZoom(formData.get("zoom")),
+    extra_image_settings: readExtras(formData.get("extra_image_settings")),
     sort_order: intOr(formData.get("sort_order"), 0),
     enabled: formData.get("enabled") != null,
   };

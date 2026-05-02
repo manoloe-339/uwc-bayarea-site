@@ -142,14 +142,14 @@ function ChooseView({
           href="/signup"
           className="block w-full bg-navy text-white text-center px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase hover:opacity-90"
         >
-          I&rsquo;m a UWC alum — sign up →
+          I&rsquo;m an alum in the Bay Area — sign up →
         </Link>
         <button
           type="button"
           onClick={onVisiting}
           className="block w-full bg-white border border-[color:var(--rule)] text-navy text-center px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase hover:border-navy"
         >
-          Just visiting the Bay Area →
+          I&rsquo;m an alum just visiting →
         </button>
       </div>
 
@@ -201,9 +201,16 @@ function VisitingForm({
 
       <div className="mt-5 space-y-3.5">
         <Field
+          name="affiliation"
+          type="text"
+          label="UWC affiliation + year"
+          placeholder="e.g. UWCSEA '12, Pearson '08"
+          required
+        />
+        <Field
           name="email"
           type="email"
-          label="UWC affiliation email"
+          label="Email"
           placeholder="you@example.com"
           required
         />
@@ -220,8 +227,8 @@ function VisitingForm({
           </span>
           <textarea
             name="note"
-            rows={2}
-            placeholder="When you'll be in town, what brings you here, etc."
+            rows={3}
+            placeholder="What brings you here, how can we help!"
             className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
           />
         </label>

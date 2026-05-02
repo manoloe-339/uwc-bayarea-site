@@ -14,6 +14,11 @@ export function isHeroFocalPoint(v: string): boolean {
   return CUSTOM_FOCAL_RE.test(v);
 }
 
+export interface ExtraImageSetting {
+  focal_point: HeroFocalPoint;
+  zoom: number;
+}
+
 export interface HeroSlideRow {
   id: number;
   event_id: number | null;
@@ -27,6 +32,9 @@ export interface HeroSlideRow {
   focal_point: HeroFocalPoint;
   /** Numeric stored by Neon as string. Coerce when reading. */
   zoom: number | string;
+  /** JSON array of per-image calibration for positions 1..N when the
+   * admin wants to show multiple photos from a single event's gallery. */
+  extra_image_settings: ExtraImageSetting[] | string;
   sort_order: number;
   enabled: boolean;
   created_at: string;
@@ -36,6 +44,25 @@ export interface HeroSlideRow {
   event_name: string | null;
   event_date: Date | null;
   event_location: string | null;
+}
+
+function coerceExtraImages(v: ExtraImageSetting[] | string | null | undefined): ExtraImageSetting[] {
+  if (!v) return [];
+  if (Array.isArray(v)) return v.map(normalizeExtra);
+  try {
+    const parsed = JSON.parse(v as string);
+    return Array.isArray(parsed) ? parsed.map(normalizeExtra) : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeExtra(raw: unknown): ExtraImageSetting {
+  const r = (raw ?? {}) as Partial<ExtraImageSetting>;
+  const fp = typeof r.focal_point === "string" && isHeroFocalPoint(r.focal_point) ? r.focal_point : "center";
+  const zoomNum = Number(r.zoom);
+  const zoom = Number.isFinite(zoomNum) ? Math.max(0.5, Math.min(2, zoomNum)) : 1;
+  return { focal_point: fp, zoom };
 }
 
 /** Resolved slide ready for the public hero carousel. */
@@ -83,6 +110,10 @@ export async function listHeroSlidesForAdmin(): Promise<HeroSlideRow[]> {
   `) as HeroSlideRow[];
 }
 
+export function parseExtraImageSettings(v: ExtraImageSetting[] | string | null | undefined): ExtraImageSetting[] {
+  return coerceExtraImages(v);
+}
+
 export async function getHeroSlideById(id: number): Promise<HeroSlideRow | null> {
   const rows = (await sql`
     SELECT
@@ -100,8 +131,9 @@ export async function getHeroSlideById(id: number): Promise<HeroSlideRow | null>
 }
 
 /** Resolve enabled hero slides into the shape the carousel needs.
- * For each slide, falls back to the linked event's first approved photo
- * when image_url is null. */
+ * Each row may expand into multiple carousel slides when extra_image_settings
+ * has entries — those pull additional photos from the linked event's gallery
+ * with their own per-image focal_point + zoom calibration. */
 export async function getActiveHeroSlides(): Promise<ResolvedHeroSlide[]> {
   const rows = (await sql`
     SELECT
@@ -125,22 +157,41 @@ export async function getActiveHeroSlides(): Promise<ResolvedHeroSlide[]> {
 
   const resolved: ResolvedHeroSlide[] = [];
   for (const r of rows) {
-    let image = r.image_url;
-    if (!image && r.event_id) {
-      const photos = await getApprovedPhotosOrdered(r.event_id);
-      image = photos[0]?.blob_url ?? null;
-    }
-    resolved.push({
+    const extras = coerceExtraImages(r.extra_image_settings);
+    const eventPhotos = r.event_id ? await getApprovedPhotosOrdered(r.event_id) : [];
+
+    // Position 0: primary image (image_url override OR event's first photo).
+    const primaryImage = r.image_url ?? eventPhotos[0]?.blob_url ?? null;
+    const baseSlide = {
       eyebrow: r.eyebrow ?? (r.event_date ? formatHeroDate(r.event_date) : ""),
       title: r.title,
       emphasis: r.emphasis ?? "",
       byline: r.byline ?? "",
       cta_label: r.cta_label ?? "See more photos →",
       cta_href: r.cta_href ?? (r.event_slug ? `/events/${r.event_slug}/photos` : "/photos"),
-      image_url: image,
+    };
+    resolved.push({
+      ...baseSlide,
+      image_url: primaryImage,
       focal_point: r.focal_point,
       zoom: coerceZoom(r.zoom),
     });
+
+    // Positions 1..N: pull from the event's gallery in order, skipping
+    // any photo that matches the primary's blob_url (so we don't show
+    // the same photo twice).
+    if (extras.length > 0 && eventPhotos.length > 0) {
+      const primaryUrl = primaryImage ?? "";
+      const remaining = eventPhotos.filter((p) => p.blob_url !== primaryUrl);
+      for (let i = 0; i < extras.length && i < remaining.length; i++) {
+        resolved.push({
+          ...baseSlide,
+          image_url: remaining[i].blob_url,
+          focal_point: extras[i].focal_point,
+          zoom: extras[i].zoom,
+        });
+      }
+    }
   }
   return resolved;
 }
@@ -210,19 +261,27 @@ export interface HeroSlideInput {
   image_url: string | null;
   focal_point: HeroFocalPoint;
   zoom: number;
+  extra_image_settings: ExtraImageSetting[];
   sort_order: number;
   enabled: boolean;
+}
+
+function serializeExtras(extras: ExtraImageSetting[]): string {
+  return JSON.stringify(extras.map(normalizeExtra));
 }
 
 export async function createHeroSlide(data: HeroSlideInput): Promise<number> {
   const rows = (await sql`
     INSERT INTO homepage_hero_slides (
       event_id, eyebrow, title, emphasis, byline,
-      cta_label, cta_href, image_url, focal_point, zoom, sort_order, enabled
+      cta_label, cta_href, image_url, focal_point, zoom,
+      extra_image_settings, sort_order, enabled
     ) VALUES (
       ${data.event_id}, ${data.eyebrow}, ${data.title}, ${data.emphasis}, ${data.byline},
       ${data.cta_label}, ${data.cta_href}, ${data.image_url}, ${data.focal_point},
-      ${coerceZoom(data.zoom)}, ${data.sort_order}, ${data.enabled}
+      ${coerceZoom(data.zoom)},
+      ${serializeExtras(data.extra_image_settings)}::jsonb,
+      ${data.sort_order}, ${data.enabled}
     )
     RETURNING id
   `) as { id: number }[];
@@ -245,6 +304,7 @@ export async function updateHeroSlide(
       image_url   = ${data.image_url},
       focal_point = ${data.focal_point},
       zoom        = ${coerceZoom(data.zoom)},
+      extra_image_settings = ${serializeExtras(data.extra_image_settings)}::jsonb,
       sort_order  = ${data.sort_order},
       enabled     = ${data.enabled},
       updated_at  = NOW()

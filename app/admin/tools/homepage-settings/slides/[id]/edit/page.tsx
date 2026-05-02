@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import {
   getHeroSlideById,
   listEventsForHeroPicker,
+  parseExtraImageSettings,
 } from "@/lib/hero-slides";
 import { getApprovedPhotosOrdered } from "@/lib/event-photos/queries";
 import { updateHeroSlideAction } from "../../../actions";
@@ -25,14 +26,27 @@ export default async function EditSlidePage({
   if (!slide) notFound();
   const update = updateHeroSlideAction.bind(null, slideId);
 
-  // For the focal-point preview: if no image_url override, fall back to
-  // the linked event's first approved photo (same logic the public hero
-  // uses). Lets the admin see the actual photo they're calibrating.
-  let defaultImagePreviewUrl: string | null = null;
-  if (!slide.image_url && slide.event_id) {
-    const photos = await getApprovedPhotosOrdered(slide.event_id);
-    defaultImagePreviewUrl = photos[0]?.blob_url ?? null;
-  }
+  // For the focal-point preview + extra-image calibration: pre-fetch the
+  // linked event's gallery photos in display order. Same source as the
+  // public hero's auto-fallback. Lets the admin see what the carousel
+  // will render and tune each image individually.
+  const galleryPhotos = slide.event_id
+    ? (await getApprovedPhotosOrdered(slide.event_id)).map((p) => ({
+        id: p.id,
+        url: p.blob_url,
+      }))
+    : [];
+
+  // The "primary" photo on position 0 is the slide's image_url override
+  // when set, else the first gallery photo.
+  const primaryImageUrl = slide.image_url ?? galleryPhotos[0]?.url ?? null;
+  const defaultImagePreviewUrl = primaryImageUrl;
+
+  // Photos available for positions 1..N — exclude the primary so we
+  // don't show the same photo twice.
+  const extraGallery = galleryPhotos.filter((p) => p.url !== primaryImageUrl);
+
+  const extras = parseExtraImageSettings(slide.extra_image_settings);
 
   return (
     <div className="max-w-[760px]">
@@ -52,6 +66,7 @@ export default async function EditSlidePage({
         action={update}
         submitLabel="Save changes"
         defaultImagePreviewUrl={defaultImagePreviewUrl}
+        extraGalleryPhotos={extraGallery}
         initial={{
           event_id: slide.event_id,
           eyebrow: slide.eyebrow ?? "",
@@ -63,6 +78,7 @@ export default async function EditSlidePage({
           image_url: slide.image_url ?? "",
           focal_point: slide.focal_point,
           zoom: typeof slide.zoom === "number" ? slide.zoom : Number(slide.zoom ?? 1),
+          extra_image_settings: extras,
           sort_order: slide.sort_order,
           enabled: slide.enabled,
         }}
