@@ -33,6 +33,14 @@ export function QrScanPanel({
   const scannerRef = useRef<import("html5-qrcode").Html5Qrcode | null>(null);
   const mountedRef = useRef(false);
   const lastScanRef = useRef<string | null>(null);
+  // Hold onFound in a ref so the parent's stats poll re-renders (which
+  // create a fresh onFound arrow every time) don't retrigger the
+  // useEffect below — restarting the camera in a tight loop crashes
+  // iOS Safari with a client-side React exception.
+  const onFoundRef = useRef(onFound);
+  useEffect(() => {
+    onFoundRef.current = onFound;
+  }, [onFound]);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,7 +77,7 @@ export function QrScanPanel({
         }
         if (cancelled) return;
         await scannerRef.current?.stop().catch(() => undefined);
-        onFound(body.hit as Hit);
+        onFoundRef.current(body.hit as Hit);
       } finally {
         setLookingUp(false);
       }
@@ -119,7 +127,10 @@ export function QrScanPanel({
         s.stop().catch(() => undefined);
       }
     };
-  }, [token, onFound]);
+    // Intentionally only [token] — onFound is read via ref so re-renders
+    // from the parent's stats poll don't restart the camera.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   return (
     <div>
