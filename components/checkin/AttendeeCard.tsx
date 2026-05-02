@@ -19,6 +19,8 @@ type Hit = {
   photo_url: string | null;
   alumni_id: number | null;
   paid_at: string | null;
+  tag_line_3?: string | null;
+  tag_line_4?: string | null;
 };
 
 type Props = {
@@ -100,6 +102,21 @@ export function AttendeeCard({ hit, onCheckIn, onUndo, onCancel }: Props) {
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {(hit.tag_line_3 || hit.tag_line_4) && (
+          <div className="mx-5 mb-4 text-center">
+            {hit.tag_line_3 && (
+              <div className="font-sans italic text-base text-[color:var(--navy)] font-semibold">
+                {hit.tag_line_3}
+              </div>
+            )}
+            {hit.tag_line_4 && (
+              <div className="font-sans italic text-sm text-[color:var(--muted)] mt-0.5">
+                {hit.tag_line_4}
+              </div>
+            )}
           </div>
         )}
 
