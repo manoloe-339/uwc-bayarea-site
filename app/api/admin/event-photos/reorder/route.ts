@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { reorderPhotos } from "@/lib/event-photos/queries";
 import type { DisplayRole } from "@/lib/event-photos/types";
 
@@ -28,5 +29,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     : [];
 
   await reorderPhotos(eventId, body!.role as DisplayRole, ids);
+  revalidatePath("/preview-home");
+  revalidatePath("/photos");
   return NextResponse.json({ ok: true, count: ids.length });
 }

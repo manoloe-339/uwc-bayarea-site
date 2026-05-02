@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { del } from "@vercel/blob";
 import { deletePhotosFromDb } from "@/lib/event-photos/queries";
 
@@ -27,5 +28,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     })
   );
 
+  revalidatePath("/preview-home");
+  revalidatePath("/photos");
   return NextResponse.json({ ok: true, count: removed.length });
 }

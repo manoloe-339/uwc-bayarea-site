@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { rejectPhotos } from "@/lib/event-photos/queries";
 
 export const runtime = "nodejs";
@@ -13,5 +14,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "photoIds required" }, { status: 400 });
   }
   const count = await rejectPhotos(ids);
+  revalidatePath("/preview-home");
+  revalidatePath("/photos");
   return NextResponse.json({ ok: true, count });
 }
