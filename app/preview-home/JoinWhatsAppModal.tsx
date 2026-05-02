@@ -2,7 +2,12 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { sendJustVisitingNotification } from "./visiting-actions";
+import {
+  sendJustVisitingNotification,
+  sendRegisteredAlumRequest,
+} from "./visiting-actions";
+
+const MANOLO_WHATSAPP_URL = "https://wa.me/14154652848";
 
 interface Props {
   /** WhatsApp join URL — the link sent to confirmed alumni in the future.
@@ -11,7 +16,12 @@ interface Props {
   ctaLabel: string;
 }
 
-type View = "choose" | "visiting" | "sent";
+type View =
+  | "choose"
+  | "registered-choice"
+  | "registered-form"
+  | "visiting"
+  | "sent";
 
 export function JoinWhatsAppModal({ whatsappUrl, ctaLabel }: Props) {
   const [open, setOpen] = useState(false);
@@ -60,6 +70,18 @@ export function JoinWhatsAppModal({ whatsappUrl, ctaLabel }: Props) {
     });
   };
 
+  const submitRegistered = (formData: FormData) => {
+    setError(null);
+    startTransition(async () => {
+      const result = await sendRegisteredAlumRequest(formData);
+      if (result.ok) {
+        setView("sent");
+      } else {
+        setError(result.error ?? "Something went wrong. Try again?");
+      }
+    });
+  };
+
   return (
     <>
       <button
@@ -96,8 +118,25 @@ export function JoinWhatsAppModal({ whatsappUrl, ctaLabel }: Props) {
 
             {view === "choose" && (
               <ChooseView
+                onBayArea={() => setView("registered-choice")}
                 onVisiting={() => setView("visiting")}
                 whatsappUrl={whatsappUrl}
+              />
+            )}
+
+            {view === "registered-choice" && (
+              <RegisteredChoiceView
+                onBack={() => setView("choose")}
+                onAlreadyRegistered={() => setView("registered-form")}
+              />
+            )}
+
+            {view === "registered-form" && (
+              <RegisteredForm
+                onBack={() => setView("registered-choice")}
+                onSubmit={submitRegistered}
+                isPending={isPending}
+                error={error}
               />
             )}
 
@@ -119,8 +158,9 @@ export function JoinWhatsAppModal({ whatsappUrl, ctaLabel }: Props) {
 }
 
 function ChooseView({
-  onVisiting, whatsappUrl,
+  onBayArea, onVisiting, whatsappUrl,
 }: {
+  onBayArea: () => void;
   onVisiting: () => void;
   whatsappUrl: string | null;
 }) {
@@ -138,12 +178,13 @@ function ChooseView({
       </p>
 
       <div className="mt-6 space-y-3">
-        <Link
-          href="/signup"
+        <button
+          type="button"
+          onClick={onBayArea}
           className="block w-full bg-navy text-white text-center px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase hover:opacity-90"
         >
-          I&rsquo;m an alum in the Bay Area — sign up →
-        </Link>
+          I&rsquo;m an alum in the Bay Area →
+        </button>
         <button
           type="button"
           onClick={onVisiting}
@@ -168,6 +209,120 @@ function ChooseView({
         </p>
       )}
     </div>
+  );
+}
+
+function RegisteredChoiceView({
+  onBack, onAlreadyRegistered,
+}: {
+  onBack: () => void;
+  onAlreadyRegistered: () => void;
+}) {
+  return (
+    <div className="p-7 sm:p-8">
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-xs text-[color:var(--muted)] hover:text-navy mb-3"
+      >
+        ← Back
+      </button>
+      <h2 className="font-serif font-semibold text-[color:var(--navy-ink)] text-[24px] sm:text-[28px] leading-[1.1] m-0">
+        Are you already <em className="italic">registered</em>?
+      </h2>
+      <p className="mt-3 text-[14px] leading-[1.5] text-[color:var(--navy-ink)]/80">
+        If you&rsquo;ve signed up to the SF Bay Area alumni database before,
+        we&rsquo;ll send the WhatsApp join link to your registered email.
+      </p>
+
+      <div className="mt-5 space-y-3">
+        <button
+          type="button"
+          onClick={onAlreadyRegistered}
+          className="block w-full bg-navy text-white text-center px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase hover:opacity-90"
+        >
+          I&rsquo;m already registered →
+        </button>
+        <Link
+          href="/signup"
+          className="block w-full bg-white border border-[color:var(--rule)] text-navy text-center px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase hover:border-navy"
+        >
+          Not registered — sign up now →
+        </Link>
+      </div>
+
+      <ManoloWhatsAppHint />
+    </div>
+  );
+}
+
+function RegisteredForm({
+  onBack, onSubmit, isPending, error,
+}: {
+  onBack: () => void;
+  onSubmit: (formData: FormData) => void;
+  isPending: boolean;
+  error: string | null;
+}) {
+  return (
+    <form action={onSubmit} className="p-7 sm:p-8">
+      <button
+        type="button"
+        onClick={onBack}
+        className="text-xs text-[color:var(--muted)] hover:text-navy mb-3"
+      >
+        ← Back
+      </button>
+      <h2 className="font-serif font-semibold text-[color:var(--navy-ink)] text-[24px] sm:text-[28px] leading-[1.1] m-0">
+        Send me the <em className="italic">join link</em>
+      </h2>
+      <p className="mt-3 text-[14px] leading-[1.5] text-[color:var(--navy-ink)]/80">
+        Put your name here and we&rsquo;ll send the WhatsApp link to your
+        registered email address.
+      </p>
+
+      <div className="mt-5 space-y-3.5">
+        <Field
+          name="name"
+          type="text"
+          label="Your name"
+          placeholder="e.g. Maria García"
+          required
+        />
+      </div>
+
+      {error && (
+        <div className="mt-3 px-3 py-2 bg-red-50 border border-red-200 text-red-900 text-xs rounded">
+          {error}
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={isPending}
+        className="mt-5 w-full bg-navy text-white px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase disabled:opacity-60"
+      >
+        {isPending ? "Sending…" : "Send the link →"}
+      </button>
+
+      <ManoloWhatsAppHint />
+    </form>
+  );
+}
+
+function ManoloWhatsAppHint() {
+  return (
+    <p className="mt-6 text-[12px] text-[color:var(--muted)] text-center">
+      Questions?{" "}
+      <a
+        href={MANOLO_WHATSAPP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline hover:text-navy"
+      >
+        Send Manolo a quick WhatsApp →
+      </a>
+    </p>
   );
 }
 

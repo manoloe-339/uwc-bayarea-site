@@ -60,7 +60,7 @@ export default async function PreviewHomePage() {
       <WhatsAppBand
         url={settings.whatsapp_url}
         headline={settings.whatsapp_default_headline ?? "Most of us live on WhatsApp"}
-        body="Connect with local alumni. Must be registered in our SF Bay Area mailing list. All Foodie events are coordinated through WhatsApp."
+        body="Connect with local alumni. Must be registered in our SF Bay Area mailing list or a UWC alumnus visiting. All Foodie events are coordinated through WhatsApp."
         ctaLabel={settings.whatsapp_default_cta_label ?? "Join the group →"}
       />
       <FoodiesSection meals={foodies} recent={recentFoodies} />

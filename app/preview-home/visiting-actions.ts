@@ -9,6 +9,50 @@ export interface VisitingResult {
   error?: string;
 }
 
+/** Send a notification when a registered alum asks for the WhatsApp
+ * invite link to their registered email. Manolo looks them up and
+ * sends the link manually for now. */
+export async function sendRegisteredAlumRequest(formData: FormData): Promise<VisitingResult> {
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) {
+    return { ok: false, error: "Please enter your name." };
+  }
+
+  const text = [
+    "Registered-alum WhatsApp invite request from the homepage modal.",
+    "",
+    `Name: ${name}`,
+    "",
+    "Action: look up this alum in the directory and send the WhatsApp join link to their registered email.",
+  ].join("\n");
+
+  const html = `
+    <p>Registered-alum WhatsApp invite request from the homepage modal.</p>
+    <table style="border-collapse:collapse;font-family:system-ui,sans-serif;font-size:14px">
+      <tr><td style="padding:4px 12px 4px 0;color:#666"><strong>Name</strong></td><td>${escapeHtml(name)}</td></tr>
+    </table>
+    <p style="margin-top:12px;color:#666;font-size:13px">
+      Look up this alum in the directory and send the WhatsApp join link
+      to their registered email.
+    </p>
+  `;
+
+  try {
+    await getResend().emails.send({
+      from: fromAddress(),
+      to: VISITING_TO,
+      replyTo: replyToAddress(),
+      subject: "WhatsApp invite request — registered alum",
+      text,
+      html,
+    });
+    return { ok: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to send";
+    return { ok: false, error: msg };
+  }
+}
+
 /** Send a notification when someone fills out the "just visiting the
  * Bay Area" form on the WhatsApp join modal. */
 export async function sendJustVisitingNotification(formData: FormData): Promise<VisitingResult> {
