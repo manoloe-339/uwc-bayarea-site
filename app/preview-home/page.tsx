@@ -222,12 +222,12 @@ function FoodiesCard({ meal, featured }: { meal: FoodiesUpcoming; featured: bool
       {useCuisineFlag && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 flex items-center justify-end pr-2 select-none"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden select-none"
           style={{
-            fontSize: featured ? "260px" : "200px",
+            fontSize: featured ? "900px" : "700px",
             lineHeight: 1,
-            opacity: 0.08,
-            filter: "saturate(1.1)",
+            opacity: 0.12,
+            filter: "saturate(1.15)",
           }}
         >
           {meal.cuisine_country_flag}
