@@ -26,7 +26,7 @@ export function FoodiesCardTitle({ name, emoji, featured, whatsappUrl }: Props) 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`block text-left font-serif font-semibold leading-[1.08] tracking-[-0.005em] text-[color:var(--navy-ink)] m-0 cursor-pointer hover:underline underline-offset-[6px] decoration-[2px] decoration-navy/40 ${
+        className={`block text-left font-serif font-semibold leading-[1.08] tracking-[-0.005em] text-[color:var(--navy-ink)] m-0 cursor-pointer underline underline-offset-[6px] decoration-[2px] decoration-navy/50 hover:decoration-navy ${
           featured ? "text-[30px] sm:text-[38px]" : "text-[22px] sm:text-[24px]"
         }`}
       >
