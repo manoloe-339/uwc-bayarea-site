@@ -152,7 +152,25 @@ async function updateAlumnus(id: number, formData: FormData) {
   };
 
   const email = get("email");
-  if (!email) throw new Error("Email is required");
+  if (!email) {
+    redirect(`/admin/alumni/${id}?error=email_required`);
+  }
+
+  // Pre-check the unique-email constraint so we can redirect with a
+  // friendly error banner (and the conflicting row's id, so admin can
+  // jump there to merge / delete) instead of crashing with the
+  // generic Postgres 23505 application error.
+  const conflict = (await sql`
+    SELECT id FROM alumni
+    WHERE LOWER(email) = LOWER(${email})
+      AND id != ${id}
+    LIMIT 1
+  `) as { id: number }[];
+  if (conflict.length > 0) {
+    redirect(
+      `/admin/alumni/${id}?error=email_taken&conflict=${conflict[0].id}`
+    );
+  }
 
   const uwcCollegeRaw = get("uwc_college_raw");
   const uwcCollegeChoice = get("uwc_college");
@@ -184,7 +202,8 @@ async function updateAlumnus(id: number, formData: FormData) {
   const genderSource = genderValue ? "admin" : null;
   const genderConfidence = genderValue ? 1.0 : null;
 
-  await sql`
+  try {
+    await sql`
     UPDATE alumni SET
       first_name         = ${get("first_name")},
       last_name          = ${get("last_name")},
@@ -228,6 +247,16 @@ async function updateAlumnus(id: number, formData: FormData) {
       updated_at         = NOW()
     WHERE id = ${id}
   `;
+  } catch (err) {
+    // 23505 = unique_violation. Fallback in case the pre-check above
+    // missed a race (concurrent edit took the email). Surface as the
+    // same friendly error.
+    const code = (err as { code?: string } | undefined)?.code;
+    if (code === "23505") {
+      redirect(`/admin/alumni/${id}?error=email_taken`);
+    }
+    throw err;
+  }
   revalidatePath(`/admin/alumni/${id}`);
   revalidatePath("/admin/alumni");
   redirect(`/admin/alumni/${id}?saved=1`);
@@ -238,10 +267,15 @@ export default async function AlumnusPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string; from?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    from?: string;
+    error?: string;
+    conflict?: string;
+  }>;
 }) {
   const { id } = await params;
-  const { saved, from } = await searchParams;
+  const { saved, from, error, conflict } = await searchParams;
   // `from` carries the original list's URL query string so Back goes
   // straight to the same filtered results (NL query, event mode, etc.).
   const backHref = from ? `/admin/alumni?${decodeURIComponent(from)}` : "/admin/alumni";
@@ -334,6 +368,39 @@ export default async function AlumnusPage({
       {saved && (
         <div className="mb-5 p-3 bg-ivory-2 border-l-4 border-navy rounded-[2px] text-sm">
           Saved.
+        </div>
+      )}
+
+      {error === "email_required" && (
+        <div className="mb-5 p-4 bg-rose-50 border-l-4 border-rose-600 rounded-[2px] text-sm">
+          <div className="font-semibold text-rose-900 mb-1">Email is required</div>
+          <div className="text-rose-900/80">
+            Add an email address before saving.
+          </div>
+        </div>
+      )}
+
+      {error === "email_taken" && (
+        <div className="mb-5 p-4 bg-rose-50 border-l-4 border-rose-600 rounded-[2px] text-sm">
+          <div className="font-semibold text-rose-900 mb-1">
+            That email is already used by another alum
+          </div>
+          <div className="text-rose-900/80 space-y-1">
+            <p>
+              Each alum needs a unique email. Looks like a duplicate record —
+              merge or delete the other one before changing this email.
+            </p>
+            {conflict && (
+              <p>
+                <Link
+                  href={`/admin/alumni/${conflict}`}
+                  className="font-semibold underline hover:text-rose-700"
+                >
+                  Open record #{conflict} →
+                </Link>
+              </p>
+            )}
+          </div>
         </div>
       )}
 
