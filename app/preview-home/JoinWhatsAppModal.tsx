@@ -13,7 +13,18 @@ interface Props {
   /** WhatsApp join URL — the link sent to confirmed alumni in the future.
    * For now the modal is the gate, so this isn't visited from the button. */
   whatsappUrl: string | null;
-  ctaLabel: string;
+  /** Label for the default green-pill trigger button. Ignored when
+   * `controlledOpen` is provided (parent owns the trigger). */
+  ctaLabel?: string;
+  /** Controlled-mode open state. When defined, the modal renders no
+   * trigger button — parent decides when to open and close. */
+  controlledOpen?: boolean;
+  controlledOnClose?: () => void;
+  /** Optional override for the choose-view headline/body. Useful for
+   * embedding the modal behind other triggers (e.g. Foodies card
+   * titles where the framing is "this meal is coordinated on WhatsApp"). */
+  chooseTitle?: React.ReactNode;
+  chooseBody?: string;
 }
 
 type View =
@@ -23,8 +34,17 @@ type View =
   | "visiting"
   | "sent";
 
-export function JoinWhatsAppModal({ whatsappUrl, ctaLabel }: Props) {
-  const [open, setOpen] = useState(false);
+export function JoinWhatsAppModal({
+  whatsappUrl,
+  ctaLabel,
+  controlledOpen,
+  controlledOnClose,
+  chooseTitle,
+  chooseBody,
+}: Props) {
+  const isControlled = typeof controlledOpen === "boolean";
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
   const [view, setView] = useState<View>("choose");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -50,7 +70,11 @@ export function JoinWhatsAppModal({ whatsappUrl, ctaLabel }: Props) {
   }, [open]);
 
   const close = () => {
-    setOpen(false);
+    if (isControlled) {
+      controlledOnClose?.();
+    } else {
+      setInternalOpen(false);
+    }
     // Reset on next open
     setTimeout(() => {
       setView("choose");
@@ -84,14 +108,16 @@ export function JoinWhatsAppModal({ whatsappUrl, ctaLabel }: Props) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2.5 rounded-full px-7 py-4 text-[13px] font-bold tracking-[.2em] uppercase text-white bg-[#25D366] hover:opacity-90"
-      >
-        <WhatsAppMark className="w-4 h-4" />
-        {ctaLabel}
-      </button>
+      {!isControlled && (
+        <button
+          type="button"
+          onClick={() => setInternalOpen(true)}
+          className="inline-flex items-center gap-2.5 rounded-full px-7 py-4 text-[13px] font-bold tracking-[.2em] uppercase text-white bg-[#25D366] hover:opacity-90"
+        >
+          <WhatsAppMark className="w-4 h-4" />
+          {ctaLabel ?? "Join"}
+        </button>
+      )}
 
       {open && (
         <div
@@ -121,6 +147,8 @@ export function JoinWhatsAppModal({ whatsappUrl, ctaLabel }: Props) {
                 onBayArea={() => setView("registered-choice")}
                 onVisiting={() => setView("visiting")}
                 whatsappUrl={whatsappUrl}
+                title={chooseTitle}
+                body={chooseBody}
               />
             )}
 
@@ -158,11 +186,13 @@ export function JoinWhatsAppModal({ whatsappUrl, ctaLabel }: Props) {
 }
 
 function ChooseView({
-  onBayArea, onVisiting, whatsappUrl,
+  onBayArea, onVisiting, whatsappUrl, title, body,
 }: {
   onBayArea: () => void;
   onVisiting: () => void;
   whatsappUrl: string | null;
+  title?: React.ReactNode;
+  body?: string;
 }) {
   return (
     <div className="p-7 sm:p-8">
@@ -170,11 +200,10 @@ function ChooseView({
         id="join-whatsapp-title"
         className="font-serif font-semibold text-[color:var(--navy-ink)] text-[26px] sm:text-[30px] leading-[1.1] tracking-[-0.005em] m-0"
       >
-        Join the WhatsApp <em className="italic">community</em>
+        {title ?? <>Join the WhatsApp <em className="italic">community</em></>}
       </h2>
       <p className="mt-4 text-[15px] leading-[1.55] text-[color:var(--navy-ink)]/80">
-        You need to be registered in our SF Bay Area alumni group first.
-        Takes about two minutes — once you&rsquo;re in, we&rsquo;ll send the WhatsApp join link.
+        {body ?? "You need to be registered in our SF Bay Area alumni group first. Takes about two minutes — once you're in, we'll send the WhatsApp join link."}
       </p>
 
       <div className="mt-6 space-y-3">

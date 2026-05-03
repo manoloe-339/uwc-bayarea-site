@@ -25,6 +25,7 @@ import {
 } from "@/lib/news-features";
 import { HeroCarousel, type HeroSlide } from "./HeroCarousel";
 import { JoinWhatsAppModal } from "./JoinWhatsAppModal";
+import { FoodiesCardTitle } from "./FoodiesCardTitle";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ export default async function PreviewHomePage() {
         body="We have a WhatsApp Community for UWC Bay Area. Must be registered in our SF Bay Area mailing list or a UWC alumnus visiting. All Foodie events are coordinated through WhatsApp."
         ctaLabel="Join UWC Bay Area →"
       />
-      <FoodiesSection meals={foodies} recent={recentFoodies} />
+      <FoodiesSection meals={foodies} recent={recentFoodies} whatsappUrl={settings.whatsapp_url} />
       <OtherGatheringsSection gatherings={otherGatherings} />
       <JoinInterrupt alumniCount={alumniCount} />
       <AlumniNewsSection display={newsDisplay} />
@@ -131,9 +132,11 @@ function WhatsAppMark({ className }: { className?: string }) {
 /* ─── Foodies section ─────────────────────────────────────────── */
 
 function FoodiesSection({
-  meals, recent,
+  meals, recent, whatsappUrl,
 }: {
-  meals: FoodiesUpcoming[]; recent: RecentFoodiesDisplay;
+  meals: FoodiesUpcoming[];
+  recent: RecentFoodiesDisplay;
+  whatsappUrl: string | null;
 }) {
   const count = meals.length;
   const featured = meals[0];
@@ -166,23 +169,23 @@ function FoodiesSection({
         {count === 4 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             {meals.map((m) => (
-              <FoodiesCard key={m.id} meal={m} featured={false} />
+              <FoodiesCard key={m.id} meal={m} featured={false} whatsappUrl={whatsappUrl} />
             ))}
           </div>
         ) : count === 1 ? (
-          <FoodiesCard meal={featured} featured />
+          <FoodiesCard meal={featured} featured whatsappUrl={whatsappUrl} />
         ) : count > 0 ? (
           <div
             className="grid grid-cols-1 gap-4 sm:gap-5 items-stretch sm:[grid-template-columns:1.4fr_1fr]"
           >
-            <FoodiesCard meal={featured} featured />
+            <FoodiesCard meal={featured} featured whatsappUrl={whatsappUrl} />
             {rest.length > 0 && (
               <div
                 className="grid gap-4 sm:gap-5"
                 style={{ gridTemplateRows: rest.length > 1 ? "1fr 1fr" : "1fr" }}
               >
                 {rest.map((m) => (
-                  <FoodiesCard key={m.id} meal={m} featured={false} />
+                  <FoodiesCard key={m.id} meal={m} featured={false} whatsappUrl={whatsappUrl} />
                 ))}
               </div>
             )}
@@ -196,7 +199,13 @@ function FoodiesSection({
   );
 }
 
-function FoodiesCard({ meal, featured }: { meal: FoodiesUpcoming; featured: boolean }) {
+function FoodiesCard({
+  meal, featured, whatsappUrl,
+}: {
+  meal: FoodiesUpcoming;
+  featured: boolean;
+  whatsappUrl: string | null;
+}) {
   const fmtDate = (d: Date) =>
     new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const accent = meal.region ? REGION_ACCENTS[meal.region] : null;
@@ -265,16 +274,12 @@ function FoodiesCard({ meal, featured }: { meal: FoodiesUpcoming; featured: bool
             </span>
           </div>
         )}
-        <h3
-          className={`font-serif font-semibold leading-[1.08] tracking-[-0.005em] text-[color:var(--navy-ink)] m-0 ${
-            featured ? "text-[30px] sm:text-[38px]" : "text-[22px] sm:text-[24px]"
-          }`}
-        >
-          {meal.name}
-          {meal.cuisine_emoji && (
-            <span className="ml-2 align-middle">{meal.cuisine_emoji}</span>
-          )}
-        </h3>
+        <FoodiesCardTitle
+          name={meal.name}
+          emoji={meal.cuisine_emoji}
+          featured={featured}
+          whatsappUrl={whatsappUrl}
+        />
       <FoodiesLocationLine
         cuisine={meal.cuisine}
         neighborhood={meal.neighborhood}
