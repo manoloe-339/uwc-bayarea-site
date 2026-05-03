@@ -34,12 +34,14 @@ export interface NewsFeatureRow {
   alumni_photo_url: string | null;
   alumni_current_title: string | null;
   alumni_current_company: string | null;
+  alumni_linkedin_url: string | null;
   // Joined alumni fields (second alumnus, when present).
   alumni2_first_name: string | null;
   alumni2_last_name: string | null;
   alumni2_uwc_college: string | null;
   alumni2_grad_year: number | null;
   alumni2_photo_url: string | null;
+  alumni2_linkedin_url: string | null;
 }
 
 /** Resolved shape for the public homepage. portrait_url falls back to
@@ -51,6 +53,7 @@ export interface ResolvedNewsAlumnus {
   uwc_college: string | null;
   grad_year: number | null;
   photo_url: string | null;
+  linkedin_url: string | null;
 }
 
 export interface ResolvedNewsFeature {
@@ -75,6 +78,7 @@ export interface ResolvedNewsFeature {
   alumni_last_name: string | null;
   alumni_uwc_college: string | null;
   alumni_grad_year: number | null;
+  alumni_linkedin_url: string | null;
   /** Second alumnus, only set when alumni_id_2 is present. */
   alumni_2: ResolvedNewsAlumnus | null;
 }
@@ -113,11 +117,13 @@ const SELECT_WITH_ALUMNI = `
     al.photo_url       AS alumni_photo_url,
     al.current_title   AS alumni_current_title,
     al.current_company AS alumni_current_company,
+    al.linkedin_url    AS alumni_linkedin_url,
     al2.first_name     AS alumni2_first_name,
     al2.last_name      AS alumni2_last_name,
     al2.uwc_college    AS alumni2_uwc_college,
     al2.grad_year      AS alumni2_grad_year,
-    al2.photo_url      AS alumni2_photo_url
+    al2.photo_url      AS alumni2_photo_url,
+    al2.linkedin_url   AS alumni2_linkedin_url
   FROM news_features nf
   LEFT JOIN alumni al  ON al.id  = nf.alumni_id
   LEFT JOIN alumni al2 ON al2.id = nf.alumni_id_2
@@ -186,6 +192,7 @@ export async function getNewsFeatureDisplay(): Promise<NewsFeatureDisplay> {
     alumni_last_name: r.alumni_last_name,
     alumni_uwc_college: r.alumni_uwc_college,
     alumni_grad_year: r.alumni_grad_year,
+    alumni_linkedin_url: r.alumni_linkedin_url,
     alumni_2: r.alumni_id_2
       ? {
           first_name: r.alumni2_first_name,
@@ -193,6 +200,7 @@ export async function getNewsFeatureDisplay(): Promise<NewsFeatureDisplay> {
           uwc_college: r.alumni2_uwc_college,
           grad_year: r.alumni2_grad_year,
           photo_url: r.alumni2_photo_url,
+          linkedin_url: r.alumni2_linkedin_url,
         }
       : null,
   }));

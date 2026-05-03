@@ -8,6 +8,7 @@ export interface FoodiesHost {
   grad_year: number | null;
   uwc_college: string | null;
   photo_url: string | null;
+  linkedin_url: string | null;
 }
 
 export interface FoodiesUpcoming {
@@ -80,12 +81,14 @@ type FoodiesRow = {
   h1_grad: number | null;
   h1_college: string | null;
   h1_photo: string | null;
+  h1_linkedin: string | null;
   h2_id: number | null;
   h2_first: string | null;
   h2_last: string | null;
   h2_grad: number | null;
   h2_college: string | null;
   h2_photo: string | null;
+  h2_linkedin: string | null;
 };
 
 /** Upcoming Foodies meals — the cards on the homepage Foodies section.
@@ -97,8 +100,10 @@ export async function getUpcomingFoodies(limit = 4): Promise<FoodiesUpcoming[]> 
       e.foodies_region, e.foodies_cuisine, e.foodies_neighborhood,
       h1.id AS h1_id, h1.first_name AS h1_first, h1.last_name AS h1_last,
       h1.grad_year AS h1_grad, h1.uwc_college AS h1_college, h1.photo_url AS h1_photo,
+      h1.linkedin_url AS h1_linkedin,
       h2.id AS h2_id, h2.first_name AS h2_first, h2.last_name AS h2_last,
-      h2.grad_year AS h2_grad, h2.uwc_college AS h2_college, h2.photo_url AS h2_photo
+      h2.grad_year AS h2_grad, h2.uwc_college AS h2_college, h2.photo_url AS h2_photo,
+      h2.linkedin_url AS h2_linkedin
     FROM events e
     LEFT JOIN alumni h1 ON h1.id = e.foodies_host_1_alumni_id
     LEFT JOIN alumni h2 ON h2.id = e.foodies_host_2_alumni_id
@@ -126,6 +131,7 @@ export async function getUpcomingFoodies(limit = 4): Promise<FoodiesUpcoming[]> 
           grad_year: r.h1_grad,
           uwc_college: r.h1_college,
           photo_url: r.h1_photo,
+          linkedin_url: r.h1_linkedin,
         }
       : null,
     host_2: r.h2_id
@@ -136,6 +142,7 @@ export async function getUpcomingFoodies(limit = 4): Promise<FoodiesUpcoming[]> 
           grad_year: r.h2_grad,
           uwc_college: r.h2_college,
           photo_url: r.h2_photo,
+          linkedin_url: r.h2_linkedin,
         }
       : null,
   }));

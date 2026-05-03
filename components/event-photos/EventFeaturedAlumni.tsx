@@ -1,4 +1,5 @@
 import type { FeaturedAlumnusRow } from "@/lib/event-featured-alumni";
+import { LinkedInMark } from "@/components/icons/LinkedInMark";
 
 function deriveCurrentRole(a: FeaturedAlumnusRow): string | null {
   // role_label override wins (e.g. "Guest speaker", "Co-host").
@@ -36,11 +37,8 @@ export function EventFeaturedAlumni({
         {featured.map((a) => {
           const role = deriveCurrentRole(a);
           const byline = bylineText(a);
-          return (
-            <div
-              key={a.id}
-              className="flex items-center gap-3 py-1"
-            >
+          const inner = (
+            <>
               <div className="relative w-12 h-12 shrink-0 rounded-full bg-[color:var(--ivory-2)] overflow-hidden flex items-center justify-center text-[color:var(--navy)] text-sm font-bold">
                 {a.photo_url ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
@@ -56,8 +54,13 @@ export function EventFeaturedAlumni({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-[color:var(--navy-ink)] truncate">
-                  {fullName(a)}
+                <div className="text-sm font-semibold text-[color:var(--navy-ink)] truncate flex items-center gap-1.5">
+                  <span className="truncate group-hover:underline underline-offset-2">
+                    {fullName(a)}
+                  </span>
+                  {a.linkedin_url && (
+                    <LinkedInMark className="w-3 h-3 text-[color:var(--muted)] group-hover:text-navy shrink-0" />
+                  )}
                 </div>
                 {byline && (
                   <div className="text-[12px] text-[color:var(--muted)] truncate">
@@ -70,6 +73,22 @@ export function EventFeaturedAlumni({
                   </div>
                 )}
               </div>
+            </>
+          );
+
+          return a.linkedin_url ? (
+            <a
+              key={a.id}
+              href={a.linkedin_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-3 py-1 cursor-pointer"
+            >
+              {inner}
+            </a>
+          ) : (
+            <div key={a.id} className="group flex items-center gap-3 py-1">
+              {inner}
             </div>
           );
         })}

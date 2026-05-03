@@ -16,6 +16,7 @@ import {
   type RecentFoodiesDisplay,
 } from "@/lib/homepage";
 import { getActiveHeroSlides } from "@/lib/hero-slides";
+import { LinkedInMark } from "@/components/icons/LinkedInMark";
 import {
   getNewsFeatureDisplay,
   type ResolvedNewsFeature,
@@ -227,9 +228,9 @@ function FoodiesCard({ meal, featured }: { meal: FoodiesUpcoming; featured: bool
           <HostAvatars host1={meal.host_1} host2={meal.host_2} featured={featured} />
           <div className={`leading-[1.4] text-[color:var(--navy-ink)] ${featured ? "text-[13px]" : "text-[12px]"}`}>
             <span className="text-[color:var(--muted)] font-medium">Hosted by </span>
-            {meal.host_1 && <span className="font-semibold">{hostDisplay(meal.host_1)}</span>}
+            {meal.host_1 && <HostName host={meal.host_1} />}
             {meal.host_1 && meal.host_2 && <span className="text-[color:var(--muted)]"> &amp; </span>}
-            {meal.host_2 && <span className="font-semibold">{hostDisplay(meal.host_2)}</span>}
+            {meal.host_2 && <HostName host={meal.host_2} />}
           </div>
         </div>
       )}
@@ -299,6 +300,24 @@ function HostAvatar({
       )}
     </div>
   );
+}
+
+function HostName({ host }: { host: FoodiesHost }) {
+  const label = hostDisplay(host);
+  if (host.linkedin_url) {
+    return (
+      <a
+        href={host.linkedin_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-semibold inline-flex items-center gap-1 hover:underline underline-offset-2"
+      >
+        {label}
+        <LinkedInMark className="w-2.5 h-2.5 text-[color:var(--muted)]" />
+      </a>
+    );
+  }
+  return <span className="font-semibold">{label}</span>;
 }
 
 function hostDisplay(host: FoodiesHost): string {
@@ -576,22 +595,7 @@ function NewsSpotlight({ feature }: { feature: ResolvedNewsFeature }) {
         <blockquote className="m-0 font-serif italic font-medium text-[color:var(--navy-ink)] text-[26px] sm:text-[38px] leading-[1.18] tracking-[-0.005em] text-balance">
           {feature.pull_quote}
         </blockquote>
-        <div className="mt-8 flex items-center gap-4">
-          <NewsBylineAvatars feature={feature} sizePx={56} />
-          <div>
-            <div className="font-sans text-[15px] font-semibold text-[color:var(--navy-ink)]">
-              {alumDisplayName(feature)}
-            </div>
-            <div className="mt-0.5 text-[12px] text-[color:var(--muted)]">
-              {alumByline(feature)}
-            </div>
-            {feature.current_role && (
-              <div className="mt-0.5 text-[12px] text-[color:var(--navy-ink)]">
-                {feature.current_role}
-              </div>
-            )}
-          </div>
-        </div>
+        <NewsByline feature={feature} sizePx={56} />
         {!hasArticleCard && feature.article_url && (
           <a
             href={feature.article_url}
@@ -620,22 +624,7 @@ function NewsPair({ features }: { features: ResolvedNewsFeature[] }) {
           <blockquote className="m-0 mt-3.5 font-serif italic font-medium text-[color:var(--navy-ink)] text-[22px] sm:text-[26px] leading-[1.25] text-balance">
             &ldquo;{f.pull_quote}&rdquo;
           </blockquote>
-          <div className="mt-6 flex items-center gap-3.5">
-            <NewsBylineAvatars feature={f} sizePx={50} />
-            <div>
-              <div className="font-sans text-[14px] font-semibold text-[color:var(--navy-ink)]">
-                {alumDisplayName(f)}
-              </div>
-              <div className="mt-0.5 text-[12px] text-[color:var(--muted)]">
-                {alumByline(f)}
-              </div>
-              {f.current_role && (
-                <div className="mt-0.5 text-[12px] text-[color:var(--navy-ink)]">
-                  {f.current_role}
-                </div>
-              )}
-            </div>
-          </div>
+          <NewsByline feature={f} sizePx={50} compact />
           {f.article_image_url ? (
             <ArticleCard feature={f} className="mt-6 max-w-[420px]" />
           ) : f.article_url ? (
@@ -677,6 +666,53 @@ function NewsPublicationLine({
       )}
       {text && <span>{text}</span>}
     </div>
+  );
+}
+
+function NewsByline({
+  feature, sizePx, compact,
+}: {
+  feature: ResolvedNewsFeature;
+  sizePx: number;
+  compact?: boolean;
+}) {
+  // Only auto-link to LinkedIn when there's exactly one alumnus and a
+  // URL — for two-alum features, name is "First & Second" and the
+  // link target is ambiguous, so leave it as plain text.
+  const linkable =
+    !feature.alumni_2 && !!feature.alumni_linkedin_url ? feature.alumni_linkedin_url : null;
+
+  const inner = (
+    <>
+      <NewsBylineAvatars feature={feature} sizePx={sizePx} />
+      <div>
+        <div className={`font-sans font-semibold text-[color:var(--navy-ink)] ${compact ? "text-[14px]" : "text-[15px]"} flex items-center gap-1.5`}>
+          <span className="group-hover:underline underline-offset-2">{alumDisplayName(feature)}</span>
+          {linkable && (
+            <LinkedInMark className="w-3 h-3 text-[color:var(--muted)] group-hover:text-navy shrink-0" />
+          )}
+        </div>
+        <div className="mt-0.5 text-[12px] text-[color:var(--muted)]">{alumByline(feature)}</div>
+        {feature.current_role && (
+          <div className="mt-0.5 text-[12px] text-[color:var(--navy-ink)]">{feature.current_role}</div>
+        )}
+      </div>
+    </>
+  );
+
+  const wrapClass = `${compact ? "mt-6" : "mt-8"} flex items-center gap-${compact ? "3.5" : "4"}`;
+
+  return linkable ? (
+    <a
+      href={linkable}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`group ${wrapClass}`}
+    >
+      {inner}
+    </a>
+  ) : (
+    <div className={`group ${wrapClass}`}>{inner}</div>
   );
 }
 

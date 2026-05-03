@@ -14,6 +14,7 @@ export interface FeaturedAlumnusRow {
   photo_url: string | null;
   current_title: string | null;
   current_company: string | null;
+  linkedin_url: string | null;
 }
 
 export interface FeaturedAlumnusInput {
@@ -34,7 +35,8 @@ const SELECT_WITH_ALUMNI = `
     al.grad_year,
     al.photo_url,
     al.current_title,
-    al.current_company
+    al.current_company,
+    al.linkedin_url
   FROM event_featured_alumni fa
   JOIN alumni al ON al.id = fa.alumni_id
 `;
