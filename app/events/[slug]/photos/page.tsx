@@ -50,6 +50,8 @@ export default async function PublicEventPhotosPage({
             <p className="text-[color:var(--muted)] text-sm">{dateLabel}</p>
           )}
 
+          <EventFeaturedAlumni featured={featured} />
+
           {event.gallery_description_md && (
             <div
               className="mt-5 max-w-[68ch] text-[15px] sm:text-base leading-[1.6] text-[color:var(--navy-ink)] [&_p]:mb-3 [&_p:last-child]:mb-0 [&_a]:text-navy"
@@ -59,9 +61,7 @@ export default async function PublicEventPhotosPage({
             />
           )}
 
-          <EventFeaturedAlumni featured={featured} />
-
-          <div className="mt-2" />
+          <div className="mt-6" />
 
           {photos.length === 0 ? (
             <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)]">
