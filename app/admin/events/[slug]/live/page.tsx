@@ -142,22 +142,31 @@ export default async function LiveDashboardPage({
         ) : (
           <ul className="space-y-1.5 text-sm max-h-[600px] overflow-y-auto pr-1">
             {stats.recent.map((r) => {
-              // Show purchaser as a small secondary line ONLY when one
-              // person bought a ticket for another. Skip when:
-              //  - purchaser email matches the alum's own email (same
-              //    person, regardless of how Stripe formatted the name —
-              //    handles cases like Vercel/team-name billing leaks)
-              //  - or the purchaser name is effectively the same as the
-              //    primary display name (heuristic).
+              // Two distinct cases drive the display:
+              //   (a) Name tag matches the email-linked alum (or no name
+              //       tag): the attendee IS the alum. Show their
+              //       college/year. Suppress purchaser if same email
+              //       (handles Stripe billing-name quirks).
+              //   (b) Name tag differs from the alum: the attendee is a
+              //       guest of the alum. Drop college/year (it belongs
+               //       to the sponsor, not the guest) and ALWAYS show
+               //       the purchaser so the sponsor is identified.
+              const nameTagIsGuest =
+                !!r.name_tag_name &&
+                !!r.alumni_name &&
+                !namesEffectivelyMatch(r.name_tag_name, r.alumni_name);
               const sameByEmail =
                 !!r.purchaser_email &&
                 !!r.alumni_email &&
                 r.purchaser_email.trim().toLowerCase() ===
                   r.alumni_email.trim().toLowerCase();
-              const showPurchaser =
-                !sameByEmail &&
-                !!r.purchaser_name &&
-                !namesEffectivelyMatch(r.purchaser_name, r.display_name);
+              const showCollegeYear = !nameTagIsGuest;
+              const showPurchaser = nameTagIsGuest
+                ? !!r.purchaser_name &&
+                  !namesEffectivelyMatch(r.purchaser_name, r.display_name)
+                : !sameByEmail &&
+                  !!r.purchaser_name &&
+                  !namesEffectivelyMatch(r.purchaser_name, r.display_name);
               return (
                 <li
                   key={r.id}
@@ -169,7 +178,7 @@ export default async function LiveDashboardPage({
                       <strong className="text-[color:var(--navy-ink)]">
                         {r.display_name}
                       </strong>
-                      {r.uwc_college && (
+                      {showCollegeYear && r.uwc_college && (
                         <span className="text-[color:var(--muted)]">
                           {" "}· {r.uwc_college}
                           {r.grad_year ? ` '${String(r.grad_year).slice(-2)}` : ""}

@@ -118,27 +118,30 @@ export function BulkCheckInList({ eventId, slug, attendees }: Props) {
           //          else alumni name (matched record), else purchaser name.
           const primary =
             a.name_tag_name ?? a.alumni_name ?? a.purchaser_name ?? `#${a.id}`;
-          // Show purchaser as secondary when it differs from the primary
-          // in any meaningful way. Two suppressions:
-          //   - sameByEmail: purchaser email matches the alum's own
-          //     email (same person, regardless of how Stripe formatted
-          //     the name — handles Vercel/team-name billing leaks).
-          //   - heuristic name match (accents, middle initials, etc.)
+          // Two distinct cases drive what we show as secondary lines:
+          //   (a) Name tag matches the email-linked alum (or no name
+          //       tag): attendee IS the alum. Suppress purchaser line
+          //       when emails match (handles Stripe billing-name quirks).
+          //   (b) Name tag differs from the alum: attendee is a guest
+          //       of the alum. ALWAYS show purchaser so the sponsor is
+          //       identifiable, regardless of email match.
+          const nameTagIsGuest =
+            !!a.name_tag_name &&
+            !!a.alumni_name &&
+            !namesEffectivelyMatch(a.name_tag_name, a.alumni_name);
           const sameByEmail =
             !!a.purchaser_email &&
             !!a.alumni_email &&
             a.purchaser_email.trim().toLowerCase() ===
               a.alumni_email.trim().toLowerCase();
           const secondaryParts: string[] = [];
-          if (
-            a.name_tag_name &&
-            a.alumni_name &&
-            !namesEffectivelyMatch(a.alumni_name, a.name_tag_name)
-          ) {
+          // For guest attendees, surface the alum sponsor explicitly.
+          if (nameTagIsGuest && a.alumni_name) {
             secondaryParts.push(`alum: ${a.alumni_name}`);
           }
+          const suppressPurchaser = !nameTagIsGuest && sameByEmail;
           if (
-            !sameByEmail &&
+            !suppressPurchaser &&
             a.purchaser_name &&
             !namesEffectivelyMatch(a.purchaser_name, primary) &&
             !namesEffectivelyMatch(a.purchaser_name, a.alumni_name ?? "") &&
