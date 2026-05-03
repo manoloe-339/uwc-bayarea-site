@@ -5,6 +5,7 @@ import { getEventFeaturedAlumni } from "@/lib/event-featured-alumni";
 import { getApprovedPhotosOrdered } from "@/lib/event-photos/queries";
 import { PublicGalleryGrid } from "@/components/event-photos/PublicGalleryGrid";
 import { EventFeaturedAlumni } from "@/components/event-photos/EventFeaturedAlumni";
+import { ShareButton } from "@/components/event-photos/ShareButton";
 import { renderSimpleMarkdown } from "@/lib/simple-markdown";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -101,9 +102,15 @@ export default async function PublicEventPhotosPage({
           <h1 className="font-sans text-3xl sm:text-4xl font-bold text-[color:var(--navy-ink)] mb-1">
             {event.name}
           </h1>
-          {dateLabel && (
-            <p className="text-[color:var(--muted)] text-sm">{dateLabel}</p>
-          )}
+          <div className="flex items-baseline gap-3 flex-wrap text-sm">
+            {dateLabel && (
+              <p className="text-[color:var(--muted)] m-0">{dateLabel}</p>
+            )}
+            <ShareButton
+              title={`${event.name} · UWC Bay Area`}
+              text={dateLabel || undefined}
+            />
+          </div>
 
           <EventFeaturedAlumni featured={featured} />
 
