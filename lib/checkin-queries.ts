@@ -179,6 +179,9 @@ export type CheckinStats = {
   recent: Array<{
     id: number;
     display_name: string;
+    purchaser_name: string | null;
+    alumni_name: string | null;
+    name_tag_name: string | null;
     checked_in_at: string;
     attendee_type: "paid" | "comp" | "walk-in";
     uwc_college: string | null;
@@ -218,6 +221,9 @@ export async function getCheckinStats(eventId: number): Promise<CheckinStats> {
         NULLIF(TRIM(CONCAT_WS(' ', al.first_name, al.last_name)), ''),
         a.stripe_customer_name
       ) AS display_name,
+      a.stripe_customer_name AS purchaser_name,
+      NULLIF(TRIM(CONCAT_WS(' ', al.first_name, al.last_name)), '') AS alumni_name,
+      NULLIF(TRIM(CONCAT_WS(' ', nt.first_name, nt.last_name)), '') AS name_tag_name,
       al.uwc_college, al.grad_year, al.photo_url
     FROM event_attendees a
     LEFT JOIN alumni al ON al.id = a.alumni_id

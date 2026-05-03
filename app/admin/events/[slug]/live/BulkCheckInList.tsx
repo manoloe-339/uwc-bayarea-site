@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { bulkCheckInAttendees } from "./actions";
+import { namesEffectivelyMatch } from "@/lib/name-similarity";
 
 export interface PendingAttendee {
   id: number;
@@ -115,20 +116,22 @@ export function BulkCheckInList({ eventId, slug, attendees }: Props) {
           //          else alumni name (matched record), else purchaser name.
           const primary =
             a.name_tag_name ?? a.alumni_name ?? a.purchaser_name ?? `#${a.id}`;
-          // Show purchaser as secondary when it differs from the primary —
-          // helps spot tickets bought by one person for another.
+          // Show purchaser as secondary when it differs from the primary
+          // in any meaningful way — uses the heuristic matcher so we
+          // don't flag accent / middle-initial / partial-name diffs.
           const secondaryParts: string[] = [];
           if (
             a.name_tag_name &&
             a.alumni_name &&
-            a.alumni_name !== a.name_tag_name
+            !namesEffectivelyMatch(a.alumni_name, a.name_tag_name)
           ) {
             secondaryParts.push(`alum: ${a.alumni_name}`);
           }
           if (
             a.purchaser_name &&
-            a.purchaser_name !== a.name_tag_name &&
-            a.purchaser_name !== a.alumni_name
+            !namesEffectivelyMatch(a.purchaser_name, primary) &&
+            !namesEffectivelyMatch(a.purchaser_name, a.alumni_name ?? "") &&
+            !namesEffectivelyMatch(a.purchaser_name, a.name_tag_name ?? "")
           ) {
             secondaryParts.push(`purchaser: ${a.purchaser_name}`);
           }

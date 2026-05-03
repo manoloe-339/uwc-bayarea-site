@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { getEventBySlug } from "@/lib/events-db";
 import { getCheckinStats } from "@/lib/checkin-queries";
 import { LiveDashboardRefresher } from "@/components/admin/LiveDashboardRefresher";
+import { namesEffectivelyMatch } from "@/lib/name-similarity";
 import { BulkCheckInList } from "./BulkCheckInList";
 
 export const dynamic = "force-dynamic";
@@ -136,30 +137,48 @@ export default async function LiveDashboardPage({
           <p className="text-sm text-[color:var(--muted)]">No check-ins yet.</p>
         ) : (
           <ul className="space-y-1.5 text-sm max-h-[600px] overflow-y-auto pr-1">
-            {stats.recent.map((r) => (
-              <li
-                key={r.id}
-                className="flex items-center justify-between gap-3"
-              >
-                <span className="truncate">
-                  ✓ <strong className="text-[color:var(--navy-ink)]">{r.display_name}</strong>
-                  {r.uwc_college && (
-                    <span className="text-[color:var(--muted)]">
-                      {" "}· {r.uwc_college}
-                      {r.grad_year ? ` '${String(r.grad_year).slice(-2)}` : ""}
+            {stats.recent.map((r) => {
+              // Show purchaser as a small secondary line when it's
+              // meaningfully different from the primary display name
+              // (i.e. when one person bought a ticket for another).
+              const showPurchaser =
+                !!r.purchaser_name &&
+                !namesEffectivelyMatch(r.purchaser_name, r.display_name);
+              return (
+                <li
+                  key={r.id}
+                  className="flex items-start justify-between gap-3"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate">
+                      ✓{" "}
+                      <strong className="text-[color:var(--navy-ink)]">
+                        {r.display_name}
+                      </strong>
+                      {r.uwc_college && (
+                        <span className="text-[color:var(--muted)]">
+                          {" "}· {r.uwc_college}
+                          {r.grad_year ? ` '${String(r.grad_year).slice(-2)}` : ""}
+                        </span>
+                      )}
+                      {r.attendee_type === "walk-in" && (
+                        <span className="ml-1 text-[10px] text-indigo-700 uppercase tracking-wider font-bold">
+                          walk-in
+                        </span>
+                      )}
                     </span>
-                  )}
-                  {r.attendee_type === "walk-in" && (
-                    <span className="ml-1 text-[10px] text-indigo-700 uppercase tracking-wider font-bold">
-                      walk-in
-                    </span>
-                  )}
-                </span>
-                <span className="text-xs text-[color:var(--muted)] tabular-nums shrink-0">
-                  {fmtDateTime(r.checked_in_at)}
-                </span>
-              </li>
-            ))}
+                    {showPurchaser && (
+                      <span className="block text-[11px] text-[color:var(--muted)] truncate pl-4">
+                        purchaser: {r.purchaser_name}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-xs text-[color:var(--muted)] tabular-nums shrink-0">
+                    {fmtDateTime(r.checked_in_at)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
