@@ -376,7 +376,7 @@ function RecentFoodiesRow({ recent }: { recent: RecentFoodiesDisplay }) {
     return (
       <div className="mt-12 sm:mt-[72px]">
         <div className="flex items-baseline justify-between flex-wrap gap-2 mb-4">
-          <Eyebrow muted>Recent Foodies · past meals</Eyebrow>
+          <Eyebrow>Foodies · past meals</Eyebrow>
           <Link
             href="/photos"
             className="text-[11px] font-bold tracking-[.22em] uppercase text-navy hover:underline"
@@ -399,14 +399,17 @@ function RecentFoodiesRow({ recent }: { recent: RecentFoodiesDisplay }) {
   });
   return (
     <div className="mt-12 sm:mt-[72px]">
-      <div className="flex items-baseline justify-between flex-wrap gap-2 mb-4">
-        <Eyebrow muted>{recent.event.name} · {eventDateLabel}</Eyebrow>
+      <div className="flex items-baseline justify-between flex-wrap gap-2 mb-2">
+        <Eyebrow>Foodies · past meals</Eyebrow>
         <Link
           href={`/events/${recent.event.slug}/photos`}
           className="text-[11px] font-bold tracking-[.22em] uppercase text-navy hover:underline"
         >
           See more photos →
         </Link>
+      </div>
+      <div className="text-[13px] text-[color:var(--muted)] mb-4">
+        {recent.event.name} · {eventDateLabel}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
         {recent.photos.map((p) => (
