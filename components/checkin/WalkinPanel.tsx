@@ -31,6 +31,7 @@ type AlumniHit = {
 };
 
 const RELATIONSHIP_OPTIONS = [
+  { value: "uwc_alum_in_database", label: "UWC alum (in our database)" },
   { value: "uwc_alum_not_in_db", label: "UWC alum (not in our database)" },
   { value: "friend", label: "Friend of alum" },
   { value: "plus_one", label: "Plus-one" },
@@ -100,6 +101,7 @@ export function WalkinPanel({
     setName([a.first_name, a.last_name].filter(Boolean).join(" ") || "");
     if (a.email && !email) setEmail(a.email);
     if (a.uwc_college && !college) setCollege(a.uwc_college);
+    setRelationship("uwc_alum_in_database");
     setNameResults([]);
     setNameFocused(false);
   };
@@ -151,7 +153,7 @@ export function WalkinPanel({
           name: name.trim(),
           email: email.trim() || null,
           college: college.trim() || null,
-          relationship_type: matchedAlum ? null : (relationship || null),
+          relationship_type: relationship || null,
           associated_with_alumni_id: broughtBy?.id ?? null,
           matched_alumni_id: matchedAlum?.id ?? null,
           notes: notes.trim() || null,

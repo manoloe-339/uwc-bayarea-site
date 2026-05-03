@@ -24,6 +24,7 @@ const ALLOWED_RELATIONSHIPS = new Set([
   "colleague",
   "family",
   "plus_one",
+  "uwc_alum_in_database",
   "uwc_alum_not_in_db",
   "other",
 ]);
@@ -91,7 +92,7 @@ export async function POST(
       ${matchStatus}, ${matchConfidence}, ${matchReason},
       ${matchedAlumId ? new Date().toISOString() : null},
       TRUE, NOW(), ${event.checkin_token},
-      ${assoc}, ${matchedAlumId ? null : relationship},
+      ${assoc}, ${relationship},
       ${combinedNotes}, ${needsFollowup}
     )
     RETURNING id
