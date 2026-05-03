@@ -208,21 +208,24 @@ export async function getCheckinStats(eventId: number): Promise<CheckinStats> {
     last_5_min: number;
   }[];
 
+  // Full checked-in roster (no LIMIT) — used by the live dashboard's
+  // "Checked in" section so admins can scan the whole list post-event.
   const recent = (await sql`
     SELECT
       a.id, a.attendee_type, a.checked_in_at,
       COALESCE(
+        NULLIF(TRIM(CONCAT_WS(' ', nt.first_name, nt.last_name)), ''),
         NULLIF(TRIM(CONCAT_WS(' ', al.first_name, al.last_name)), ''),
         a.stripe_customer_name
       ) AS display_name,
       al.uwc_college, al.grad_year, al.photo_url
     FROM event_attendees a
     LEFT JOIN alumni al ON al.id = a.alumni_id
+    LEFT JOIN event_name_tags nt ON nt.attendee_id = a.id
     WHERE a.event_id = ${eventId}
       AND a.deleted_at IS NULL
       AND a.checked_in = TRUE
     ORDER BY a.checked_in_at DESC
-    LIMIT 10
   `) as CheckinStats["recent"];
 
   return {

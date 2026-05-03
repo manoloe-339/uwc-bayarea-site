@@ -130,12 +130,12 @@ export default async function LiveDashboardPage({
 
       <section className="bg-white border border-[color:var(--rule)] rounded-[12px] p-5 mb-6">
         <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-3">
-          Recent check-ins
+          Checked in ({stats.recent.length})
         </div>
         {stats.recent.length === 0 ? (
           <p className="text-sm text-[color:var(--muted)]">No check-ins yet.</p>
         ) : (
-          <ul className="space-y-1.5 text-sm">
+          <ul className="space-y-1.5 text-sm max-h-[600px] overflow-y-auto pr-1">
             {stats.recent.map((r) => (
               <li
                 key={r.id}
