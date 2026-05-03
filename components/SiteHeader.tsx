@@ -11,7 +11,7 @@ const CONTACT_MAILTO = "mailto:manolo@uwcbayarea.org?subject=UWC%20Bay%20Area%20
 // hamburger drawer. Desktop renders every link inline, as today.
 const secondaryLinks: { key: NavKey; label: string; href: string }[] = [
   { key: "home", label: "Home", href: "/" },
-  { key: "events", label: "Events", href: "/" },
+  { key: "events", label: "Events", href: "/may-1-2026" },
   { key: "photos", label: "Photos", href: "/photos" },
   { key: "help", label: "Help Out", href: "/help-out" },
   { key: "contact", label: "Contact", href: CONTACT_MAILTO },
@@ -74,7 +74,7 @@ export default function SiteHeader({ active }: { active?: NavKey }) {
         {/* ── Desktop nav (inline) ─────────────────────────────────────── */}
         <div className="hidden md:flex items-center gap-1">
           <NavLink href="/" active={active === "home"}>Home</NavLink>
-          <NavLink href="/" active={active === "events"}>Events</NavLink>
+          <NavLink href="/may-1-2026" active={active === "events"}>Events</NavLink>
           <NavLink href="/photos" active={active === "photos"}>Photos</NavLink>
           <NavLink href="/signup" active={active === "signup"}>Sign up</NavLink>
           <NavLink href="/help-out" active={active === "help"}>Help Out</NavLink>
