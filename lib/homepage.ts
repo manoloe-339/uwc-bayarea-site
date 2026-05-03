@@ -1,5 +1,7 @@
 import { sql } from "./db";
 import { getApprovedPhotosOrdered } from "./event-photos/queries";
+import { findCountry } from "./countries";
+import { isCardBackdrop, type CardBackdrop } from "./foodies-shared";
 
 export interface FoodiesHost {
   id: number;
@@ -22,6 +24,12 @@ export interface FoodiesUpcoming {
   neighborhood: string | null;
   /** Optional Google/Apple Maps link for the restaurant/location. */
   location_map_url: string | null;
+  /** Free emoji to render inline with the title. */
+  cuisine_emoji: string | null;
+  /** Country flag derived from cuisine_country — rendered as a faint
+   * backdrop in the bottom corner of the card. */
+  cuisine_country_flag: string | null;
+  card_backdrop: CardBackdrop;
   host_1: FoodiesHost | null;
   host_2: FoodiesHost | null;
 }
@@ -78,6 +86,9 @@ type FoodiesRow = {
   foodies_cuisine: string | null;
   foodies_neighborhood: string | null;
   location_map_url: string | null;
+  cuisine_country: string | null;
+  cuisine_emoji: string | null;
+  card_backdrop: string | null;
   h1_id: number | null;
   h1_first: string | null;
   h1_last: string | null;
@@ -101,6 +112,7 @@ export async function getUpcomingFoodies(limit = 4): Promise<FoodiesUpcoming[]> 
     SELECT
       e.id, e.slug, e.name, e.date, e.time,
       e.foodies_region, e.foodies_cuisine, e.foodies_neighborhood, e.location_map_url,
+      e.cuisine_country, e.cuisine_emoji, e.card_backdrop,
       h1.id AS h1_id, h1.first_name AS h1_first, h1.last_name AS h1_last,
       h1.grad_year AS h1_grad, h1.uwc_college AS h1_college, h1.photo_url AS h1_photo,
       h1.linkedin_url AS h1_linkedin,
@@ -127,6 +139,9 @@ export async function getUpcomingFoodies(limit = 4): Promise<FoodiesUpcoming[]> 
     cuisine: r.foodies_cuisine,
     neighborhood: r.foodies_neighborhood,
     location_map_url: r.location_map_url,
+    cuisine_emoji: r.cuisine_emoji?.trim() || null,
+    cuisine_country_flag: r.cuisine_country ? findCountry(r.cuisine_country)?.flag ?? null : null,
+    card_backdrop: isCardBackdrop(r.card_backdrop ?? "") ? (r.card_backdrop as CardBackdrop) : "none",
     host_1: r.h1_id
       ? {
           id: r.h1_id,

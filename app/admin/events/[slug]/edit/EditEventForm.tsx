@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { FOODIES_REGIONS } from "@/lib/foodies-shared";
+import { FOODIES_REGIONS, CARD_BACKDROPS, type CardBackdrop } from "@/lib/foodies-shared";
 import { FoodiesHostPicker, type HostAlumnus } from "@/components/admin/FoodiesHostPicker";
 import { MarkdownTextarea } from "@/components/admin/MarkdownTextarea";
+import { CountryAutocomplete } from "@/components/CountryAutocomplete";
 import {
   FeaturedAlumniManager,
   type FeaturedAlumnusEntry,
@@ -29,6 +30,9 @@ type Props = {
     foodies_neighborhood: string | null;
     foodies_host_1: HostAlumnus | null;
     foodies_host_2: HostAlumnus | null;
+    cuisine_country: string | null;
+    cuisine_emoji: string | null;
+    card_backdrop: CardBackdrop;
     featured_alumni: FeaturedAlumnusEntry[];
   };
   action: (formData: FormData) => void;
@@ -158,6 +162,34 @@ export default function EditEventForm({ slug, initial, action }: Props) {
               label="Host 2"
               initial={initial.foodies_host_2}
             />
+          </div>
+
+          <div className="border-t border-[color:var(--rule)] pt-3 space-y-3">
+            <div className="text-[10px] tracking-[.18em] uppercase font-bold text-navy">
+              Card style on homepage
+            </div>
+            <Field
+              name="cuisine_emoji"
+              label="Cuisine emoji (renders inline with the title — e.g. 🍝, 🌮, 🥖)"
+              defaultValue={initial.cuisine_emoji ?? ""}
+            />
+            <CountryAutocomplete
+              name="cuisine_country"
+              label="Cuisine country (used when backdrop = Cuisine flag)"
+              defaultValue={initial.cuisine_country}
+              placeholder="e.g. Japan, Afghanistan, Italy"
+            />
+            <SelectField
+              name="card_backdrop"
+              label="Card backdrop"
+              defaultValue={initial.card_backdrop}
+              options={[...CARD_BACKDROPS]}
+            />
+            <p className="text-xs text-[color:var(--muted)]">
+              <strong>None</strong>: clean white card. <strong>Region tint</strong>:
+              subtle wash + matching top stripe per region. <strong>Cuisine flag</strong>:
+              the country flag rendered large + faint behind the card content.
+            </p>
           </div>
         </fieldset>
       )}

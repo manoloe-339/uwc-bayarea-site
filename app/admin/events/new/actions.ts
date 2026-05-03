@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
-import { isFoodiesRegion } from "@/lib/foodies-shared";
+import { isFoodiesRegion, isCardBackdrop, type CardBackdrop } from "@/lib/foodies-shared";
 import { saveEventFeaturedAlumni } from "@/lib/event-featured-alumni";
 
 function slugify(raw: string): string {
@@ -24,6 +24,11 @@ function pickRegion(raw: string): string | null {
 function pickText(raw: string): string | null {
   const v = raw.trim();
   return v ? v : null;
+}
+
+function pickBackdrop(raw: string): CardBackdrop {
+  const v = raw.trim();
+  return isCardBackdrop(v) ? v : "none";
 }
 
 function pickAlumniId(raw: string): number | null {
@@ -72,6 +77,9 @@ export async function createEventAction(formData: FormData): Promise<void> {
   const foodiesNeighborhood = isFoodies ? pickText(String(formData.get("foodies_neighborhood") ?? "")) : null;
   const foodiesHost1 = isFoodies ? pickAlumniId(String(formData.get("foodies_host_1_alumni_id") ?? "")) : null;
   const foodiesHost2 = isFoodies ? pickAlumniId(String(formData.get("foodies_host_2_alumni_id") ?? "")) : null;
+  const cuisineCountry = isFoodies ? pickText(String(formData.get("cuisine_country") ?? "")) : null;
+  const cuisineEmoji = isFoodies ? pickText(String(formData.get("cuisine_emoji") ?? "")) : null;
+  const cardBackdrop = isFoodies ? pickBackdrop(String(formData.get("card_backdrop") ?? "")) : "none";
 
   if (!name || !date) throw new Error("Name and date are required");
   const slug = slugify(slugRaw || name);
@@ -87,14 +95,16 @@ export async function createEventAction(formData: FormData): Promise<void> {
       gallery_description_md,
       stripe_payment_link_id, event_type,
       is_foodies, foodies_region, foodies_cuisine,
-      foodies_neighborhood, foodies_host_1_alumni_id, foodies_host_2_alumni_id
+      foodies_neighborhood, foodies_host_1_alumni_id, foodies_host_2_alumni_id,
+      cuisine_country, cuisine_emoji, card_backdrop
     )
     VALUES (
       ${slug}, ${name}, ${date}, ${time}, ${location}, ${description},
       ${galleryDescription},
       ${finalStripeLink}, ${eventType},
       ${isFoodies}, ${foodiesRegion}, ${foodiesCuisine},
-      ${foodiesNeighborhood}, ${foodiesHost1}, ${foodiesHost2}
+      ${foodiesNeighborhood}, ${foodiesHost1}, ${foodiesHost2},
+      ${cuisineCountry}, ${cuisineEmoji}, ${cardBackdrop}
     )
   `;
   revalidatePath("/admin/events");
@@ -119,6 +129,9 @@ export async function updateEventAction(id: number, formData: FormData): Promise
   const foodiesNeighborhood = isFoodies ? pickText(String(formData.get("foodies_neighborhood") ?? "")) : null;
   const foodiesHost1 = isFoodies ? pickAlumniId(String(formData.get("foodies_host_1_alumni_id") ?? "")) : null;
   const foodiesHost2 = isFoodies ? pickAlumniId(String(formData.get("foodies_host_2_alumni_id") ?? "")) : null;
+  const cuisineCountry = isFoodies ? pickText(String(formData.get("cuisine_country") ?? "")) : null;
+  const cuisineEmoji = isFoodies ? pickText(String(formData.get("cuisine_emoji") ?? "")) : null;
+  const cardBackdrop = isFoodies ? pickBackdrop(String(formData.get("card_backdrop") ?? "")) : "none";
 
   if (!name || !date) throw new Error("Name and date are required");
 

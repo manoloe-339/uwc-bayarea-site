@@ -98,6 +98,12 @@ export default async function EditEventPage({
                 grad_year: host2.grad_year,
               }
             : null,
+          cuisine_country: event.cuisine_country,
+          cuisine_emoji: event.cuisine_emoji,
+          card_backdrop:
+            event.card_backdrop === "region_tint" || event.card_backdrop === "cuisine_flag"
+              ? event.card_backdrop
+              : "none",
           featured_alumni,
         }}
       />

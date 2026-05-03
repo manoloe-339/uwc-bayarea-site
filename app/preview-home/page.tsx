@@ -16,6 +16,7 @@ import {
   type RecentFoodiesDisplay,
 } from "@/lib/homepage";
 import { getActiveHeroSlides } from "@/lib/hero-slides";
+import { REGION_ACCENTS } from "@/lib/foodies-shared";
 import { LinkedInMark } from "@/components/icons/LinkedInMark";
 import {
   getNewsFeatureDisplay,
@@ -198,27 +199,58 @@ function FoodiesSection({
 function FoodiesCard({ meal, featured }: { meal: FoodiesUpcoming; featured: boolean }) {
   const fmtDate = (d: Date) =>
     new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const accent = meal.region ? REGION_ACCENTS[meal.region] : null;
+  const useRegionTint = meal.card_backdrop === "region_tint" && !!accent;
+  const useCuisineFlag =
+    meal.card_backdrop === "cuisine_flag" && !!meal.cuisine_country_flag;
+
+  const cardStyle: React.CSSProperties = {
+    boxShadow: "0 2px 0 #E7DFC8, 0 24px 60px -30px rgba(11,37,69,.18)",
+  };
+  if (useRegionTint && accent) {
+    cardStyle.background = accent.wash;
+    cardStyle.borderTopColor = accent.stripe;
+  }
+
   return (
     <article
-      className={`bg-white border border-[color:var(--rule)] border-t-[3px] border-t-navy flex flex-col ${
+      className={`relative overflow-hidden bg-white border border-[color:var(--rule)] border-t-[3px] border-t-navy flex flex-col ${
         featured ? "p-6 sm:p-7" : "p-5"
       }`}
-      style={{ boxShadow: "0 2px 0 #E7DFC8, 0 24px 60px -30px rgba(11,37,69,.18)" }}
+      style={cardStyle}
     >
-      {meal.region && (
-        <div className="mb-3.5">
-          <span className="px-2.5 py-1 border border-[color:var(--rule)] text-[9.5px] font-bold tracking-[.22em] uppercase text-navy bg-[color:var(--ivory)]">
-            {meal.region}
-          </span>
+      {useCuisineFlag && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 flex items-center justify-end pr-2 select-none"
+          style={{
+            fontSize: featured ? "260px" : "200px",
+            lineHeight: 1,
+            opacity: 0.08,
+            filter: "saturate(1.1)",
+          }}
+        >
+          {meal.cuisine_country_flag}
         </div>
       )}
-      <h3
-        className={`font-serif font-semibold leading-[1.08] tracking-[-0.005em] text-[color:var(--navy-ink)] m-0 ${
-          featured ? "text-[30px] sm:text-[38px]" : "text-[22px] sm:text-[24px]"
-        }`}
-      >
-        {meal.name}
-      </h3>
+      <div className="relative">
+        {meal.region && (
+          <div className="mb-3.5">
+            <span className="px-2.5 py-1 border border-[color:var(--rule)] text-[9.5px] font-bold tracking-[.22em] uppercase text-navy bg-[color:var(--ivory)]">
+              {meal.region}
+            </span>
+          </div>
+        )}
+        <h3
+          className={`font-serif font-semibold leading-[1.08] tracking-[-0.005em] text-[color:var(--navy-ink)] m-0 ${
+            featured ? "text-[30px] sm:text-[38px]" : "text-[22px] sm:text-[24px]"
+          }`}
+        >
+          {meal.name}
+          {meal.cuisine_emoji && (
+            <span className="ml-2 align-middle">{meal.cuisine_emoji}</span>
+          )}
+        </h3>
       <FoodiesLocationLine
         cuisine={meal.cuisine}
         neighborhood={meal.neighborhood}
@@ -255,6 +287,7 @@ function FoodiesCard({ meal, featured }: { meal: FoodiesUpcoming; featured: bool
             </div>
           )}
         </div>
+      </div>
       </div>
     </article>
   );

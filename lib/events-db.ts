@@ -34,6 +34,9 @@ export type EventRecord = {
   foodies_neighborhood: string | null;
   foodies_host_1_alumni_id: number | null;
   foodies_host_2_alumni_id: number | null;
+  cuisine_country: string | null;
+  cuisine_emoji: string | null;
+  card_backdrop: string | null;
   name_tag_layout: "standard" | "first-emphasis";
   created_at: string;
   updated_at: string;
