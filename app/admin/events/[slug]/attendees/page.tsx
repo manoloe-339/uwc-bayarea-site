@@ -10,7 +10,7 @@ import { relationshipLabel } from "@/lib/attendee-labels";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-type Tab = "all" | "paid" | "comp" | "review" | "starred" | "followup" | "unmatched" | "uwc_not_in_db";
+type Tab = "all" | "checked_in" | "paid" | "comp" | "review" | "starred" | "followup" | "unmatched" | "uwc_not_in_db";
 
 // Extract the UWC custom field value (if any) for the UWC-NOT-IN-DB badge
 // and the matching filter tab.
@@ -56,6 +56,8 @@ function fmtMoney(s: string | number | null, decimals = 2): string {
 
 function filterForTab(tab: Tab, rows: AttendeeRecord[]): AttendeeRecord[] {
   switch (tab) {
+    case "checked_in":
+      return rows.filter((r) => r.checked_in);
     case "paid":
       return rows.filter((r) => r.attendee_type === "paid");
     case "comp":
@@ -89,7 +91,7 @@ export default async function AttendeesPage({
   if (!event) notFound();
   const rows = await listAttendeesForEvent(event.id);
 
-  const tab = (["all", "paid", "comp", "review", "starred", "followup", "unmatched", "uwc_not_in_db"].includes(tabParam ?? "")
+  const tab = (["all", "checked_in", "paid", "comp", "review", "starred", "followup", "unmatched", "uwc_not_in_db"].includes(tabParam ?? "")
     ? tabParam
     : "all") as Tab;
   const visible = filterForTab(tab, rows);
@@ -97,6 +99,7 @@ export default async function AttendeesPage({
 
   const counts = {
     all: rows.length,
+    checked_in: rows.filter((r) => r.checked_in).length,
     paid: rows.filter((r) => r.attendee_type === "paid").length,
     comp: rows.filter((r) => r.attendee_type === "comp").length,
     review: rows.filter((r) => r.match_status === "needs_review").length,
@@ -218,6 +221,7 @@ export default async function AttendeesPage({
       {/* Tabs */}
       <div className="flex flex-wrap gap-1 mb-4 text-sm font-semibold">
         <Tab href={`/admin/events/${slug}/attendees?tab=all`} active={tab === "all"} count={counts.all}>All</Tab>
+        <Tab href={`/admin/events/${slug}/attendees?tab=checked_in`} active={tab === "checked_in"} count={counts.checked_in}>✓ Checked in</Tab>
         {!isCasual && (
           <>
             <Tab href={`/admin/events/${slug}/attendees?tab=paid`} active={tab === "paid"} count={counts.paid}>Paid</Tab>
