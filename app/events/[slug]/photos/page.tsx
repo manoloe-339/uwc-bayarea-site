@@ -47,7 +47,12 @@ export async function generateMetadata({
   const photos = await getApprovedPhotosOrdered(event.id);
   const topPhotoUrl = photos[0]?.blob_url ?? null;
   const dateLabel = formatEventDate(event.date);
-  const title = `${event.name} · UWC Bay Area`;
+  // Title = just the event name. Brand surfaces via the domain
+  // (uwcbayarea.org shown below the title on iMessage, etc.) and
+  // og:site_name for platforms that render it. Suffixing the title
+  // with "· UWC Bay Area" pushed long event names past iMessage's
+  // ~120-char truncation, eating the brand anyway.
+  const title = event.name;
   const description = dateLabel || "Photos from a UWC Bay Area gathering";
   const images = topPhotoUrl ? [{ url: topPhotoUrl }] : undefined;
 
@@ -107,7 +112,7 @@ export default async function PublicEventPhotosPage({
               <p className="text-[color:var(--muted)] m-0">{dateLabel}</p>
             )}
             <ShareButton
-              title={`${event.name} · UWC Bay Area`}
+              title={event.name}
               text={dateLabel || undefined}
             />
           </div>
