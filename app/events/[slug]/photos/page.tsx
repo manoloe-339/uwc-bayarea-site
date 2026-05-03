@@ -102,7 +102,7 @@ export default async function PublicEventPhotosPage({
           <h1 className="font-sans text-3xl sm:text-4xl font-bold text-[color:var(--navy-ink)] mb-1">
             {event.name}
           </h1>
-          <div className="flex items-baseline gap-3 flex-wrap text-sm">
+          <div className="flex items-center gap-3 flex-wrap text-sm">
             {dateLabel && (
               <p className="text-[color:var(--muted)] m-0">{dateLabel}</p>
             )}
