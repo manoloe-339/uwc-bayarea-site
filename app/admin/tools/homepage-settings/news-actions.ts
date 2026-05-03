@@ -63,7 +63,7 @@ function readNewsForm(formData: FormData) {
 export async function createNewsFeatureAction(formData: FormData): Promise<void> {
   await createNewsFeature(readNewsForm(formData));
   revalidatePath("/admin/tools/homepage-settings");
-  revalidatePath("/preview-home");
+  revalidatePath("/");
   redirect("/admin/tools/homepage-settings?saved=1");
 }
 
@@ -73,7 +73,7 @@ export async function updateNewsFeatureAction(
 ): Promise<void> {
   await updateNewsFeature(id, readNewsForm(formData));
   revalidatePath("/admin/tools/homepage-settings");
-  revalidatePath("/preview-home");
+  revalidatePath("/");
   redirect("/admin/tools/homepage-settings?saved=1");
 }
 
@@ -82,7 +82,7 @@ export async function deleteNewsFeatureAction(formData: FormData): Promise<void>
   if (!Number.isFinite(id) || id <= 0) return;
   await deleteNewsFeature(id);
   revalidatePath("/admin/tools/homepage-settings");
-  revalidatePath("/preview-home");
+  revalidatePath("/");
 }
 
 export async function toggleNewsFeatureEnabledAction(formData: FormData): Promise<void> {
@@ -91,5 +91,5 @@ export async function toggleNewsFeatureEnabledAction(formData: FormData): Promis
   if (!Number.isFinite(id) || id <= 0) return;
   await setNewsFeatureEnabled(id, enabled);
   revalidatePath("/admin/tools/homepage-settings");
-  revalidatePath("/preview-home");
+  revalidatePath("/");
 }

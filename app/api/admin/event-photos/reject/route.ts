@@ -14,7 +14,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "photoIds required" }, { status: 400 });
   }
   const count = await rejectPhotos(ids);
-  revalidatePath("/preview-home");
+  revalidatePath("/");
   revalidatePath("/photos");
   return NextResponse.json({ ok: true, count });
 }

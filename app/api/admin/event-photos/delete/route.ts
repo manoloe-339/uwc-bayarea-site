@@ -28,7 +28,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     })
   );
 
-  revalidatePath("/preview-home");
+  revalidatePath("/");
   revalidatePath("/photos");
   return NextResponse.json({ ok: true, count: removed.length });
 }

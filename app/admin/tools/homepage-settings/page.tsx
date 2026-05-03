@@ -39,7 +39,7 @@ export default async function HomepageSettingsPage({
       </h1>
       <p className="text-[color:var(--muted)] text-sm mb-6 max-w-[640px]">
         Manage the hero carousel on{" "}
-        <Link href="/preview-home" className="underline">/preview-home</Link>.
+        <Link href="/" className="underline">the homepage</Link>.
         With no enabled slides, the hero auto-derives from your most recent past
         events with photos.
       </p>

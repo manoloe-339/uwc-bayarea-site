@@ -15,7 +15,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!updated) {
     return NextResponse.json({ error: "Photo not found" }, { status: 404 });
   }
-  revalidatePath("/preview-home");
+  revalidatePath("/");
   revalidatePath("/photos");
   return NextResponse.json({
     ok: true,

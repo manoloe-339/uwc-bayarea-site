@@ -29,7 +29,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     : [];
 
   await reorderPhotos(eventId, body!.role as DisplayRole, ids);
-  revalidatePath("/preview-home");
+  revalidatePath("/");
   revalidatePath("/photos");
   return NextResponse.json({ ok: true, count: ids.length });
 }

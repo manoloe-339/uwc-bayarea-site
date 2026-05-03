@@ -30,6 +30,9 @@ const nextConfig = {
       { source: "/admin/ticket-events/:path*", destination: "/admin/events/:path*", permanent: true },
       { source: "/admin/unsubscribes", destination: "/admin/email/unsubscribes", permanent: true },
       { source: "/admin/unsubscribes/:path*", destination: "/admin/email/unsubscribes/:path*", permanent: true },
+      // Homepage swap (2026-05-15): /preview-home was the staging route
+      // for the editorial homepage; it became /. Redirect any old links.
+      { source: "/preview-home", destination: "/", permanent: true },
     ];
   },
 };

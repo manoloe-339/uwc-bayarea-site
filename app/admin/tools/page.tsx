@@ -95,7 +95,7 @@ export default function ToolsIndex() {
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
           <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Homepage</div>
-          <div className="font-semibold text-[color:var(--navy-ink)]">Hero carousel slides on /preview-home</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Hero carousel slides on the homepage</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Curate the editorial hero at the top of the new homepage. Each
             slide picks an event, sets headline copy, and uses the event&rsquo;s

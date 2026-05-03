@@ -84,7 +84,7 @@ export async function createHeroSlideAction(formData: FormData): Promise<void> {
   const data = readSlideForm(formData);
   await createHeroSlide(data);
   revalidatePath("/admin/tools/homepage-settings");
-  revalidatePath("/preview-home");
+  revalidatePath("/");
   redirect("/admin/tools/homepage-settings?saved=1");
 }
 
@@ -95,7 +95,7 @@ export async function updateHeroSlideAction(
   const data = readSlideForm(formData);
   await updateHeroSlide(id, data);
   revalidatePath("/admin/tools/homepage-settings");
-  revalidatePath("/preview-home");
+  revalidatePath("/");
   redirect("/admin/tools/homepage-settings?saved=1");
 }
 
@@ -104,7 +104,7 @@ export async function deleteHeroSlideAction(formData: FormData): Promise<void> {
   if (!Number.isFinite(id) || id <= 0) return;
   await deleteHeroSlide(id);
   revalidatePath("/admin/tools/homepage-settings");
-  revalidatePath("/preview-home");
+  revalidatePath("/");
 }
 
 export async function toggleHeroSlideEnabledAction(formData: FormData): Promise<void> {
@@ -113,5 +113,5 @@ export async function toggleHeroSlideEnabledAction(formData: FormData): Promise<
   if (!Number.isFinite(id) || id <= 0) return;
   await setHeroSlideEnabled(id, enabled);
   revalidatePath("/admin/tools/homepage-settings");
-  revalidatePath("/preview-home");
+  revalidatePath("/");
 }
