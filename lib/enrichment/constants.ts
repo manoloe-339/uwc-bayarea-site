@@ -35,6 +35,7 @@ export const UWC_SHORT_FORMS: Record<string, string> = {
   "UWC Adriatic": "Adriatic",
   "UWC Dilijan": "Dilijan",
   "UWC Maastricht": "Maastricht",
+  "UWC Robert Bosch College": "Robert Bosch",
   "UWC Robert Bosch": "Robert Bosch",
   "Red Cross Nordic": "Red Cross Nordic",
   "UWC Atlantic College": "Atlantic College",

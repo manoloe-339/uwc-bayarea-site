@@ -25,7 +25,7 @@ export const COLLEGES: readonly College[] = [
   { canonical: "UWC Waterford Kamhlaba", short: "Waterford",       country: "Eswatini",                firstYear: 1963, aliases: ["waterford", "uwc waterford", "kamhlaba", "waterford kamhlaba", "swaziland", "eswatini"] },
   { canonical: "UWC Mostar",            short: "Mostar",           country: "Bosnia and Herzegovina",  firstYear: 2006, aliases: ["mostar", "uwc mostar", "uwcim", "bosnia"] },
   { canonical: "UWC Li Po Chun",        short: "Li Po Chun",       country: "Hong Kong",               firstYear: 1992, aliases: ["li po chun", "uwc li po chun", "lpc", "lpcuwc", "hong kong"] },
-  { canonical: "UWC Robert Bosch",      short: "Robert Bosch",     country: "Germany",                 firstYear: 2014, aliases: ["robert bosch", "uwc robert bosch", "rbc", "uwc rbc", "uwcrbc", "freiburg"] },
+  { canonical: "UWC Robert Bosch College", short: "Robert Bosch",  country: "Germany",                 firstYear: 2014, aliases: ["robert bosch", "uwc robert bosch", "uwc robert bosch college", "rbc", "uwc rbc", "uwcrbc", "freiburg"] },
   { canonical: "UWC Dilijan",           short: "Dilijan",          country: "Armenia",                 firstYear: 2014, aliases: ["dilijan", "uwc dilijan", "armenia"] },
   { canonical: "UWC Maastricht",        short: "Maastricht",       country: "Netherlands",             firstYear: 2009, aliases: ["maastricht", "uwc maastricht", "uwcm", "uwcmaastricht", "netherlands"] },
   { canonical: "UWC Changshu China",    short: "Changshu",         country: "China",                   firstYear: 2015, aliases: ["changshu", "uwc changshu", "uwc china"] },

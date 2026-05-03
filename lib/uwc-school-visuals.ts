@@ -28,7 +28,7 @@ export const UWC_SCHOOL_VISUALS: Record<string, UwcSchoolVisual> = {
   "UWC Maastricht": { gradient: "from-indigo-600 to-indigo-800", icon: "🎨", flag: "🇳🇱", country: "Netherlands" },
   "UWC Li Po Chun": { gradient: "from-rose-600 to-rose-800", icon: "🏮", flag: "🇭🇰", country: "Hong Kong" },
   "UWC Mostar": { gradient: "from-teal-600 to-teal-800", icon: "🌉", flag: "🇧🇦", country: "Bosnia and Herzegovina" },
-  "UWC Robert Bosch": { gradient: "from-zinc-600 to-zinc-800", icon: "⚙️", flag: "🇩🇪", country: "Germany" },
+  "UWC Robert Bosch College": { gradient: "from-zinc-600 to-zinc-800", icon: "⚙️", flag: "🇩🇪", country: "Germany" },
   "UWC Dilijan": { gradient: "from-violet-600 to-violet-800", icon: "🏔️", flag: "🇦🇲", country: "Armenia" },
   "UWC Changshu": { gradient: "from-red-700 to-red-900", icon: "🐉", flag: "🇨🇳", country: "China" },
   "UWC ISAK Japan": { gradient: "from-pink-600 to-pink-800", icon: "🌸", flag: "🇯🇵", country: "Japan" },
