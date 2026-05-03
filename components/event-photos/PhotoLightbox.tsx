@@ -220,11 +220,11 @@ export function PhotoLightbox({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="max-w-[900px] mx-auto px-4 py-3 space-y-2.5">
-          {/* Meta line */}
+          {/* Meta line — counter always; filename + dimensions admin-only. */}
           <div className="text-[11px] text-white/65 text-center truncate">
             {(index ?? 0) + 1} / {photos.length}
-            {photo.original_filename ? ` · ${photo.original_filename}` : ""}
-            {photo.width && photo.height ? ` · ${photo.width}×${photo.height}` : ""}
+            {adminMode && photo.original_filename ? ` · ${photo.original_filename}` : ""}
+            {adminMode && photo.width && photo.height ? ` · ${photo.width}×${photo.height}` : ""}
           </div>
 
           {/* Capture date row — admin only */}
