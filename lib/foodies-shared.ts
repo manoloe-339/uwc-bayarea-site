@@ -5,7 +5,7 @@
 export const FOODIES_REGIONS = [
   "San Francisco",
   "East Bay",
-  "Peninsula",
+  "Peninsula / South Bay",
   "North Bay",
 ] as const;
 
