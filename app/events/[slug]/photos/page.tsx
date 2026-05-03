@@ -54,7 +54,7 @@ export default async function PublicEventPhotosPage({
 
           {event.gallery_description_md && (
             <div
-              className="mt-5 max-w-[68ch] text-[15px] sm:text-base leading-[1.6] text-[color:var(--navy-ink)] [&_p]:mb-3 [&_p:last-child]:mb-0 [&_a]:text-navy"
+              className="mt-5 text-[15px] sm:text-base leading-[1.6] text-[color:var(--navy-ink)] [&_p]:mb-3 [&_p:last-child]:mb-0 [&_a]:text-navy"
               dangerouslySetInnerHTML={{
                 __html: renderSimpleMarkdown(event.gallery_description_md),
               }}
