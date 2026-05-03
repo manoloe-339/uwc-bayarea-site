@@ -333,10 +333,14 @@ function RecentFoodiesRow({ recent }: { recent: RecentFoodiesDisplay }) {
     );
   }
   // photos_from_latest — single most recent past Foodies, up to 4 photos.
+  const eventDateLabel = new Date(recent.event.date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
   return (
     <div className="mt-12 sm:mt-[72px]">
       <div className="flex items-baseline justify-between flex-wrap gap-2 mb-4">
-        <Eyebrow muted>From our last meal · {recent.event.name}</Eyebrow>
+        <Eyebrow muted>{recent.event.name} · {eventDateLabel}</Eyebrow>
         <Link
           href={`/events/${recent.event.slug}/photos`}
           className="text-[11px] font-bold tracking-[.22em] uppercase text-navy hover:underline"
