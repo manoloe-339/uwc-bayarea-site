@@ -161,12 +161,15 @@ export default async function LiveDashboardPage({
                 r.purchaser_email.trim().toLowerCase() ===
                   r.alumni_email.trim().toLowerCase();
               const showCollegeYear = !nameTagIsGuest;
-              const showPurchaser = nameTagIsGuest
-                ? !!r.purchaser_name &&
-                  !namesEffectivelyMatch(r.purchaser_name, r.display_name)
-                : !sameByEmail &&
-                  !!r.purchaser_name &&
-                  !namesEffectivelyMatch(r.purchaser_name, r.display_name);
+              // Purchaser line is suppressed any time the purchaser
+              // email matches the alum's — they ARE the alum, so the
+              // Stripe-formatted name (sometimes a billing/team quirk)
+              // adds no information. For guest rows, the alum's full
+              // name shows up via the "alum: …" line elsewhere.
+              const showPurchaser =
+                !sameByEmail &&
+                !!r.purchaser_name &&
+                !namesEffectivelyMatch(r.purchaser_name, r.display_name);
               return (
                 <li
                   key={r.id}
@@ -190,6 +193,11 @@ export default async function LiveDashboardPage({
                         </span>
                       )}
                     </span>
+                    {nameTagIsGuest && r.alumni_name && (
+                      <span className="block text-[11px] text-[color:var(--muted)] truncate pl-4">
+                        alum: {r.alumni_name}
+                      </span>
+                    )}
                     {showPurchaser && (
                       <span className="block text-[11px] text-[color:var(--muted)] truncate pl-4">
                         purchaser: {r.purchaser_name}

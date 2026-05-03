@@ -118,13 +118,12 @@ export function BulkCheckInList({ eventId, slug, attendees }: Props) {
           //          else alumni name (matched record), else purchaser name.
           const primary =
             a.name_tag_name ?? a.alumni_name ?? a.purchaser_name ?? `#${a.id}`;
-          // Two distinct cases drive what we show as secondary lines:
-          //   (a) Name tag matches the email-linked alum (or no name
-          //       tag): attendee IS the alum. Suppress purchaser line
-          //       when emails match (handles Stripe billing-name quirks).
-          //   (b) Name tag differs from the alum: attendee is a guest
-          //       of the alum. ALWAYS show purchaser so the sponsor is
-          //       identifiable, regardless of email match.
+          // For guest attendees (name tag != linked alum), show the
+          // alum as sponsor. Purchaser line is always suppressed when
+          // the purchaser email matches the alum's email — the alum
+          // line already identifies the buyer in that case, and the
+          // Stripe-formatted name (sometimes a billing/team quirk)
+          // adds no information.
           const nameTagIsGuest =
             !!a.name_tag_name &&
             !!a.alumni_name &&
@@ -135,13 +134,11 @@ export function BulkCheckInList({ eventId, slug, attendees }: Props) {
             a.purchaser_email.trim().toLowerCase() ===
               a.alumni_email.trim().toLowerCase();
           const secondaryParts: string[] = [];
-          // For guest attendees, surface the alum sponsor explicitly.
           if (nameTagIsGuest && a.alumni_name) {
             secondaryParts.push(`alum: ${a.alumni_name}`);
           }
-          const suppressPurchaser = !nameTagIsGuest && sameByEmail;
           if (
-            !suppressPurchaser &&
+            !sameByEmail &&
             a.purchaser_name &&
             !namesEffectivelyMatch(a.purchaser_name, primary) &&
             !namesEffectivelyMatch(a.purchaser_name, a.alumni_name ?? "") &&
