@@ -18,7 +18,7 @@ export function MissedEventOverlay({
   const [dismissed, setDismissed] = useState(false);
   if (dismissed) return null;
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center px-4 bg-[color:var(--ivory)]/80 backdrop-blur-[2px]">
+    <div className="absolute inset-0 z-30 flex items-start sm:items-center justify-center px-4 pt-10 sm:pt-0 bg-[color:var(--ivory)]/80 backdrop-blur-[2px]">
       <div className="relative bg-white rounded-[14px] shadow-2xl max-w-[440px] w-full p-7 sm:p-8 text-center">
         <button
           type="button"
