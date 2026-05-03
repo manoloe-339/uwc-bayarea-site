@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getEventBySlug } from "@/lib/events-db";
 import { getEventFeaturedAlumni } from "@/lib/event-featured-alumni";
@@ -10,10 +11,64 @@ import SiteFooter from "@/components/SiteFooter";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Event photos · UWC Bay Area",
-  robots: { index: false, follow: false },
-};
+function formatEventDate(d: unknown): string {
+  if (!d) return "";
+  const date = d instanceof Date ? d : new Date(String(d));
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+/** Per-event social preview metadata (OpenGraph + Twitter Card).
+ * Drives the rich preview cards in WhatsApp, iMessage, LinkedIn,
+ * Slack, etc. when the URL is shared. Title bakes in "· UWC Bay
+ * Area" so the brand surfaces even on minimal renderers (iMessage
+ * shows just the domain otherwise). Image is the top approved photo
+ * from the gallery (marquee-tagged photos rank first per
+ * getApprovedPhotosOrdered's existing ordering). */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const event = await getEventBySlug(slug);
+  if (!event) {
+    return {
+      title: "Event photos · UWC Bay Area",
+      robots: { index: false, follow: false },
+    };
+  }
+  const photos = await getApprovedPhotosOrdered(event.id);
+  const topPhotoUrl = photos[0]?.blob_url ?? null;
+  const dateLabel = formatEventDate(event.date);
+  const title = `${event.name} · UWC Bay Area`;
+  const description = dateLabel || "Photos from a UWC Bay Area gathering";
+  const images = topPhotoUrl ? [{ url: topPhotoUrl }] : undefined;
+
+  return {
+    title,
+    description,
+    robots: { index: false, follow: false },
+    openGraph: {
+      title,
+      description,
+      siteName: "UWC Bay Area",
+      type: "article",
+      images,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: topPhotoUrl ? [topPhotoUrl] : undefined,
+    },
+  };
+}
 
 export default async function PublicEventPhotosPage({
   params,
