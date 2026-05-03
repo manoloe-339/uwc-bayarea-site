@@ -152,6 +152,9 @@ export async function updateEventAction(id: number, formData: FormData): Promise
       foodies_neighborhood = ${foodiesNeighborhood},
       foodies_host_1_alumni_id = ${foodiesHost1},
       foodies_host_2_alumni_id = ${foodiesHost2},
+      cuisine_country = ${cuisineCountry},
+      cuisine_emoji = ${cuisineEmoji},
+      card_backdrop = ${cardBackdrop},
       updated_at = NOW()
     WHERE id = ${id}
     RETURNING slug
