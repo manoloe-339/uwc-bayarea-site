@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { getEventBySlug } from "@/lib/events-db";
+import { getEventFeaturedAlumni } from "@/lib/event-featured-alumni";
 import { getApprovedPhotosOrdered } from "@/lib/event-photos/queries";
 import { PublicGalleryGrid } from "@/components/event-photos/PublicGalleryGrid";
+import { EventFeaturedAlumni } from "@/components/event-photos/EventFeaturedAlumni";
 import { renderSimpleMarkdown } from "@/lib/simple-markdown";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -22,7 +24,10 @@ export default async function PublicEventPhotosPage({
   const event = await getEventBySlug(slug);
   if (!event) notFound();
 
-  const photos = await getApprovedPhotosOrdered(event.id);
+  const [photos, featured] = await Promise.all([
+    getApprovedPhotosOrdered(event.id),
+    getEventFeaturedAlumni(event.id),
+  ]);
 
   const dateLabel = event.date
     ? new Date(event.date).toLocaleDateString(undefined, {
@@ -54,7 +59,9 @@ export default async function PublicEventPhotosPage({
             />
           )}
 
-          <div className="mt-6" />
+          <EventFeaturedAlumni featured={featured} />
+
+          <div className="mt-2" />
 
           {photos.length === 0 ? (
             <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)]">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEventBySlug, getFoodiesHostsByIds } from "@/lib/events-db";
+import { getEventFeaturedAlumni } from "@/lib/event-featured-alumni";
 import { updateEventAction } from "../../new/actions";
 import EditEventForm from "./EditEventForm";
 
@@ -28,7 +29,21 @@ export default async function EditEventPage({
   const hostIds = [event.foodies_host_1_alumni_id, event.foodies_host_2_alumni_id].filter(
     (n): n is number => typeof n === "number"
   );
-  const hostMap = await getFoodiesHostsByIds(hostIds);
+  const [hostMap, featuredRows] = await Promise.all([
+    getFoodiesHostsByIds(hostIds),
+    getEventFeaturedAlumni(event.id),
+  ]);
+  const featured_alumni = featuredRows.map((r) => ({
+    alumni: {
+      id: r.alumni_id,
+      first_name: r.first_name,
+      last_name: r.last_name,
+      email: null,
+      uwc_college: r.uwc_college,
+      grad_year: r.grad_year,
+    },
+    role_label: r.role_label ?? "",
+  }));
   const host1 = event.foodies_host_1_alumni_id
     ? hostMap.get(event.foodies_host_1_alumni_id) ?? null
     : null;
@@ -83,6 +98,7 @@ export default async function EditEventPage({
                 grad_year: host2.grad_year,
               }
             : null,
+          featured_alumni,
         }}
       />
     </div>

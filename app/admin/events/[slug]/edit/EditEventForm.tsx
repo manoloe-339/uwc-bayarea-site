@@ -5,6 +5,10 @@ import { useState } from "react";
 import { FOODIES_REGIONS } from "@/lib/foodies-shared";
 import { FoodiesHostPicker, type HostAlumnus } from "@/components/admin/FoodiesHostPicker";
 import { MarkdownTextarea } from "@/components/admin/MarkdownTextarea";
+import {
+  FeaturedAlumniManager,
+  type FeaturedAlumnusEntry,
+} from "@/components/admin/FeaturedAlumniManager";
 
 type Props = {
   slug: string;
@@ -25,6 +29,7 @@ type Props = {
     foodies_neighborhood: string | null;
     foodies_host_1: HostAlumnus | null;
     foodies_host_2: HostAlumnus | null;
+    featured_alumni: FeaturedAlumnusEntry[];
   };
   action: (formData: FormData) => void;
 };
@@ -105,6 +110,19 @@ export default function EditEventForm({ slug, initial, action }: Props) {
         defaultValue={initial.gallery_description_md ?? ""}
         placeholder="e.g. Forty-seven alumni gathered for [Gil Yaron's fireside on eSwatini](https://example.com)…"
       />
+
+      <fieldset className="border border-[color:var(--rule)] rounded p-4 space-y-3">
+        <legend className="text-[11px] tracking-[.22em] uppercase font-bold text-navy px-1">
+          Featured alumni on gallery page
+        </legend>
+        <p className="text-xs text-[color:var(--muted)]">
+          Hand-picked alumni shown at the top of the public gallery —
+          guest speakers, leads, hosts, etc. Each card shows photo,
+          name, college/year, and either a custom role label or the
+          alum&rsquo;s current job title.
+        </p>
+        <FeaturedAlumniManager name="featured_alumni" initial={initial.featured_alumni} />
+      </fieldset>
 
       {eventType === "casual" && isFoodies && (
         <fieldset className="border border-[color:var(--rule)] rounded-[10px] p-4 space-y-3 bg-ivory/40">

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import { isFoodiesRegion } from "@/lib/foodies-shared";
+import { saveEventFeaturedAlumni } from "@/lib/event-featured-alumni";
 
 function slugify(raw: string): string {
   return raw
@@ -30,6 +31,27 @@ function pickAlumniId(raw: string): number | null {
   if (!v) return null;
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function parseFeaturedAlumni(raw: string): { alumni_id: number; role_label: string | null }[] {
+  const s = raw.trim();
+  if (!s) return [];
+  try {
+    const parsed = JSON.parse(s) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    const out: { alumni_id: number; role_label: string | null }[] = [];
+    for (const item of parsed) {
+      if (!item || typeof item !== "object") continue;
+      const obj = item as { alumni_id?: unknown; role_label?: unknown };
+      const id = Number(obj.alumni_id);
+      if (!Number.isFinite(id) || id <= 0) continue;
+      const labelRaw = typeof obj.role_label === "string" ? obj.role_label.trim() : "";
+      out.push({ alumni_id: id, role_label: labelRaw || null });
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 export async function createEventAction(formData: FormData): Promise<void> {
@@ -123,7 +145,12 @@ export async function updateEventAction(id: number, formData: FormData): Promise
   `) as { slug: string }[];
 
   if (!rows[0]) throw new Error("Event not found");
+
+  const featured = parseFeaturedAlumni(String(formData.get("featured_alumni") ?? ""));
+  await saveEventFeaturedAlumni(id, featured);
+
   revalidatePath("/admin/events");
   revalidatePath(`/admin/events/${rows[0].slug}/attendees`);
+  revalidatePath(`/events/${rows[0].slug}/photos`);
   redirect(`/admin/events/${rows[0].slug}/attendees`);
 }
