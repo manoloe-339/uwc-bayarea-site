@@ -12,6 +12,9 @@ type Body = {
   college?: string | null;
   relationship_type?: string | null;
   associated_with_alumni_id?: number | null;
+  /** When admin picked an alum from the Name field's autocomplete,
+   * this is that alum's id. Walk-in is created linked to that record. */
+  matched_alumni_id?: number | null;
   notes?: string | null;
 };
 
@@ -51,29 +54,45 @@ export async function POST(
   if (assoc !== null && !Number.isFinite(assoc)) {
     return NextResponse.json({ error: "Invalid associated_with_alumni_id" }, { status: 400 });
   }
+  const matchedAlumId =
+    body.matched_alumni_id == null ? null : Number(body.matched_alumni_id);
+  if (matchedAlumId !== null && !Number.isFinite(matchedAlumId)) {
+    return NextResponse.json({ error: "Invalid matched_alumni_id" }, { status: 400 });
+  }
 
   const collegeNote = body.college?.trim() || null;
   const combinedNotes = [body.notes?.trim(), collegeNote ? `College: ${collegeNote}` : null]
     .filter(Boolean)
     .join(" · ") || null;
 
+  // When the admin picked an alum from the Name field's autocomplete,
+  // create the row linked to that alumni record (matched, not unmatched).
+  // Otherwise it's a free-text walk-in row to triage later.
+  const matchStatus = matchedAlumId ? "matched" : "unmatched";
+  const matchConfidence = matchedAlumId ? "manual" : null;
+  const matchReason = matchedAlumId
+    ? "Walk-in: admin picked alum at check-in"
+    : "Walk-in added at check-in";
+  const needsFollowup = matchedAlumId ? false : true;
+
   const rows = (await sql`
     INSERT INTO event_attendees (
-      event_id, attendee_type,
+      event_id, attendee_type, alumni_id,
       stripe_customer_name, stripe_customer_email,
       amount_paid, paid_at,
-      match_status, match_confidence, match_reason,
+      match_status, match_confidence, match_reason, matched_at,
       checked_in, checked_in_at, checked_in_by,
       associated_with_alumni_id, relationship_type,
       notes, needs_followup
     ) VALUES (
-      ${event.id}, 'walk-in',
+      ${event.id}, 'walk-in', ${matchedAlumId},
       ${name}, ${body.email?.trim() || null},
       0, NOW(),
-      'unmatched', NULL, 'Walk-in added at check-in',
+      ${matchStatus}, ${matchConfidence}, ${matchReason},
+      ${matchedAlumId ? new Date().toISOString() : null},
       TRUE, NOW(), ${event.checkin_token},
-      ${assoc}, ${relationship},
-      ${combinedNotes}, TRUE
+      ${assoc}, ${matchedAlumId ? null : relationship},
+      ${combinedNotes}, ${needsFollowup}
     )
     RETURNING id
   `) as { id: number }[];

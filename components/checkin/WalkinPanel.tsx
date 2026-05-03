@@ -55,9 +55,58 @@ export function WalkinPanel({
   const [broughtByQuery, setBroughtByQuery] = useState("");
   const [broughtByResults, setBroughtByResults] = useState<AlumniHit[]>([]);
   const [broughtBy, setBroughtBy] = useState<AlumniHit | null>(null);
+  // When admin picks an alum from the Name field's autocomplete, the
+  // walk-in is linked to that alumni record (alumni_id +
+  // match_status='matched') instead of being a free-text walk-in.
+  const [matchedAlum, setMatchedAlum] = useState<AlumniHit | null>(null);
+  const [nameResults, setNameResults] = useState<AlumniHit[]>([]);
+  const [nameFocused, setNameFocused] = useState(false);
+  const nameAbortRef = useRef<AbortController | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Name field autocomplete — same endpoint as Brought-by.
+  useEffect(() => {
+    if (matchedAlum) return;
+    const q = name.trim();
+    if (q.length < 2) {
+      setNameResults([]);
+      return;
+    }
+    nameAbortRef.current?.abort();
+    const ac = new AbortController();
+    nameAbortRef.current = ac;
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/ticket-events/alumni-search?q=${encodeURIComponent(q)}`, {
+          signal: ac.signal,
+        });
+        if (!res.ok) return;
+        const { results } = (await res.json()) as { results: AlumniHit[] };
+        if (!ac.signal.aborted) setNameResults(results);
+      } catch {
+        // aborted
+      }
+    }, 220);
+    return () => {
+      clearTimeout(t);
+      ac.abort();
+    };
+  }, [name, matchedAlum]);
+
+  const pickMatchedAlum = (a: AlumniHit) => {
+    setMatchedAlum(a);
+    setName([a.first_name, a.last_name].filter(Boolean).join(" ") || "");
+    if (a.email && !email) setEmail(a.email);
+    if (a.uwc_college && !college) setCollege(a.uwc_college);
+    setNameResults([]);
+    setNameFocused(false);
+  };
+
+  const clearMatchedAlum = () => {
+    setMatchedAlum(null);
+  };
 
   useEffect(() => {
     if (broughtBy) return;
@@ -102,8 +151,9 @@ export function WalkinPanel({
           name: name.trim(),
           email: email.trim() || null,
           college: college.trim() || null,
-          relationship_type: relationship || null,
+          relationship_type: matchedAlum ? null : (relationship || null),
           associated_with_alumni_id: broughtBy?.id ?? null,
+          matched_alumni_id: matchedAlum?.id ?? null,
           notes: notes.trim() || null,
         }),
       });
@@ -124,13 +174,65 @@ export function WalkinPanel({
       <div className="text-sm font-semibold text-navy">Add walk-in guest</div>
 
       <L label="Name" required>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          autoFocus
-          className={inputCls}
-        />
+        {matchedAlum ? (
+          <div className="flex items-center justify-between gap-3 bg-green-50 border border-green-200 rounded px-3 py-2">
+            <span className="text-sm font-semibold text-green-900 truncate">
+              ✓ {[matchedAlum.first_name, matchedAlum.last_name].filter(Boolean).join(" ")}
+              {matchedAlum.uwc_college ? ` · ${matchedAlum.uwc_college}` : ""}
+              {matchedAlum.grad_year ? ` '${String(matchedAlum.grad_year).slice(-2)}` : ""}
+            </span>
+            <button
+              type="button"
+              onClick={clearMatchedAlum}
+              className="text-xs text-[color:var(--muted)] hover:text-navy"
+            >
+              Clear
+            </button>
+          </div>
+        ) : (
+          <div className="relative">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onFocus={() => setNameFocused(true)}
+              onBlur={() => setTimeout(() => setNameFocused(false), 150)}
+              autoFocus
+              autoComplete="off"
+              placeholder="Type a name — picks an alum if matched"
+              className={inputCls}
+            />
+            {nameFocused && nameResults.length > 0 && (
+              <ul className="absolute z-10 left-0 right-0 mt-1 bg-white border border-[color:var(--rule)] rounded divide-y divide-[color:var(--rule)] max-h-[220px] overflow-y-auto shadow-md">
+                {nameResults.map((r) => (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        pickMatchedAlum(r);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        pickMatchedAlum(r);
+                      }}
+                      style={{ touchAction: "manipulation" }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-ivory-2"
+                    >
+                      <span className="font-semibold text-navy">
+                        {[r.first_name, r.last_name].filter(Boolean).join(" ")}
+                      </span>
+                      <span className="text-xs text-[color:var(--muted)] ml-2">
+                        {r.uwc_college ?? "—"}
+                        {r.grad_year ? ` '${String(r.grad_year).slice(-2)}` : ""}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </L>
       <L label="Email (optional)">
         <input
