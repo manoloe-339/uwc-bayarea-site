@@ -30,6 +30,8 @@ export interface FoodiesUpcoming {
    * backdrop in the bottom corner of the card. */
   cuisine_country_flag: string | null;
   card_backdrop: CardBackdrop;
+  /** Photo URL used when card_backdrop = 'photo'. */
+  card_backdrop_image_url: string | null;
   host_1: FoodiesHost | null;
   host_2: FoodiesHost | null;
 }
@@ -89,6 +91,7 @@ type FoodiesRow = {
   cuisine_country: string | null;
   cuisine_emoji: string | null;
   card_backdrop: string | null;
+  card_backdrop_image_url: string | null;
   h1_id: number | null;
   h1_first: string | null;
   h1_last: string | null;
@@ -112,7 +115,7 @@ export async function getUpcomingFoodies(limit = 4): Promise<FoodiesUpcoming[]> 
     SELECT
       e.id, e.slug, e.name, e.date, e.time,
       e.foodies_region, e.foodies_cuisine, e.foodies_neighborhood, e.location_map_url,
-      e.cuisine_country, e.cuisine_emoji, e.card_backdrop,
+      e.cuisine_country, e.cuisine_emoji, e.card_backdrop, e.card_backdrop_image_url,
       h1.id AS h1_id, h1.first_name AS h1_first, h1.last_name AS h1_last,
       h1.grad_year AS h1_grad, h1.uwc_college AS h1_college, h1.photo_url AS h1_photo,
       h1.linkedin_url AS h1_linkedin,
@@ -142,6 +145,7 @@ export async function getUpcomingFoodies(limit = 4): Promise<FoodiesUpcoming[]> 
     cuisine_emoji: r.cuisine_emoji?.trim() || null,
     cuisine_country_flag: r.cuisine_country ? findCountry(r.cuisine_country)?.flag ?? null : null,
     card_backdrop: isCardBackdrop(r.card_backdrop ?? "") ? (r.card_backdrop as CardBackdrop) : "none",
+    card_backdrop_image_url: r.card_backdrop_image_url?.trim() || null,
     host_1: r.h1_id
       ? {
           id: r.h1_id,

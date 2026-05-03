@@ -37,6 +37,7 @@ export type EventRecord = {
   cuisine_country: string | null;
   cuisine_emoji: string | null;
   card_backdrop: string | null;
+  card_backdrop_image_url: string | null;
   name_tag_layout: "standard" | "first-emphasis";
   created_at: string;
   updated_at: string;

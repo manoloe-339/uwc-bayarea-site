@@ -101,9 +101,12 @@ export default async function EditEventPage({
           cuisine_country: event.cuisine_country,
           cuisine_emoji: event.cuisine_emoji,
           card_backdrop:
-            event.card_backdrop === "region_tint" || event.card_backdrop === "cuisine_flag"
+            event.card_backdrop === "region_tint" ||
+            event.card_backdrop === "cuisine_flag" ||
+            event.card_backdrop === "photo"
               ? event.card_backdrop
               : "none",
+          card_backdrop_image_url: event.card_backdrop_image_url,
           featured_alumni,
         }}
       />

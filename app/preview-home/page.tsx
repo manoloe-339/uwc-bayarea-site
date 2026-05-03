@@ -203,6 +203,8 @@ function FoodiesCard({ meal, featured }: { meal: FoodiesUpcoming; featured: bool
   const useRegionTint = meal.card_backdrop === "region_tint" && !!accent;
   const useCuisineFlag =
     meal.card_backdrop === "cuisine_flag" && !!meal.cuisine_country_flag;
+  const usePhoto =
+    meal.card_backdrop === "photo" && !!meal.card_backdrop_image_url;
 
   const cardStyle: React.CSSProperties = {
     boxShadow: "0 2px 0 #E7DFC8, 0 24px 60px -30px rgba(11,37,69,.18)",
@@ -219,6 +221,28 @@ function FoodiesCard({ meal, featured }: { meal: FoodiesUpcoming; featured: bool
       }`}
       style={cardStyle}
     >
+      {usePhoto && (
+        <>
+          {/* Photo backdrop — admin-pasted URL, plain <img> so any host
+              works without next/image's remotePatterns whitelist. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={meal.card_backdrop_image_url ?? ""}
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute inset-0 w-full h-full object-cover"
+            style={{ opacity: 0.45 }}
+            loading="lazy"
+            decoding="async"
+          />
+          {/* Soft white wash on top so text remains readable. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{ background: "rgba(255,255,255,0.55)" }}
+          />
+        </>
+      )}
       {useCuisineFlag && (
         <div
           aria-hidden

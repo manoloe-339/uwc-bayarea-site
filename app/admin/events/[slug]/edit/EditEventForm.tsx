@@ -33,6 +33,7 @@ type Props = {
     cuisine_country: string | null;
     cuisine_emoji: string | null;
     card_backdrop: CardBackdrop;
+    card_backdrop_image_url: string | null;
     featured_alumni: FeaturedAlumnusEntry[];
   };
   action: (formData: FormData) => void;
@@ -185,10 +186,18 @@ export default function EditEventForm({ slug, initial, action }: Props) {
               defaultValue={initial.card_backdrop}
               options={[...CARD_BACKDROPS]}
             />
+            <Field
+              name="card_backdrop_image_url"
+              label="Card backdrop photo URL (used when backdrop = Photo)"
+              type="url"
+              defaultValue={initial.card_backdrop_image_url ?? ""}
+            />
             <p className="text-xs text-[color:var(--muted)]">
               <strong>None</strong>: clean white card. <strong>Region tint</strong>:
               subtle wash + matching top stripe per region. <strong>Cuisine flag</strong>:
-              the country flag rendered large + faint behind the card content.
+              country flag rendered large + faint behind content.
+              <strong> Photo</strong>: paste an image URL (upload via the
+              event Photos admin to get a blob URL, or use any external URL).
             </p>
           </div>
         </fieldset>

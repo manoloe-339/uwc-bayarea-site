@@ -11,7 +11,7 @@ export const FOODIES_REGIONS = [
 
 export type FoodiesRegion = (typeof FOODIES_REGIONS)[number];
 
-export const CARD_BACKDROPS = ["none", "region_tint", "cuisine_flag"] as const;
+export const CARD_BACKDROPS = ["none", "region_tint", "cuisine_flag", "photo"] as const;
 export type CardBackdrop = (typeof CARD_BACKDROPS)[number];
 
 export function isCardBackdrop(v: string): v is CardBackdrop {

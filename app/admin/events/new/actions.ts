@@ -80,6 +80,7 @@ export async function createEventAction(formData: FormData): Promise<void> {
   const cuisineCountry = isFoodies ? pickText(String(formData.get("cuisine_country") ?? "")) : null;
   const cuisineEmoji = isFoodies ? pickText(String(formData.get("cuisine_emoji") ?? "")) : null;
   const cardBackdrop = isFoodies ? pickBackdrop(String(formData.get("card_backdrop") ?? "")) : "none";
+  const cardBackdropImageUrl = isFoodies ? pickText(String(formData.get("card_backdrop_image_url") ?? "")) : null;
 
   if (!name || !date) throw new Error("Name and date are required");
   const slug = slugify(slugRaw || name);
@@ -96,7 +97,7 @@ export async function createEventAction(formData: FormData): Promise<void> {
       stripe_payment_link_id, event_type,
       is_foodies, foodies_region, foodies_cuisine,
       foodies_neighborhood, foodies_host_1_alumni_id, foodies_host_2_alumni_id,
-      cuisine_country, cuisine_emoji, card_backdrop
+      cuisine_country, cuisine_emoji, card_backdrop, card_backdrop_image_url
     )
     VALUES (
       ${slug}, ${name}, ${date}, ${time}, ${location}, ${description},
@@ -104,7 +105,7 @@ export async function createEventAction(formData: FormData): Promise<void> {
       ${finalStripeLink}, ${eventType},
       ${isFoodies}, ${foodiesRegion}, ${foodiesCuisine},
       ${foodiesNeighborhood}, ${foodiesHost1}, ${foodiesHost2},
-      ${cuisineCountry}, ${cuisineEmoji}, ${cardBackdrop}
+      ${cuisineCountry}, ${cuisineEmoji}, ${cardBackdrop}, ${cardBackdropImageUrl}
     )
   `;
   revalidatePath("/admin/events");
@@ -132,6 +133,7 @@ export async function updateEventAction(id: number, formData: FormData): Promise
   const cuisineCountry = isFoodies ? pickText(String(formData.get("cuisine_country") ?? "")) : null;
   const cuisineEmoji = isFoodies ? pickText(String(formData.get("cuisine_emoji") ?? "")) : null;
   const cardBackdrop = isFoodies ? pickBackdrop(String(formData.get("card_backdrop") ?? "")) : "none";
+  const cardBackdropImageUrl = isFoodies ? pickText(String(formData.get("card_backdrop_image_url") ?? "")) : null;
 
   if (!name || !date) throw new Error("Name and date are required");
 
@@ -155,6 +157,7 @@ export async function updateEventAction(id: number, formData: FormData): Promise
       cuisine_country = ${cuisineCountry},
       cuisine_emoji = ${cuisineEmoji},
       card_backdrop = ${cardBackdrop},
+      card_backdrop_image_url = ${cardBackdropImageUrl},
       updated_at = NOW()
     WHERE id = ${id}
     RETURNING slug
