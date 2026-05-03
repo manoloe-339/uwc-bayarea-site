@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { getEventBySlug } from "@/lib/events-db";
 import { getCheckinStats } from "@/lib/checkin-queries";
 import { LiveDashboardRefresher } from "@/components/admin/LiveDashboardRefresher";
+import { BulkCheckInList } from "./BulkCheckInList";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -29,20 +30,26 @@ export default async function LiveDashboardPage({
   const noShows = (await sql`
     SELECT
       a.id, a.amount_paid,
-      COALESCE(
-        NULLIF(TRIM(CONCAT_WS(' ', al.first_name, al.last_name)), ''),
-        a.stripe_customer_name
-      ) AS display_name
+      a.stripe_customer_name AS purchaser_name,
+      NULLIF(TRIM(CONCAT_WS(' ', al.first_name, al.last_name)), '') AS alumni_name,
+      NULLIF(TRIM(CONCAT_WS(' ', nt.first_name, nt.last_name)), '') AS name_tag_name
     FROM event_attendees a
     LEFT JOIN alumni al ON al.id = a.alumni_id
+    LEFT JOIN event_name_tags nt ON nt.attendee_id = a.id
     WHERE a.event_id = ${event.id}
       AND a.deleted_at IS NULL
       AND a.attendee_type IN ('paid', 'comp')
       AND a.checked_in = FALSE
       AND (a.refund_status IS NULL OR a.refund_status = 'partially_refunded')
-    ORDER BY COALESCE(al.last_name, a.stripe_customer_name, '') ASC
+    ORDER BY COALESCE(nt.last_name, al.last_name, a.stripe_customer_name, '') ASC
     LIMIT 100
-  `) as { id: number; amount_paid: string; display_name: string | null }[];
+  `) as {
+    id: number;
+    amount_paid: string;
+    purchaser_name: string | null;
+    alumni_name: string | null;
+    name_tag_name: string | null;
+  }[];
 
   // Capacity = paid + comp rows (ticketed). Present = everyone checked in
   // (including walk-ins). Over capacity when present > capacity.
@@ -155,27 +162,15 @@ export default async function LiveDashboardPage({
       </section>
 
       <section className="bg-white border border-[color:var(--rule)] rounded-[12px] p-5">
-        <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-3">
-          Not yet checked in ({noShows.length})
+        <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3">
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
+            Not yet checked in ({noShows.length})
+          </div>
+          <div className="text-[11px] text-[color:var(--muted)]">
+            Tick names + Check in to mark attendance after the event
+          </div>
         </div>
-        {noShows.length === 0 ? (
-          <p className="text-sm text-[color:var(--muted)]">
-            Everyone&rsquo;s in. 🎉
-          </p>
-        ) : (
-          <ul className="space-y-1 text-sm">
-            {noShows.map((r) => (
-              <li key={r.id} className="flex items-baseline justify-between gap-3">
-                <span className="truncate text-[color:var(--navy-ink)]">
-                  {r.display_name ?? `#${r.id}`}
-                </span>
-                <span className="text-xs text-[color:var(--muted)] tabular-nums shrink-0">
-                  Paid ${Number(r.amount_paid || 0).toFixed(0)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <BulkCheckInList eventId={event.id} slug={slug} attendees={noShows} />
       </section>
     </div>
   );
