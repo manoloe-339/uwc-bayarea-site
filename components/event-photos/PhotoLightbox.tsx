@@ -18,12 +18,17 @@ export function PhotoLightbox({
   onClose,
   onChangeIndex,
   assignableEvents,
+  adminMode = false,
 }: {
   photos: EventPhoto[];
   index: number | null;
   onClose: () => void;
   onChangeIndex: (i: number) => void;
   assignableEvents?: AssignableEvent[];
+  /** When true, shows admin-only controls (capture date editor,
+   * assign-to-event dropdown). Defaults to false so the public gallery
+   * lightbox stays clean. */
+  adminMode?: boolean;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -222,52 +227,54 @@ export function PhotoLightbox({
             {photo.width && photo.height ? ` · ${photo.width}×${photo.height}` : ""}
           </div>
 
-          {/* Capture date row */}
-          <div className="flex items-center gap-2 flex-wrap justify-center">
-            <label
-              htmlFor="lightbox-taken-at"
-              className="text-[10px] tracking-[.18em] uppercase font-bold text-white/65 whitespace-nowrap"
-            >
-              Capture date
-            </label>
-            <input
-              id="lightbox-taken-at"
-              type="date"
-              value={takenInput}
-              onChange={(e) => setTakenInput(e.target.value)}
-              onBlur={(e) => void saveTakenAt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  void saveTakenAt(takenInput);
-                }
-              }}
-              className="bg-white/5 text-white text-xs border border-white/20 rounded px-2 py-1 [color-scheme:dark]"
-              min="1990-01-01"
-              max={new Date().toISOString().slice(0, 10)}
-            />
-            {takenInput && (
-              <button
-                type="button"
-                className="text-white/60 hover:text-white text-[10px] uppercase tracking-[.18em] font-semibold"
-                onClick={() => {
-                  setTakenInput("");
-                  void saveTakenAt("");
-                }}
+          {/* Capture date row — admin only */}
+          {adminMode && (
+            <div className="flex items-center gap-2 flex-wrap justify-center">
+              <label
+                htmlFor="lightbox-taken-at"
+                className="text-[10px] tracking-[.18em] uppercase font-bold text-white/65 whitespace-nowrap"
               >
-                Clear
-              </button>
-            )}
-            <span
-              className={`text-[10px] uppercase tracking-[.18em] font-bold ${statusColor}`}
-              aria-live="polite"
-            >
-              {statusText}
-            </span>
-          </div>
+                Capture date
+              </label>
+              <input
+                id="lightbox-taken-at"
+                type="date"
+                value={takenInput}
+                onChange={(e) => setTakenInput(e.target.value)}
+                onBlur={(e) => void saveTakenAt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void saveTakenAt(takenInput);
+                  }
+                }}
+                className="bg-white/5 text-white text-xs border border-white/20 rounded px-2 py-1 [color-scheme:dark]"
+                min="1990-01-01"
+                max={new Date().toISOString().slice(0, 10)}
+              />
+              {takenInput && (
+                <button
+                  type="button"
+                  className="text-white/60 hover:text-white text-[10px] uppercase tracking-[.18em] font-semibold"
+                  onClick={() => {
+                    setTakenInput("");
+                    void saveTakenAt("");
+                  }}
+                >
+                  Clear
+                </button>
+              )}
+              <span
+                className={`text-[10px] uppercase tracking-[.18em] font-bold ${statusColor}`}
+                aria-live="polite"
+              >
+                {statusText}
+              </span>
+            </div>
+          )}
 
           {/* Assign to existing gallery (archive admin only) */}
-          {sortedAssignable.length > 0 && (
+          {adminMode && sortedAssignable.length > 0 && (
             <div className="flex items-center gap-2 flex-wrap justify-center">
               <label
                 htmlFor="lightbox-assign-event"

@@ -104,6 +104,7 @@ export function PhotoGrid({
         onClose={() => setLightboxIndex(null)}
         onChangeIndex={setLightboxIndex}
         assignableEvents={assignableEvents}
+        adminMode
       />
     </>
   );
