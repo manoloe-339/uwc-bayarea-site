@@ -219,14 +219,17 @@ function FoodiesCard({ meal, featured }: { meal: FoodiesUpcoming; featured: bool
       >
         {meal.name}
       </h3>
-      <div className={`mt-1.5 text-[color:var(--muted)] ${featured ? "text-[14px]" : "text-[13px]"}`}>
-        {[meal.cuisine, meal.neighborhood].filter(Boolean).join(" · ")}
-      </div>
+      <FoodiesLocationLine
+        cuisine={meal.cuisine}
+        neighborhood={meal.neighborhood}
+        mapUrl={meal.location_map_url}
+        featured={featured}
+      />
 
       {(meal.host_1 || meal.host_2) && (
         <div className={`flex items-center gap-2.5 flex-wrap ${featured ? "mt-4" : "mt-3.5"}`}>
           <HostAvatars host1={meal.host_1} host2={meal.host_2} featured={featured} />
-          <div className={`leading-[1.4] text-[color:var(--navy-ink)] ${featured ? "text-[13px]" : "text-[12px]"}`}>
+          <div className={`leading-[1.4] text-[color:var(--navy-ink)] ${featured ? "text-[14px]" : "text-[13px]"}`}>
             <span className="text-[color:var(--muted)] font-medium">Hosted by </span>
             {meal.host_1 && <HostName host={meal.host_1} />}
             {meal.host_1 && meal.host_2 && <span className="text-[color:var(--muted)]"> &amp; </span>}
@@ -257,12 +260,49 @@ function FoodiesCard({ meal, featured }: { meal: FoodiesUpcoming; featured: bool
   );
 }
 
+function FoodiesLocationLine({
+  cuisine, neighborhood, mapUrl, featured,
+}: {
+  cuisine: string | null;
+  neighborhood: string | null;
+  mapUrl: string | null;
+  featured: boolean;
+}) {
+  const text = [cuisine, neighborhood].filter(Boolean).join(" · ");
+  if (!text && !mapUrl) return null;
+  const sizeClass = featured ? "text-[14px]" : "text-[13px]";
+  if (mapUrl) {
+    return (
+      <a
+        href={mapUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`mt-1.5 inline-flex items-center gap-1 text-[color:var(--muted)] hover:text-navy hover:underline underline-offset-2 ${sizeClass}`}
+      >
+        {text || "Map"}
+        <PinIcon className="w-3 h-3 shrink-0" />
+      </a>
+    );
+  }
+  return (
+    <div className={`mt-1.5 text-[color:var(--muted)] ${sizeClass}`}>{text}</div>
+  );
+}
+
+function PinIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6a2.5 2.5 0 010 5.5z" />
+    </svg>
+  );
+}
+
 function HostAvatars({
   host1, host2, featured,
 }: {
   host1: FoodiesHost | null; host2: FoodiesHost | null; featured: boolean;
 }) {
-  const size = featured ? 28 : 24;
+  const size = featured ? 48 : 44;
   return (
     <div className="flex items-center">
       {[host1, host2].map((h, i) =>
@@ -280,10 +320,11 @@ function HostAvatar({
   host: FoodiesHost; sizePx: number; firstInRow: boolean;
 }) {
   const initial = (host.first_name?.[0] ?? host.last_name?.[0] ?? "?").toUpperCase();
-  const stackOffset = firstInRow ? 0 : -8;
+  // Overlap two avatars by ~30% so they read as a paired unit, not a row.
+  const stackOffset = firstInRow ? 0 : -Math.round(sizePx * 0.3);
   return (
     <div
-      className="relative rounded-full border-2 border-white bg-[color:var(--ivory-2)] overflow-hidden flex items-center justify-center text-[color:var(--navy)] text-[10px] font-bold"
+      className="relative rounded-full border-2 border-white bg-[color:var(--ivory-2)] overflow-hidden flex items-center justify-center text-[color:var(--navy)] text-[12px] font-bold"
       style={{ width: sizePx, height: sizePx, marginLeft: stackOffset }}
       title={hostDisplay(host)}
     >
@@ -292,7 +333,7 @@ function HostAvatar({
           src={host.photo_url}
           alt=""
           fill
-          sizes="32px"
+          sizes="56px"
           className="object-cover"
         />
       ) : (

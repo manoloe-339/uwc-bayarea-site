@@ -20,6 +20,8 @@ export interface FoodiesUpcoming {
   region: string | null;
   cuisine: string | null;
   neighborhood: string | null;
+  /** Optional Google/Apple Maps link for the restaurant/location. */
+  location_map_url: string | null;
   host_1: FoodiesHost | null;
   host_2: FoodiesHost | null;
 }
@@ -75,6 +77,7 @@ type FoodiesRow = {
   foodies_region: string | null;
   foodies_cuisine: string | null;
   foodies_neighborhood: string | null;
+  location_map_url: string | null;
   h1_id: number | null;
   h1_first: string | null;
   h1_last: string | null;
@@ -97,7 +100,7 @@ export async function getUpcomingFoodies(limit = 4): Promise<FoodiesUpcoming[]> 
   const rows = (await sql`
     SELECT
       e.id, e.slug, e.name, e.date, e.time,
-      e.foodies_region, e.foodies_cuisine, e.foodies_neighborhood,
+      e.foodies_region, e.foodies_cuisine, e.foodies_neighborhood, e.location_map_url,
       h1.id AS h1_id, h1.first_name AS h1_first, h1.last_name AS h1_last,
       h1.grad_year AS h1_grad, h1.uwc_college AS h1_college, h1.photo_url AS h1_photo,
       h1.linkedin_url AS h1_linkedin,
@@ -123,6 +126,7 @@ export async function getUpcomingFoodies(limit = 4): Promise<FoodiesUpcoming[]> 
     region: r.foodies_region,
     cuisine: r.foodies_cuisine,
     neighborhood: r.foodies_neighborhood,
+    location_map_url: r.location_map_url,
     host_1: r.h1_id
       ? {
           id: r.h1_id,
