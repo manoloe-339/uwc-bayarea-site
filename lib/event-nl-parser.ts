@@ -246,7 +246,7 @@ Schema (every field required; use null or [] when absent):
   "max_grad_year": <integer or null>,
   "company_name": <string or null — specific current employer mentioned like "Google", "McKinsey">,
   "company_size_band": <"startup" | "large" | null>,
-  "college": <string or null — UWC school only: canonical forms like "UWC Atlantic", "UWC Mahindra", "UWC USA", "UWC South East Asia", "UWC Red Cross Nordic", "UWC Adriatic", "UWC Maastricht", "UWC Li Po Chun", "UWC Dilijan", "UWC Costa Rica", "UWC Mostar", "UWC Changshu", "UWC Robert Bosch College", "UWC Waterford Kamhlaba", "UWC Pearson", "UWC ISAK Japan", "UWC Thailand", "UWC East Africa", "UWC Mahindra">,
+  "college": <string or null — UWC school only: canonical forms like "UWC Atlantic College", "UWC Mahindra", "UWC USA", "UWC South East Asia", "UWC Red Cross Nordic", "UWC Adriatic", "UWC Maastricht", "UWC Li Po Chun", "UWC Dilijan", "UWC Costa Rica", "UWC Mostar", "UWC Changshu", "UWC Robert Bosch College", "UWC Waterford Kamhlaba", "UWC Pearson", "UWC ISAK Japan", "UWC Thailand", "UWC East Africa", "UWC Mahindra">,
   "university": <string or null — non-UWC undergrad / grad / postgrad like "Berkeley", "Stanford", "MIT", "Harvard", "Brown", "Minerva", "LSE", etc.>,
   "origin": <string or null — country the alumnus is from, e.g. "Brazil", "Singapore">,
   "company_tag": <"tech" | "non_tech" | "startup" | "not_startup" | null — semantic, classification-backed; prefer this over industry_groups/company_size_band when the user's intent is "tech" or "startup" semantically>,

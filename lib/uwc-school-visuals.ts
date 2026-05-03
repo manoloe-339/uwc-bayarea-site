@@ -16,7 +16,7 @@ export type UwcSchoolVisual = {
 };
 
 export const UWC_SCHOOL_VISUALS: Record<string, UwcSchoolVisual> = {
-  "UWC Atlantic": { gradient: "from-blue-700 to-blue-900", icon: "🏰", flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿", country: "Wales" },
+  "UWC Atlantic College": { gradient: "from-blue-700 to-blue-900", icon: "🏰", flag: "🏴󠁧󠁢󠁷󠁬󠁳󠁿", country: "Wales" },
   "UWC Red Cross Nordic": { gradient: "from-red-600 to-red-800", icon: "❄️", flag: "🇳🇴", country: "Norway" },
   "UWC South East Asia": { gradient: "from-emerald-600 to-emerald-800", icon: "🌴", flag: "🇸🇬", country: "Singapore" },
   "UWC Pearson": { gradient: "from-sky-600 to-sky-800", icon: "🌊", flag: "🇨🇦", country: "Canada" },

@@ -15,7 +15,7 @@ export type College = {
 };
 
 export const COLLEGES: readonly College[] = [
-  { canonical: "UWC Atlantic",          short: "Atlantic",         country: "Wales, UK",               firstYear: 1962, aliases: ["atlantic", "uwc atlantic", "atlantic college", "ac", "uwc ac", "uwcac", "awc", "uwca"] },
+  { canonical: "UWC Atlantic College",  short: "Atlantic",         country: "Wales, UK",               firstYear: 1962, aliases: ["atlantic", "uwc atlantic", "uwc atlantic college", "atlantic college", "ac", "uwc ac", "uwcac", "awc", "uwca"] },
   { canonical: "UWC Pearson College",   short: "Pearson",          country: "Canada",                  firstYear: 1974, aliases: ["pearson", "uwc pearson", "pearson college", "pcuwc", "pc uwc", "lbpuwc", "lbp", "college of the pacific", "lester b pearson"] },
   { canonical: "UWC USA",               short: "USA",              country: "USA",                     firstYear: 1982, aliases: ["uwc usa", "uwc-usa", "uwcusa", "armand hammer", "new mexico", "montezuma", "usa", "american west"] },
   { canonical: "UWC Adriatic",          short: "Adriatic",         country: "Italy",                   firstYear: 1982, aliases: ["adriatic", "uwc adriatic", "duino", "ad", "uwc ad", "uwcad"] },
