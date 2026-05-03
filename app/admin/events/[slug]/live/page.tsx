@@ -32,7 +32,9 @@ export default async function LiveDashboardPage({
     SELECT
       a.id, a.amount_paid,
       a.stripe_customer_name AS purchaser_name,
+      a.stripe_customer_email AS purchaser_email,
       NULLIF(TRIM(CONCAT_WS(' ', al.first_name, al.last_name)), '') AS alumni_name,
+      al.email AS alumni_email,
       NULLIF(TRIM(CONCAT_WS(' ', nt.first_name, nt.last_name)), '') AS name_tag_name
     FROM event_attendees a
     LEFT JOIN alumni al ON al.id = a.alumni_id
@@ -51,7 +53,9 @@ export default async function LiveDashboardPage({
     id: number;
     amount_paid: string;
     purchaser_name: string | null;
+    purchaser_email: string | null;
     alumni_name: string | null;
+    alumni_email: string | null;
     name_tag_name: string | null;
   }[];
 
@@ -138,10 +142,20 @@ export default async function LiveDashboardPage({
         ) : (
           <ul className="space-y-1.5 text-sm max-h-[600px] overflow-y-auto pr-1">
             {stats.recent.map((r) => {
-              // Show purchaser as a small secondary line when it's
-              // meaningfully different from the primary display name
-              // (i.e. when one person bought a ticket for another).
+              // Show purchaser as a small secondary line ONLY when one
+              // person bought a ticket for another. Skip when:
+              //  - purchaser email matches the alum's own email (same
+              //    person, regardless of how Stripe formatted the name —
+              //    handles cases like Vercel/team-name billing leaks)
+              //  - or the purchaser name is effectively the same as the
+              //    primary display name (heuristic).
+              const sameByEmail =
+                !!r.purchaser_email &&
+                !!r.alumni_email &&
+                r.purchaser_email.trim().toLowerCase() ===
+                  r.alumni_email.trim().toLowerCase();
               const showPurchaser =
+                !sameByEmail &&
                 !!r.purchaser_name &&
                 !namesEffectivelyMatch(r.purchaser_name, r.display_name);
               return (

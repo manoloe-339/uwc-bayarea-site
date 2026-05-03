@@ -8,7 +8,9 @@ export interface PendingAttendee {
   id: number;
   amount_paid: string;
   purchaser_name: string | null;
+  purchaser_email: string | null;
   alumni_name: string | null;
+  alumni_email: string | null;
   name_tag_name: string | null;
 }
 
@@ -117,8 +119,16 @@ export function BulkCheckInList({ eventId, slug, attendees }: Props) {
           const primary =
             a.name_tag_name ?? a.alumni_name ?? a.purchaser_name ?? `#${a.id}`;
           // Show purchaser as secondary when it differs from the primary
-          // in any meaningful way — uses the heuristic matcher so we
-          // don't flag accent / middle-initial / partial-name diffs.
+          // in any meaningful way. Two suppressions:
+          //   - sameByEmail: purchaser email matches the alum's own
+          //     email (same person, regardless of how Stripe formatted
+          //     the name — handles Vercel/team-name billing leaks).
+          //   - heuristic name match (accents, middle initials, etc.)
+          const sameByEmail =
+            !!a.purchaser_email &&
+            !!a.alumni_email &&
+            a.purchaser_email.trim().toLowerCase() ===
+              a.alumni_email.trim().toLowerCase();
           const secondaryParts: string[] = [];
           if (
             a.name_tag_name &&
@@ -128,6 +138,7 @@ export function BulkCheckInList({ eventId, slug, attendees }: Props) {
             secondaryParts.push(`alum: ${a.alumni_name}`);
           }
           if (
+            !sameByEmail &&
             a.purchaser_name &&
             !namesEffectivelyMatch(a.purchaser_name, primary) &&
             !namesEffectivelyMatch(a.purchaser_name, a.alumni_name ?? "") &&

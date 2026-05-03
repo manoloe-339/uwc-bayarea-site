@@ -180,7 +180,9 @@ export type CheckinStats = {
     id: number;
     display_name: string;
     purchaser_name: string | null;
+    purchaser_email: string | null;
     alumni_name: string | null;
+    alumni_email: string | null;
     name_tag_name: string | null;
     checked_in_at: string;
     attendee_type: "paid" | "comp" | "walk-in";
@@ -222,7 +224,9 @@ export async function getCheckinStats(eventId: number): Promise<CheckinStats> {
         a.stripe_customer_name
       ) AS display_name,
       a.stripe_customer_name AS purchaser_name,
+      a.stripe_customer_email AS purchaser_email,
       NULLIF(TRIM(CONCAT_WS(' ', al.first_name, al.last_name)), '') AS alumni_name,
+      al.email AS alumni_email,
       NULLIF(TRIM(CONCAT_WS(' ', nt.first_name, nt.last_name)), '') AS name_tag_name,
       al.uwc_college, al.grad_year, al.photo_url
     FROM event_attendees a
