@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { bulkCheckInAttendees } from "./actions";
+import { bulkCheckInAttendees, type BulkCheckInRef } from "./actions";
 import { namesEffectivelyMatch } from "@/lib/name-similarity";
 
 export interface PendingAttendee {
-  id: number;
+  kind: "attendee" | "name_tag";
+  row_id: number;
   amount_paid: string;
   purchaser_name: string | null;
   purchaser_email: string | null;
@@ -20,24 +21,29 @@ interface Props {
   attendees: PendingAttendee[];
 }
 
+/** Composite key the client uses to select rows (kind|row_id). */
+function rowKey(a: PendingAttendee): string {
+  return `${a.kind}|${a.row_id}`;
+}
+
 export function BulkCheckInList({ eventId, slug, attendees }: Props) {
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [savedCount, setSavedCount] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const toggle = (id: number) => {
+  const toggle = (key: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
     setSavedCount(null);
   };
 
   const selectAll = () => {
-    setSelected(new Set(attendees.map((a) => a.id)));
+    setSelected(new Set(attendees.map(rowKey)));
     setSavedCount(null);
   };
 
@@ -49,9 +55,16 @@ export function BulkCheckInList({ eventId, slug, attendees }: Props) {
   const submit = () => {
     setError(null);
     setSavedCount(null);
-    const ids = Array.from(selected);
+    const refs: BulkCheckInRef[] = Array.from(selected)
+      .map((key) => {
+        const [kind, idStr] = key.split("|");
+        const id = Number(idStr);
+        if ((kind !== "attendee" && kind !== "name_tag") || !Number.isFinite(id)) return null;
+        return { kind: kind as BulkCheckInRef["kind"], id };
+      })
+      .filter((x): x is BulkCheckInRef => x !== null);
     startTransition(async () => {
-      const result = await bulkCheckInAttendees(eventId, slug, ids);
+      const result = await bulkCheckInAttendees(eventId, slug, refs);
       if (result.ok) {
         setSavedCount(result.count);
         setSelected(new Set());
@@ -113,17 +126,17 @@ export function BulkCheckInList({ eventId, slug, attendees }: Props) {
 
       <ul className="space-y-1 text-sm">
         {attendees.map((a) => {
-          const isSelected = selected.has(a.id);
+          const key = rowKey(a);
+          const isSelected = selected.has(key);
           // Primary: name tag if set (that's what they wear at the event),
           //          else alumni name (matched record), else purchaser name.
           const primary =
-            a.name_tag_name ?? a.alumni_name ?? a.purchaser_name ?? `#${a.id}`;
+            a.name_tag_name ?? a.alumni_name ?? a.purchaser_name ?? `#${a.row_id}`;
           // For guest attendees (name tag != linked alum), show the
-          // alum as sponsor. Purchaser line is always suppressed when
-          // the purchaser email matches the alum's email — the alum
-          // line already identifies the buyer in that case, and the
-          // Stripe-formatted name (sometimes a billing/team quirk)
-          // adds no information.
+          // alum as sponsor. Purchaser line is suppressed when the
+          // purchaser email matches the alum's — the alum line covers
+          // buyer identity in that case (handles Stripe billing-name
+          // quirks like "manoloe-7070's projects").
           const nameTagIsGuest =
             !!a.name_tag_name &&
             !!a.alumni_name &&
@@ -146,8 +159,11 @@ export function BulkCheckInList({ eventId, slug, attendees }: Props) {
           ) {
             secondaryParts.push(`purchaser: ${a.purchaser_name}`);
           }
+          if (a.kind === "name_tag") {
+            secondaryParts.push("standalone name tag");
+          }
           return (
-            <li key={a.id}>
+            <li key={key}>
               <label
                 className={`flex items-center justify-between gap-3 px-2 py-1.5 rounded cursor-pointer ${
                   isSelected ? "bg-green-50" : "hover:bg-ivory-2"
@@ -157,7 +173,7 @@ export function BulkCheckInList({ eventId, slug, attendees }: Props) {
                   <input
                     type="checkbox"
                     checked={isSelected}
-                    onChange={() => toggle(a.id)}
+                    onChange={() => toggle(key)}
                     className="w-4 h-4 shrink-0 accent-navy"
                   />
                   <span className="min-w-0 flex-1">
@@ -172,7 +188,9 @@ export function BulkCheckInList({ eventId, slug, attendees }: Props) {
                   </span>
                 </span>
                 <span className="text-xs text-[color:var(--muted)] tabular-nums shrink-0">
-                  Paid ${Number(a.amount_paid || 0).toFixed(0)}
+                  {a.kind === "name_tag"
+                    ? "VIP/comp"
+                    : `Paid $${Number(a.amount_paid || 0).toFixed(0)}`}
                 </span>
               </label>
             </li>

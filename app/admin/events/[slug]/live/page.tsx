@@ -28,14 +28,24 @@ export default async function LiveDashboardPage({
   if (!event) notFound();
   const stats = await getCheckinStats(event.id);
 
+  // Two sources of "expected to attend but not checked in":
+  //   kind=attendee — regular event_attendees rows (paid, comp, or
+  //     anyone with a linked name tag) where checked_in = FALSE.
+  //   kind=name_tag — standalone event_name_tags rows with no
+  //     attendee_id (VIPs / guest speakers added manually who never
+  //     bought a ticket). Checking these in creates a comp attendee
+  //     row and links the name tag to it.
   const noShows = (await sql`
     SELECT
-      a.id, a.amount_paid,
+      'attendee' AS kind,
+      a.id AS row_id,
+      a.amount_paid,
       a.stripe_customer_name AS purchaser_name,
       a.stripe_customer_email AS purchaser_email,
       NULLIF(TRIM(CONCAT_WS(' ', al.first_name, al.last_name)), '') AS alumni_name,
       al.email AS alumni_email,
-      NULLIF(TRIM(CONCAT_WS(' ', nt.first_name, nt.last_name)), '') AS name_tag_name
+      NULLIF(TRIM(CONCAT_WS(' ', nt.first_name, nt.last_name)), '') AS name_tag_name,
+      LOWER(COALESCE(nt.last_name, al.last_name, a.stripe_customer_name, '')) AS sort_key
     FROM event_attendees a
     LEFT JOIN alumni al ON al.id = a.alumni_id
     LEFT JOIN event_name_tags nt ON nt.attendee_id = a.id
@@ -47,16 +57,35 @@ export default async function LiveDashboardPage({
         a.attendee_type IN ('paid', 'comp')
         OR nt.id IS NOT NULL
       )
-    ORDER BY COALESCE(nt.last_name, al.last_name, a.stripe_customer_name, '') ASC
+
+    UNION ALL
+
+    SELECT
+      'name_tag' AS kind,
+      nt.id AS row_id,
+      '0' AS amount_paid,
+      NULL AS purchaser_name,
+      NULL AS purchaser_email,
+      NULL AS alumni_name,
+      NULL AS alumni_email,
+      NULLIF(TRIM(CONCAT_WS(' ', nt.first_name, nt.last_name)), '') AS name_tag_name,
+      LOWER(COALESCE(nt.last_name, '')) AS sort_key
+    FROM event_name_tags nt
+    WHERE nt.event_id = ${event.id}
+      AND nt.attendee_id IS NULL
+
+    ORDER BY sort_key ASC
     LIMIT 200
   `) as {
-    id: number;
+    kind: "attendee" | "name_tag";
+    row_id: number;
     amount_paid: string;
     purchaser_name: string | null;
     purchaser_email: string | null;
     alumni_name: string | null;
     alumni_email: string | null;
     name_tag_name: string | null;
+    sort_key: string;
   }[];
 
   // Capacity = paid + comp rows (ticketed). Present = everyone checked in
