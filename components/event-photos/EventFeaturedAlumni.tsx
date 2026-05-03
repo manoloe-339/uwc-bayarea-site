@@ -39,7 +39,7 @@ export function EventFeaturedAlumni({
           return (
             <div
               key={a.id}
-              className="flex items-center gap-3 bg-white border border-[color:var(--rule)] rounded-[10px] p-3"
+              className="flex items-center gap-3 py-1"
             >
               <div className="relative w-12 h-12 shrink-0 rounded-full bg-[color:var(--ivory-2)] overflow-hidden flex items-center justify-center text-[color:var(--navy)] text-sm font-bold">
                 {a.photo_url ? (
