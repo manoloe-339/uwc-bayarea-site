@@ -38,11 +38,14 @@ export default async function LiveDashboardPage({
     LEFT JOIN event_name_tags nt ON nt.attendee_id = a.id
     WHERE a.event_id = ${event.id}
       AND a.deleted_at IS NULL
-      AND a.attendee_type IN ('paid', 'comp')
       AND a.checked_in = FALSE
       AND (a.refund_status IS NULL OR a.refund_status = 'partially_refunded')
+      AND (
+        a.attendee_type IN ('paid', 'comp')
+        OR nt.id IS NOT NULL
+      )
     ORDER BY COALESCE(nt.last_name, al.last_name, a.stripe_customer_name, '') ASC
-    LIMIT 100
+    LIMIT 200
   `) as {
     id: number;
     amount_paid: string;
