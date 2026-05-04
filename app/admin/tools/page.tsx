@@ -93,6 +93,19 @@ export default async function ToolsIndex() {
           </p>
         </Link>
         <Link
+          href="/admin/tools/signup-email"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Signup email</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Confirmation email sent on /signup</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Edit the subject line and message body of the welcome email new
+            signups receive. Supports markdown links so you can point them at
+            specific pages or events. Includes a live preview and a
+            &ldquo;Send test&rdquo; button.
+          </p>
+        </Link>
+        <Link
           href="/admin/tools/homepage-settings"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >

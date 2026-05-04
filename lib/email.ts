@@ -41,6 +41,16 @@ function linkify(escaped: string): string {
 /** Convert a plain-text body to lightweight HTML with a branded footer. */
 export function renderEmailHtml(body: string, alumniId: number | null): string {
   const bodyHtml = linkify(escapeHtml(body)).replace(/\r\n|\r|\n/g, "<br>");
+  return wrapEmailHtml(bodyHtml, alumniId);
+}
+
+/** Same chrome as renderEmailHtml, but the caller supplies already-safe
+ * HTML for the body (e.g. rendered from markdown). Skips escape/linkify. */
+export function renderEmailHtmlFromHtml(bodyHtml: string, alumniId: number | null): string {
+  return wrapEmailHtml(bodyHtml, alumniId);
+}
+
+function wrapEmailHtml(bodyHtml: string, alumniId: number | null): string {
   const unsubscribeLink = alumniId != null
     ? `${appUrl()}/unsubscribe?token=${encodeURIComponent(signUnsubscribeToken(alumniId))}`
     : `${appUrl()}/unsubscribe/manual`;

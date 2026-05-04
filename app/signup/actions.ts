@@ -10,6 +10,8 @@ import { cityToRegion } from "@/lib/region";
 import { sendTestEmail } from "@/lib/email-send";
 import { trackClick } from "@/lib/analytics";
 import { triggerEnrichment } from "@/lib/enrichment";
+import { getSiteSettings, DEFAULT_SIGNUP_CONFIRMATION } from "@/lib/settings";
+import { renderSimpleMarkdown, EMAIL_LINK_ATTRS } from "@/lib/simple-markdown";
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL!,
@@ -207,7 +209,16 @@ export async function submitSignup(formData: FormData): Promise<void> {
   }
 
   // Fire-and-forget emails (don't block the redirect on Resend latency).
-  const confirmation = buildConfirmationBody(firstName);
+  // Confirmation copy is admin-editable via /admin/tools/signup-email; we
+  // fall back to DEFAULT_SIGNUP_CONFIRMATION when settings are blank.
+  const settings = await getSiteSettings();
+  const confirmationSubject =
+    (settings.signup_confirmation_subject ?? "").trim() ||
+    DEFAULT_SIGNUP_CONFIRMATION.subject;
+  const confirmationMd =
+    (settings.signup_confirmation_body_md ?? "").trim() ||
+    DEFAULT_SIGNUP_CONFIRMATION.bodyMd;
+  const confirmationHtml = renderSimpleMarkdown(confirmationMd, EMAIL_LINK_ATTRS);
   const adminBody = buildAdminNotificationBody({
     id: alumniId,
     firstName,
@@ -224,8 +235,9 @@ export async function submitSignup(formData: FormData): Promise<void> {
   await Promise.allSettled([
     sendTestEmail({
       to: email,
-      subject: "Welcome to UWC Bay Area",
-      body: confirmation,
+      subject: confirmationSubject,
+      bodyHtml: confirmationHtml,
+      textFallback: confirmationMd,
       salutation: "Hi",
       includeFirstName: true,
       firstName,
@@ -258,17 +270,6 @@ export async function submitSignup(formData: FormData): Promise<void> {
 
   console.log(`[signup] ${wasNew ? "inserted" : "updated"} alumni_id=${alumniId} email=${email}`);
   redirect("/signup/thanks");
-}
-
-function buildConfirmationBody(_firstName: string): string {
-  return `Thanks for signing up with UWC Bay Area.
-
-We've saved your details. You'll hear from us when we're organizing events or have news worth sharing — usually not more than once or twice a month.
-
-You can reply to this email any time (it'll reach our team directly), and every message we send has an unsubscribe link at the bottom.
-
-Looking forward to connecting,
-UWC Bay Area`;
 }
 
 function buildAdminNotificationBody(r: {

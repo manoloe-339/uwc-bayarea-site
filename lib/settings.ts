@@ -24,7 +24,25 @@ export type SiteSettings = {
   photo_gallery_intro_headline: string | null;
   photo_gallery_intro_headline_accent: string | null;
   photo_gallery_intro_subhead: string | null;
+  signup_confirmation_subject: string | null;
+  signup_confirmation_body_md: string | null;
   updated_at: string;
+};
+
+/** Default signup confirmation email — used when the admin-editable
+ * settings are blank. Subject + plain-text body. The body falls
+ * through the markdown renderer harmlessly (no markdown syntax inside,
+ * so it passes as-is). */
+export const DEFAULT_SIGNUP_CONFIRMATION = {
+  subject: "Welcome to UWC Bay Area",
+  bodyMd: `Thanks for signing up with UWC Bay Area.
+
+We've saved your details. You'll hear from us when we're organizing events or have news worth sharing — usually not more than once or twice a month.
+
+You can reply to this email any time (it'll reach our team directly), and every message we send has an unsubscribe link at the bottom.
+
+Looking forward to connecting,
+UWC Bay Area`,
 };
 
 /** Default LinkedIn invite copy. ${firstName} is substituted client-side. */
@@ -73,6 +91,8 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     photo_gallery_intro_headline: DEFAULT_PHOTO_GALLERY_INTRO.headline,
     photo_gallery_intro_headline_accent: DEFAULT_PHOTO_GALLERY_INTRO.headlineAccent,
     photo_gallery_intro_subhead: DEFAULT_PHOTO_GALLERY_INTRO.subhead,
+    signup_confirmation_subject: null,
+    signup_confirmation_body_md: null,
     updated_at: new Date().toISOString(),
   };
 }
@@ -122,6 +142,14 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
       patch.photo_gallery_intro_subhead !== undefined
         ? patch.photo_gallery_intro_subhead
         : existing.photo_gallery_intro_subhead,
+    signup_confirmation_subject:
+      patch.signup_confirmation_subject !== undefined
+        ? patch.signup_confirmation_subject
+        : existing.signup_confirmation_subject,
+    signup_confirmation_body_md:
+      patch.signup_confirmation_body_md !== undefined
+        ? patch.signup_confirmation_body_md
+        : existing.signup_confirmation_body_md,
   };
 
   await sql`
@@ -148,6 +176,8 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
       photo_gallery_intro_headline          = ${next.photo_gallery_intro_headline},
       photo_gallery_intro_headline_accent   = ${next.photo_gallery_intro_headline_accent},
       photo_gallery_intro_subhead           = ${next.photo_gallery_intro_subhead},
+      signup_confirmation_subject           = ${next.signup_confirmation_subject},
+      signup_confirmation_body_md           = ${next.signup_confirmation_body_md},
       updated_at                            = NOW()
     WHERE id = ${existing.id}
   `;

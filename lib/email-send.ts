@@ -1,6 +1,6 @@
 import { sql } from "./db";
 import { getResend, fromAddress, replyToAddress } from "./resend";
-import { renderEmailHtml, renderEmailText } from "./email";
+import { renderEmailHtml, renderEmailHtmlFromHtml, renderEmailText } from "./email";
 import { searchAlumni, getAlumniByIds, type AlumniFilters, type AlumniRow } from "./alumni-query";
 
 const BATCH_SIZE = 100;
@@ -81,21 +81,50 @@ export async function sendSignupInvite(params: {
 export async function sendTestEmail(params: {
   to: string;
   subject: string;
-  body: string;
+  /** Plain-text body. Mutually exclusive with bodyHtml. */
+  body?: string;
+  /** Pre-rendered HTML body (e.g. from markdown). When set, salutation
+   * is rendered as a leading <p> instead of being prepended to the text. */
+  bodyHtml?: string;
+  /** Plain-text fallback for clients that prefer it. Required when bodyHtml is set. */
+  textFallback?: string;
   salutation?: string;
   includeFirstName?: boolean;
   firstName?: string | null;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  if (!params.body && !params.bodyHtml) {
+    return { ok: false, error: "sendTestEmail: provide body or bodyHtml" };
+  }
   try {
     const resend = getResend();
-    const finalBody = buildBody({
-      body: params.body,
-      salutation: params.salutation,
-      includeFirstName: params.includeFirstName,
-      firstName: params.firstName ?? null,
-    });
-    const html = renderEmailHtml(finalBody, null);
-    const text = renderEmailText(finalBody, null);
+    const sal = (params.salutation ?? "").trim();
+    const name = sal && params.includeFirstName
+      ? ` ${params.firstName && params.firstName.trim() ? params.firstName.trim() : "there"}`
+      : "";
+    const greeting = sal ? `${sal}${name},` : "";
+
+    let html: string;
+    let text: string;
+    if (params.bodyHtml) {
+      const fullHtml = greeting
+        ? `<p>${escapeHtmlInline(greeting)}</p>\n${params.bodyHtml}`
+        : params.bodyHtml;
+      html = renderEmailHtmlFromHtml(fullHtml, null);
+      const fullText = greeting
+        ? `${greeting}\n\n${params.textFallback ?? ""}`
+        : (params.textFallback ?? "");
+      text = renderEmailText(fullText, null);
+    } else {
+      const finalBody = buildBody({
+        body: params.body!,
+        salutation: params.salutation,
+        includeFirstName: params.includeFirstName,
+        firstName: params.firstName ?? null,
+      });
+      html = renderEmailHtml(finalBody, null);
+      text = renderEmailText(finalBody, null);
+    }
+
     const result = await resend.emails.send({
       from: fromAddress(),
       to: params.to,
@@ -112,6 +141,15 @@ export async function sendTestEmail(params: {
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "unknown" };
   }
+}
+
+function escapeHtmlInline(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 type BatchItem = {

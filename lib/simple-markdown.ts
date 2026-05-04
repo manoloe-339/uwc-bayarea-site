@@ -34,14 +34,14 @@ function safeHref(raw: string): string | null {
   return null;
 }
 
-function applyInline(escaped: string): string {
+function applyInline(escaped: string, linkAttrs: string): string {
   let s = escaped;
   // Links — match before bold/italic so the URL part isn't munged.
   // Pattern allows escaped brackets to NOT be inside the text part.
   s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, text, href) => {
     const safe = safeHref(href);
     if (!safe) return text;
-    return `<a href="${escapeAttr(safe)}" target="_blank" rel="noopener noreferrer" class="underline hover:text-navy">${text}</a>`;
+    return `<a href="${escapeAttr(safe)}" ${linkAttrs}>${text}</a>`;
   });
   // Bold (greedy double-asterisk).
   s = s.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
@@ -54,9 +54,18 @@ function escapeAttr(s: string): string {
   return s.replace(/"/g, "&quot;");
 }
 
+const DEFAULT_LINK_ATTRS = `target="_blank" rel="noopener noreferrer" class="underline hover:text-navy"`;
+
 /** Convert a tiny-markdown string to safe HTML for use in
- * dangerouslySetInnerHTML. Returns "" for empty/null input. */
-export function renderSimpleMarkdown(md: string | null | undefined): string {
+ * dangerouslySetInnerHTML. Returns "" for empty/null input.
+ *
+ * `linkAttrs` is rendered verbatim onto each `<a>` tag. The default
+ * is Tailwind for in-page rendering; pass an inline-style version
+ * for email rendering (where Tailwind classes don't load). */
+export function renderSimpleMarkdown(
+  md: string | null | undefined,
+  linkAttrs: string = DEFAULT_LINK_ATTRS,
+): string {
   if (!md || !md.trim()) return "";
   const escaped = escapeHtml(md);
   // Split into paragraphs on blank lines.
@@ -66,7 +75,7 @@ export function renderSimpleMarkdown(md: string | null | undefined): string {
       // Within a paragraph, single newlines become <br>.
       const withBreaks = p
         .split("\n")
-        .map((line) => applyInline(line.trim()))
+        .map((line) => applyInline(line.trim(), linkAttrs))
         .filter((line) => line.length > 0)
         .join("<br>");
       if (!withBreaks) return "";
@@ -75,3 +84,7 @@ export function renderSimpleMarkdown(md: string | null | undefined): string {
     .filter((p) => p.length > 0)
     .join("\n");
 }
+
+/** Inline-styled link attrs matching the rest of the email chrome. */
+export const EMAIL_LINK_ATTRS =
+  `style="color:#0265A8;text-decoration:underline" target="_blank" rel="noopener noreferrer"`;
