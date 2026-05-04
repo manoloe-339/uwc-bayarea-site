@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { countPendingVisitingRequests } from "@/lib/visiting-requests";
 
 export const dynamic = "force-dynamic";
 
-export default function ToolsIndex() {
+export default async function ToolsIndex() {
+  const pendingVisiting = await countPendingVisitingRequests();
   return (
     <div className="max-w-[900px]">
       <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">Admin tools</h1>
@@ -114,6 +116,30 @@ export default function ToolsIndex() {
             whether the person matched your alumni directory, which areas
             they want to help with, and any free-text note. Mark contacted
             once you&rsquo;ve followed up.
+          </p>
+        </Link>
+        <Link
+          href="/admin/tools/visiting"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="flex items-baseline justify-between gap-2 mb-1">
+            <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
+              Just visiting
+            </div>
+            {pendingVisiting > 0 && (
+              <span className="text-[10px] tracking-[.18em] uppercase font-bold text-amber-700">
+                {pendingVisiting} pending
+              </span>
+            )}
+          </div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">
+            UWC alumni passing through who want WhatsApp access
+          </div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Submissions from the homepage WhatsApp modal&rsquo;s &ldquo;just
+            visiting&rdquo; flow. Each row has the alum&rsquo;s name, UWC
+            affiliation, email, and a clickable WhatsApp link to message
+            them directly. Mark contacted once you&rsquo;ve sent the invite.
           </p>
         </Link>
         <Link

@@ -384,6 +384,22 @@ function VisitingForm({
       </p>
 
       <div className="mt-5 space-y-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <Field
+            name="first_name"
+            type="text"
+            label="First name"
+            placeholder="Maria"
+            required
+          />
+          <Field
+            name="last_name"
+            type="text"
+            label="Last name"
+            placeholder="García"
+            required
+          />
+        </div>
         <Field
           name="affiliation"
           type="text"
