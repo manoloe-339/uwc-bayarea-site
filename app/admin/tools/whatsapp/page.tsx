@@ -173,7 +173,7 @@ function VisitingTab({
               contacted ? "opacity-70" : ""
             }`}
           >
-            <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="font-semibold text-[color:var(--navy-ink)] text-base leading-tight">
                   {fullName}
@@ -212,7 +212,7 @@ function VisitingTab({
                   </div>
                 )}
               </div>
-              <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <div className="flex items-start sm:items-end sm:shrink-0">
                 <form action={toggleVisitingContactedAction}>
                   <input type="hidden" name="id" value={r.id} />
                   <input
@@ -273,7 +273,7 @@ function RequestsTab({
               sent ? "opacity-70" : ""
             }`}
           >
-            <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="font-semibold text-[color:var(--navy-ink)] text-base leading-tight">
                   {matched && r.alumni_id ? (
@@ -321,7 +321,7 @@ function RequestsTab({
                   </Link>
                 )}
               </div>
-              <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 sm:gap-1.5 sm:shrink-0 flex-wrap">
                 {sent ? (
                   <form action={unmarkWhatsappInviteSentAction}>
                     <input type="hidden" name="request_id" value={r.id} />
@@ -349,7 +349,7 @@ function RequestsTab({
                   </span>
                 )}
                 {sent && (
-                  <div className="text-[11px] text-[color:var(--muted)] flex flex-col items-end gap-0.5">
+                  <div className="text-[11px] text-[color:var(--muted)] flex flex-row sm:flex-col flex-wrap items-start sm:items-end gap-x-2 gap-y-0.5">
                     {r.invite_bounced_at ? (
                       <span className="text-rose-700 font-semibold">
                         ⚠ Bounced {fmtDateTimeShort(r.invite_bounced_at)}
