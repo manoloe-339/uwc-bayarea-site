@@ -46,7 +46,7 @@ export default function YearFilter({
   return (
     <div className="block sm:col-span-2">
       <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-        Graduation year
+        📅 Graduation year
       </span>
       <div className="flex flex-wrap items-stretch gap-2">
         <select

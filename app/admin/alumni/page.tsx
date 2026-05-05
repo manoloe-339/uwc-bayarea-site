@@ -490,10 +490,10 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <span className="flex items-center justify-between mb-1">
             <span className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
               {eventMode
-                ? "Describe your event (natural language)"
+                ? "🎉 Describe your event (natural language)"
                 : searchNL
-                  ? "Describe who you're looking for (natural language)"
-                  : "Search (name, city, bio, work…)"}
+                  ? "🪄 Describe who you're looking for (natural language)"
+                  : "🔎 Search (name, city, bio, work, phone…)"}
             </span>
             {!eventMode && <SearchNLToggle on={searchNL} />}
           </span>
@@ -514,7 +514,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
 
         {!searchNL && <>
         {/* Row 2 — college / region / year / industry */}
-        <Select label="College" name="college" defaultValue={filters.college}>
+        <Select label="🎓 College" name="college" defaultValue={filters.college}>
           <option value="">Any</option>
           {COLLEGES.map((c) => (
             <option key={c.canonical} value={c.canonical}>
@@ -522,7 +522,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             </option>
           ))}
         </Select>
-        <Select label="Region" name="region" defaultValue={filters.region}>
+        <Select label="🌍 Region" name="region" defaultValue={filters.region}>
           <option value="">Any</option>
           {REGIONS.map((r) => (
             <option key={r} value={r}>
@@ -537,11 +537,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         />
 
         {/* Row 3 — origin / city / current company / experience + university */}
-        <Field label="Origin contains" name="origin" defaultValue={filters.origin} placeholder="e.g. Brazil" />
-        <Field label="City contains" name="city" defaultValue={filters.city} placeholder="e.g. San Francisco" />
+        <Field label="🛂 Origin contains" name="origin" defaultValue={filters.origin} placeholder="e.g. Brazil" />
+        <Field label="🏙️ City contains" name="city" defaultValue={filters.city} placeholder="e.g. San Francisco" />
         <CompanyField options={companies} value={filters.company} />
-        <Field label="University contains" name="university" defaultValue={filters.university} placeholder="e.g. Stanford" />
-        <Select label="Experience" name="expBand" defaultValue={filters.expBand ?? ""}>
+        <Field label="🏛️ University contains" name="university" defaultValue={filters.university} placeholder="e.g. Stanford" />
+        <Select label="⏱️ Experience" name="expBand" defaultValue={filters.expBand ?? ""}>
           <option value="">Any</option>
           <option value="0-3">0–3 years</option>
           <option value="3-7">3–7 years</option>
@@ -550,13 +550,13 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
         </Select>
 
         {/* Row 4 — help tag / uwc verified / has photo */}
-        <Field label="Help tag contains" name="help" defaultValue={filters.help} placeholder="e.g. events" />
-        <Select label="UWC verified" name="uwcVerified" defaultValue={filters.uwcVerified ?? ""}>
+        <Field label="🤝 Help tag contains" name="help" defaultValue={filters.help} placeholder="e.g. events" />
+        <Select label="✅ UWC verified" name="uwcVerified" defaultValue={filters.uwcVerified ?? ""}>
           <option value="">Any</option>
           <option value="verified">Verified only</option>
           <option value="unverified">Unverified only</option>
         </Select>
-        <Select label="LinkedIn" name="linkedin" defaultValue={filters.linkedin ?? ""}>
+        <Select label="💼 LinkedIn" name="linkedin" defaultValue={filters.linkedin ?? ""}>
           <option value="">Any</option>
           <option value="has">Has LinkedIn URL</option>
           <option value="has_unenriched">Has URL — not yet enriched</option>
@@ -564,7 +564,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <option value="missing_unverified">No LinkedIn — not yet checked</option>
           <option value="missing_confirmed">No LinkedIn — confirmed unavailable</option>
         </Select>
-        <Select label="Follow-up" name="followup" defaultValue={filters.followup ?? ""}>
+        <Select label="🔁 Follow-up" name="followup" defaultValue={filters.followup ?? ""}>
           <option value="">Any</option>
           <option value="any">Needs follow-up (any reason)</option>
           {FOLLOWUP_REASONS.map((v) => (
@@ -574,27 +574,27 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           ))}
           <option value="none">No follow-up needed</option>
         </Select>
-        <Select label="Email engagement" name="engagement" defaultValue={filters.engagement ?? ""}>
+        <Select label="📬 Email engagement" name="engagement" defaultValue={filters.engagement ?? ""}>
           <option value="">Any</option>
           <option value="opened_any">Opened any email</option>
           <option value="clicked_any">Clicked any link</option>
           <option value="never_opened">Received, never opened</option>
           <option value="never_received">Never received an email</option>
         </Select>
-        <Select label="Company type" name="companyTag" defaultValue={filters.companyTag ?? ""}>
+        <Select label="🏷️ Company type" name="companyTag" defaultValue={filters.companyTag ?? ""}>
           <option value="">Any</option>
           <option value="tech">Tech company</option>
           <option value="non_tech">Non-tech</option>
           <option value="startup">Startup</option>
           <option value="not_startup">Not a startup</option>
         </Select>
-        <Select label="Sector" name="sector" defaultValue={filters.sector ?? ""}>
+        <Select label="🧭 Sector" name="sector" defaultValue={filters.sector ?? ""}>
           <option value="">Any</option>
           {VALID_SECTORS.map((s) => (
             <option key={s} value={s}>{SECTOR_LABELS[s]}</option>
           ))}
         </Select>
-        <Select label="Gender" name="gender" defaultValue={filters.gender ?? ""}>
+        <Select label="⚧ Gender" name="gender" defaultValue={filters.gender ?? ""}>
           <option value="">Any</option>
           <option value="male">Male</option>
           <option value="female">Female</option>
@@ -602,7 +602,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <option value="unknown">Unknown</option>
           <option value="unset">Not classified yet</option>
         </Select>
-        <Select label="Enrichment status" name="enrichmentStatus" defaultValue={filters.enrichmentStatus ?? ""}>
+        <Select label="✨ Enrichment status" name="enrichmentStatus" defaultValue={filters.enrichmentStatus ?? ""}>
           <option value="">Any</option>
           <option value="complete">✓ Enriched</option>
           <option value="pending">⏳ Pending</option>
@@ -616,7 +616,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             one adds 2-3s to Apply. Use for long-tail semantic questions that
             stored classifications don't cover. */}
         <Field
-          label="Ask AI about companies (optional, adds ~3s)"
+          label="🤖 Ask AI about companies (optional, adds ~3s)"
           name="aiFilter"
           defaultValue={aiFilter ?? undefined}
           placeholder="e.g. B corps, companies building climate tech, minority-led firms"
@@ -1243,7 +1243,7 @@ function IndustryGroupSelect({
   return (
     <label className="block">
       <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-        Industry
+        🏭 Industry
       </span>
       <select
         name="industryGroup"
@@ -1265,7 +1265,7 @@ function CompanyField({ options, value }: { options: CompanyOption[]; value?: st
   return (
     <label className="block">
       <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-        Current company
+        🏢 Current company
       </span>
       <input
         list="alumni-company-list"
