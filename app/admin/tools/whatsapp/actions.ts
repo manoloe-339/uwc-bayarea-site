@@ -67,12 +67,23 @@ export async function sendWhatsappInviteAction(formData: FormData): Promise<void
   }
 
   const rows = (await sql`
-    SELECT r.id, r.alumni_id, a.first_name, a.email
+    SELECT r.id, r.alumni_id, r.raw_name,
+           a.first_name, a.last_name, a.email,
+           a.uwc_college, a.grad_year
     FROM registered_whatsapp_requests r
     LEFT JOIN alumni a ON a.id = r.alumni_id
     WHERE r.id = ${requestId}
     LIMIT 1
-  `) as { id: number; alumni_id: number | null; first_name: string | null; email: string | null }[];
+  `) as {
+    id: number;
+    alumni_id: number | null;
+    raw_name: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+    uwc_college: string | null;
+    grad_year: number | null;
+  }[];
 
   const row = rows[0];
   if (!row || !row.alumni_id || !row.email) {
@@ -107,6 +118,29 @@ export async function sendWhatsappInviteAction(formData: FormData): Promise<void
     );
   }
   await markRegisteredWhatsappRequestSent(requestId);
+
+  // Fire-and-forget admin notification so Manolo has a record in his
+  // gmail of every invite that's gone out (and can hit "undo" from the
+  // tool if something looks off).
+  const fullName = [row.first_name, row.last_name].filter(Boolean).join(" ") || row.raw_name;
+  const adminBody = [
+    `Sent the WhatsApp invite email to:`,
+    ``,
+    `Name:    ${fullName}`,
+    `Email:   ${row.email}`,
+    `College: ${row.uwc_college ?? "—"}${row.grad_year ? ` · ${row.grad_year}` : ""}`,
+    ``,
+    `View / undo: https://uwcbayarea.org/admin/tools/whatsapp?tab=requests`,
+  ].join("\n");
+  void sendTestEmail({
+    to: ADMIN_EMAIL,
+    subject: `WhatsApp invite sent · ${fullName}`,
+    body: adminBody,
+    salutation: "",
+    includeFirstName: false,
+  }).then((r) => {
+    if (!r.ok) console.warn(`[whatsapp-invite] admin notification failed: ${r.error}`);
+  });
   revalidatePath(TOOL_PATH);
   redirect(`${TOOL_PATH}?tab=requests&msg=${encodeURIComponent("Invite sent.")}`);
 }
