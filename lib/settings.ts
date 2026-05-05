@@ -55,7 +55,7 @@ UWC Bay Area`,
  * substituted from site_settings.whatsapp_url so the join link can be
  * rotated without editing the template. */
 export const DEFAULT_WHATSAPP_INVITE = {
-  subject: "Welcome to the UWC Bay Area WhatsApp",
+  subject: "UWC Bay Area WhatsApp",
   bodyMd: `Welcome!
 
 Thanks for signing up. Here's the link for the UWC Bay Area WhatsApp: {whatsapp_url}. Our admins will approve once you connect. [Guidelines for our WhatsApp](https://uwcbayarea.org/whatsapp-guidelines) are posted in the General Chat and on our website.
