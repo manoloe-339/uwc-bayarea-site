@@ -110,7 +110,8 @@ export async function sendRegisteredAlumRequest(formData: FormData): Promise<Vis
     matchHeader,
     ...candidates.map((c) => `  ${candidateLabel(c)} — ${ADMIN_BASE}/${c.id}`),
     "",
-    "Action: look up this alum in the directory and send the WhatsApp join link to their registered email.",
+    "Review and send the invite from the admin tool:",
+    "https://uwcbayarea.org/admin/tools/whatsapp?tab=requests",
   ]
     .filter((line) => line !== undefined)
     .join("\n");
@@ -140,9 +141,9 @@ export async function sendRegisteredAlumRequest(formData: FormData): Promise<Vis
       <tr><td style="padding:4px 12px 4px 0;color:#666"><strong>Name</strong></td><td>${escapeHtml(name)}</td></tr>
     </table>
     ${matchHtml}
-    <p style="margin-top:12px;color:#666;font-size:13px">
-      Look up this alum in the directory and send the WhatsApp join link
-      to their registered email.
+    <p style="margin-top:14px;color:#666;font-size:13px">
+      Review and send the invite from the admin tool:
+      <a href="https://uwcbayarea.org/admin/tools/whatsapp?tab=requests" style="color:#0265A8">/admin/tools/whatsapp</a>.
     </p>
   `;
 
