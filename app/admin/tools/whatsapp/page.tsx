@@ -23,11 +23,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type Tab = "visiting" | "requests" | "template";
+type Tab = "requests" | "visiting" | "template";
 
 function pickTab(value: string | undefined): Tab {
-  if (value === "requests" || value === "template") return value;
-  return "visiting";
+  if (value === "visiting" || value === "template") return value;
+  return "requests";
 }
 
 export default async function WhatsappAdminPage({
@@ -111,12 +111,12 @@ function TabNav({
   counts: { visiting: number; requests: number };
 }) {
   const tabs: { key: Tab; label: string; count?: number }[] = [
-    { key: "visiting", label: "Just visiting", count: counts.visiting },
     {
       key: "requests",
       label: "Registered alum requests",
       count: counts.requests,
     },
+    { key: "visiting", label: "Just visiting", count: counts.visiting },
     { key: "template", label: "Email template" },
   ];
   return (
