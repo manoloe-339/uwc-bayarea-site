@@ -2,6 +2,7 @@ import { sql } from "./db";
 import { getResend, fromAddress, replyToAddress } from "./resend";
 import { renderEmailHtml, renderEmailHtmlFromHtml, renderEmailText } from "./email";
 import { searchAlumni, getAlumniByIds, type AlumniFilters, type AlumniRow } from "./alumni-query";
+import { EMAIL_SPACER } from "./simple-markdown";
 
 const BATCH_SIZE = 100;
 const MAX_RECIPIENTS = 5000; // safety cap
@@ -107,7 +108,7 @@ export async function sendTestEmail(params: {
     let text: string;
     if (params.bodyHtml) {
       const fullHtml = greeting
-        ? `<p style="margin:0 0 16px 0">${escapeHtmlInline(greeting)}</p>\n${params.bodyHtml}`
+        ? `<p style="margin:0">${escapeHtmlInline(greeting)}</p>\n${EMAIL_SPACER}\n${params.bodyHtml}`
         : params.bodyHtml;
       html = renderEmailHtmlFromHtml(fullHtml, null);
       const fullText = greeting

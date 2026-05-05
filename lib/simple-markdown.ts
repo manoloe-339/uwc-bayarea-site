@@ -65,8 +65,9 @@ const DEFAULT_LINK_ATTRS = `target="_blank" rel="noopener noreferrer" class="und
  *
  * `paragraphAttrs` is rendered verbatim onto each `<p>` tag. Defaults
  * to nothing (so callers using their own CSS — like in-page Tailwind —
- * keep working). Pass an inline-styled value for email so paragraph
- * spacing is consistent across mail clients. */
+ * keep working). Pass an inline-styled value for email and the
+ * renderer will also insert explicit spacer paragraphs between blocks
+ * (some mail clients silently drop `<p>` margins, hence the spacers). */
 export function renderSimpleMarkdown(
   md: string | null | undefined,
   linkAttrs: string = DEFAULT_LINK_ATTRS,
@@ -77,7 +78,7 @@ export function renderSimpleMarkdown(
   const escaped = escapeHtml(md);
   // Split into paragraphs on blank lines.
   const paragraphs = escaped.split(/\n{2,}/);
-  return paragraphs
+  const blocks = paragraphs
     .map((p) => {
       // Within a paragraph, single newlines become <br>.
       const withBreaks = p
@@ -88,14 +89,27 @@ export function renderSimpleMarkdown(
       if (!withBreaks) return "";
       return `${openTag}${withBreaks}</p>`;
     })
-    .filter((p) => p.length > 0)
-    .join("\n");
+    .filter((p) => p.length > 0);
+  // Email mode: weave a spacer paragraph between content blocks. A
+  // tiny-font/short-line empty paragraph reliably renders ~16px tall
+  // in every mail client we care about, even when <p> margins are
+  // dropped.
+  const separator = paragraphAttrs ? `\n${EMAIL_SPACER}\n` : "\n";
+  return blocks.join(separator);
 }
 
 /** Inline-styled link attrs matching the rest of the email chrome. */
 export const EMAIL_LINK_ATTRS =
   `style="color:#0265A8;text-decoration:underline" target="_blank" rel="noopener noreferrer"`;
 
-/** Inline-styled paragraph attrs for email rendering. Mail clients
- * disagree on the default `<p>` margin, so we pin it explicitly. */
-export const EMAIL_PARAGRAPH_ATTRS = `style="margin:0 0 16px 0"`;
+/** Inline-styled paragraph attrs for email rendering. Margins are
+ * intentionally zeroed — paragraph spacing is provided by the spacer
+ * paragraphs the renderer weaves between blocks (more reliable than
+ * relying on `<p>` margin support across mail clients). */
+export const EMAIL_PARAGRAPH_ATTRS = `style="margin:0"`;
+
+/** Visual spacer paragraph used between email content blocks. Roughly
+ * 16px tall regardless of client. Exported so call sites that build
+ * extra blocks (e.g. the salutation in email-send.ts) can match the
+ * same spacing. */
+export const EMAIL_SPACER = `<p style="margin:0;line-height:16px;font-size:1px">&nbsp;</p>`;
