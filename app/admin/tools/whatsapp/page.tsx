@@ -352,6 +352,27 @@ function RequestsTab({
                     Match to an alum to enable send
                   </span>
                 )}
+                {sent && (
+                  <div className="text-[11px] text-[color:var(--muted)] flex flex-col items-end gap-0.5">
+                    {r.invite_bounced_at ? (
+                      <span className="text-rose-700 font-semibold">
+                        ⚠ Bounced {fmtDateTimeShort(r.invite_bounced_at)}
+                      </span>
+                    ) : null}
+                    {r.invite_clicked_at ? (
+                      <span className="text-emerald-700">
+                        ↗ Clicked {fmtDateTimeShort(r.invite_clicked_at)}
+                      </span>
+                    ) : null}
+                    {r.invite_opened_at ? (
+                      <span className="text-emerald-700">
+                        ◉ Opened {fmtDateTimeShort(r.invite_opened_at)}
+                      </span>
+                    ) : !r.invite_bounced_at ? (
+                      <span>Awaiting open…</span>
+                    ) : null}
+                  </div>
+                )}
               </div>
             </div>
           </li>

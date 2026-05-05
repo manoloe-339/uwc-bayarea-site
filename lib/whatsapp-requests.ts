@@ -1,9 +1,13 @@
 import { sql } from "./db";
 
 /** Joined view of a registered-alum WhatsApp request with the matched
- * alumni row's display fields. `alumni_id` is null when the homepage
- * modal name didn't resolve to a unique alumnus — those rows live as
- * unmatched entries until the admin disambiguates manually. */
+ * alumni row's display fields plus the engagement timestamps from the
+ * most recent matching email_sends row (so the admin tool can show
+ * "Opened" / "Clicked" / "Bounced" beneath the Sent state).
+ *
+ * `alumni_id` is null when the homepage modal name didn't resolve to
+ * a unique alumnus — those rows live as unmatched entries until the
+ * admin disambiguates manually. */
 export interface RegisteredWhatsappRequestRow {
   id: number;
   alumni_id: number | null;
@@ -18,6 +22,10 @@ export interface RegisteredWhatsappRequestRow {
   uwc_college: string | null;
   grad_year: number | null;
   registered_at: string | null;
+  // Joined from the most recent whatsapp_invite send for this alum.
+  invite_opened_at: string | null;
+  invite_clicked_at: string | null;
+  invite_bounced_at: string | null;
 }
 
 export async function listRegisteredWhatsappRequests(): Promise<
@@ -27,9 +35,20 @@ export async function listRegisteredWhatsappRequests(): Promise<
     SELECT r.id, r.alumni_id, r.raw_name, r.sent_at, r.created_at,
            a.first_name, a.last_name, a.email,
            a.uwc_college, a.grad_year,
-           COALESCE(a.submitted_at, a.imported_at) AS registered_at
+           COALESCE(a.submitted_at, a.imported_at) AS registered_at,
+           es.opened_at  AS invite_opened_at,
+           es.clicked_at AS invite_clicked_at,
+           es.bounced_at AS invite_bounced_at
     FROM registered_whatsapp_requests r
     LEFT JOIN alumni a ON a.id = r.alumni_id
+    LEFT JOIN LATERAL (
+      SELECT opened_at, clicked_at, bounced_at
+      FROM email_sends
+      WHERE alumni_id = r.alumni_id
+        AND kind = 'whatsapp_invite'
+      ORDER BY sent_at DESC NULLS LAST
+      LIMIT 1
+    ) es ON TRUE
     ORDER BY r.created_at DESC, r.id DESC
   `) as RegisteredWhatsappRequestRow[];
 }
