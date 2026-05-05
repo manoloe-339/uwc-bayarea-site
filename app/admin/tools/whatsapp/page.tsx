@@ -173,35 +173,38 @@ function VisitingTab({
               contacted ? "opacity-70" : ""
             }`}
           >
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div className="min-w-0 flex-1">
-                <div className="font-semibold text-[color:var(--navy-ink)]">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="font-semibold text-[color:var(--navy-ink)] text-base leading-tight">
                   {fullName}
-                  {r.affiliation && (
-                    <span className="ml-2 text-xs text-[color:var(--muted)] font-normal">
-                      {r.affiliation}
-                    </span>
-                  )}
                 </div>
-                <div className="text-xs text-[color:var(--muted)] mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                {r.affiliation && (
+                  <div className="text-xs text-[color:var(--muted)]">
+                    {r.affiliation}
+                  </div>
+                )}
+                <a
+                  href={`mailto:${r.email}`}
+                  className="text-xs text-[color:var(--muted)] hover:text-navy hover:underline block break-all"
+                >
+                  ✉ {r.email}
+                </a>
+                {wa ? (
                   <a
-                    href={`mailto:${r.email}`}
-                    className="hover:text-navy hover:underline"
+                    href={wa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-[color:var(--muted)] hover:text-navy hover:underline block"
                   >
-                    ✉ {r.email}
+                    📱 {r.phone} · wa.me
                   </a>
-                  {wa ? (
-                    <a
-                      href={wa}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-navy hover:underline"
-                    >
-                      📱 {r.phone} → wa.me
-                    </a>
-                  ) : (
-                    <span>📱 {r.phone}</span>
-                  )}
+                ) : (
+                  <div className="text-xs text-[color:var(--muted)]">
+                    📱 {r.phone}
+                  </div>
+                )}
+                <div className="text-xs text-[color:var(--muted)]">
+                  Requested {fmtDateTimeShort(r.created_at)}
                 </div>
                 {r.note && (
                   <div className="text-sm text-[color:var(--navy-ink)] mt-2 whitespace-pre-wrap">
@@ -210,9 +213,6 @@ function VisitingTab({
                 )}
               </div>
               <div className="flex flex-col items-end gap-1.5 shrink-0">
-                <div className="text-[10px] tracking-[.18em] uppercase text-[color:var(--muted)] font-bold">
-                  {fmtDateTimeShort(r.created_at)}
-                </div>
                 <form action={toggleVisitingContactedAction}>
                   <input type="hidden" name="id" value={r.id} />
                   <input
