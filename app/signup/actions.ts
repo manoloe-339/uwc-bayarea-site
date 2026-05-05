@@ -136,7 +136,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
       studying, study_location, working, work_location,
       parent_of_name, parent_of_uwc_college, parent_of_grad_year,
       how_heard,
-      subscribed, sources, flags, imported_at, updated_at
+      subscribed, sources, flags, submitted_at, imported_at, updated_at
     ) VALUES (
       ${firstName}, ${lastName}, ${email}, ${mobile}, ${linkedinUrl}, ${origin},
       ${uwcCollege}, ${uwcCollegeRaw}, ${gradYear}, ${gradYearRaw},
@@ -145,7 +145,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
       ${studying}, ${studyLocation}, ${working}, ${workLocation},
       ${parentOfName}, ${parentCollegeFinal}, ${parentGradFinal},
       ${howHeard},
-      TRUE, ${[SOURCE]}, ${[]}, NOW(), NOW()
+      TRUE, ${[SOURCE]}, ${[]}, NOW(), NOW(), NOW()
     )
     ON CONFLICT (email) DO UPDATE SET
       first_name         = COALESCE(alumni.first_name, EXCLUDED.first_name),
@@ -173,6 +173,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
       parent_of_uwc_college = COALESCE(alumni.parent_of_uwc_college, EXCLUDED.parent_of_uwc_college),
       parent_of_grad_year = COALESCE(alumni.parent_of_grad_year, EXCLUDED.parent_of_grad_year),
       how_heard          = COALESCE(alumni.how_heard, EXCLUDED.how_heard),
+      submitted_at       = COALESCE(alumni.submitted_at, EXCLUDED.submitted_at),
       subscribed         = TRUE,
       unsubscribed_at    = NULL,
       unsubscribe_reason = NULL,
