@@ -70,7 +70,7 @@ export default async function ToolsIndex() {
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
           <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">👯 Find duplicates</div>
-          <div className="font-semibold text-[color:var(--navy-ink)]">Alumni rows sharing a LinkedIn URL or name</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Isolate duplicate alumni records</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Groups confirmed-dupe rows side-by-side with email, submit date,
             enrichment counts, and per-row Delete / swap-email actions. Safe
