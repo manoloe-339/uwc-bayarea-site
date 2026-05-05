@@ -61,12 +61,19 @@ const DEFAULT_LINK_ATTRS = `target="_blank" rel="noopener noreferrer" class="und
  *
  * `linkAttrs` is rendered verbatim onto each `<a>` tag. The default
  * is Tailwind for in-page rendering; pass an inline-style version
- * for email rendering (where Tailwind classes don't load). */
+ * for email rendering (where Tailwind classes don't load).
+ *
+ * `paragraphAttrs` is rendered verbatim onto each `<p>` tag. Defaults
+ * to nothing (so callers using their own CSS — like in-page Tailwind —
+ * keep working). Pass an inline-styled value for email so paragraph
+ * spacing is consistent across mail clients. */
 export function renderSimpleMarkdown(
   md: string | null | undefined,
   linkAttrs: string = DEFAULT_LINK_ATTRS,
+  paragraphAttrs: string = "",
 ): string {
   if (!md || !md.trim()) return "";
+  const openTag = paragraphAttrs ? `<p ${paragraphAttrs}>` : "<p>";
   const escaped = escapeHtml(md);
   // Split into paragraphs on blank lines.
   const paragraphs = escaped.split(/\n{2,}/);
@@ -79,7 +86,7 @@ export function renderSimpleMarkdown(
         .filter((line) => line.length > 0)
         .join("<br>");
       if (!withBreaks) return "";
-      return `<p>${withBreaks}</p>`;
+      return `${openTag}${withBreaks}</p>`;
     })
     .filter((p) => p.length > 0)
     .join("\n");
@@ -88,3 +95,7 @@ export function renderSimpleMarkdown(
 /** Inline-styled link attrs matching the rest of the email chrome. */
 export const EMAIL_LINK_ATTRS =
   `style="color:#0265A8;text-decoration:underline" target="_blank" rel="noopener noreferrer"`;
+
+/** Inline-styled paragraph attrs for email rendering. Mail clients
+ * disagree on the default `<p>` margin, so we pin it explicitly. */
+export const EMAIL_PARAGRAPH_ATTRS = `style="margin:0 0 16px 0"`;

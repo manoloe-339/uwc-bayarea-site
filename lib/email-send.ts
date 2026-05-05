@@ -107,7 +107,7 @@ export async function sendTestEmail(params: {
     let text: string;
     if (params.bodyHtml) {
       const fullHtml = greeting
-        ? `<p>${escapeHtmlInline(greeting)}</p>\n${params.bodyHtml}`
+        ? `<p style="margin:0 0 16px 0">${escapeHtmlInline(greeting)}</p>\n${params.bodyHtml}`
         : params.bodyHtml;
       html = renderEmailHtmlFromHtml(fullHtml, null);
       const fullText = greeting

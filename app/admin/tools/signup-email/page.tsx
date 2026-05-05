@@ -4,7 +4,11 @@ import {
   applyConfirmationPlaceholders,
   fetchCollegeAlumniCount,
 } from "@/lib/signup-confirmation";
-import { renderSimpleMarkdown, EMAIL_LINK_ATTRS } from "@/lib/simple-markdown";
+import {
+  renderSimpleMarkdown,
+  EMAIL_LINK_ATTRS,
+  EMAIL_PARAGRAPH_ATTRS,
+} from "@/lib/simple-markdown";
 import { MarkdownTextarea } from "@/components/admin/MarkdownTextarea";
 import { saveSignupEmailAction, sendTestSignupEmailAction } from "./actions";
 
@@ -33,7 +37,11 @@ export default async function SignupEmailSettingsPage({
     college: PREVIEW_COLLEGE,
     collegeCount: previewCount,
   });
-  const previewHtml = renderSimpleMarkdown(previewResolvedMd, EMAIL_LINK_ATTRS);
+  const previewHtml = renderSimpleMarkdown(
+    previewResolvedMd,
+    EMAIL_LINK_ATTRS,
+    EMAIL_PARAGRAPH_ATTRS,
+  );
 
   return (
     <div className="max-w-[820px]">
@@ -130,7 +138,7 @@ export default async function SignupEmailSettingsPage({
             className="bg-white rounded-[10px] mx-auto p-7 text-[15px] leading-[1.55] text-[color:var(--navy-ink)] [&_p]:mb-3 [&_p:last-child]:mb-0 [&_a]:text-[#0265A8] [&_a]:underline"
             style={{ maxWidth: 560, border: "1px solid rgba(11,37,69,0.16)" }}
           >
-            <p className="mb-3">Hi {"{firstName}"},</p>
+            <p className="mb-4">Hi {"{firstName}"},</p>
             <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
             <div className="mt-6 pt-4 border-t border-[color:var(--rule)] text-xs text-[color:var(--muted)]">
               You&rsquo;re receiving this because you&rsquo;re part of the UWC

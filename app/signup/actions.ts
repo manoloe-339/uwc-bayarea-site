@@ -15,7 +15,11 @@ import {
   applyConfirmationPlaceholders,
   fetchCollegeAlumniCount,
 } from "@/lib/signup-confirmation";
-import { renderSimpleMarkdown, EMAIL_LINK_ATTRS } from "@/lib/simple-markdown";
+import {
+  renderSimpleMarkdown,
+  EMAIL_LINK_ATTRS,
+  EMAIL_PARAGRAPH_ATTRS,
+} from "@/lib/simple-markdown";
 
 const redis = new Redis({
   url: process.env.KV_REST_API_URL!,
@@ -229,7 +233,11 @@ export async function submitSignup(formData: FormData): Promise<void> {
     college: uwcCollege,
     collegeCount,
   });
-  const confirmationHtml = renderSimpleMarkdown(resolvedConfirmationMd, EMAIL_LINK_ATTRS);
+  const confirmationHtml = renderSimpleMarkdown(
+    resolvedConfirmationMd,
+    EMAIL_LINK_ATTRS,
+    EMAIL_PARAGRAPH_ATTRS,
+  );
   const adminBody = buildAdminNotificationBody({
     id: alumniId,
     firstName,

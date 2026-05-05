@@ -8,7 +8,11 @@ import {
   fetchCollegeAlumniCount,
 } from "@/lib/signup-confirmation";
 import { sendTestEmail } from "@/lib/email-send";
-import { renderSimpleMarkdown, EMAIL_LINK_ATTRS } from "@/lib/simple-markdown";
+import {
+  renderSimpleMarkdown,
+  EMAIL_LINK_ATTRS,
+  EMAIL_PARAGRAPH_ATTRS,
+} from "@/lib/simple-markdown";
 
 const ADMIN_EMAIL = "manoloe@gmail.com";
 const PREVIEW_COLLEGE = "UWC Atlantic College";
@@ -43,7 +47,7 @@ export async function sendTestSignupEmailAction(formData: FormData): Promise<voi
     college: PREVIEW_COLLEGE,
     collegeCount: previewCount,
   });
-  const bodyHtml = renderSimpleMarkdown(resolvedMd, EMAIL_LINK_ATTRS);
+  const bodyHtml = renderSimpleMarkdown(resolvedMd, EMAIL_LINK_ATTRS, EMAIL_PARAGRAPH_ATTRS);
 
   const result = await sendTestEmail({
     to: ADMIN_EMAIL,
