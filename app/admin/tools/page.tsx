@@ -154,8 +154,7 @@ export default async function ToolsIndex() {
             )}
           </div>
           <div className="font-semibold text-[color:var(--navy-ink)]">
-            Visiting requests, registered-alum requests, and the invite
-            email template
+            Requests and invite email template
           </div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Three tabs: Bay Area visitors who&rsquo;ve asked to join,
