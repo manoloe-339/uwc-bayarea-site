@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { updateSiteSettings, DEFAULT_SIGNUP_CONFIRMATION } from "@/lib/settings";
 import {
   applyConfirmationPlaceholders,
+  ensureParagraphBreaks,
   fetchCollegeAlumniCount,
 } from "@/lib/signup-confirmation";
 import { sendTestEmail } from "@/lib/email-send";
@@ -43,10 +44,12 @@ export async function sendTestSignupEmailAction(formData: FormData): Promise<voi
   const bodyMd =
     nullIfBlank(formData.get("body_md")) ?? DEFAULT_SIGNUP_CONFIRMATION.bodyMd;
   const previewCount = await fetchCollegeAlumniCount(PREVIEW_COLLEGE).catch(() => 0);
-  const resolvedMd = applyConfirmationPlaceholders(bodyMd, {
-    college: PREVIEW_COLLEGE,
-    collegeCount: previewCount,
-  });
+  const resolvedMd = ensureParagraphBreaks(
+    applyConfirmationPlaceholders(bodyMd, {
+      college: PREVIEW_COLLEGE,
+      collegeCount: previewCount,
+    }),
+  );
   const bodyHtml = renderSimpleMarkdown(resolvedMd, EMAIL_LINK_ATTRS, EMAIL_PARAGRAPH_ATTRS);
 
   const result = await sendTestEmail({

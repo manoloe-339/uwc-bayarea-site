@@ -48,3 +48,16 @@ export function applyConfirmationPlaceholders(
     .replaceAll("{college_count}", String(ctx.collegeCount))
     .replaceAll("{college}", ctx.college ?? "");
 }
+
+/** If the body has no blank lines but multiple text lines, the author
+ * almost certainly meant each line to be its own paragraph (typical
+ * one-Enter-per-paragraph muscle memory). Promote single newlines to
+ * blank lines so the markdown renderer paragraph-breaks them.
+ *
+ * If the body already contains a blank line, the author understands
+ * paragraph syntax — leave it alone so intentional `<br>` soft breaks
+ * (e.g. multi-line signoffs) keep working. */
+export function ensureParagraphBreaks(md: string): string {
+  if (md.includes("\n\n")) return md;
+  return md.replace(/\n/g, "\n\n");
+}

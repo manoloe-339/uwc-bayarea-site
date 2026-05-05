@@ -13,6 +13,7 @@ import { triggerEnrichment } from "@/lib/enrichment";
 import { getSiteSettings, DEFAULT_SIGNUP_CONFIRMATION } from "@/lib/settings";
 import {
   applyConfirmationPlaceholders,
+  ensureParagraphBreaks,
   fetchCollegeAlumniCount,
 } from "@/lib/signup-confirmation";
 import {
@@ -229,10 +230,12 @@ export async function submitSignup(formData: FormData): Promise<void> {
   const collegeCount = uwcCollege
     ? await fetchCollegeAlumniCount(uwcCollege, alumniId).catch(() => 0)
     : 0;
-  const resolvedConfirmationMd = applyConfirmationPlaceholders(confirmationMd, {
-    college: uwcCollege,
-    collegeCount,
-  });
+  const resolvedConfirmationMd = ensureParagraphBreaks(
+    applyConfirmationPlaceholders(confirmationMd, {
+      college: uwcCollege,
+      collegeCount,
+    }),
+  );
   const confirmationHtml = renderSimpleMarkdown(
     resolvedConfirmationMd,
     EMAIL_LINK_ATTRS,

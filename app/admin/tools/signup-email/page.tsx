@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSiteSettings, DEFAULT_SIGNUP_CONFIRMATION } from "@/lib/settings";
 import {
   applyConfirmationPlaceholders,
+  ensureParagraphBreaks,
   fetchCollegeAlumniCount,
 } from "@/lib/signup-confirmation";
 import {
@@ -33,10 +34,12 @@ export default async function SignupEmailSettingsPage({
   // count so {college_blurb} substitutes the way it will in production.
   const previewMd = currentBodyMd.trim() || DEFAULT_SIGNUP_CONFIRMATION.bodyMd;
   const previewCount = await fetchCollegeAlumniCount(PREVIEW_COLLEGE).catch(() => 0);
-  const previewResolvedMd = applyConfirmationPlaceholders(previewMd, {
-    college: PREVIEW_COLLEGE,
-    collegeCount: previewCount,
-  });
+  const previewResolvedMd = ensureParagraphBreaks(
+    applyConfirmationPlaceholders(previewMd, {
+      college: PREVIEW_COLLEGE,
+      collegeCount: previewCount,
+    }),
+  );
   const previewHtml = renderSimpleMarkdown(
     previewResolvedMd,
     EMAIL_LINK_ATTRS,
