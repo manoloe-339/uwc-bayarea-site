@@ -282,8 +282,8 @@ function buildNewsletterCadenceSignal(
   daysSinceLastCampaign: number,
   newSignups30d: number,
 ): CadenceCardSignal | null {
-  if (daysSinceLastCampaign < 30) return null;
-  const severity: Severity = daysSinceLastCampaign >= 60 ? "red" : "amber";
+  if (daysSinceLastCampaign < 14) return null;
+  const severity: Severity = daysSinceLastCampaign >= 30 ? "red" : "amber";
   return {
     id: "cadence:newsletter",
     kind: "newsletter",
