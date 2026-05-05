@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { countPendingVisitingRequests } from "@/lib/visiting-requests";
+import { countPendingRegisteredWhatsappRequests } from "@/lib/whatsapp-requests";
 
 export const dynamic = "force-dynamic";
 
 export default async function ToolsIndex() {
-  const pendingVisiting = await countPendingVisitingRequests();
+  const [pendingVisiting, pendingRegistered] = await Promise.all([
+    countPendingVisitingRequests(),
+    countPendingRegisteredWhatsappRequests(),
+  ]);
   return (
     <div className="max-w-[900px]">
       <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">Admin tools</h1>
@@ -132,27 +136,28 @@ export default async function ToolsIndex() {
           </p>
         </Link>
         <Link
-          href="/admin/tools/visiting"
+          href="/admin/tools/whatsapp"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
           <div className="flex items-baseline justify-between gap-2 mb-1">
             <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
-              Just visiting
+              WhatsApp admin
             </div>
-            {pendingVisiting > 0 && (
+            {pendingVisiting + pendingRegistered > 0 && (
               <span className="text-[10px] tracking-[.18em] uppercase font-bold text-amber-700">
-                {pendingVisiting} pending
+                {pendingVisiting + pendingRegistered} pending
               </span>
             )}
           </div>
           <div className="font-semibold text-[color:var(--navy-ink)]">
-            UWC alumni passing through who want WhatsApp access
+            Visiting requests, registered-alum requests, and the invite
+            email template
           </div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
-            Submissions from the homepage WhatsApp modal&rsquo;s &ldquo;just
-            visiting&rdquo; flow. Each row has the alum&rsquo;s name, UWC
-            affiliation, email, and a clickable WhatsApp link to message
-            them directly. Mark contacted once you&rsquo;ve sent the invite.
+            Three tabs: Bay Area visitors who&rsquo;ve asked to join,
+            registered alumni who&rsquo;ve clicked &ldquo;send me the
+            link&rdquo; on the homepage modal (with one-click send), and
+            the editable WhatsApp invite email itself.
           </p>
         </Link>
         <Link

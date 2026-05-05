@@ -26,6 +26,8 @@ export type SiteSettings = {
   photo_gallery_intro_subhead: string | null;
   signup_confirmation_subject: string | null;
   signup_confirmation_body_md: string | null;
+  whatsapp_invite_subject: string | null;
+  whatsapp_invite_body_md: string | null;
   updated_at: string;
 };
 
@@ -45,6 +47,28 @@ You can reply to this email any time (it'll reach our team directly), and every 
 
 Looking forward to connecting,
 UWC Bay Area`,
+};
+
+/** Default WhatsApp invite email — used when the admin-editable
+ * settings are blank. Subject + markdown body. The `Hi {firstName},`
+ * salutation is auto-prepended at send time. {whatsapp_url} is
+ * substituted from site_settings.whatsapp_url so the join link can be
+ * rotated without editing the template. */
+export const DEFAULT_WHATSAPP_INVITE = {
+  subject: "Welcome to the UWC Bay Area WhatsApp",
+  bodyMd: `Welcome!
+
+Thanks for signing up. Here's the link for the UWC Bay Area WhatsApp: {whatsapp_url}. Our admins will approve once you connect. [Guidelines for our WhatsApp](https://uwcbayarea.org/whatsapp-guidelines) are posted in the General Chat and on our website.
+
+Please note that our 2026 Foodies events are managed entirely through WhatsApp. For each event, we create a specific subgroup where hosts post details regarding the theme, location, and RSVP. These subgroups serve as the hub for all logistics and communication for those interested in attending that particular gathering, and are closed once the event concludes. (Check the group description for more information.)
+
+(Hat tip to the London Foodies group for their playbook!)
+
+We have two Foodies gatherings here in May: May 9th in San Jose, and May 15th in San Francisco.
+
+Let us know if you have any questions.
+
+Manolo`,
 };
 
 /** Default LinkedIn invite copy. ${firstName} is substituted client-side. */
@@ -95,6 +119,8 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     photo_gallery_intro_subhead: DEFAULT_PHOTO_GALLERY_INTRO.subhead,
     signup_confirmation_subject: null,
     signup_confirmation_body_md: null,
+    whatsapp_invite_subject: null,
+    whatsapp_invite_body_md: null,
     updated_at: new Date().toISOString(),
   };
 }
@@ -152,6 +178,14 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
       patch.signup_confirmation_body_md !== undefined
         ? patch.signup_confirmation_body_md
         : existing.signup_confirmation_body_md,
+    whatsapp_invite_subject:
+      patch.whatsapp_invite_subject !== undefined
+        ? patch.whatsapp_invite_subject
+        : existing.whatsapp_invite_subject,
+    whatsapp_invite_body_md:
+      patch.whatsapp_invite_body_md !== undefined
+        ? patch.whatsapp_invite_body_md
+        : existing.whatsapp_invite_body_md,
   };
 
   await sql`
@@ -180,6 +214,8 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
       photo_gallery_intro_subhead           = ${next.photo_gallery_intro_subhead},
       signup_confirmation_subject           = ${next.signup_confirmation_subject},
       signup_confirmation_body_md           = ${next.signup_confirmation_body_md},
+      whatsapp_invite_subject               = ${next.whatsapp_invite_subject},
+      whatsapp_invite_body_md               = ${next.whatsapp_invite_body_md},
       updated_at                            = NOW()
     WHERE id = ${existing.id}
   `;

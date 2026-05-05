@@ -3,6 +3,7 @@
 import { sql } from "@/lib/db";
 import { getResend, fromAddress, replyToAddress } from "@/lib/resend";
 import { createVisitingRequest, whatsappUrl } from "@/lib/visiting-requests";
+import { createRegisteredWhatsappRequest } from "@/lib/whatsapp-requests";
 
 const VISITING_TO = "manolo@uwcbayarea.org";
 const ADMIN_BASE = "https://uwcbayarea.org/admin/alumni";
@@ -80,6 +81,18 @@ export async function sendRegisteredAlumRequest(formData: FormData): Promise<Vis
     candidates = await findAlumniCandidates(name);
   } catch {
     // Lookup is best-effort; fall through and send the request anyway.
+  }
+
+  // Persist the request so it shows up in the admin tool. Auto-link
+  // when there's exactly one match; otherwise leave alumni_id null and
+  // let the admin disambiguate.
+  try {
+    await createRegisteredWhatsappRequest({
+      alumni_id: candidates.length === 1 ? candidates[0].id : null,
+      raw_name: name,
+    });
+  } catch (err) {
+    console.warn("[whatsapp-request] persist failed:", err);
   }
 
   const matchHeader =
@@ -218,7 +231,7 @@ export async function sendJustVisitingNotification(formData: FormData): Promise<
     </table>
     <p style="margin-top:14px;color:#666;font-size:13px">
       View the running list at
-      <a href="https://uwcbayarea.org/admin/tools/visiting" style="color:#0265A8">/admin/tools/visiting</a>.
+      <a href="https://uwcbayarea.org/admin/tools/whatsapp?tab=visiting" style="color:#0265A8">/admin/tools/whatsapp</a>.
     </p>
   `;
 
