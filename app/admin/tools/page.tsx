@@ -11,12 +11,18 @@ export default async function ToolsIndex() {
     countPendingVisitingRequests(),
     countPendingRegisteredWhatsappRequests(),
   ]);
+  const pendingWhatsapp = pendingVisiting + pendingRegistered;
+
   return (
     <div className="max-w-[900px]">
-      <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">Admin tools</h1>
-      <p className="text-[color:var(--muted)] text-sm mb-6">
-        Data-quality, enrichment, and bulk-import tools.
+      <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">
+        Admin tools
+      </h1>
+      <p className="text-[color:var(--muted)] text-sm mb-2">
+        Build the directory, talk to members, and shape the public site.
       </p>
+
+      <SectionHeading>Build &amp; enrich the directory</SectionHeading>
       <div className="grid sm:grid-cols-2 gap-4">
         <Link
           href="/admin/tools/discover"
@@ -28,6 +34,17 @@ export default async function ToolsIndex() {
             Runs 18 LinkedIn-targeted searches via Serper + Exa, dedupes against
             existing alumni, surfaces new candidates. Scrape and add the ones
             you want.
+          </p>
+        </Link>
+        <Link
+          href="/admin/import"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">📥 Import</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Bulk import alumni</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Paste or upload data, preview matches against existing rows, commit
+            in one go.
           </p>
         </Link>
         <Link
@@ -44,17 +61,6 @@ export default async function ToolsIndex() {
           </p>
         </Link>
         <Link
-          href="/admin/import"
-          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
-        >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">📥 Import</div>
-          <div className="font-semibold text-[color:var(--navy-ink)]">Bulk-import alumni from CSV / external sources</div>
-          <p className="text-xs text-[color:var(--muted)] mt-2">
-            Paste or upload data, preview matches against existing rows, commit
-            in one go.
-          </p>
-        </Link>
-        <Link
           href="/admin/tools/classify"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
@@ -63,18 +69,6 @@ export default async function ToolsIndex() {
           <p className="text-xs text-[color:var(--muted)] mt-2">
             One Claude call per unique company. Writes richer labels than LinkedIn&rsquo;s
             industry tag so filters like &ldquo;non-tech&rdquo; and &ldquo;real startup&rdquo; actually work.
-          </p>
-        </Link>
-        <Link
-          href="/admin/tools/duplicates"
-          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
-        >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">👯 Find duplicates</div>
-          <div className="font-semibold text-[color:var(--navy-ink)]">Isolate duplicate alumni records</div>
-          <p className="text-xs text-[color:var(--muted)] mt-2">
-            Groups confirmed-dupe rows side-by-side with email, submit date,
-            enrichment counts, and per-row Delete / swap-email actions. Safe
-            to re-run any time new data comes in.
           </p>
         </Link>
         <Link
@@ -90,21 +84,26 @@ export default async function ToolsIndex() {
           </p>
         </Link>
         <Link
-          href="/admin/tools/photo-gallery-settings"
+          href="/admin/tools/duplicates"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🖼️ Photo galleries</div>
-          <div className="font-semibold text-[color:var(--navy-ink)]">Public /photos page layout & slideshow</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">👯 Find duplicates</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Isolate duplicate alumni records</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
-            Thumbnails per gallery row, marquee on/off, intro band on/off, and
-            seconds-per-slide for the Present-mode slideshow.
+            Groups confirmed-dupe rows side-by-side with email, submit date,
+            enrichment counts, and per-row Delete / swap-email actions. Safe
+            to re-run any time new data comes in.
           </p>
         </Link>
+      </div>
+
+      <SectionHeading>Member touchpoints</SectionHeading>
+      <div className="grid sm:grid-cols-2 gap-4">
         <Link
           href="/admin/tools/signup-email"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">✉️ Signup email</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">✉️ Signup confirmation</div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Confirmation email sent on /signup</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Edit the subject line and message body of the welcome email new
@@ -113,6 +112,47 @@ export default async function ToolsIndex() {
             &ldquo;Send test&rdquo; button.
           </p>
         </Link>
+        <Link
+          href="/admin/tools/whatsapp"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="flex items-baseline justify-between gap-2 mb-1">
+            <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
+              <WhatsAppIcon /> WhatsApp admin
+            </div>
+            {pendingWhatsapp > 0 && (
+              <span className="text-[10px] tracking-[.18em] uppercase font-bold text-amber-700">
+                {pendingWhatsapp} pending
+              </span>
+            )}
+          </div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">
+            Requests and invite email template
+          </div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Three tabs: Bay Area visitors who&rsquo;ve asked to join,
+            registered alumni who&rsquo;ve clicked &ldquo;send me the
+            link&rdquo; on the homepage modal (with one-click send), and
+            the editable WhatsApp invite email itself.
+          </p>
+        </Link>
+        <Link
+          href="/admin/help-out"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🤝 Volunteer interest</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Submissions from /help-out</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Triage submissions from the public Help Out form. Each shows
+            whether the person matched your alumni directory, which areas
+            they want to help with, and any free-text note. Mark contacted
+            once you&rsquo;ve followed up.
+          </p>
+        </Link>
+      </div>
+
+      <SectionHeading>Public site</SectionHeading>
+      <div className="grid sm:grid-cols-2 gap-4">
         <Link
           href="/admin/tools/homepage-settings"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
@@ -127,40 +167,14 @@ export default async function ToolsIndex() {
           </p>
         </Link>
         <Link
-          href="/admin/help-out"
+          href="/admin/tools/photo-gallery-settings"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🤝 Help Out signups</div>
-          <div className="font-semibold text-[color:var(--navy-ink)]">Volunteer interest from /help-out</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🖼️ Photo galleries</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Public /photos page layout &amp; slideshow</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
-            Triage submissions from the public Help Out form. Each shows
-            whether the person matched your alumni directory, which areas
-            they want to help with, and any free-text note. Mark contacted
-            once you&rsquo;ve followed up.
-          </p>
-        </Link>
-        <Link
-          href="/admin/tools/whatsapp"
-          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
-        >
-          <div className="flex items-baseline justify-between gap-2 mb-1">
-            <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
-              <WhatsAppIcon /> WhatsApp admin
-            </div>
-            {pendingVisiting + pendingRegistered > 0 && (
-              <span className="text-[10px] tracking-[.18em] uppercase font-bold text-amber-700">
-                {pendingVisiting + pendingRegistered} pending
-              </span>
-            )}
-          </div>
-          <div className="font-semibold text-[color:var(--navy-ink)]">
-            Requests and invite email template
-          </div>
-          <p className="text-xs text-[color:var(--muted)] mt-2">
-            Three tabs: Bay Area visitors who&rsquo;ve asked to join,
-            registered alumni who&rsquo;ve clicked &ldquo;send me the
-            link&rdquo; on the homepage modal (with one-click send), and
-            the editable WhatsApp invite email itself.
+            Thumbnails per gallery row, marquee on/off, intro band on/off, and
+            seconds-per-slide for the Present-mode slideshow.
           </p>
         </Link>
         <Link
@@ -177,5 +191,13 @@ export default async function ToolsIndex() {
         </Link>
       </div>
     </div>
+  );
+}
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="text-[12px] tracking-[.32em] uppercase font-bold text-navy mt-8 mb-3">
+      {children}
+    </h2>
   );
 }
