@@ -2,6 +2,7 @@ import Link from "next/link";
 import { DashboardCard } from "@/components/admin/dashboard/Card";
 import { WaitingList } from "@/components/admin/dashboard/WaitingList";
 import { PulseRow } from "@/components/admin/dashboard/Pulse";
+import { DirectorySnapshot } from "@/components/admin/dashboard/DirectorySnapshot";
 import { getDashboardData } from "@/lib/dashboard-signals";
 import { unsnoozeAllAction } from "./dashboard-actions";
 
@@ -123,8 +124,10 @@ export default async function AdminDashboard() {
         Snoozed cards return when their window expires <em>and</em> the underlying state still applies.
       </p>
 
-      <p className="mt-2 text-[11px] text-[color:var(--muted)] text-center">
-        Looking for the old at-a-glance metrics?{" "}
+      <DirectorySnapshot />
+
+      <p className="mt-6 text-[11px] text-[color:var(--muted)] text-center">
+        Site traffic stats live at{" "}
         <Link href="/admin/analytics" className="text-navy hover:underline">
           /admin/analytics
         </Link>

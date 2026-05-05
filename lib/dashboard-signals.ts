@@ -390,13 +390,13 @@ async function fetchPulse(lastCampaign: LastCampaign | null): Promise<PulseTile[
 
   const newSignupRows = (await sql`
     SELECT
-      SUM((submitted_at >= NOW() - INTERVAL '30 days')::int)::int AS this_30d,
-      SUM((submitted_at >= NOW() - INTERVAL '60 days' AND submitted_at < NOW() - INTERVAL '30 days')::int)::int AS prior_30d
+      SUM((submitted_at >= NOW() - INTERVAL '3 days')::int)::int AS last_3d,
+      SUM((submitted_at >= NOW() - INTERVAL '30 days')::int)::int AS last_30d
     FROM alumni
     WHERE 'signup_form' = ANY(sources)
-  `) as { this_30d: number | null; prior_30d: number | null }[];
-  const this30 = newSignupRows[0]?.this_30d ?? 0;
-  const prior30 = newSignupRows[0]?.prior_30d ?? 0;
+  `) as { last_3d: number | null; last_30d: number | null }[];
+  const last3 = newSignupRows[0]?.last_3d ?? 0;
+  const last30 = newSignupRows[0]?.last_30d ?? 0;
 
   const openRows = (await sql`
     SELECT
@@ -461,10 +461,10 @@ async function fetchPulse(lastCampaign: LastCampaign | null): Promise<PulseTile[
       id: "pulse:subscribed",
       label: "Subscribed alumni",
       value: subscribed.toLocaleString(),
-      delta: this30 > 0 ? `+${this30} this month` : "no new signups",
-      deltaDir: this30 > 0 ? "up" : "flat",
+      delta: last3 > 0 ? `+${last3} in last 3 days` : "no new signups in 3 days",
+      deltaDir: last3 > 0 ? "up" : "flat",
       deltaTone: "default",
-      footnote: prior30 > 0 ? `vs +${prior30} the prior 30 days` : undefined,
+      footnote: `${last30} new in last 30 days`,
     },
     {
       id: "pulse:open_rate",
