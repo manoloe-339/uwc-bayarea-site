@@ -212,7 +212,7 @@ function VisitingTab({
                   </div>
                 )}
               </div>
-              <div className="flex items-start sm:items-end sm:shrink-0">
+              <div className="flex items-center sm:items-end sm:shrink-0 w-full sm:w-auto pt-3 sm:pt-0 border-t border-[color:var(--rule)] sm:border-t-0">
                 <form action={toggleVisitingContactedAction}>
                   <input type="hidden" name="id" value={r.id} />
                   <input
@@ -321,7 +321,7 @@ function RequestsTab({
                   </Link>
                 )}
               </div>
-              <div className="flex flex-row sm:flex-col items-start sm:items-end gap-2 sm:gap-1.5 sm:shrink-0 flex-wrap">
+              <div className="flex flex-row items-center sm:flex-col sm:items-end flex-wrap gap-x-3 gap-y-1.5 sm:gap-1.5 sm:shrink-0 w-full sm:w-auto pt-3 sm:pt-0 border-t border-[color:var(--rule)] sm:border-t-0">
                 {sent ? (
                   <form action={unmarkWhatsappInviteSentAction}>
                     <input type="hidden" name="request_id" value={r.id} />
@@ -349,7 +349,7 @@ function RequestsTab({
                   </span>
                 )}
                 {sent && (
-                  <div className="text-[11px] text-[color:var(--muted)] flex flex-row sm:flex-col flex-wrap items-start sm:items-end gap-x-2 gap-y-0.5">
+                  <div className="text-[11px] text-[color:var(--muted)] flex flex-row sm:flex-col flex-wrap items-center sm:items-end gap-x-2 gap-y-0.5">
                     {r.invite_bounced_at ? (
                       <span className="text-rose-700 font-semibold">
                         ⚠ Bounced {fmtDateTimeShort(r.invite_bounced_at)}
