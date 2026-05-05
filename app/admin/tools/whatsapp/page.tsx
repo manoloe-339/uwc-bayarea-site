@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WhatsAppIcon } from "@/components/admin/icons/WhatsAppIcon";
 import { fmtDateTimeShort } from "@/lib/admin-time";
 import { listVisitingRequests, whatsappUrl } from "@/lib/visiting-requests";
 import {
@@ -58,7 +59,8 @@ export default async function WhatsappAdminPage({
           ← Tools
         </Link>
       </div>
-      <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">
+      <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1 flex items-center gap-2">
+        <WhatsAppIcon size={28} className="inline-block align-[-4px]" />
         WhatsApp admin
       </h1>
       <p className="text-[color:var(--muted)] text-sm mb-6 max-w-[640px]">
@@ -111,12 +113,8 @@ function TabNav({
   counts: { visiting: number; requests: number };
 }) {
   const tabs: { key: Tab; label: string; count?: number }[] = [
-    {
-      key: "requests",
-      label: "Registered alum requests",
-      count: counts.requests,
-    },
-    { key: "visiting", label: "Just visiting", count: counts.visiting },
+    { key: "requests", label: "Registered", count: counts.requests },
+    { key: "visiting", label: "Visiting", count: counts.visiting },
     { key: "template", label: "Email template" },
   ];
   return (
@@ -275,9 +273,9 @@ function RequestsTab({
               sent ? "opacity-70" : ""
             }`}
           >
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div className="min-w-0 flex-1">
-                <div className="font-semibold text-[color:var(--navy-ink)]">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="font-semibold text-[color:var(--navy-ink)] text-base leading-tight">
                   {matched && r.alumni_id ? (
                     <Link
                       href={`/admin/alumni/${r.alumni_id}`}
@@ -288,42 +286,40 @@ function RequestsTab({
                   ) : (
                     fullName
                   )}
-                  {matched ? (
-                    <span className="ml-2 text-xs text-[color:var(--muted)] font-normal">
-                      {[r.uwc_college, r.grad_year].filter(Boolean).join(" · ")}
-                    </span>
-                  ) : (
-                    <span className="ml-2 text-xs text-amber-700 font-normal">
-                      No unique match — review manually
-                    </span>
-                  )}
                 </div>
-                <div className="text-xs text-[color:var(--muted)] mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                  {matched && r.email && (
-                    <a
-                      href={`mailto:${r.email}`}
-                      className="hover:text-navy hover:underline"
-                    >
-                      ✉ {r.email}
-                    </a>
-                  )}
-                  <span>
-                    Requested {fmtDateTimeShort(r.created_at)}
-                  </span>
+                {matched ? (
+                  <div className="text-xs text-[color:var(--muted)]">
+                    {[r.uwc_college, r.grad_year].filter(Boolean).join(" · ")}
+                  </div>
+                ) : (
+                  <div className="text-xs text-amber-700">
+                    No unique match. Review manually.
+                  </div>
+                )}
+                {matched && r.email && (
+                  <a
+                    href={`mailto:${r.email}`}
+                    className="text-xs text-[color:var(--muted)] hover:text-navy hover:underline block break-all"
+                  >
+                    ✉ {r.email}
+                  </a>
+                )}
+                <div className="text-xs text-[color:var(--muted)]">
+                  Requested {fmtDateTimeShort(r.created_at)}
                   {r.registered_at && (
-                    <span>
-                      · Registered {fmtDateTimeShort(r.registered_at)}
-                    </span>
-                  )}
-                  {!matched && (
-                    <Link
-                      href={`/admin/alumni?q=${encodeURIComponent(r.raw_name)}`}
-                      className="hover:text-navy hover:underline"
-                    >
-                      Search directory →
-                    </Link>
+                    <>
+                      {" · "}Registered {fmtDateTimeShort(r.registered_at)}
+                    </>
                   )}
                 </div>
+                {!matched && (
+                  <Link
+                    href={`/admin/alumni?q=${encodeURIComponent(r.raw_name)}`}
+                    className="text-xs text-navy hover:underline inline-block"
+                  >
+                    Search directory →
+                  </Link>
+                )}
               </div>
               <div className="flex flex-col items-end gap-1.5 shrink-0">
                 {sent ? (

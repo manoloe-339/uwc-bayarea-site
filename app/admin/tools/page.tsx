@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { LinkedInIcon } from "@/components/admin/icons/LinkedInIcon";
+import { WhatsAppIcon } from "@/components/admin/icons/WhatsAppIcon";
 import { countPendingVisitingRequests } from "@/lib/visiting-requests";
 import { countPendingRegisteredWhatsappRequests } from "@/lib/whatsapp-requests";
 
@@ -20,7 +22,7 @@ export default async function ToolsIndex() {
           href="/admin/tools/discover"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Discover alumni</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🔍 Discover alumni</div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Find Bay Area UWC alumni not yet in the DB</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Runs 18 LinkedIn-targeted searches via Serper + Exa, dedupes against
@@ -32,7 +34,9 @@ export default async function ToolsIndex() {
           href="/admin/enrichment"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">LinkedIn enrichment</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            <LinkedInIcon /> LinkedIn enrichment
+          </div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Backfill profiles via Apify + Claude</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Triggers, review queue, failed jobs, manual overrides. The whole
@@ -43,7 +47,7 @@ export default async function ToolsIndex() {
           href="/admin/import"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Import</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">📥 Import</div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Bulk-import alumni from CSV / external sources</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Paste or upload data, preview matches against existing rows, commit
@@ -54,7 +58,7 @@ export default async function ToolsIndex() {
           href="/admin/tools/classify"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Company classifier</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🏷️ Company classifier</div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Tech / startup / public / subsidiary labels</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             One Claude call per unique company. Writes richer labels than LinkedIn&rsquo;s
@@ -65,7 +69,7 @@ export default async function ToolsIndex() {
           href="/admin/tools/duplicates"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Find duplicates</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">👯 Find duplicates</div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Alumni rows sharing a LinkedIn URL or name</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Groups confirmed-dupe rows side-by-side with email, submit date,
@@ -77,7 +81,7 @@ export default async function ToolsIndex() {
           href="/admin/tools/gender"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Gender classifier</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">⚧ Gender classifier</div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Male / female / they / unknown</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Uses first name + origin country + LinkedIn pronouns to classify
@@ -89,7 +93,7 @@ export default async function ToolsIndex() {
           href="/admin/tools/photo-gallery-settings"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Photo galleries</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🖼️ Photo galleries</div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Public /photos page layout & slideshow</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Thumbnails per gallery row, marquee on/off, intro band on/off, and
@@ -100,7 +104,7 @@ export default async function ToolsIndex() {
           href="/admin/tools/signup-email"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Signup email</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">✉️ Signup email</div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Confirmation email sent on /signup</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Edit the subject line and message body of the welcome email new
@@ -113,7 +117,7 @@ export default async function ToolsIndex() {
           href="/admin/tools/homepage-settings"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Homepage</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🏠 Homepage</div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Hero carousel slides on the homepage</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Curate the editorial hero at the top of the new homepage. Each
@@ -126,7 +130,7 @@ export default async function ToolsIndex() {
           href="/admin/help-out"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Help Out signups</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🤝 Help Out signups</div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Volunteer interest from /help-out</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Triage submissions from the public Help Out form. Each shows
@@ -141,7 +145,7 @@ export default async function ToolsIndex() {
         >
           <div className="flex items-baseline justify-between gap-2 mb-1">
             <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
-              WhatsApp admin
+              <WhatsAppIcon /> WhatsApp admin
             </div>
             {pendingVisiting + pendingRegistered > 0 && (
               <span className="text-[10px] tracking-[.18em] uppercase font-bold text-amber-700">
@@ -164,7 +168,7 @@ export default async function ToolsIndex() {
           href="/admin/events/archive/photos"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">Archive photos</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🗂️ Archive photos</div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Past-website photos for the /photos marquee</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Drop in any historical photos (not tied to a specific event), approve
