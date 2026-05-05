@@ -281,12 +281,8 @@ async function buildSmallDinnerCadenceSignal(events: EventRow[]): Promise<Cadenc
 function buildNewsletterCadenceSignal(
   daysSinceLastCampaign: number,
   newSignups30d: number,
-  hasFoodiesNewsletterPrompt: boolean,
 ): CadenceCardSignal | null {
   if (daysSinceLastCampaign < 30) return null;
-  // Don't double-nag — if a Foodies newsletter prompt is already shown,
-  // it covers the cadence concern.
-  if (hasFoodiesNewsletterPrompt) return null;
   const severity: Severity = daysSinceLastCampaign >= 60 ? "red" : "amber";
   return {
     id: "cadence:newsletter",
@@ -543,12 +539,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const cadenceCards: CadenceCardSignal[] = [];
   const smallDinner = await buildSmallDinnerCadenceSignal(events);
   if (smallDinner) cadenceCards.push(smallDinner);
-  const hasFoodiesPrompt = eventCards.some((c) => c.kind === "foodies_newsletter");
-  const newsletterCadence = buildNewsletterCadenceSignal(
-    dsl,
-    newSignupsSinceCampaign,
-    hasFoodiesPrompt,
-  );
+  const newsletterCadence = buildNewsletterCadenceSignal(dsl, newSignupsSinceCampaign);
   if (newsletterCadence) cadenceCards.push(newsletterCadence);
 
   const waiting = await fetchWaiting();
