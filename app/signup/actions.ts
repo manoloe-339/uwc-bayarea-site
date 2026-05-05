@@ -11,6 +11,10 @@ import { sendTestEmail } from "@/lib/email-send";
 import { trackClick } from "@/lib/analytics";
 import { triggerEnrichment } from "@/lib/enrichment";
 import { getSiteSettings, DEFAULT_SIGNUP_CONFIRMATION } from "@/lib/settings";
+import {
+  applyConfirmationPlaceholders,
+  fetchCollegeAlumniCount,
+} from "@/lib/signup-confirmation";
 import { renderSimpleMarkdown, EMAIL_LINK_ATTRS } from "@/lib/simple-markdown";
 
 const redis = new Redis({
@@ -218,7 +222,14 @@ export async function submitSignup(formData: FormData): Promise<void> {
   const confirmationMd =
     (settings.signup_confirmation_body_md ?? "").trim() ||
     DEFAULT_SIGNUP_CONFIRMATION.bodyMd;
-  const confirmationHtml = renderSimpleMarkdown(confirmationMd, EMAIL_LINK_ATTRS);
+  const collegeCount = uwcCollege
+    ? await fetchCollegeAlumniCount(uwcCollege, alumniId).catch(() => 0)
+    : 0;
+  const resolvedConfirmationMd = applyConfirmationPlaceholders(confirmationMd, {
+    college: uwcCollege,
+    collegeCount,
+  });
+  const confirmationHtml = renderSimpleMarkdown(resolvedConfirmationMd, EMAIL_LINK_ATTRS);
   const adminBody = buildAdminNotificationBody({
     id: alumniId,
     firstName,
@@ -237,7 +248,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
       to: email,
       subject: confirmationSubject,
       bodyHtml: confirmationHtml,
-      textFallback: confirmationMd,
+      textFallback: resolvedConfirmationMd,
       salutation: "Hi",
       includeFirstName: true,
       firstName,

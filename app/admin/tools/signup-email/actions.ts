@@ -3,10 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { updateSiteSettings, DEFAULT_SIGNUP_CONFIRMATION } from "@/lib/settings";
+import {
+  applyConfirmationPlaceholders,
+  fetchCollegeAlumniCount,
+} from "@/lib/signup-confirmation";
 import { sendTestEmail } from "@/lib/email-send";
 import { renderSimpleMarkdown, EMAIL_LINK_ATTRS } from "@/lib/simple-markdown";
 
 const ADMIN_EMAIL = "manoloe@gmail.com";
+const PREVIEW_COLLEGE = "UWC Atlantic College";
 
 /** Save a deliberate blank as null (so the action falls back to the
  * default copy on the next signup). Trim only — don't strip empty lines
@@ -33,13 +38,18 @@ export async function sendTestSignupEmailAction(formData: FormData): Promise<voi
     nullIfBlank(formData.get("subject")) ?? DEFAULT_SIGNUP_CONFIRMATION.subject;
   const bodyMd =
     nullIfBlank(formData.get("body_md")) ?? DEFAULT_SIGNUP_CONFIRMATION.bodyMd;
-  const bodyHtml = renderSimpleMarkdown(bodyMd, EMAIL_LINK_ATTRS);
+  const previewCount = await fetchCollegeAlumniCount(PREVIEW_COLLEGE).catch(() => 0);
+  const resolvedMd = applyConfirmationPlaceholders(bodyMd, {
+    college: PREVIEW_COLLEGE,
+    collegeCount: previewCount,
+  });
+  const bodyHtml = renderSimpleMarkdown(resolvedMd, EMAIL_LINK_ATTRS);
 
   const result = await sendTestEmail({
     to: ADMIN_EMAIL,
     subject: `[TEST] ${subject}`,
     bodyHtml,
-    textFallback: bodyMd,
+    textFallback: resolvedMd,
     salutation: "Hi",
     includeFirstName: true,
     firstName: "Manolo",

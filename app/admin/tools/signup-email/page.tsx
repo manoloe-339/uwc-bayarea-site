@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { getSiteSettings, DEFAULT_SIGNUP_CONFIRMATION } from "@/lib/settings";
+import {
+  applyConfirmationPlaceholders,
+  fetchCollegeAlumniCount,
+} from "@/lib/signup-confirmation";
 import { renderSimpleMarkdown, EMAIL_LINK_ATTRS } from "@/lib/simple-markdown";
 import { MarkdownTextarea } from "@/components/admin/MarkdownTextarea";
 import { saveSignupEmailAction, sendTestSignupEmailAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+const PREVIEW_COLLEGE = "UWC Atlantic College";
 
 export default async function SignupEmailSettingsPage({
   searchParams,
@@ -19,9 +25,15 @@ export default async function SignupEmailSettingsPage({
 
   // Render the live preview using whatever's currently saved (or the
   // default if blank). Pre-rendered server-side so the admin sees
-  // exactly what new signups will receive.
+  // exactly what new signups will receive — including a real college
+  // count so {college_blurb} substitutes the way it will in production.
   const previewMd = currentBodyMd.trim() || DEFAULT_SIGNUP_CONFIRMATION.bodyMd;
-  const previewHtml = renderSimpleMarkdown(previewMd, EMAIL_LINK_ATTRS);
+  const previewCount = await fetchCollegeAlumniCount(PREVIEW_COLLEGE).catch(() => 0);
+  const previewResolvedMd = applyConfirmationPlaceholders(previewMd, {
+    college: PREVIEW_COLLEGE,
+    collegeCount: previewCount,
+  });
+  const previewHtml = renderSimpleMarkdown(previewResolvedMd, EMAIL_LINK_ATTRS);
 
   return (
     <div className="max-w-[820px]">
@@ -88,7 +100,7 @@ export default async function SignupEmailSettingsPage({
           label="Message body"
           defaultValue={currentBodyMd || DEFAULT_SIGNUP_CONFIRMATION.bodyMd}
           rows={14}
-          hint="Salutation and unsubscribe footer are added automatically. Markdown: blank line for paragraph, **bold**, *italic*, [click here](https://uwcbayarea.org/photos)."
+          hint="Salutation and unsubscribe footer are added automatically. Markdown: blank line for paragraph, **bold**, *italic*, [click here](https://uwcbayarea.org/photos). Placeholders: {college_blurb} (auto-generated sentence), {college}, {college_count} — all hide gracefully when the signup didn't pick a college."
         />
 
         <div className="flex flex-wrap gap-3 pt-3 border-t border-[color:var(--rule)]">
