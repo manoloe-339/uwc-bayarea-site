@@ -167,7 +167,7 @@ export default async function ToolsIndex() {
           href="/admin/events/archive/photos"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >
-          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🗂️ Archive photos</div>
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🗂️ Bulk upload for past events</div>
           <div className="font-semibold text-[color:var(--navy-ink)]">Past-website photos for the /photos marquee</div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
             Drop in any historical photos (not tied to a specific event), approve
