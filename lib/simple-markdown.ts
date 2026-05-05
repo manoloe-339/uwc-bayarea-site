@@ -108,8 +108,10 @@ export const EMAIL_LINK_ATTRS =
  * relying on `<p>` margin support across mail clients). */
 export const EMAIL_PARAGRAPH_ATTRS = `style="margin:0"`;
 
-/** Visual spacer paragraph used between email content blocks. Roughly
- * 16px tall regardless of client. Exported so call sites that build
- * extra blocks (e.g. the salutation in email-send.ts) can match the
- * same spacing. */
-export const EMAIL_SPACER = `<p style="margin:0;line-height:16px;font-size:1px">&nbsp;</p>`;
+/** Visual spacer used between email content blocks. A bare div with
+ * fixed height is the most reliable cross-client way to guarantee
+ * vertical space — every mail client (and browser preview) renders a
+ * `<div>` as a block with the height we set, regardless of how it
+ * handles `<p>` margins. Exported so call sites that build extra
+ * blocks (e.g. the salutation in email-send.ts) can match the spacing. */
+export const EMAIL_SPACER = `<div style="height:16px;line-height:16px;font-size:0">&nbsp;</div>`;
