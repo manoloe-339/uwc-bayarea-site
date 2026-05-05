@@ -305,11 +305,23 @@ function buildNewsletterCadenceSignal(
 async function fetchWaiting(): Promise<WaitingRow[]> {
   const rows: WaitingRow[] = [];
 
+  // Don't count repeat requests from alumni we've already invited in
+  // the last 14 days — they have the link, the duplicate row is just
+  // them re-submitting the homepage modal (e.g. didn't see the email).
+  // Audit trail still lives in the requests tab; dashboard stays clean.
   const wa = (await sql`
     SELECT COUNT(*)::int AS n,
-           EXTRACT(EPOCH FROM NOW() - MIN(created_at))::bigint AS oldest_seconds
-    FROM registered_whatsapp_requests
-    WHERE alumni_id IS NOT NULL AND sent_at IS NULL
+           EXTRACT(EPOCH FROM NOW() - MIN(r.created_at))::bigint AS oldest_seconds
+    FROM registered_whatsapp_requests r
+    WHERE r.alumni_id IS NOT NULL
+      AND r.sent_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM email_sends es
+        WHERE es.alumni_id = r.alumni_id
+          AND es.kind = 'whatsapp_invite'
+          AND es.status = 'sent'
+          AND es.sent_at > NOW() - INTERVAL '14 days'
+      )
   `) as { n: number; oldest_seconds: number | null }[];
   if (wa[0]?.n > 0) {
     const days = Math.max(0, Math.round((wa[0].oldest_seconds ?? 0) / 86400));
@@ -388,10 +400,15 @@ async function fetchPulse(lastCampaign: LastCampaign | null): Promise<PulseTile[
   `) as { n: number }[];
   const subscribed = subRows[0]?.n ?? 0;
 
+  // COALESCE: form submissions don't populate submitted_at — only the
+  // original Google Form imports do. imported_at is DEFAULT NOW() on
+  // insert, so it's the right fallback for "date this row first
+  // appeared". updated_at would change with later enrichment, so it's
+  // wrong here.
   const newSignupRows = (await sql`
     SELECT
-      SUM((submitted_at >= NOW() - INTERVAL '3 days')::int)::int AS last_3d,
-      SUM((submitted_at >= NOW() - INTERVAL '30 days')::int)::int AS last_30d
+      SUM((COALESCE(submitted_at, imported_at) >= NOW() - INTERVAL '3 days')::int)::int AS last_3d,
+      SUM((COALESCE(submitted_at, imported_at) >= NOW() - INTERVAL '30 days')::int)::int AS last_30d
     FROM alumni
     WHERE 'signup_form' = ANY(sources)
   `) as { last_3d: number | null; last_30d: number | null }[];
@@ -506,7 +523,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const newSignupRows = (await sql`
     SELECT COUNT(*)::int AS n FROM alumni
     WHERE 'signup_form' = ANY(sources)
-      AND submitted_at >= ${lastCampaign?.sent_at ?? new Date(0).toISOString()}::timestamptz
+      AND COALESCE(submitted_at, imported_at) >= ${lastCampaign?.sent_at ?? new Date(0).toISOString()}::timestamptz
   `) as { n: number }[];
   const newSignupsSinceCampaign = newSignupRows[0]?.n ?? 0;
 
