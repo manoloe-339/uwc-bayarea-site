@@ -4,7 +4,7 @@ import SiteFooter from "@/components/SiteFooter";
 export const metadata = {
   title: "WhatsApp Group Guidelines · UWC Bay Area",
   description:
-    "Community guidelines for the UWC Bay Area WhatsApp group — how to keep it kind, on-topic, and useful for everyone.",
+    "Community guidelines for the UWC Bay Area WhatsApp group: how to keep it kind, on-topic, and useful for everyone.",
 };
 
 type Guideline = { lead: string; body: string };
@@ -27,7 +27,7 @@ const GUIDELINES: Guideline[] = [
     body: "Share updates, questions, or events relevant to the UWC Bay Area community. Think connection, support, and local opportunities. If you think there's opportunity to create a chat to better cover a topic, please reach out to us!",
   },
   {
-    lead: "Event Invites Are Welcome — With Context",
+    lead: "Event Invites Are Welcome, With Context",
     body: "Feel free to share local gatherings or community events! A bit of context (who's organizing, why it's relevant) is appreciated.",
   },
   {
