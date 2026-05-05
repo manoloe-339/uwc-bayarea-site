@@ -263,6 +263,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
       salutation: "Hi",
       includeFirstName: true,
       firstName,
+      logTo: { alumniId, kind: "signup_confirmation" },
     }).then((r) => {
       if (!r.ok) console.warn(`[signup] confirmation email failed: ${r.error}`);
     }),

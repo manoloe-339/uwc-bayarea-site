@@ -51,8 +51,10 @@ const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
 };
 
 const KIND_META: Record<string, { label: string; bg: string; fg: string }> = {
-  signup_invite:  { label: "Signup invite",  bg: "#DBE7F3", fg: "#01488A" },
-  event_reminder: { label: "Event reminder", bg: "#E0F2E9", fg: "#065F46" },
+  signup_invite:        { label: "Signup invite",        bg: "#DBE7F3", fg: "#01488A" },
+  signup_confirmation:  { label: "Signup confirmation",  bg: "#FEF3C7", fg: "#92400E" },
+  event_reminder:       { label: "Event reminder",       bg: "#E0F2E9", fg: "#065F46" },
+  whatsapp_invite:      { label: "WhatsApp invite",      bg: "#DCFCE7", fg: "#166534" },
 };
 
 const fmtDate = fmtDateTime;
@@ -274,7 +276,9 @@ async function OtherEmailsTable({ sp }: { sp: { kind?: string } }) {
           options={[
             { value: "all", label: "All" },
             { value: "signup_invite", label: "Signup invites" },
+            { value: "signup_confirmation", label: "Signup confirmations" },
             { value: "event_reminder", label: "Event reminders" },
+            { value: "whatsapp_invite", label: "WhatsApp invites" },
           ]}
           basePath="/admin/email/campaigns?view=other"
         />

@@ -92,6 +92,14 @@ export async function sendTestEmail(params: {
   salutation?: string;
   includeFirstName?: boolean;
   firstName?: string | null;
+  /** When set, persist a row in email_sends after a successful send so
+   * the message shows up in the alum's per-record history and the
+   * Resend webhook can attach delivered/opened/clicked/bounced
+   * timestamps as they arrive. Skip for fire-and-forget admin alerts.
+   *
+   * `kind` is a free-text label for the page that lists transactional
+   * sends (signup_confirmation, whatsapp_invite, etc.). */
+  logTo?: { alumniId: number; kind: string };
 }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   if (!params.body && !params.bodyHtml) {
     return { ok: false, error: "sendTestEmail: provide body or bodyHtml" };
@@ -138,6 +146,28 @@ export async function sendTestEmail(params: {
       return { ok: false, error: result.error.message ?? "send failed" };
     }
     const id = "data" in result && result.data ? result.data.id : "";
+
+    if (params.logTo) {
+      // Persist the send so the alum's record + the transactional log
+      // pick it up. Logging failure shouldn't fail the call — the email
+      // already left.
+      const persistedBody = params.body ?? params.textFallback ?? "";
+      try {
+        await sql`
+          INSERT INTO email_sends (
+            campaign_id, alumni_id, email, subject, body,
+            resend_message_id, status, sent_at, kind
+          ) VALUES (
+            NULL, ${params.logTo.alumniId}, ${params.to},
+            ${params.subject}, ${persistedBody},
+            ${id || null}, 'sent', NOW(), ${params.logTo.kind}
+          )
+        `;
+      } catch (err) {
+        console.warn(`[email-send] log failed for ${params.logTo.kind}:`, err);
+      }
+    }
+
     return { ok: true, id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "unknown" };

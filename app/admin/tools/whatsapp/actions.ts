@@ -111,6 +111,7 @@ export async function sendWhatsappInviteAction(formData: FormData): Promise<void
     salutation: "Hi",
     includeFirstName: true,
     firstName: row.first_name,
+    logTo: { alumniId: row.alumni_id, kind: "whatsapp_invite" },
   });
   if (!result.ok) {
     redirect(
