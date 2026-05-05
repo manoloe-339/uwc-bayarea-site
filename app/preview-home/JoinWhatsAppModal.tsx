@@ -459,7 +459,8 @@ function SentView({ onClose }: { onClose: () => void }) {
         Hold tight.
       </h2>
       <p className="mt-3 text-[15px] leading-[1.55] text-[color:var(--navy-ink)]/80">
-        We&rsquo;ll aim to add you shortly.
+        We&rsquo;ll send you an email shortly. Please check your spam filter
+        if you don&rsquo;t receive one in the next 24 hours.
       </p>
       <button
         type="button"
