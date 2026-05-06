@@ -68,6 +68,21 @@ export async function createRegisteredWhatsappRequest(data: {
   return rows[0];
 }
 
+/** Most recent pending (unsent) request for an alum, if any. Used when
+ * admin initiates a send so we upgrade the existing pending request
+ * instead of creating a duplicate row next to it. */
+export async function findPendingRequestForAlumni(
+  alumniId: number,
+): Promise<{ id: number } | null> {
+  const rows = (await sql`
+    SELECT id FROM registered_whatsapp_requests
+    WHERE alumni_id = ${alumniId} AND sent_at IS NULL
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+  `) as { id: number }[];
+  return rows[0] ?? null;
+}
+
 export async function markRegisteredWhatsappRequestSent(id: number): Promise<void> {
   await sql`
     UPDATE registered_whatsapp_requests

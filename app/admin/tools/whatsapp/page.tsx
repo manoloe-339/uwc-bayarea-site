@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { WhatsAppIcon } from "@/components/admin/icons/WhatsAppIcon";
+import { InitiateWhatsappInvitePicker } from "@/components/admin/InitiateWhatsappInvitePicker";
 import { fmtDateTimeShort } from "@/lib/admin-time";
 import { listVisitingRequests, whatsappUrl } from "@/lib/visiting-requests";
 import {
@@ -251,13 +252,25 @@ function RequestsTab({
 }: {
   rows: Awaited<ReturnType<typeof listRegisteredWhatsappRequests>>;
 }) {
-  if (rows.length === 0) {
-    return (
-      <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)] text-sm">
-        No registered-alum WhatsApp requests yet.
-      </div>
-    );
-  }
+  return (
+    <div>
+      <InitiateWhatsappInvitePicker />
+      {rows.length === 0 ? (
+        <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)] text-sm">
+          No registered-alum WhatsApp requests yet.
+        </div>
+      ) : (
+        <RequestsList rows={rows} />
+      )}
+    </div>
+  );
+}
+
+function RequestsList({
+  rows,
+}: {
+  rows: Awaited<ReturnType<typeof listRegisteredWhatsappRequests>>;
+}) {
   return (
     <ul className="space-y-2">
       {rows.map((r) => {
