@@ -60,9 +60,9 @@ export default async function WhatsappAdminPage({
   const closedRows = registered
     .filter((r) => r.sent_at || r.external_invite_at)
     .sort((a, b) => {
-      const at = a.sent_at ?? a.external_invite_at ?? a.created_at;
-      const bt = b.sent_at ?? b.external_invite_at ?? b.created_at;
-      return bt.localeCompare(at);
+      const at = new Date(a.sent_at ?? a.external_invite_at ?? a.created_at).getTime();
+      const bt = new Date(b.sent_at ?? b.external_invite_at ?? b.created_at).getTime();
+      return bt - at;
     });
 
   return (
