@@ -27,10 +27,10 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type Tab = "requests" | "visiting" | "template";
+type Tab = "requests" | "log" | "visiting" | "template";
 
 function pickTab(value: string | undefined): Tab {
-  if (value === "visiting" || value === "template") return value;
+  if (value === "visiting" || value === "template" || value === "log") return value;
   return "requests";
 }
 
@@ -53,9 +53,17 @@ export default async function WhatsappAdminPage({
     getSiteSettings(),
   ]);
   const pendingVisiting = visiting.filter((r) => !r.contacted_at).length;
-  const pendingRegistered = registered.filter(
+  const pendingRows = registered.filter(
     (r) => !r.sent_at && !r.external_invite_at,
-  ).length;
+  );
+  const pendingRegistered = pendingRows.length;
+  const closedRows = registered
+    .filter((r) => r.sent_at || r.external_invite_at)
+    .sort((a, b) => {
+      const at = a.sent_at ?? a.external_invite_at ?? a.created_at;
+      const bt = b.sent_at ?? b.external_invite_at ?? b.created_at;
+      return bt.localeCompare(at);
+    });
 
   return (
     <div className="max-w-[1100px]">
@@ -100,7 +108,8 @@ export default async function WhatsappAdminPage({
       )}
 
       {tab === "visiting" && <VisitingTab rows={visiting} />}
-      {tab === "requests" && <RequestsTab rows={registered} />}
+      {tab === "requests" && <RequestsTab rows={pendingRows} />}
+      {tab === "log" && <LogTab rows={closedRows} />}
       {tab === "template" && <TemplateTab settings={settings} />}
     </div>
   );
@@ -119,6 +128,7 @@ function TabNav({
 }) {
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: "requests", label: "Registered", count: counts.requests },
+    { key: "log", label: "Invite log" },
     { key: "visiting", label: "Visiting", count: counts.visiting },
     { key: "template", label: "Email template" },
   ];
@@ -261,7 +271,35 @@ function RequestsTab({
       <InitiateWhatsappInvitePicker />
       {rows.length === 0 ? (
         <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)] text-sm">
-          No registered-alum WhatsApp requests yet.
+          Nothing pending. New requests will land here when alumni use the
+          homepage modal.
+        </div>
+      ) : (
+        <RequestsList rows={rows} />
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Invite log tab                                                     */
+/* ------------------------------------------------------------------ */
+
+function LogTab({
+  rows,
+}: {
+  rows: Awaited<ReturnType<typeof listRegisteredWhatsappRequests>>;
+}) {
+  return (
+    <div>
+      <InitiateWhatsappInvitePicker mode="log" />
+      <p className="text-xs text-[color:var(--muted)] mb-3">
+        Everyone we&rsquo;ve invited to the WhatsApp group — both via the
+        invite-email flow and people you added directly outside this tool.
+      </p>
+      {rows.length === 0 ? (
+        <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)] text-sm">
+          No invites logged yet.
         </div>
       ) : (
         <RequestsList rows={rows} />

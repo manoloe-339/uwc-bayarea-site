@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { initiateWhatsappInviteAction } from "@/app/admin/tools/whatsapp/actions";
+import {
+  initiateWhatsappInviteAction,
+  logWhatsappAlreadyInvitedAction,
+} from "@/app/admin/tools/whatsapp/actions";
 
 interface AlumniHit {
   id: number;
@@ -12,7 +15,49 @@ interface AlumniHit {
   grad_year: number | null;
 }
 
-export function InitiateWhatsappInvitePicker() {
+type Mode = "send" | "log";
+
+const MODE_CONFIG: Record<Mode, {
+  title: string;
+  blurb: string;
+  searchPlaceholder: string;
+  confirm: (name: string, email: string | null) => string;
+  submitLabel: string;
+  submittingLabel: string;
+  requireEmail: boolean;
+  action: (formData: FormData) => Promise<void>;
+}> = {
+  send: {
+    title: "Send invite to a registered alum",
+    blurb:
+      "Search the directory, pick the alum, and send. Logs as a regular registered request below.",
+    searchPlaceholder: "Search alumni by name or email…",
+    confirm: (name, email) =>
+      `Send the WhatsApp invite email to ${name} (${email})?`,
+    submitLabel: "Send invite",
+    submittingLabel: "Sending…",
+    requireEmail: true,
+    action: initiateWhatsappInviteAction,
+  },
+  log: {
+    title: "Log an already-invited alum",
+    blurb:
+      "Pick an alum you already added to WhatsApp directly. Logs them in the invite history below — no email is sent.",
+    searchPlaceholder: "Search alumni by name or email…",
+    confirm: (name) => `Log ${name} as already invited (no email will be sent)?`,
+    submitLabel: "Log as invited",
+    submittingLabel: "Logging…",
+    requireEmail: false,
+    action: logWhatsappAlreadyInvitedAction,
+  },
+};
+
+export function InitiateWhatsappInvitePicker({
+  mode = "send",
+}: {
+  mode?: Mode;
+} = {}) {
+  const cfg = MODE_CONFIG[mode];
   const [selected, setSelected] = useState<AlumniHit | null>(null);
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<AlumniHit[]>([]);
@@ -46,17 +91,15 @@ export function InitiateWhatsappInvitePicker() {
   const fullName = (a: AlumniHit) =>
     [a.first_name, a.last_name].filter(Boolean).join(" ") || "(no name)";
 
-  const canSend = !!selected && !!selected.email && !submitting;
+  const canSubmit =
+    !!selected && (!cfg.requireEmail || !!selected.email) && !submitting;
 
   return (
     <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 mb-4">
       <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-2">
-        Send invite to a registered alum
+        {cfg.title}
       </div>
-      <p className="text-xs text-[color:var(--muted)] mb-3">
-        Search the directory, pick the alum, and send. Logs as a regular
-        registered request below.
-      </p>
+      <p className="text-xs text-[color:var(--muted)] mb-3">{cfg.blurb}</p>
 
       {selected ? (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-[color:var(--rule)] rounded px-3 py-2 mb-3">
@@ -89,13 +132,9 @@ export function InitiateWhatsappInvitePicker() {
               Clear
             </button>
             <form
-              action={initiateWhatsappInviteAction}
+              action={cfg.action}
               onSubmit={(e) => {
-                if (
-                  !confirm(
-                    `Send the WhatsApp invite email to ${fullName(selected)} (${selected.email})?`,
-                  )
-                ) {
+                if (!confirm(cfg.confirm(fullName(selected), selected.email))) {
                   e.preventDefault();
                   return;
                 }
@@ -105,10 +144,10 @@ export function InitiateWhatsappInvitePicker() {
               <input type="hidden" name="alumni_id" value={selected.id} />
               <button
                 type="submit"
-                disabled={!canSend}
+                disabled={!canSubmit}
                 className="text-xs font-semibold px-3 py-1.5 rounded bg-navy text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? "Sending…" : "Send invite"}
+                {submitting ? cfg.submittingLabel : cfg.submitLabel}
               </button>
             </form>
           </div>
@@ -122,7 +161,7 @@ export function InitiateWhatsappInvitePicker() {
               setQ(e.target.value);
               void search(e.target.value);
             }}
-            placeholder="Search alumni by name or email…"
+            placeholder={cfg.searchPlaceholder}
             className="flex-1 border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
           />
         </div>

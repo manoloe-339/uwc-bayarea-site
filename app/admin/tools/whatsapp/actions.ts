@@ -264,6 +264,53 @@ export async function markWhatsappAlreadyInvitedAction(formData: FormData): Prom
   revalidatePath(TOOL_PATH);
 }
 
+/** Admin-initiated "already invited" log entry. Used when someone
+ * pinged the admin directly (no homepage modal request) and was added
+ * to the WhatsApp group manually. Upgrades a pending row if one
+ * exists, otherwise creates a fresh closed row so the log has an
+ * audit trail. */
+export async function logWhatsappAlreadyInvitedAction(formData: FormData): Promise<void> {
+  const alumniId = Number(formData.get("alumni_id"));
+  if (!Number.isFinite(alumniId) || alumniId <= 0) {
+    redirect(
+      `${TOOL_PATH}?tab=log&msg=${encodeURIComponent("Pick an alumnus first.")}`,
+    );
+  }
+
+  const rows = (await sql`
+    SELECT id, first_name, last_name
+    FROM alumni
+    WHERE id = ${alumniId} AND deceased IS NOT TRUE
+    LIMIT 1
+  `) as {
+    id: number;
+    first_name: string | null;
+    last_name: string | null;
+  }[];
+  const alum = rows[0];
+  if (!alum) {
+    redirect(
+      `${TOOL_PATH}?tab=log&msg=${encodeURIComponent("Alumnus not found.")}`,
+    );
+  }
+
+  const rawName =
+    [alum.first_name, alum.last_name].filter(Boolean).join(" ").trim() ||
+    `Alumnus #${alum.id}`;
+
+  const pending = await findPendingRequestForAlumni(alum.id);
+  const request = pending ?? (await createRegisteredWhatsappRequest({
+    alumni_id: alum.id,
+    raw_name: rawName,
+  }));
+
+  await markRegisteredWhatsappRequestExternalInvite(request.id);
+  revalidatePath(TOOL_PATH);
+  redirect(
+    `${TOOL_PATH}?tab=log&msg=${encodeURIComponent(`Logged ${rawName} as already invited.`)}`,
+  );
+}
+
 /** Reopen an "already invited" request. */
 export async function unmarkWhatsappAlreadyInvitedAction(formData: FormData): Promise<void> {
   const requestId = Number(formData.get("request_id"));
