@@ -293,10 +293,7 @@ function LogTab({
   return (
     <div>
       <InitiateWhatsappInvitePicker mode="log" />
-      <p className="text-xs text-[color:var(--muted)] mb-3">
-        Everyone we&rsquo;ve invited to the WhatsApp group — both via the
-        invite-email flow and people you added directly outside this tool.
-      </p>
+      <p className="text-xs text-[color:var(--muted)] mb-3">Invited log</p>
       {rows.length === 0 ? (
         <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)] text-sm">
           No invites logged yet.
