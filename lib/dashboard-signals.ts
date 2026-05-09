@@ -315,6 +315,7 @@ async function fetchWaiting(): Promise<WaitingRow[]> {
     FROM registered_whatsapp_requests r
     WHERE r.alumni_id IS NOT NULL
       AND r.sent_at IS NULL
+      AND r.external_invite_at IS NULL
       AND NOT EXISTS (
         SELECT 1 FROM email_sends es
         WHERE es.alumni_id = r.alumni_id

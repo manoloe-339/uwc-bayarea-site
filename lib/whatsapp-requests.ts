@@ -13,6 +13,7 @@ export interface RegisteredWhatsappRequestRow {
   alumni_id: number | null;
   raw_name: string;
   sent_at: string | null;
+  external_invite_at: string | null;
   created_at: string;
   // Joined from alumni — null when alumni_id is null or the row was
   // deleted (FK is ON DELETE SET NULL).
@@ -32,7 +33,7 @@ export async function listRegisteredWhatsappRequests(): Promise<
   RegisteredWhatsappRequestRow[]
 > {
   return (await sql`
-    SELECT r.id, r.alumni_id, r.raw_name, r.sent_at, r.created_at,
+    SELECT r.id, r.alumni_id, r.raw_name, r.sent_at, r.external_invite_at, r.created_at,
            a.first_name, a.last_name, a.email,
            a.uwc_college, a.grad_year,
            COALESCE(a.submitted_at, a.imported_at) AS registered_at,
@@ -68,15 +69,18 @@ export async function createRegisteredWhatsappRequest(data: {
   return rows[0];
 }
 
-/** Most recent pending (unsent) request for an alum, if any. Used when
- * admin initiates a send so we upgrade the existing pending request
- * instead of creating a duplicate row next to it. */
+/** Most recent pending (unsent, not externally invited) request for an
+ * alum, if any. Used when admin initiates a send so we upgrade the
+ * existing pending request instead of creating a duplicate row next to
+ * it. */
 export async function findPendingRequestForAlumni(
   alumniId: number,
 ): Promise<{ id: number } | null> {
   const rows = (await sql`
     SELECT id FROM registered_whatsapp_requests
-    WHERE alumni_id = ${alumniId} AND sent_at IS NULL
+    WHERE alumni_id = ${alumniId}
+      AND sent_at IS NULL
+      AND external_invite_at IS NULL
     ORDER BY created_at DESC, id DESC
     LIMIT 1
   `) as { id: number }[];
@@ -99,10 +103,29 @@ export async function clearRegisteredWhatsappRequestSent(id: number): Promise<vo
   `;
 }
 
+/** Mark a request as already invited externally (no email sent through
+ * this tool). Closes the request without creating an email_sends row. */
+export async function markRegisteredWhatsappRequestExternalInvite(id: number): Promise<void> {
+  await sql`
+    UPDATE registered_whatsapp_requests
+    SET external_invite_at = NOW()
+    WHERE id = ${id}
+  `;
+}
+
+export async function clearRegisteredWhatsappRequestExternalInvite(id: number): Promise<void> {
+  await sql`
+    UPDATE registered_whatsapp_requests
+    SET external_invite_at = NULL
+    WHERE id = ${id}
+  `;
+}
+
 export async function countPendingRegisteredWhatsappRequests(): Promise<number> {
   const rows = (await sql`
     SELECT COUNT(*)::int AS n FROM registered_whatsapp_requests
     WHERE sent_at IS NULL
+      AND external_invite_at IS NULL
   `) as { n: number }[];
   return rows[0]?.n ?? 0;
 }

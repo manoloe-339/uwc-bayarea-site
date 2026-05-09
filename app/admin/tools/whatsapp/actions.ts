@@ -16,9 +16,11 @@ import {
 import { ensureParagraphBreaks } from "@/lib/signup-confirmation";
 import { setVisitingRequestContacted } from "@/lib/visiting-requests";
 import {
+  clearRegisteredWhatsappRequestExternalInvite,
   clearRegisteredWhatsappRequestSent,
   createRegisteredWhatsappRequest,
   findPendingRequestForAlumni,
+  markRegisteredWhatsappRequestExternalInvite,
   markRegisteredWhatsappRequestSent,
 } from "@/lib/whatsapp-requests";
 import { sql } from "@/lib/db";
@@ -249,6 +251,24 @@ export async function unmarkWhatsappInviteSentAction(formData: FormData): Promis
   const requestId = Number(formData.get("request_id"));
   if (!Number.isFinite(requestId) || requestId <= 0) return;
   await clearRegisteredWhatsappRequestSent(requestId);
+  revalidatePath(TOOL_PATH);
+}
+
+/** Close a request without sending email — admin already invited this
+ * person directly (e.g. over text/WhatsApp). No email_sends row gets
+ * written, no notification fires. */
+export async function markWhatsappAlreadyInvitedAction(formData: FormData): Promise<void> {
+  const requestId = Number(formData.get("request_id"));
+  if (!Number.isFinite(requestId) || requestId <= 0) return;
+  await markRegisteredWhatsappRequestExternalInvite(requestId);
+  revalidatePath(TOOL_PATH);
+}
+
+/** Reopen an "already invited" request. */
+export async function unmarkWhatsappAlreadyInvitedAction(formData: FormData): Promise<void> {
+  const requestId = Number(formData.get("request_id"));
+  if (!Number.isFinite(requestId) || requestId <= 0) return;
+  await clearRegisteredWhatsappRequestExternalInvite(requestId);
   revalidatePath(TOOL_PATH);
 }
 

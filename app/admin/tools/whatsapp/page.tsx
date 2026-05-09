@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { WhatsAppIcon } from "@/components/admin/icons/WhatsAppIcon";
 import { InitiateWhatsappInvitePicker } from "@/components/admin/InitiateWhatsappInvitePicker";
-import { fmtDateTimeShort } from "@/lib/admin-time";
+import { fmtDateShort, fmtDateTimeShort } from "@/lib/admin-time";
 import { listVisitingRequests, whatsappUrl } from "@/lib/visiting-requests";
 import {
   countPendingRegisteredWhatsappRequests,
@@ -16,10 +16,12 @@ import {
 } from "@/lib/simple-markdown";
 import { MarkdownTextarea } from "@/components/admin/MarkdownTextarea";
 import {
+  markWhatsappAlreadyInvitedAction,
   saveWhatsappTemplateAction,
   sendTestWhatsappTemplateAction,
   sendWhatsappInviteAction,
   toggleVisitingContactedAction,
+  unmarkWhatsappAlreadyInvitedAction,
   unmarkWhatsappInviteSentAction,
 } from "./actions";
 
@@ -51,7 +53,9 @@ export default async function WhatsappAdminPage({
     getSiteSettings(),
   ]);
   const pendingVisiting = visiting.filter((r) => !r.contacted_at).length;
-  const pendingRegistered = registered.filter((r) => !r.sent_at).length;
+  const pendingRegistered = registered.filter(
+    (r) => !r.sent_at && !r.external_invite_at,
+  ).length;
 
   return (
     <div className="max-w-[1100px]">
@@ -275,19 +279,22 @@ function RequestsList({
     <ul className="space-y-2">
       {rows.map((r) => {
         const sent = !!r.sent_at;
+        const externallyInvited = !!r.external_invite_at;
+        const closed = sent || externallyInvited;
         const matched = r.alumni_id != null;
         const fullName = matched
           ? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim() || r.raw_name
           : r.raw_name;
+        const collegeMeta = [r.uwc_college, r.grad_year].filter(Boolean).join(" · ");
         return (
           <li
             key={r.id}
-            className={`bg-white border rounded-[10px] p-4 border-[color:var(--rule)] ${
-              sent ? "opacity-70" : ""
+            className={`bg-white border rounded-[10px] p-3 sm:p-4 border-[color:var(--rule)] ${
+              closed ? "opacity-70" : ""
             }`}
           >
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-              <div className="min-w-0 flex-1 space-y-1">
+              <div className="min-w-0 flex-1 space-y-0.5">
                 <div className="font-semibold text-[color:var(--navy-ink)] text-base leading-tight">
                   {matched && r.alumni_id ? (
                     <Link
@@ -301,9 +308,11 @@ function RequestsList({
                   )}
                 </div>
                 {matched ? (
-                  <div className="text-xs text-[color:var(--muted)]">
-                    {[r.uwc_college, r.grad_year].filter(Boolean).join(" · ")}
-                  </div>
+                  collegeMeta && (
+                    <div className="text-xs text-[color:var(--muted)]">
+                      {collegeMeta}
+                    </div>
+                  )
                 ) : (
                   <div className="text-xs text-amber-700">
                     No unique match. Review manually.
@@ -318,11 +327,9 @@ function RequestsList({
                   </a>
                 )}
                 <div className="text-xs text-[color:var(--muted)]">
-                  Requested {fmtDateTimeShort(r.created_at)}
+                  Req {fmtDateShort(r.created_at)}
                   {r.registered_at && (
-                    <>
-                      {" · "}Registered {fmtDateTimeShort(r.registered_at)}
-                    </>
+                    <> · Reg {fmtDateShort(r.registered_at)}</>
                   )}
                 </div>
                 {!matched && (
@@ -334,48 +341,83 @@ function RequestsList({
                   </Link>
                 )}
               </div>
-              <div className="flex flex-row items-center sm:flex-col sm:items-end flex-wrap gap-x-3 gap-y-1.5 sm:gap-1.5 sm:shrink-0 w-full sm:w-auto pt-3 sm:pt-0 border-t border-[color:var(--rule)] sm:border-t-0">
+              <div className="flex flex-col items-stretch sm:items-end gap-1.5 sm:shrink-0 w-full sm:w-auto pt-3 sm:pt-0 border-t border-[color:var(--rule)] sm:border-t-0">
                 {sent ? (
                   <form action={unmarkWhatsappInviteSentAction}>
                     <input type="hidden" name="request_id" value={r.id} />
                     <button
                       type="submit"
-                      className="text-xs font-semibold px-2.5 py-1 rounded border border-[color:var(--rule)] text-[color:var(--muted)] hover:text-navy"
+                      className="w-full sm:w-auto text-xs font-semibold px-2.5 py-1 rounded border border-[color:var(--rule)] text-[color:var(--muted)] hover:text-navy"
                       title="Reset so it can be resent"
                     >
-                      ✓ Sent {r.sent_at ? fmtDateTimeShort(r.sent_at) : ""} · undo
+                      ✓ Sent {r.sent_at ? fmtDateShort(r.sent_at) : ""} · undo
                     </button>
                   </form>
-                ) : matched ? (
-                  <form action={sendWhatsappInviteAction}>
+                ) : externallyInvited ? (
+                  <form action={unmarkWhatsappAlreadyInvitedAction}>
                     <input type="hidden" name="request_id" value={r.id} />
                     <button
                       type="submit"
-                      className="text-xs font-semibold px-2.5 py-1 rounded bg-navy text-white hover:opacity-90"
+                      className="w-full sm:w-auto text-xs font-semibold px-2.5 py-1 rounded border border-[color:var(--rule)] text-[color:var(--muted)] hover:text-navy"
+                      title="Reopen this request"
                     >
-                      Send invite email
+                      ✓ Already invited {r.external_invite_at ? fmtDateShort(r.external_invite_at) : ""} · undo
                     </button>
                   </form>
+                ) : matched ? (
+                  <>
+                    <form action={sendWhatsappInviteAction}>
+                      <input type="hidden" name="request_id" value={r.id} />
+                      <button
+                        type="submit"
+                        className="w-full sm:w-auto text-xs font-semibold px-3 py-1.5 rounded bg-navy text-white hover:opacity-90"
+                      >
+                        Send invite
+                      </button>
+                    </form>
+                    <form action={markWhatsappAlreadyInvitedAction}>
+                      <input type="hidden" name="request_id" value={r.id} />
+                      <button
+                        type="submit"
+                        className="w-full sm:w-auto text-xs font-semibold px-2.5 py-1 rounded border border-[color:var(--rule)] text-[color:var(--muted)] hover:text-navy"
+                        title="Close this request without sending — already invited elsewhere"
+                      >
+                        Already invited
+                      </button>
+                    </form>
+                  </>
                 ) : (
-                  <span className="text-xs text-[color:var(--muted)]">
-                    Match to an alum to enable send
-                  </span>
+                  <>
+                    <span className="text-xs text-[color:var(--muted)] sm:text-right">
+                      Match to an alum to enable send
+                    </span>
+                    <form action={markWhatsappAlreadyInvitedAction}>
+                      <input type="hidden" name="request_id" value={r.id} />
+                      <button
+                        type="submit"
+                        className="w-full sm:w-auto text-xs font-semibold px-2.5 py-1 rounded border border-[color:var(--rule)] text-[color:var(--muted)] hover:text-navy"
+                        title="Close this request without sending — already invited elsewhere"
+                      >
+                        Already invited
+                      </button>
+                    </form>
+                  </>
                 )}
                 {sent && (
                   <div className="text-[11px] text-[color:var(--muted)] flex flex-row sm:flex-col flex-wrap items-center sm:items-end gap-x-2 gap-y-0.5">
                     {r.invite_bounced_at ? (
                       <span className="text-rose-700 font-semibold">
-                        ⚠ Bounced {fmtDateTimeShort(r.invite_bounced_at)}
+                        ⚠ Bounced {fmtDateShort(r.invite_bounced_at)}
                       </span>
                     ) : null}
                     {r.invite_clicked_at ? (
                       <span className="text-emerald-700">
-                        ↗ Clicked {fmtDateTimeShort(r.invite_clicked_at)}
+                        ↗ Clicked {fmtDateShort(r.invite_clicked_at)}
                       </span>
                     ) : null}
                     {r.invite_opened_at ? (
                       <span className="text-emerald-700">
-                        ◉ Opened {fmtDateTimeShort(r.invite_opened_at)}
+                        ◉ Opened {fmtDateShort(r.invite_opened_at)}
                       </span>
                     ) : !r.invite_bounced_at ? (
                       <span>Awaiting open…</span>

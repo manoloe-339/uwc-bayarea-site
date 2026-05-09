@@ -52,3 +52,15 @@ export function fmtDate(iso: string | Date | null | undefined): string {
     year: "numeric",
   });
 }
+
+/** "Apr 20" — no year, no time, for compact lists */
+export function fmtDateShort(iso: string | Date | null | undefined): string {
+  if (!iso) return "—";
+  const d = iso instanceof Date ? iso : new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "—";
+  return d.toLocaleDateString(LOCALE, {
+    timeZone: TZ,
+    month: "short",
+    day: "numeric",
+  });
+}
