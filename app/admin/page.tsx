@@ -80,6 +80,7 @@ export default async function AdminDashboard() {
                 <DashboardCard
                   key={c.id}
                   signalId={c.id}
+                  kind={c.kind}
                   severity={c.severity}
                   eyebrow={c.eyebrow}
                   eyebrowMeta={c.eyebrowMeta}
@@ -89,6 +90,7 @@ export default async function AdminDashboard() {
                   primaryAction={c.primaryAction}
                   secondaryAction={c.secondaryAction}
                   checklist={c.checklist}
+                  priorIgnores={c.priorIgnores}
                 />
               ))}
             </div>
@@ -104,11 +106,13 @@ export default async function AdminDashboard() {
                 <DashboardCard
                   key={c.id}
                   signalId={c.id}
+                  kind={c.kind}
                   severity={c.severity}
                   eyebrow={c.eyebrow}
                   title={c.title}
                   body={c.body}
                   primaryAction={c.primaryAction}
+                  priorIgnores={c.priorIgnores}
                 />
               ))}
             </div>

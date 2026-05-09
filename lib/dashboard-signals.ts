@@ -5,6 +5,17 @@ export type Severity = "grey" | "amber" | "red";
 export interface BaseSignal {
   id: string;
   severity: Severity;
+  /** Reasons the admin previously ignored *other* signals of the same
+   * kind. Surfaced as muted context on the card so the admin remembers
+   * past rationale when a similar card reappears (e.g. next month's
+   * Foodies newsletter). Empty when there's no prior history. */
+  priorIgnores?: PriorIgnore[];
+}
+
+export interface PriorIgnore {
+  signalId: string;
+  reason: string | null;
+  createdAt: string;
 }
 
 export type EventCardKind = "foodies_newsletter" | "ticketed_pre" | "recap_pending";
@@ -76,6 +87,57 @@ async function fetchActiveSnoozes(): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   for (const r of rows) map.set(r.signal_id, r.snoozed_until);
   return map;
+}
+
+/* ------------------------------------------------------------------ */
+/* Ignore helpers                                                     */
+/* ------------------------------------------------------------------ */
+
+interface IgnoreRow {
+  signal_id: string;
+  kind: string;
+  reason: string | null;
+  created_at: string;
+}
+
+async function fetchAllIgnores(): Promise<IgnoreRow[]> {
+  return (await sql`
+    SELECT signal_id, kind, reason, created_at
+    FROM dashboard_signal_ignores
+    ORDER BY created_at DESC
+  `) as IgnoreRow[];
+}
+
+/** Build a per-kind index of the most recent ignores so cards can
+ * surface up to 2 prior reasons when a similar signal reappears. The
+ * current signal's own ignore (when it has been re-ignored) is filtered
+ * out by the caller via signal_id match. */
+function indexIgnoresByKind(rows: IgnoreRow[]): Map<string, PriorIgnore[]> {
+  const map = new Map<string, PriorIgnore[]>();
+  for (const r of rows) {
+    if (!r.reason || !r.reason.trim()) continue;
+    const list = map.get(r.kind) ?? [];
+    list.push({
+      signalId: r.signal_id,
+      reason: r.reason,
+      createdAt:
+        typeof r.created_at === "string"
+          ? r.created_at
+          : new Date(r.created_at).toISOString(),
+    });
+    map.set(r.kind, list);
+  }
+  return map;
+}
+
+function priorIgnoresForKind(
+  index: Map<string, PriorIgnore[]>,
+  kind: string,
+  ownSignalId: string,
+): PriorIgnore[] {
+  const list = index.get(kind);
+  if (!list) return [];
+  return list.filter((p) => p.signalId !== ownSignalId).slice(0, 2);
 }
 
 /* ------------------------------------------------------------------ */
@@ -514,11 +576,14 @@ async function fetchPulse(lastCampaign: LastCampaign | null): Promise<PulseTile[
 /* ------------------------------------------------------------------ */
 
 export async function getDashboardData(): Promise<DashboardData> {
-  const [snoozes, events, lastCampaign] = await Promise.all([
+  const [snoozes, ignoreRows, events, lastCampaign] = await Promise.all([
     fetchActiveSnoozes(),
+    fetchAllIgnores(),
     fetchRelevantEvents(),
     fetchLastCampaign(),
   ]);
+  const ignoredIds = new Set(ignoreRows.map((r) => r.signal_id));
+  const ignoresByKind = indexIgnoresByKind(ignoreRows);
 
   const dsl = daysSince(lastCampaign?.sent_at);
   const newSignupRows = (await sql`
@@ -563,13 +628,27 @@ export async function getDashboardData(): Promise<DashboardData> {
   const waiting = await fetchWaiting();
   const pulse = await fetchPulse(lastCampaign);
 
-  // Filter out snoozed signals (cards only — pulse + waiting always
-  // show, since they're aggregates not individual asks).
-  const filteredEventCards = eventCards.filter((c) => !snoozes.has(c.id));
-  const filteredCadenceCards = cadenceCards.filter((c) => !snoozes.has(c.id));
+  // Filter out snoozed + ignored signals (cards only — pulse + waiting
+  // always show, since they're aggregates not individual asks). For
+  // surviving cards, attach prior ignore reasons from the same kind so
+  // the admin sees historical rationale when a similar card recurs.
+  const visibleEventCards = eventCards.filter(
+    (c) => !snoozes.has(c.id) && !ignoredIds.has(c.id),
+  );
+  const visibleCadenceCards = cadenceCards.filter(
+    (c) => !snoozes.has(c.id) && !ignoredIds.has(c.id),
+  );
+  const filteredEventCards = visibleEventCards.map((c) => ({
+    ...c,
+    priorIgnores: priorIgnoresForKind(ignoresByKind, c.kind, c.id),
+  }));
+  const filteredCadenceCards = visibleCadenceCards.map((c) => ({
+    ...c,
+    priorIgnores: priorIgnoresForKind(ignoresByKind, c.kind, c.id),
+  }));
   const snoozedCount =
-    eventCards.length - filteredEventCards.length +
-    (cadenceCards.length - filteredCadenceCards.length);
+    eventCards.length - visibleEventCards.length +
+    (cadenceCards.length - visibleCadenceCards.length);
 
   // Sort within each zone by severity: red → amber → grey.
   const sevOrder: Record<Severity, number> = { red: 0, amber: 1, grey: 2 };
@@ -612,4 +691,26 @@ export async function snoozeSignal(signalId: string, days: number): Promise<void
 
 export async function unsnoozeAll(): Promise<void> {
   await sql`DELETE FROM dashboard_signal_snoozes WHERE snoozed_until > NOW()`;
+}
+
+export async function ignoreSignal(
+  signalId: string,
+  kind: string,
+  reason: string,
+): Promise<void> {
+  if (!signalId || !kind) return;
+  const trimmed = reason.trim();
+  await sql`
+    INSERT INTO dashboard_signal_ignores (signal_id, kind, reason)
+    VALUES (${signalId}, ${kind}, ${trimmed.length ? trimmed : null})
+    ON CONFLICT (signal_id) DO UPDATE SET
+      kind       = EXCLUDED.kind,
+      reason     = EXCLUDED.reason,
+      created_at = NOW()
+  `;
+}
+
+export async function unignoreSignal(signalId: string): Promise<void> {
+  if (!signalId) return;
+  await sql`DELETE FROM dashboard_signal_ignores WHERE signal_id = ${signalId}`;
 }

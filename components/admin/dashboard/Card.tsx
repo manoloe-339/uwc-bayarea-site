@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { IgnorePopover } from "./IgnorePopover";
 import { SnoozePopover } from "./SnoozePopover";
-import type { Severity } from "@/lib/dashboard-signals";
+import type { PriorIgnore, Severity } from "@/lib/dashboard-signals";
 
 const SEV_BORDER: Record<Severity, string> = {
   grey: "border-[color:var(--rule)] [border-left-color:rgba(11,37,69,0.32)]",
@@ -22,6 +23,7 @@ const SEV_PILL: Record<Severity, { label: string; classes: string } | null> = {
 
 export function DashboardCard({
   signalId,
+  kind,
   severity,
   eyebrow,
   eyebrowMeta,
@@ -31,8 +33,10 @@ export function DashboardCard({
   primaryAction,
   secondaryAction,
   checklist,
+  priorIgnores,
 }: {
   signalId: string;
+  kind: string;
   severity: Severity;
   eyebrow: string;
   eyebrowMeta?: string;
@@ -42,6 +46,7 @@ export function DashboardCard({
   primaryAction: { label: string; href: string };
   secondaryAction?: { label: string; href: string };
   checklist?: { label: string; done: boolean; next?: boolean }[];
+  priorIgnores?: PriorIgnore[];
 }) {
   const pill = SEV_PILL[severity];
   return (
@@ -132,6 +137,23 @@ export function DashboardCard({
         </p>
       )}
 
+      {priorIgnores && priorIgnores.length > 0 && (
+        <div className="mt-2 border-l-2 border-[color:var(--rule)] pl-2.5 space-y-0.5">
+          {priorIgnores.map((p) => (
+            <p
+              key={p.signalId}
+              className="text-[11.5px] leading-snug text-[color:var(--muted)] m-0"
+            >
+              <span className="text-[10px] tracking-[.18em] uppercase font-bold mr-1.5">
+                Last ignored
+              </span>
+              {fmtIgnoreDate(p.createdAt)}
+              {p.reason ? `: “${p.reason}”` : ""}
+            </p>
+          ))}
+        </div>
+      )}
+
       <div className="mt-3.5 flex flex-wrap items-center gap-2.5 justify-between">
         <div className="flex flex-wrap gap-2">
           <Link
@@ -149,8 +171,17 @@ export function DashboardCard({
             </Link>
           )}
         </div>
-        <SnoozePopover signalId={signalId} />
+        <div className="flex items-center gap-1">
+          <IgnorePopover signalId={signalId} kind={kind} />
+          <SnoozePopover signalId={signalId} />
+        </div>
       </div>
     </article>
   );
+}
+
+function fmtIgnoreDate(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }

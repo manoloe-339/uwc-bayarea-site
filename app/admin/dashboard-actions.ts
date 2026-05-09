@@ -1,7 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { snoozeSignal, unsnoozeAll } from "@/lib/dashboard-signals";
+import {
+  ignoreSignal,
+  snoozeSignal,
+  unignoreSignal,
+  unsnoozeAll,
+} from "@/lib/dashboard-signals";
 
 export async function snoozeSignalAction(signalId: string, days: number): Promise<void> {
   await snoozeSignal(signalId, days);
@@ -10,5 +15,19 @@ export async function snoozeSignalAction(signalId: string, days: number): Promis
 
 export async function unsnoozeAllAction(): Promise<void> {
   await unsnoozeAll();
+  revalidatePath("/admin");
+}
+
+export async function ignoreSignalAction(
+  signalId: string,
+  kind: string,
+  reason: string,
+): Promise<void> {
+  await ignoreSignal(signalId, kind, reason);
+  revalidatePath("/admin");
+}
+
+export async function unignoreSignalAction(signalId: string): Promise<void> {
+  await unignoreSignal(signalId);
   revalidatePath("/admin");
 }
