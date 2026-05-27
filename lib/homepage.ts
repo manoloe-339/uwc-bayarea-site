@@ -267,12 +267,15 @@ export async function getRecentFoodiesDisplay(): Promise<RecentFoodiesDisplay> {
   return { mode: "photos_from_latest", event: latest.event, photos: latest.photos };
 }
 
-/** Total active alumni — drives the "over 400 alumni" number in the Join interrupt. */
+/** Total active alumni — drives the "over 400 alumni" number in the Join interrupt.
+ * Excludes rows tagged 'admin_added' (news-feature subjects who aren't
+ * actually community members). */
 export async function getAlumniCount(): Promise<number> {
   const rows = (await sql`
     SELECT COUNT(*)::int AS n
     FROM alumni
     WHERE deceased IS NOT TRUE
+      AND NOT ('admin_added' = ANY(sources))
   `) as { n: number }[];
   return rows[0]?.n ?? 0;
 }

@@ -1,0 +1,13 @@
+-- Allow admin-added alumni records (used as the subject of homepage
+-- "Alumni in the news" features when the person isn't part of the
+-- community) to be inserted without an email address.
+--
+-- The UNIQUE constraint on email is preserved: Postgres treats NULL as
+-- distinct in UNIQUE indexes, so multiple admin-added rows with NULL
+-- email coexist without violating uniqueness.
+--
+-- Convention: admin-added alumni rows carry 'admin_added' in their
+-- sources[] array. Community-facing counts (homepage Join interrupt,
+-- signup welcome-email cohort count) exclude that tag. Email campaigns
+-- and invite lists exclude them naturally since they have no address.
+ALTER TABLE alumni ALTER COLUMN email DROP NOT NULL;

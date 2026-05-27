@@ -37,12 +37,14 @@ export default function NewsFeatureForm({ initial, action, submitLabel }: Props)
         name="alumni_id"
         label="Featured alumnus"
         initial={initial.alumni}
+        allowAdminAdd
       />
 
       <FoodiesHostPicker
         name="alumni_id_2"
         label="Second alumnus (optional — for stories featuring two alumni together)"
         initial={initial.alumni_2}
+        allowAdminAdd
       />
 
       <div className="grid sm:grid-cols-2 gap-4">

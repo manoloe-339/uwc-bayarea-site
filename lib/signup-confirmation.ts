@@ -13,12 +13,14 @@ export async function fetchCollegeAlumniCount(
           SELECT COUNT(*)::int AS n FROM alumni
           WHERE uwc_college = ${college}
             AND deceased IS NOT TRUE
+            AND NOT ('admin_added' = ANY(sources))
             AND id <> ${excludeId}
         `) as { n: number }[])
       : ((await sql`
           SELECT COUNT(*)::int AS n FROM alumni
           WHERE uwc_college = ${college}
             AND deceased IS NOT TRUE
+            AND NOT ('admin_added' = ANY(sources))
         `) as { n: number }[]);
   return rows[0]?.n ?? 0;
 }
