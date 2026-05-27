@@ -82,6 +82,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
 
   const filters: AlumniFilters = {
     q: pickStr(sp, "q"),
+    name: pickStr(sp, "name"),
     college: pickStr(sp, "college"),
     region: pickStr(sp, "region"),
     origin: pickStr(sp, "origin"),
@@ -494,7 +495,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                 ? "🎉 Describe your event (natural language)"
                 : searchNL
                   ? "🪄 Describe who you're looking for (natural language)"
-                  : "🔎 Search (name, city, bio, work, phone…)"}
+                  : "🔎 Search any field (city, bio, work, phone…)"}
             </span>
             {!eventMode && <SearchNLToggle on={searchNL} />}
           </span>
@@ -512,6 +513,24 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
           />
         </label>
+
+        {/* Row 1b — Name-only prefix search. Tokenizes on whitespace and
+            prefix-matches first/last name columns; tight by design so a
+            search for "Anna" returns just Annas, not Mariana or Anna's Bistro. */}
+        {!searchNL && !eventMode && (
+          <label className="block sm:col-span-2 lg:col-span-4">
+            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+              👤 Name (first / last / both — prefix match)
+            </span>
+            <input
+              name="name"
+              type="text"
+              defaultValue={pickStr(sp, "name") ?? ""}
+              placeholder="e.g. Jane Doe — or just Doe — or just Jane"
+              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            />
+          </label>
+        )}
 
         {!searchNL && <>
         {/* Row 2 — college / region / year / industry */}

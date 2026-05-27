@@ -35,6 +35,10 @@ export type FollowupFilter = "any" | "none" | FollowupReason;
 
 export type AlumniFilters = {
   q?: string;
+  /** Name-only search. Tokenized + prefix-matched against first_name and
+   * last_name. 2+ tokens → first AND last (e.g. "Jane Doe"). 1 token →
+   * first OR last (e.g. "Doe"). Case-insensitive. Coexists with `q`. */
+  name?: string;
   college?: string;
   origin?: string;
   city?: string;
@@ -132,6 +136,36 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
     parts.push(build(params.length));
   };
 
+  if (f.name) {
+    // Tokenized prefix match. Token boundary is whitespace; punctuation
+    // (e.g. hyphens) is kept inside a token so "Cox-LeCates" matches
+    // last_name LIKE 'cox-lecates%'. Empty tokens are dropped.
+    const tokens = f.name
+      .toLowerCase()
+      .split(/\s+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (tokens.length === 1) {
+      const t = `${tokens[0]}%`;
+      params.push(t);
+      params.push(t);
+      const i = params.length;
+      parts.push(
+        `(lower(first_name) LIKE $${i - 1} OR lower(last_name) LIKE $${i})`
+      );
+    } else if (tokens.length >= 2) {
+      // First token → first_name. Last token → last_name. Intermediate
+      // tokens are ignored (middle names — admin can refine if needed).
+      const first = `${tokens[0]}%`;
+      const last = `${tokens[tokens.length - 1]}%`;
+      params.push(first);
+      params.push(last);
+      const i = params.length;
+      parts.push(
+        `(lower(first_name) LIKE $${i - 1} AND lower(last_name) LIKE $${i})`
+      );
+    }
+  }
   if (f.q) {
     const q = `%${f.q.toLowerCase()}%`;
     // If the query contains a 3+ digit run, also match against the phone
