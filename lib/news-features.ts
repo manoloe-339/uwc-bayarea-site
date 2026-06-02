@@ -83,7 +83,7 @@ export interface ResolvedNewsFeature {
   alumni_2: ResolvedNewsAlumnus | null;
 }
 
-export type NewsFeatureLayout = "spotlight" | "pair" | "hidden";
+export type NewsFeatureLayout = "spotlight" | "pair" | "trio" | "quad" | "hidden";
 
 export interface NewsFeatureDisplay {
   layout: NewsFeatureLayout;
@@ -167,10 +167,15 @@ export async function getNewsFeatureById(id: number): Promise<NewsFeatureRow | n
   return rows[0] ?? null;
 }
 
-/** Public homepage display — layout chosen by enabled count. */
+/** Public homepage display — layout chosen by enabled count.
+ * 1 → spotlight (large portrait + big quote)
+ * 2 → pair      (two cards side-by-side)
+ * 3 → trio      (hero card spanning both columns, then two beneath)
+ * 4 → quad      (2×2 grid of uniform cards)
+ * Anything past 4 is silently trimmed; admins control via sort_order. */
 export async function getNewsFeatureDisplay(): Promise<NewsFeatureDisplay> {
   const rows = (await sql.query(
-    `${SELECT_WITH_ALUMNI} WHERE nf.enabled = TRUE ORDER BY nf.sort_order ASC, nf.id ASC LIMIT 2`
+    `${SELECT_WITH_ALUMNI} WHERE nf.enabled = TRUE ORDER BY nf.sort_order ASC, nf.id ASC LIMIT 4`
   )) as NewsFeatureRow[];
   if (rows.length === 0) return { layout: "hidden", features: [] };
 
@@ -205,10 +210,12 @@ export async function getNewsFeatureDisplay(): Promise<NewsFeatureDisplay> {
       : null,
   }));
 
-  return {
-    layout: features.length === 1 ? "spotlight" : "pair",
-    features,
-  };
+  const layout: NewsFeatureLayout =
+    features.length === 1 ? "spotlight"
+    : features.length === 2 ? "pair"
+    : features.length === 3 ? "trio"
+    : "quad"; // 4 (LIMIT 4 caps anything higher)
+  return { layout, features };
 }
 
 export async function createNewsFeature(data: NewsFeatureInput): Promise<number> {
