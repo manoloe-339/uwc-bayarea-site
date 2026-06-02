@@ -5,6 +5,7 @@ import sharp from "sharp";
 import { sql } from "@/lib/db";
 import { recordPhoto } from "@/lib/event-photos/queries";
 import { extractTakenAt } from "@/lib/event-photos/exif";
+import { isAuthenticatedAdmin } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,20 +43,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       request,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
         // Middleware lets all POSTs to this path through (so the Vercel
-        // Blob completion webhook can call us back without Basic Auth);
+        // Blob completion webhook can call us back without admin auth);
         // we enforce admin auth here on the user-initiated token branch.
-        const expected = process.env.ADMIN_PASSWORD;
-        if (!expected) throw new Error("Admin disabled");
-        const authHeader = request.headers.get("authorization") || "";
-        if (!authHeader.startsWith("Basic ")) {
-          throw new Error("Authentication required");
-        }
-        try {
-          const decoded = Buffer.from(authHeader.slice(6), "base64").toString("utf8");
-          const idx = decoded.indexOf(":");
-          const pass = idx >= 0 ? decoded.slice(idx + 1) : decoded;
-          if (pass !== expected) throw new Error("Authentication required");
-        } catch {
+        // Accept either the admin_session cookie (what the browser sends
+        // after first login) OR a Basic Auth header (curl / first call).
+        if (!(await isAuthenticatedAdmin(request))) {
           throw new Error("Authentication required");
         }
 
