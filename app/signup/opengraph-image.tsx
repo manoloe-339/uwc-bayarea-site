@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 export const runtime = "nodejs";
 export const revalidate = 3600;
-export const alt = "Join UWC Bay Area — Alumni, Parents & Friends";
+export const alt = "UWC Bay Area · Signup";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -44,45 +44,20 @@ export default function SignupOpenGraphImage() {
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
+            alignItems: "center",
             flex: 1,
           }}
         >
           <div
             style={{
-              fontSize: "26px",
+              fontSize: "150px",
               fontWeight: 700,
-              letterSpacing: "0.32em",
-              textTransform: "uppercase",
-              color: "rgba(255,255,255,0.78)",
-              marginBottom: "24px",
-            }}
-          >
-            Join the community
-          </div>
-          <div
-            style={{
-              fontSize: "92px",
-              fontWeight: 700,
-              lineHeight: 1.02,
+              lineHeight: 1,
               letterSpacing: "-0.02em",
               color: "white",
-              marginBottom: "30px",
             }}
           >
-            UWC Bay Area
-          </div>
-          <div
-            style={{
-              fontSize: "34px",
-              lineHeight: 1.25,
-              color: "rgba(255,255,255,0.88)",
-              maxWidth: "640px",
-            }}
-          >
-            Alumni, parents &amp; friends —
-            sign up at uwcbayarea.org/signup
+            Signup
           </div>
         </div>
       </div>
