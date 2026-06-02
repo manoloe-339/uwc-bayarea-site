@@ -72,21 +72,10 @@ export function FoodiesHostPicker({
 
   const clear = () => setSelected(null);
 
-  const submitCreate = async (form: HTMLFormElement) => {
+  const submitCreate = async (payload: Record<string, string>) => {
     setCreateErr(null);
     setSubmittingCreate(true);
     try {
-      const fd = new FormData(form);
-      const payload = {
-        first_name: String(fd.get("first_name") ?? ""),
-        last_name: String(fd.get("last_name") ?? ""),
-        uwc_college: String(fd.get("uwc_college") ?? ""),
-        grad_year: String(fd.get("grad_year") ?? ""),
-        photo_url: String(fd.get("photo_url") ?? ""),
-        linkedin_url: String(fd.get("linkedin_url") ?? ""),
-        current_title: String(fd.get("current_title") ?? ""),
-        current_company: String(fd.get("current_company") ?? ""),
-      };
       const res = await fetch("/api/admin/news/create-alumnus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -267,7 +256,15 @@ export function FoodiesHostPicker({
 }
 
 /** Inline mini-form to create an admin-added alumni row without leaving
- * the parent form. Lives inside the picker popover. */
+ * the parent form.
+ *
+ * IMPORTANT: This used to render as a <form>, but the parent
+ * NewsFeatureForm is itself a <form>. HTML disallows nested forms; the
+ * browser hoisted any submit click here onto the OUTER form, causing
+ * the entire news-feature form to submit with partial data and the
+ * page to reload — which looked like "the data disappeared." We now
+ * render a <div> with controlled inputs and a type="button" submit,
+ * so the outer form is never accidentally submitted. */
 function AdminAddForm({
   prefill,
   busy,
@@ -278,7 +275,7 @@ function AdminAddForm({
   prefill: string;
   busy: boolean;
   err: string | null;
-  onSubmit: (form: HTMLFormElement) => void | Promise<void>;
+  onSubmit: (payload: Record<string, string>) => void | Promise<void>;
   onCancel: () => void;
 }) {
   // Split the prefill string ("Jane Doe" → first/last) so the admin
@@ -288,14 +285,33 @@ function AdminAddForm({
   const prefillFirst = space > 0 ? trimmed.slice(0, space) : trimmed;
   const prefillLast = space > 0 ? trimmed.slice(space + 1) : "";
 
+  const [fields, setFields] = useState({
+    first_name: prefillFirst,
+    last_name: prefillLast,
+    uwc_college: "",
+    grad_year: "",
+    photo_url: "",
+    linkedin_url: "",
+    current_title: "",
+    current_company: "",
+  });
+
+  const set = (k: keyof typeof fields) =>
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      setFields((f) => ({ ...f, [k]: e.target.value }));
+
+  // Enter on any of the inputs should submit, mirroring native form UX.
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (!busy && fields.first_name.trim() && fields.last_name.trim()) {
+        void onSubmit(fields);
+      }
+    }
+  };
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        void onSubmit(e.currentTarget);
-      }}
-      className="space-y-2.5"
-    >
+    <div className="space-y-2.5">
       <div className="flex items-center justify-between">
         <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
           Add new (admin-only record)
@@ -316,28 +332,32 @@ function AdminAddForm({
       </p>
 
       <div className="grid grid-cols-2 gap-2">
-        <MiniField name="first_name" label="First name *" defaultValue={prefillFirst} required />
-        <MiniField name="last_name" label="Last name *" defaultValue={prefillLast} required />
+        <MiniField label="First name *" value={fields.first_name} onChange={set("first_name")} onKeyDown={onKeyDown} required />
+        <MiniField label="Last name *" value={fields.last_name} onChange={set("last_name")} onKeyDown={onKeyDown} required />
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <MiniField name="uwc_college" label="UWC college" placeholder="e.g. UWC Atlantic" />
-        <MiniField name="grad_year" label="Grad year" type="number" placeholder="e.g. 1987" />
+        <MiniField label="UWC college" value={fields.uwc_college} onChange={set("uwc_college")} onKeyDown={onKeyDown} placeholder="e.g. UWC Atlantic" />
+        <MiniField label="Grad year" type="number" value={fields.grad_year} onChange={set("grad_year")} onKeyDown={onKeyDown} placeholder="e.g. 1987" />
       </div>
       <MiniField
-        name="photo_url"
         label="Photo URL"
         type="url"
+        value={fields.photo_url}
+        onChange={set("photo_url")}
+        onKeyDown={onKeyDown}
         placeholder="https://… — leave blank to skip portrait"
       />
       <MiniField
-        name="linkedin_url"
         label="LinkedIn URL (optional)"
         type="url"
+        value={fields.linkedin_url}
+        onChange={set("linkedin_url")}
+        onKeyDown={onKeyDown}
         placeholder="https://www.linkedin.com/in/…"
       />
       <div className="grid grid-cols-2 gap-2">
-        <MiniField name="current_title" label="Current title" placeholder="e.g. Senior Analyst" />
-        <MiniField name="current_company" label="Current company" placeholder="e.g. Goldman" />
+        <MiniField label="Current title" value={fields.current_title} onChange={set("current_title")} onKeyDown={onKeyDown} placeholder="e.g. Senior Analyst" />
+        <MiniField label="Current company" value={fields.current_company} onChange={set("current_company")} onKeyDown={onKeyDown} placeholder="e.g. Goldman" />
       </div>
 
       {err && <div className="text-xs text-rose-700">{err}</div>}
@@ -351,28 +371,31 @@ function AdminAddForm({
           Cancel
         </button>
         <button
-          type="submit"
-          disabled={busy}
+          type="button"
+          disabled={busy || !fields.first_name.trim() || !fields.last_name.trim()}
+          onClick={() => void onSubmit(fields)}
           className="text-xs font-semibold text-white bg-navy px-3 py-1.5 rounded hover:opacity-90 disabled:opacity-50"
         >
           {busy ? "Creating…" : "Create & pick"}
         </button>
       </div>
-    </form>
+    </div>
   );
 }
 
 function MiniField({
-  name,
   label,
-  defaultValue,
+  value,
+  onChange,
+  onKeyDown,
   placeholder,
   type = "text",
   required = false,
 }: {
-  name: string;
   label: string;
-  defaultValue?: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
   type?: string;
   required?: boolean;
@@ -383,9 +406,10 @@ function MiniField({
         {label}
       </span>
       <input
-        name={name}
         type={type}
-        defaultValue={defaultValue}
+        value={value}
+        onChange={onChange}
+        onKeyDown={onKeyDown}
         placeholder={placeholder}
         required={required}
         className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-xs bg-white"
