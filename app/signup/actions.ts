@@ -17,6 +17,11 @@ import {
   fetchCollegeAlumniCount,
 } from "@/lib/signup-confirmation";
 import {
+  computeSignupDiff,
+  recordSignupSubmission,
+  DIFFED_FIELDS,
+} from "@/lib/signup-submissions";
+import {
   renderSimpleMarkdown,
   EMAIL_LINK_ATTRS,
   EMAIL_PARAGRAPH_ATTRS,
@@ -125,6 +130,26 @@ export async function submitSignup(formData: FormData): Promise<void> {
   const helpTagsArr = formData.getAll("help").map((v) => String(v).trim()).filter(Boolean);
   const helpTags = helpTagsArr.length ? helpTagsArr.join(", ") : null;
 
+  // Snapshot the pre-existing alumni row (if any) BEFORE the upsert so we
+  // can compute a field-by-field diff against what the user just submitted.
+  // Returns null when this is a brand-new email (first signup).
+  // Column list mirrors DIFFED_FIELDS; if you add a field to that const,
+  // mirror it here.
+  const preExisting = (
+    (await sql.query(
+      `SELECT first_name, last_name, mobile, linkedin_url, origin,
+              uwc_college, grad_year, current_city, affiliation, company,
+              help_tags, national_committee, about, questions,
+              studying, study_location, working, work_location,
+              parent_of_name, parent_of_uwc_college, parent_of_grad_year,
+              how_heard
+         FROM alumni
+         WHERE email = $1
+         LIMIT 1`,
+      [email],
+    )) as Array<Record<string, string | number | null>>
+  )[0] ?? null;
+
   // Upsert-with-preserve: existing record's richer fields are not clobbered
   // by a later signup. We use COALESCE on UPDATE to only fill nulls.
   const upserted = (await sql`
@@ -187,6 +212,45 @@ export async function submitSignup(formData: FormData): Promise<void> {
 
   const alumniId = upserted[0].id;
   const wasNew = upserted[0].inserted;
+
+  // Build the diff: inbound payload vs the pre-existing row state.
+  // `applied = false` on a change means the user submitted a different
+  // value than what's already on file, but the COALESCE-preserve upsert
+  // kept the old value — the most useful signal for admin review.
+  const inboundPayload = {
+    first_name: firstName,
+    last_name: lastName,
+    mobile,
+    linkedin_url: linkedinUrl,
+    origin,
+    uwc_college: uwcCollege,
+    grad_year: gradYear,
+    current_city: currentCity,
+    affiliation,
+    company,
+    help_tags: helpTags,
+    national_committee: nationalCommittee,
+    about,
+    questions,
+    studying,
+    study_location: studyLocation,
+    working,
+    work_location: workLocation,
+    parent_of_name: parentOfName,
+    parent_of_uwc_college: parentCollegeFinal,
+    parent_of_grad_year: parentGradFinal,
+    how_heard: howHeard,
+  };
+  const diff = computeSignupDiff(inboundPayload, preExisting);
+  // Fire-and-forget — don't fail the signup if the recorder errors.
+  recordSignupSubmission({
+    alumni_id: alumniId,
+    payload: inboundPayload,
+    diff,
+    is_resubmission: !wasNew,
+  }).catch((err) => {
+    console.error(`[signup] failed to record submission for ${alumniId}:`, err);
+  });
 
   // Kick off LinkedIn auto-enrichment if we have enough to search on.
   // Uses Next 15's after() so the Railway call + polling continues to

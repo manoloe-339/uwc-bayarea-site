@@ -3,13 +3,15 @@ import { LinkedInIcon } from "@/components/admin/icons/LinkedInIcon";
 import { WhatsAppIcon } from "@/components/admin/icons/WhatsAppIcon";
 import { countPendingVisitingRequests } from "@/lib/visiting-requests";
 import { countPendingRegisteredWhatsappRequests } from "@/lib/whatsapp-requests";
+import { countUnreadResubmissions } from "@/lib/signup-submissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function ToolsIndex() {
-  const [pendingVisiting, pendingRegistered] = await Promise.all([
+  const [pendingVisiting, pendingRegistered, pendingResignups] = await Promise.all([
     countPendingVisitingRequests(),
     countPendingRegisteredWhatsappRequests(),
+    countUnreadResubmissions(),
   ]);
   const pendingWhatsapp = pendingVisiting + pendingRegistered;
 
@@ -147,6 +149,30 @@ export default async function ToolsIndex() {
             whether the person matched your alumni directory, which areas
             they want to help with, and any free-text note. Mark contacted
             once you&rsquo;ve followed up.
+          </p>
+        </Link>
+        <Link
+          href="/admin/tools/re-signups"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="flex items-baseline justify-between gap-2 mb-1">
+            <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
+              🔄 Re-signups
+            </div>
+            {pendingResignups > 0 && (
+              <span className="text-[10px] tracking-[.18em] uppercase font-bold text-amber-700">
+                {pendingResignups} pending
+              </span>
+            )}
+          </div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">
+            What existing alumni changed when they re-submitted
+          </div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            When an existing alum re-submits the signup form, see a
+            field-by-field diff. Fields marked &ldquo;preserved&rdquo;
+            were submitted with new values but the upsert kept the old
+            ones — those usually need manual review.
           </p>
         </Link>
       </div>
