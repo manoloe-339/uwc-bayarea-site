@@ -28,21 +28,22 @@ export default function SignupOpenGraphImage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: "40px",
+          gap: "30px",
         }}
       >
+        {/* Logo file is wider than tall; pin width and let height
+            flow so it renders at its natural ratio instead of
+            being squished into a square. */}
         <img
           src={logo}
           alt=""
           style={{
-            width: "300px",
-            height: "300px",
-            objectFit: "contain",
+            width: "640px",
           }}
         />
         <div
           style={{
-            fontSize: "120px",
+            fontSize: "108px",
             fontWeight: 700,
             lineHeight: 1,
             letterSpacing: "-0.02em",
