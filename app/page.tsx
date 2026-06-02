@@ -487,6 +487,16 @@ function RecentFoodiesRow({ recent }: { recent: RecentFoodiesDisplay }) {
 }
 
 function RecentEventThumb({ event }: { event: RecentEventCover }) {
+  const dateLabel = event.date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  // "San Francisco · Apr 5, 2026" — falls back to just the date if no
+  // location is recorded so the line is never empty.
+  const subtitle = event.location
+    ? `${event.location} · ${dateLabel}`
+    : dateLabel;
   return (
     <Link href={`/events/${event.slug}/photos`} className="block group">
       <div className="relative aspect-square bg-[color:var(--ivory-2)] overflow-hidden">
@@ -512,7 +522,7 @@ function RecentEventThumb({ event }: { event: RecentEventCover }) {
         {event.name}
       </figcaption>
       <div className="mt-0.5 text-[11px] text-[color:var(--muted)]">
-        {event.location ?? ""}
+        {subtitle}
       </div>
     </Link>
   );
@@ -633,10 +643,14 @@ function AlumniNewsSection({ display }: { display: NewsFeatureDisplay }) {
             {single ? <>One <em className="italic">spotlight</em></> : <>Local <em className="italic">Alumni</em></>}
           </h2>
         </div>
-        {single ? (
+        {display.layout === "spotlight" ? (
           <NewsSpotlight feature={display.features[0]} />
-        ) : (
+        ) : display.layout === "pair" ? (
           <NewsPair features={display.features} />
+        ) : (
+          // trio (3) and quad (4) — same 2-col grid; trio's first card
+          // spans both columns to act as a hero.
+          <NewsGrid features={display.features} />
         )}
       </div>
     </section>
@@ -713,31 +727,75 @@ function NewsPair({ features }: { features: ResolvedNewsFeature[] }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-9 sm:gap-14">
       {features.map((f) => (
-        <article key={f.id} className="pl-6 border-l-[3px] border-navy">
-          <NewsPublicationLine
-            publication={f.publication}
-            dateLabel={f.date_label}
-            logoUrl={f.publication_logo_url}
-          />
-          <blockquote className="m-0 mt-3.5 font-serif italic font-medium text-[color:var(--navy-ink)] text-[22px] sm:text-[26px] leading-[1.25] text-balance">
-            &ldquo;{f.pull_quote}&rdquo;
-          </blockquote>
-          <NewsByline feature={f} sizePx={50} compact />
-          {f.article_image_url ? (
-            <ArticleCard feature={f} className="mt-6 max-w-[420px]" />
-          ) : f.article_url ? (
-            <a
-              href={f.article_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-5 inline-block text-[11px] font-bold tracking-[.22em] uppercase text-navy border-b border-navy pb-1"
-            >
-              Read article →
-            </a>
-          ) : null}
-        </article>
+        <NewsCard key={f.id} feature={f} />
       ))}
     </div>
+  );
+}
+
+/** Trio (3) and quad (4) layouts. Trio's first card spans both columns
+ * to act as a hero — same card style as the other cells, just wider.
+ * Quad is a plain 2×2. Mobile collapses both to a single column. */
+function NewsGrid({ features }: { features: ResolvedNewsFeature[] }) {
+  const isTrio = features.length === 3;
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-9 sm:gap-14">
+      {features.map((f, i) => (
+        <NewsCard
+          key={f.id}
+          feature={f}
+          hero={isTrio && i === 0}
+          className={isTrio && i === 0 ? "sm:col-span-2" : ""}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Single news-feature card. Used by pair, trio, and quad layouts.
+ * `hero` bumps the pull-quote slightly when the card is acting as a
+ * trio's spanning lead card. */
+function NewsCard({
+  feature,
+  hero,
+  className,
+}: {
+  feature: ResolvedNewsFeature;
+  hero?: boolean;
+  className?: string;
+}) {
+  return (
+    <article
+      className={`pl-6 border-l-[3px] border-navy ${className ?? ""}`}
+    >
+      <NewsPublicationLine
+        publication={feature.publication}
+        dateLabel={feature.date_label}
+        logoUrl={feature.publication_logo_url}
+      />
+      <blockquote
+        className={`m-0 mt-3.5 font-serif italic font-medium text-[color:var(--navy-ink)] leading-[1.25] text-balance ${
+          hero
+            ? "text-[26px] sm:text-[32px]"
+            : "text-[22px] sm:text-[26px]"
+        }`}
+      >
+        &ldquo;{feature.pull_quote}&rdquo;
+      </blockquote>
+      <NewsByline feature={feature} sizePx={50} compact />
+      {feature.article_image_url ? (
+        <ArticleCard feature={feature} className="mt-6 max-w-[420px]" />
+      ) : feature.article_url ? (
+        <a
+          href={feature.article_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-5 inline-block text-[11px] font-bold tracking-[.22em] uppercase text-navy border-b border-navy pb-1"
+        >
+          Read article →
+        </a>
+      ) : null}
+    </article>
   );
 }
 
