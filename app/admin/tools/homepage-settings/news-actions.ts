@@ -7,6 +7,7 @@ import {
   updateNewsFeature,
   deleteNewsFeature,
   setNewsFeatureEnabled,
+  moveNewsFeature,
   isArticleCardStyle,
   type ArticleCardStyle,
 } from "@/lib/news-features";
@@ -90,6 +91,16 @@ export async function toggleNewsFeatureEnabledAction(formData: FormData): Promis
   const enabled = formData.get("enabled") === "1";
   if (!Number.isFinite(id) || id <= 0) return;
   await setNewsFeatureEnabled(id, enabled);
+  revalidatePath("/admin/tools/homepage-settings");
+  revalidatePath("/");
+}
+
+export async function moveNewsFeatureAction(formData: FormData): Promise<void> {
+  const id = Number(formData.get("id"));
+  const direction = String(formData.get("direction") ?? "");
+  if (!Number.isFinite(id) || id <= 0) return;
+  if (direction !== "up" && direction !== "down") return;
+  await moveNewsFeature(id, direction);
   revalidatePath("/admin/tools/homepage-settings");
   revalidatePath("/");
 }

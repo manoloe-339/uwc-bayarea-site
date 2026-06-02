@@ -2,7 +2,7 @@ import Link from "next/link";
 import { listHeroSlidesForAdmin } from "@/lib/hero-slides";
 import { listNewsFeaturesForAdmin } from "@/lib/news-features";
 import { toggleHeroSlideEnabledAction } from "./actions";
-import { toggleNewsFeatureEnabledAction } from "./news-actions";
+import { moveNewsFeatureAction, toggleNewsFeatureEnabledAction } from "./news-actions";
 import { DeleteSlideButton } from "./DeleteSlideButton";
 import { DeleteNewsFeatureButton } from "./DeleteNewsFeatureButton";
 
@@ -129,9 +129,11 @@ export default async function HomepageSettingsPage({
           </h2>
           <p className="text-xs text-[color:var(--muted)] mt-1">
             {enabledNewsCount === 0 && "Section hidden — enable a feature below to show it."}
-            {enabledNewsCount === 1 && "Currently rendering as spotlight (single feature with portrait + big quote)."}
-            {enabledNewsCount === 2 && "Currently rendering as side-by-side pair."}
-            {enabledNewsCount > 2 && `${enabledNewsCount} enabled — first two are shown as a pair.`}
+            {enabledNewsCount === 1 && "Spotlight — single feature with large portrait + big quote."}
+            {enabledNewsCount === 2 && "Pair — two side-by-side cards."}
+            {enabledNewsCount === 3 && "Trio — the topmost enabled feature is the spanning hero, the other two sit beneath. Use ▲ / ▼ to reorder."}
+            {enabledNewsCount === 4 && "Quad — 2×2 grid. Use ▲ / ▼ to reorder."}
+            {enabledNewsCount > 4 && `${enabledNewsCount} enabled — only the first 4 are shown (as a quad). Use ▲ / ▼ to reorder.`}
           </p>
         </div>
         <Link
@@ -149,7 +151,7 @@ export default async function HomepageSettingsPage({
         </div>
       ) : (
         <ul className="space-y-3">
-          {newsFeatures.map((n) => (
+          {newsFeatures.map((n, idx) => (
             <li
               key={n.id}
               className={`bg-white border rounded-[10px] p-4 flex items-start gap-4 ${
@@ -158,8 +160,34 @@ export default async function HomepageSettingsPage({
                   : "border-dashed border-[color:var(--rule)] opacity-60"
               }`}
             >
-              <div className="text-xs text-[color:var(--muted)] font-mono w-8 text-right pt-0.5">
-                #{n.sort_order}
+              <div className="flex flex-col items-center gap-0.5 pt-0.5 shrink-0">
+                <form action={moveNewsFeatureAction}>
+                  <input type="hidden" name="id" value={n.id} />
+                  <input type="hidden" name="direction" value="up" />
+                  <button
+                    type="submit"
+                    disabled={idx === 0}
+                    aria-label="Move up"
+                    className="text-navy hover:opacity-70 disabled:text-[color:var(--rule)] disabled:cursor-not-allowed text-sm leading-none w-6 h-5 flex items-center justify-center"
+                  >
+                    ▲
+                  </button>
+                </form>
+                <div className="text-[10px] text-[color:var(--muted)] font-mono leading-none">
+                  {idx + 1}
+                </div>
+                <form action={moveNewsFeatureAction}>
+                  <input type="hidden" name="id" value={n.id} />
+                  <input type="hidden" name="direction" value="down" />
+                  <button
+                    type="submit"
+                    disabled={idx === newsFeatures.length - 1}
+                    aria-label="Move down"
+                    className="text-navy hover:opacity-70 disabled:text-[color:var(--rule)] disabled:cursor-not-allowed text-sm leading-none w-6 h-5 flex items-center justify-center"
+                  >
+                    ▼
+                  </button>
+                </form>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)]">

@@ -271,3 +271,29 @@ export async function setNewsFeatureEnabled(id: number, enabled: boolean): Promi
     WHERE id = ${id}
   `;
 }
+
+/** Swap a feature with its neighbor in display order, then renormalise
+ * every row's sort_order to 0, 10, 20, … so future moves work
+ * predictably even if the column drifts. No-op when already at the
+ * end of the list in the requested direction. */
+export async function moveNewsFeature(
+  id: number,
+  direction: "up" | "down",
+): Promise<void> {
+  const all = (await sql.query(
+    `SELECT id FROM news_features ORDER BY sort_order ASC, id ASC`
+  )) as { id: number }[];
+  const idx = all.findIndex((f) => f.id === id);
+  if (idx < 0) return;
+  const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= all.length) return;
+  // Swap in-memory, then write 0/10/20/… back out.
+  [all[idx], all[swapIdx]] = [all[swapIdx], all[idx]];
+  for (let i = 0; i < all.length; i++) {
+    await sql`
+      UPDATE news_features
+      SET sort_order = ${i * 10}, updated_at = NOW()
+      WHERE id = ${all[i].id}
+    `;
+  }
+}
