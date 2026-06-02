@@ -470,7 +470,7 @@ function RecentFoodiesRow({ recent }: { recent: RecentFoodiesDisplay }) {
           <Link
             key={p.id}
             href={`/events/${recent.event.slug}/photos`}
-            className="relative block aspect-square bg-[color:var(--ivory-2)] overflow-hidden group"
+            className="relative block aspect-square bg-[color:var(--ivory-2)] overflow-hidden rounded-[10px] group"
           >
             <Image
               src={p.url}
@@ -499,7 +499,7 @@ function RecentEventThumb({ event }: { event: RecentEventCover }) {
     : dateLabel;
   return (
     <Link href={`/events/${event.slug}/photos`} className="block group">
-      <div className="relative aspect-square bg-[color:var(--ivory-2)] overflow-hidden">
+      <div className="relative aspect-square bg-[color:var(--ivory-2)] overflow-hidden rounded-[10px]">
         {event.cover_url ? (
           <Image
             src={event.cover_url}
