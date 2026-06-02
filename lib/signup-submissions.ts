@@ -39,11 +39,17 @@ export type FieldChange = {
   /** Value the user submitted in this re-signup. */
   to: string | number | null;
   /** Whether the upsert actually wrote the new value.
-   * - true  → the existing field was null, so COALESCE used `to`.
-   * - false → the existing field had a value, so COALESCE preserved it
-   *           and the user's new value was silently dropped. */
+   * The signup upsert now trusts user input: non-null submissions
+   * overwrite. Exception: uwc_college is preserve-only (admin-curated
+   * canonical names beat user typos). */
   applied: boolean;
 };
+
+/** Fields where existing (admin-curated) data wins over user re-submission.
+ * Everything else flips to "user input wins when non-null." */
+const PRESERVE_ON_CONFLICT: ReadonlySet<DiffedField> = new Set<DiffedField>([
+  "uwc_college",
+]);
 
 export type SubmissionDiff = Partial<Record<DiffedField, FieldChange>>;
 
@@ -51,22 +57,29 @@ type RecordableRow = Partial<Record<DiffedField, string | number | null>>;
 
 /** Compute a field-by-field diff between an inbound signup payload and
  * the alumni row as it existed BEFORE the upsert. Only fields that
- * differ end up in the diff. */
+ * differ AND that the user actively submitted are included — blank-on-
+ * resubmit is noise (the user just didn't bother to re-enter a field),
+ * not a meaningful change to surface. */
 export function computeSignupDiff(
   payload: RecordableRow,
   previous: RecordableRow | null,
 ): SubmissionDiff {
   const diff: SubmissionDiff = {};
   for (const field of DIFFED_FIELDS) {
-    const submitted = payload[field] ?? null;
-    const existing = previous ? (previous[field] ?? null) : null;
-    if (normalize(submitted) === normalize(existing)) continue;
+    const submitted = normalize(payload[field] ?? null);
+    const existing = normalize(previous ? (previous[field] ?? null) : null);
+    if (submitted === existing) continue;
+    // Drop "user left this blank" entries — most re-signups don't fill
+    // in every field, so emitting null-from-non-null pairs as "changes"
+    // would drown the queue in noise.
+    if (submitted === null) continue;
+    const applied = PRESERVE_ON_CONFLICT.has(field)
+      ? existing === null // preserve-on-conflict: user value only applies if no prior value
+      : true; // default: user-submitted value wins (matches the upsert)
     diff[field] = {
       from: existing as FieldChange["from"],
       to: submitted as FieldChange["to"],
-      // COALESCE preserves the existing value when it is non-null.
-      // So the new value is APPLIED only when existing was null/empty.
-      applied: normalize(existing) === null,
+      applied,
     };
   }
   return diff;

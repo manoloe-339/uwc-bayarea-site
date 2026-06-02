@@ -68,10 +68,17 @@ export default async function ReSignupsPage() {
         Re-signups
       </h1>
       <p className="text-[color:var(--muted)] text-sm mb-8">
-        When an existing alum re-submits the signup form, this queue surfaces
-        what they tried to change. Fields marked <strong className="text-amber-700">preserved</strong> are
-        the most interesting: the user submitted a new value but the
-        upsert kept their existing data on the alumni record.
+        Log of fields existing alumni updated by re-submitting the signup
+        form. Changes auto-apply — the alum knows their own info — and
+        this view is a record of what they changed.
+        <span className="block mt-1">
+          Most rows are tagged <strong className="text-emerald-700">applied</strong>{" "}
+          (written to the alumni record). The rare{" "}
+          <strong className="text-amber-700">preserved</strong> rows are
+          fields where admin-curated data wins (currently just{" "}
+          <code className="font-mono text-[11px]">uwc_college</code>) — worth
+          a manual look to decide whether to override.
+        </span>
       </p>
 
       {rows.length === 0 ? (
