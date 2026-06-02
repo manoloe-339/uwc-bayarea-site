@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   listSignupSubmissions,
   DIFFED_FIELDS,
+  FIELD_LABELS,
   type DiffedField,
   type FieldChange,
   type SignupSubmissionRow,
@@ -12,31 +13,6 @@ import {
 } from "./actions";
 
 export const dynamic = "force-dynamic";
-
-const FIELD_LABELS: Record<DiffedField, string> = {
-  first_name: "First name",
-  last_name: "Last name",
-  mobile: "Mobile",
-  linkedin_url: "LinkedIn",
-  origin: "Origin",
-  uwc_college: "UWC college",
-  grad_year: "Grad year",
-  current_city: "Current city",
-  affiliation: "Affiliation",
-  company: "Company",
-  help_tags: "Help tags",
-  national_committee: "National committee",
-  about: "About",
-  questions: "Questions",
-  studying: "Studying",
-  study_location: "Study location",
-  working: "Working",
-  work_location: "Work location",
-  parent_of_name: "Parent of (name)",
-  parent_of_uwc_college: "Parent of (college)",
-  parent_of_grad_year: "Parent of (grad year)",
-  how_heard: "How heard",
-};
 
 function fmtDateTime(d: Date): string {
   const dd = d instanceof Date ? d : new Date(String(d));

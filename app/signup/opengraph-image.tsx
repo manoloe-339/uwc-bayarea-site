@@ -25,40 +25,31 @@ export default function SignupOpenGraphImage() {
           height: "100%",
           background: NAVY,
           display: "flex",
-          flexDirection: "row",
+          flexDirection: "column",
           alignItems: "center",
-          padding: "70px 90px",
-          gap: "70px",
+          justifyContent: "center",
+          gap: "40px",
         }}
       >
         <img
           src={logo}
           alt=""
           style={{
-            width: "330px",
-            height: "330px",
+            width: "300px",
+            height: "300px",
             objectFit: "contain",
-            flexShrink: 0,
           }}
         />
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            flex: 1,
+            fontSize: "120px",
+            fontWeight: 700,
+            lineHeight: 1,
+            letterSpacing: "-0.02em",
+            color: "white",
           }}
         >
-          <div
-            style={{
-              fontSize: "150px",
-              fontWeight: 700,
-              lineHeight: 1,
-              letterSpacing: "-0.02em",
-              color: "white",
-            }}
-          >
-            Signup
-          </div>
+          Signup
         </div>
       </div>
     ),

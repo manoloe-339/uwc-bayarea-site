@@ -33,6 +33,34 @@ export const DIFFED_FIELDS = [
 
 export type DiffedField = (typeof DIFFED_FIELDS)[number];
 
+/** Human-readable labels for each diffed field. Used by both the
+ * admin re-signups page and the admin notification email so they
+ * speak the same language. */
+export const FIELD_LABELS: Record<DiffedField, string> = {
+  first_name: "First name",
+  last_name: "Last name",
+  mobile: "Mobile",
+  linkedin_url: "LinkedIn",
+  origin: "Origin",
+  uwc_college: "UWC college",
+  grad_year: "Grad year",
+  current_city: "Current city",
+  affiliation: "Affiliation",
+  company: "Company",
+  help_tags: "Help tags",
+  national_committee: "National committee",
+  about: "About",
+  questions: "Questions",
+  studying: "Studying",
+  study_location: "Study location",
+  working: "Working",
+  work_location: "Work location",
+  parent_of_name: "Parent of (name)",
+  parent_of_uwc_college: "Parent of (college)",
+  parent_of_grad_year: "Parent of (grad year)",
+  how_heard: "How heard",
+};
+
 export type FieldChange = {
   /** Pre-existing value on the alumni row before the upsert (null if absent). */
   from: string | number | null;
@@ -173,4 +201,40 @@ export async function setSubmissionStatus(
     SET status = ${status}, reviewed_at = NOW()
     WHERE id = ${id}
   `;
+}
+
+/** Format a value for the plain-text admin email. Empty/null → "—".
+ * Long values truncated to 80 chars so the email body doesn't blow
+ * out on `about` / `questions` re-submissions which can be paragraphs. */
+function fmtValueForEmail(v: FieldChange["from"]): string {
+  if (v == null) return "—";
+  const s = String(v).trim();
+  if (!s) return "—";
+  if (s.length > 80) return s.slice(0, 77) + "…";
+  return s;
+}
+
+/** Build the "Changed fields" block for the admin notification email
+ * sent on a re-submission. Returns an empty string when the diff has
+ * no entries (e.g., the user re-submitted the exact same values), so
+ * the calling code can just concatenate without conditional logic. */
+export function formatDiffForEmail(diff: SubmissionDiff): string {
+  const entries: Array<[DiffedField, FieldChange]> = [];
+  for (const field of DIFFED_FIELDS) {
+    const change = diff[field];
+    if (change) entries.push([field, change]);
+  }
+  if (entries.length === 0) return "";
+
+  const lines: string[] = ["Changed fields:"];
+  for (const [field, change] of entries) {
+    const label = FIELD_LABELS[field];
+    const from = fmtValueForEmail(change.from);
+    const to = fmtValueForEmail(change.to);
+    const state = change.applied
+      ? "[applied]"
+      : "[preserved — needs review]";
+    lines.push(`  • ${label}: ${from} → ${to}   ${state}`);
+  }
+  return lines.join("\n");
 }

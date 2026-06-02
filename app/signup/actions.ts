@@ -19,7 +19,9 @@ import {
 import {
   computeSignupDiff,
   recordSignupSubmission,
+  formatDiffForEmail,
   DIFFED_FIELDS,
+  type SubmissionDiff,
 } from "@/lib/signup-submissions";
 import {
   renderSimpleMarkdown,
@@ -317,6 +319,7 @@ export async function submitSignup(formData: FormData): Promise<void> {
     currentCity,
     region,
     wasNew,
+    diff,
   });
 
   await Promise.allSettled([
@@ -371,6 +374,7 @@ function buildAdminNotificationBody(r: {
   currentCity: string | null;
   region: string | null;
   wasNew: boolean;
+  diff: SubmissionDiff;
 }): string {
   const lines = [
     `${r.wasNew ? "New signup" : "Updated record"}: ${r.firstName} ${r.lastName}`,
@@ -380,8 +384,19 @@ function buildAdminNotificationBody(r: {
     `College:     ${r.uwcCollege ?? "—"}`,
     `Grad year:   ${r.gradYear ?? "—"}`,
     `City:        ${r.currentCity ?? "—"} ${r.region ? `(${r.region})` : ""}`,
-    "",
-    `View record: https://uwcbayarea.org/admin/alumni/${r.id}`,
   ];
+  // For re-submissions, inline the field-by-field diff so the admin
+  // doesn't have to click through to see what changed.
+  if (!r.wasNew) {
+    const diffBlock = formatDiffForEmail(r.diff);
+    if (diffBlock) {
+      lines.push("", diffBlock);
+    }
+  }
+  lines.push(
+    "",
+    `Review re-signups: https://uwcbayarea.org/admin/tools/re-signups`,
+    `View record:       https://uwcbayarea.org/admin/alumni/${r.id}`,
+  );
   return lines.join("\n");
 }
