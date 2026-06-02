@@ -123,7 +123,7 @@ export default function SignupForm() {
               className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
             />
             <span className="block mt-1 text-xs text-[color:var(--muted)]">
-              We use WhatsApp to organize events.
+              Required for UWC Bay Area WhatsApp access.
             </span>
           </label>
           <label className="block sm:col-span-2">
