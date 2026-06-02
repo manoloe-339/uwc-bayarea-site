@@ -39,17 +39,11 @@ export type FieldChange = {
   /** Value the user submitted in this re-signup. */
   to: string | number | null;
   /** Whether the upsert actually wrote the new value.
-   * The signup upsert now trusts user input: non-null submissions
-   * overwrite. Exception: uwc_college is preserve-only (admin-curated
-   * canonical names beat user typos). */
+   * - true  → the existing field was null, so COALESCE used `to`.
+   * - false → the existing field had a value, so COALESCE preserved it
+   *           and the user's new value was not written. */
   applied: boolean;
 };
-
-/** Fields where existing (admin-curated) data wins over user re-submission.
- * Everything else flips to "user input wins when non-null." */
-const PRESERVE_ON_CONFLICT: ReadonlySet<DiffedField> = new Set<DiffedField>([
-  "uwc_college",
-]);
 
 export type SubmissionDiff = Partial<Record<DiffedField, FieldChange>>;
 
@@ -69,13 +63,14 @@ export function computeSignupDiff(
     const submitted = normalize(payload[field] ?? null);
     const existing = normalize(previous ? (previous[field] ?? null) : null);
     if (submitted === existing) continue;
-    // Drop "user left this blank" entries — most re-signups don't fill
-    // in every field, so emitting null-from-non-null pairs as "changes"
-    // would drown the queue in noise.
+    // Drop "user left this blank" entries — they don't cause changes
+    // under the preserve-on-conflict upsert and would just add noise.
     if (submitted === null) continue;
-    const applied = PRESERVE_ON_CONFLICT.has(field)
-      ? existing === null // preserve-on-conflict: user value only applies if no prior value
-      : true; // default: user-submitted value wins (matches the upsert)
+    // The signup upsert uses COALESCE(alumni, EXCLUDED) on every field
+    // — i.e. existing non-null values are preserved on re-submission.
+    // So the user's new value was APPLIED only when there was no prior
+    // value to preserve.
+    const applied = existing === null;
     diff[field] = {
       from: existing as FieldChange["from"],
       to: submitted as FieldChange["to"],

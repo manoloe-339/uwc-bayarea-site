@@ -169,10 +169,11 @@ export default async function ToolsIndex() {
             What existing alumni changed when they re-submitted
           </div>
           <p className="text-xs text-[color:var(--muted)] mt-2">
-            Activity log of field-by-field changes when existing alumni
-            re-submit the signup form. Changes auto-apply; this view is
-            for spot-checking, with rare admin-curated conflicts (e.g.
-            UWC college name) flagged for manual review.
+            When an existing alum re-submits the signup form, see a
+            field-by-field diff. The signup upsert preserves existing
+            values, so &ldquo;preserved&rdquo; rows are where the user
+            submitted a new value but the old one was kept — decide
+            manually whether to apply.
           </p>
         </Link>
       </div>

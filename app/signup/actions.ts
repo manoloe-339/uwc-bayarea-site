@@ -173,39 +173,31 @@ export async function submitSignup(formData: FormData): Promise<void> {
       TRUE, ${[SOURCE]}, ${[]}, NOW(), NOW(), NOW()
     )
     ON CONFLICT (email) DO UPDATE SET
-      -- Trust the alum: user-submitted values win when non-null. Only fall
-      -- back to the existing value when the field was left blank.
-      -- Exception: uwc_college stays admin-curation-first (alumni write the
-      -- name 12 different ways; the canonical normalized form should not
-      -- be regressed by a re-submission). uwc_college_raw still updates
-      -- so we keep the latest typed form for reference.
-      first_name         = COALESCE(EXCLUDED.first_name, alumni.first_name),
-      last_name          = COALESCE(EXCLUDED.last_name, alumni.last_name),
-      mobile             = COALESCE(EXCLUDED.mobile, alumni.mobile),
-      linkedin_url       = COALESCE(EXCLUDED.linkedin_url, alumni.linkedin_url),
-      origin             = COALESCE(EXCLUDED.origin, alumni.origin),
+      first_name         = COALESCE(alumni.first_name, EXCLUDED.first_name),
+      last_name          = COALESCE(alumni.last_name, EXCLUDED.last_name),
+      mobile             = COALESCE(alumni.mobile, EXCLUDED.mobile),
+      linkedin_url       = COALESCE(alumni.linkedin_url, EXCLUDED.linkedin_url),
+      origin             = COALESCE(alumni.origin, EXCLUDED.origin),
       uwc_college        = COALESCE(alumni.uwc_college, EXCLUDED.uwc_college),
-      uwc_college_raw    = COALESCE(EXCLUDED.uwc_college_raw, alumni.uwc_college_raw),
-      grad_year          = COALESCE(EXCLUDED.grad_year, alumni.grad_year),
-      grad_year_raw      = COALESCE(EXCLUDED.grad_year_raw, alumni.grad_year_raw),
-      current_city       = COALESCE(EXCLUDED.current_city, alumni.current_city),
-      region             = COALESCE(EXCLUDED.region, alumni.region),
-      affiliation        = COALESCE(EXCLUDED.affiliation, alumni.affiliation),
-      company            = COALESCE(EXCLUDED.company, alumni.company),
-      help_tags          = COALESCE(EXCLUDED.help_tags, alumni.help_tags),
-      national_committee = COALESCE(EXCLUDED.national_committee, alumni.national_committee),
-      about              = COALESCE(EXCLUDED.about, alumni.about),
-      questions          = COALESCE(EXCLUDED.questions, alumni.questions),
-      studying           = COALESCE(EXCLUDED.studying, alumni.studying),
-      study_location     = COALESCE(EXCLUDED.study_location, alumni.study_location),
-      working            = COALESCE(EXCLUDED.working, alumni.working),
-      work_location      = COALESCE(EXCLUDED.work_location, alumni.work_location),
-      parent_of_name     = COALESCE(EXCLUDED.parent_of_name, alumni.parent_of_name),
-      parent_of_uwc_college = COALESCE(EXCLUDED.parent_of_uwc_college, alumni.parent_of_uwc_college),
-      parent_of_grad_year = COALESCE(EXCLUDED.parent_of_grad_year, alumni.parent_of_grad_year),
-      how_heard          = COALESCE(EXCLUDED.how_heard, alumni.how_heard),
-      -- First-submission timestamp: NEVER overwrite. Original signup time
-      -- stays as-is even if they re-submit years later.
+      uwc_college_raw    = COALESCE(alumni.uwc_college_raw, EXCLUDED.uwc_college_raw),
+      grad_year          = COALESCE(alumni.grad_year, EXCLUDED.grad_year),
+      grad_year_raw      = COALESCE(alumni.grad_year_raw, EXCLUDED.grad_year_raw),
+      current_city       = COALESCE(alumni.current_city, EXCLUDED.current_city),
+      region             = COALESCE(alumni.region, EXCLUDED.region),
+      affiliation        = COALESCE(alumni.affiliation, EXCLUDED.affiliation),
+      company            = COALESCE(alumni.company, EXCLUDED.company),
+      help_tags          = COALESCE(alumni.help_tags, EXCLUDED.help_tags),
+      national_committee = COALESCE(alumni.national_committee, EXCLUDED.national_committee),
+      about              = COALESCE(alumni.about, EXCLUDED.about),
+      questions          = COALESCE(alumni.questions, EXCLUDED.questions),
+      studying           = COALESCE(alumni.studying, EXCLUDED.studying),
+      study_location     = COALESCE(alumni.study_location, EXCLUDED.study_location),
+      working            = COALESCE(alumni.working, EXCLUDED.working),
+      work_location      = COALESCE(alumni.work_location, EXCLUDED.work_location),
+      parent_of_name     = COALESCE(alumni.parent_of_name, EXCLUDED.parent_of_name),
+      parent_of_uwc_college = COALESCE(alumni.parent_of_uwc_college, EXCLUDED.parent_of_uwc_college),
+      parent_of_grad_year = COALESCE(alumni.parent_of_grad_year, EXCLUDED.parent_of_grad_year),
+      how_heard          = COALESCE(alumni.how_heard, EXCLUDED.how_heard),
       submitted_at       = COALESCE(alumni.submitted_at, EXCLUDED.submitted_at),
       subscribed         = TRUE,
       unsubscribed_at    = NULL,
