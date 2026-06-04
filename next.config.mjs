@@ -7,6 +7,15 @@ const nextConfig = {
   // runtime. Marking them external uses node_modules at runtime
   // where dynamic requires work normally.
   serverExternalPackages: ["apify-client", "proxy-agent", "heic-convert", "libheif-js"],
+  // OG image routes call readFileSync on /public assets at request time.
+  // Vercel's @vercel/nft file tracer doesn't always pick those up
+  // (especially when resolved via import.meta.url across nested dirs),
+  // so explicitly include the assets in the function bundles. Keeps
+  // both the root OG and /signup OG generating reliably.
+  outputFileTracingIncludes: {
+    "/opengraph-image": ["./public/uwc-bay-area-logo.png"],
+    "/signup/opengraph-image": ["./public/uwc-bay-area-logo.png"],
+  },
   images: {
     remotePatterns: [
       {
