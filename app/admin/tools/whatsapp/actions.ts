@@ -16,6 +16,7 @@ import {
 import { ensureParagraphBreaks } from "@/lib/signup-confirmation";
 import { setVisitingRequestContacted } from "@/lib/visiting-requests";
 import {
+  clearRegisteredWhatsappRequestAlumni,
   clearRegisteredWhatsappRequestExternalInvite,
   clearRegisteredWhatsappRequestSent,
   createRegisteredWhatsappRequest,
@@ -316,6 +317,16 @@ export async function unmarkWhatsappAlreadyInvitedAction(formData: FormData): Pr
   const requestId = Number(formData.get("request_id"));
   if (!Number.isFinite(requestId) || requestId <= 0) return;
   await clearRegisteredWhatsappRequestExternalInvite(requestId);
+  revalidatePath(TOOL_PATH);
+}
+
+/** Clear the alumni link on a request when the homepage matcher picked
+ * the wrong record (same-surname false match, etc.). The request keeps
+ * its raw_name and moves back to the "unmatched" bucket. */
+export async function unlinkWhatsappRequestAlumniAction(formData: FormData): Promise<void> {
+  const requestId = Number(formData.get("request_id"));
+  if (!Number.isFinite(requestId) || requestId <= 0) return;
+  await clearRegisteredWhatsappRequestAlumni(requestId);
   revalidatePath(TOOL_PATH);
 }
 

@@ -17,6 +17,7 @@ import {
 import { MarkdownTextarea } from "@/components/admin/MarkdownTextarea";
 import {
   markWhatsappAlreadyInvitedAction,
+  unlinkWhatsappRequestAlumniAction,
   saveWhatsappTemplateAction,
   sendTestWhatsappTemplateAction,
   sendWhatsappInviteAction,
@@ -418,6 +419,16 @@ function RequestsList({
                         title="Close this request without sending — already invited elsewhere"
                       >
                         Already invited
+                      </button>
+                    </form>
+                    <form action={unlinkWhatsappRequestAlumniAction}>
+                      <input type="hidden" name="request_id" value={r.id} />
+                      <button
+                        type="submit"
+                        className="w-full sm:w-auto text-xs font-semibold px-2.5 py-1 rounded border border-[color:var(--rule)] text-[color:var(--muted)] hover:text-rose-700"
+                        title="The matched alumnus is the wrong person (e.g. a sibling with the same surname). Clears the link; request moves back to the unmatched bucket."
+                      >
+                        Unlink wrong match
                       </button>
                     </form>
                   </>

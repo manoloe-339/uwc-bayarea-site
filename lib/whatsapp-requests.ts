@@ -121,6 +121,17 @@ export async function clearRegisteredWhatsappRequestExternalInvite(id: number): 
   `;
 }
 
+/** Clear the alumni_id link when the homepage matcher picked the wrong
+ * record (e.g. same-surname false match). The request keeps its raw_name
+ * and moves to the "unmatched" bucket so the admin can dismiss / re-handle. */
+export async function clearRegisteredWhatsappRequestAlumni(id: number): Promise<void> {
+  await sql`
+    UPDATE registered_whatsapp_requests
+    SET alumni_id = NULL
+    WHERE id = ${id}
+  `;
+}
+
 export async function countPendingRegisteredWhatsappRequests(): Promise<number> {
   const rows = (await sql`
     SELECT COUNT(*)::int AS n FROM registered_whatsapp_requests
