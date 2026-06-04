@@ -18,6 +18,9 @@ type Props = {
   defaultValue?: string | null;
   /** Optional helper text shown beneath the field. */
   hint?: string;
+  /** Optional error message rendered inline beneath the field (e.g. from
+   * server validation). Falls back to the hint when empty. */
+  error?: string | null;
 };
 
 /**
@@ -30,7 +33,7 @@ type Props = {
  * can't accidentally end up with two values typed.
  */
 export function CountryAutocomplete({
-  name, label, required, full, placeholder, defaultValue, hint,
+  name, label, required, full, placeholder, defaultValue, hint, error,
 }: Props) {
   const [picked, setPicked] = useState<Country | null>(() =>
     defaultValue ? findCountry(defaultValue) : null
@@ -62,6 +65,22 @@ export function CountryAutocomplete({
     setPicked(null);
     setQuery("");
     setOpen(true);
+  };
+
+  /** Auto-promote on blur: if the user typed something that resolves
+   * unambiguously to a known country (via the alias-aware findCountry),
+   * pick it for them. This kills the most common silent failure —
+   * typing "USA" without tapping the dropdown entry. */
+  const onBlur = () => {
+    if (picked) return;
+    const t = query.trim();
+    if (!t) return;
+    const c = findCountry(t);
+    if (c) {
+      setPicked(c);
+      setQuery("");
+      setOpen(false);
+    }
   };
 
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -120,12 +139,16 @@ export function CountryAutocomplete({
                 setHighlight(0);
               }}
               onFocus={() => setOpen(true)}
+              onBlur={onBlur}
               onKeyDown={onKey}
               placeholder={placeholder ?? "Start typing…"}
               autoComplete="off"
               required={required}
               aria-required={required}
-              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+              aria-invalid={error ? true : undefined}
+              className={`w-full border rounded px-3 py-2 text-sm bg-white ${
+                error ? "border-red-500" : "border-[color:var(--rule)]"
+              }`}
             />
             {open && results.length > 0 && (
               <ul
@@ -173,9 +196,17 @@ export function CountryAutocomplete({
         )}
       </div>
 
-      {hint && (
+      {error ? (
+        <span className="block mt-1 text-xs text-red-600 font-semibold">
+          {error}
+        </span>
+      ) : hint ? (
         <span className="block mt-1 text-xs text-[color:var(--muted)]">{hint}</span>
-      )}
+      ) : !picked ? (
+        <span className="block mt-1 text-xs text-[color:var(--muted)]">
+          Tap your country from the dropdown to confirm.
+        </span>
+      ) : null}
     </label>
   );
 }

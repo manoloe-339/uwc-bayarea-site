@@ -66,8 +66,27 @@ function hashIp(ip: string): string {
   return Math.abs(h).toString(36);
 }
 
-export async function submitSignup(formData: FormData): Promise<void> {
-  // Honeypot — bots fill this, humans don't see it.
+/** State returned by the signup action so client useActionState can
+ * render validation errors inline without losing form state to a
+ * redirect-and-reload round-trip. */
+export type SignupState = {
+  error: string | null;
+  /** Optional field to attach the error to (so the form can scroll/
+   * highlight the relevant input). */
+  field: string | null;
+};
+
+export const INITIAL_SIGNUP_STATE: SignupState = { error: null, field: null };
+
+function err(error: string, field: string | null = null): SignupState {
+  return { error, field };
+}
+
+export async function submitSignup(
+  _prev: SignupState,
+  formData: FormData,
+): Promise<SignupState> {
+  // Honeypot — bots fill this, humans don't see it. Pretend success.
   if (s(formData.get("website"))) {
     redirect("/signup/thanks");
   }
@@ -81,13 +100,22 @@ export async function submitSignup(formData: FormData): Promise<void> {
   const origin = s(formData.get("origin"));
 
   if (!firstName || !lastName || !email || !affiliation) {
-    redirect("/signup?error=missing_required");
+    return err(
+      "Please fill in your name, email, and how you're connected to UWC.",
+      !firstName ? "first_name" : !lastName ? "last_name" : !email ? "email" : "affiliation",
+    );
   }
   if (!origin) {
-    redirect("/signup?error=missing_origin");
+    return err(
+      "Please pick your home country from the dropdown — typing alone doesn't save it.",
+      "origin",
+    );
   }
   if (!consent) {
-    redirect("/signup?error=consent_required");
+    return err(
+      "We need your consent to send you UWC Bay Area emails before we can add you.",
+      "consent",
+    );
   }
 
   // Alum affiliation requires UWC college + grad year. The form has
@@ -97,7 +125,10 @@ export async function submitSignup(formData: FormData): Promise<void> {
     const uwcCollegeRawCheck = s(formData.get("uwc_college"));
     const gradYearRawCheck = s(formData.get("grad_year"));
     if (!uwcCollegeRawCheck || !gradYearRawCheck) {
-      redirect("/signup?error=missing_alum_fields");
+      return err(
+        "Please tell us which UWC college you attended and your graduation year.",
+        !uwcCollegeRawCheck ? "uwc_college" : "grad_year",
+      );
     }
   }
 
@@ -106,7 +137,10 @@ export async function submitSignup(formData: FormData): Promise<void> {
   const ipHash = hashIp(ipHeader);
   const allowed = await rateLimit(ipHash);
   if (!allowed) {
-    redirect("/signup?error=rate_limit");
+    return err(
+      "We've received a lot of submissions from this network. Please try again in a little while.",
+      null,
+    );
   }
 
   const uwcCollegeRaw = s(formData.get("uwc_college"));

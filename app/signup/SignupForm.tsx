@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { COLLEGES, gradYearRangeFor } from "@/lib/uwc-colleges";
 import { CountryAutocomplete } from "@/components/CountryAutocomplete";
-import { submitSignup } from "./actions";
+import { submitSignup, INITIAL_SIGNUP_STATE } from "./actions";
 
 type HelpOption = { value: string; label: string; hint?: string };
 
@@ -27,7 +27,22 @@ export default function SignupForm() {
   const [confirmEmail, setConfirmEmail] = useState("");
   const [isWorking, setIsWorking] = useState(false);
   const [isStudying, setIsStudying] = useState(false);
-  const [pending, startTransition] = useTransition();
+  // useActionState lets the server action return validation errors
+  // without redirecting, so the form keeps every field the user typed
+  // when validation fails. Successful submissions still redirect.
+  const [state, formAction, pending] = useActionState(
+    submitSignup,
+    INITIAL_SIGNUP_STATE,
+  );
+
+  // Scroll the error banner into view when a new error arrives so the
+  // user notices it even if they're partway down the form.
+  const errorRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (state.error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [state]);
 
   const yearRange = gradYearRangeFor(college);
   const yearOptions: number[] = yearRange
@@ -56,11 +71,20 @@ export default function SignupForm() {
     <form
       action={(fd) => {
         if (!emailsMatch) return;
-        startTransition(() => submitSignup(fd));
+        formAction(fd);
       }}
       className="space-y-7"
       noValidate
     >
+      {state.error && (
+        <div
+          ref={errorRef}
+          role="alert"
+          className="border border-red-300 bg-red-50 rounded-md px-4 py-3 text-sm text-red-800"
+        >
+          {state.error}
+        </div>
+      )}
       {/* Honeypot — bots fill named fields; we hide it from humans
           (offscreen + opacity 0 + tabindex -1) and skip the label so
           nothing user-facing reads "Website". */}
@@ -231,6 +255,7 @@ export default function SignupForm() {
               placeholder="Type a country (e.g. Brazil)"
               required
               full
+              error={state.field === "origin" ? state.error : null}
             />
           </div>
         )}

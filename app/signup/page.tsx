@@ -10,27 +10,7 @@ export const metadata: Metadata = {
   description: signup.lede,
 };
 
-const ERROR_MESSAGES: Record<string, string> = {
-  missing_required:
-    "Please fill in the required fields (name, email, and how you're connected to UWC).",
-  missing_origin:
-    "Please pick the country you're originally from.",
-  missing_alum_fields:
-    "Please tell us which UWC college you attended and your graduation year.",
-  consent_required:
-    "We need your consent to send you UWC Bay Area emails before we can add you.",
-  rate_limit:
-    "We've received a lot of submissions from this network. Please try again in a little while.",
-};
-
-export default async function SignupPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const sp = await searchParams;
-  const errorMsg = sp.error ? ERROR_MESSAGES[sp.error] ?? "Something went wrong. Please try again." : null;
-
+export default async function SignupPage() {
   return (
     <>
       <PageviewBeacon path="/signup" />
@@ -80,12 +60,10 @@ export default async function SignupPage({
       </div>
 
       <section className="max-w-[680px] mx-auto px-5 sm:px-7 pt-9 pb-20">
-        {errorMsg && (
-          <div className="mb-5 p-4 border-l-4 border-red-600 bg-red-50 text-sm text-red-900 rounded-[2px]">
-            {errorMsg}
-          </div>
-        )}
-
+        {/* Errors used to be passed via ?error= query param and rendered
+            here. They're now returned by the server action and rendered
+            inline in SignupForm via useActionState — that keeps every
+            field the user typed when validation fails. */}
         <div
           className="relative bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden
             shadow-[0_2px_0_var(--ivory-3),0_24px_60px_-30px_rgba(11,37,69,.22)]
