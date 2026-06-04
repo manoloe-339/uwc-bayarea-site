@@ -66,17 +66,12 @@ function hashIp(ip: string): string {
   return Math.abs(h).toString(36);
 }
 
-/** State returned by the signup action so client useActionState can
- * render validation errors inline without losing form state to a
- * redirect-and-reload round-trip. */
-export type SignupState = {
-  error: string | null;
-  /** Optional field to attach the error to (so the form can scroll/
-   * highlight the relevant input). */
-  field: string | null;
-};
-
-export const INITIAL_SIGNUP_STATE: SignupState = { error: null, field: null };
+// SignupState + INITIAL_SIGNUP_STATE live in ./state because this file
+// uses "use server" — and that directive forbids any non-async-function
+// export at runtime (even type-only exports survive type-stripping, but
+// runtime constants like INITIAL_SIGNUP_STATE crash module load with
+// "A 'use server' file can only export async functions, found object").
+import type { SignupState } from "./state";
 
 function err(error: string, field: string | null = null): SignupState {
   return { error, field };

@@ -3,7 +3,8 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { COLLEGES, gradYearRangeFor } from "@/lib/uwc-colleges";
 import { CountryAutocomplete } from "@/components/CountryAutocomplete";
-import { submitSignup, INITIAL_SIGNUP_STATE } from "./actions";
+import { submitSignup } from "./actions";
+import { INITIAL_SIGNUP_STATE } from "./state";
 
 type HelpOption = { value: string; label: string; hint?: string };
 
