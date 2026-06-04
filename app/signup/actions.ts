@@ -90,6 +90,17 @@ export async function submitSignup(formData: FormData): Promise<void> {
     redirect("/signup?error=consent_required");
   }
 
+  // Alum affiliation requires UWC college + grad year. The form has
+  // browser-level `required` on these too, but enforce server-side so a
+  // bot or stripped client can't bypass.
+  if (affiliation === "Alum") {
+    const uwcCollegeRawCheck = s(formData.get("uwc_college"));
+    const gradYearRawCheck = s(formData.get("grad_year"));
+    if (!uwcCollegeRawCheck || !gradYearRawCheck) {
+      redirect("/signup?error=missing_alum_fields");
+    }
+  }
+
   const ipHeader =
     (formData.get("_ip_hint") as string | null) ?? "unknown";
   const ipHash = hashIp(ipHeader);

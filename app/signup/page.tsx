@@ -15,6 +15,8 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Please fill in the required fields (name, email, and how you're connected to UWC).",
   missing_origin:
     "Please pick the country you're originally from.",
+  missing_alum_fields:
+    "Please tell us which UWC college you attended and your graduation year.",
   consent_required:
     "We need your consent to send you UWC Bay Area emails before we can add you.",
   rate_limit:
