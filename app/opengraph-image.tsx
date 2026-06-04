@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 
 export const runtime = "nodejs";
 export const revalidate = 3600;
@@ -10,8 +9,15 @@ export const contentType = "image/png";
 
 const NAVY = "#0265A8";
 
+/** Resolve a path under /public from THIS file's location via
+ * import.meta.url so Vercel's file tracer bundles the asset into the
+ * serverless function. `process.cwd()` + "/public" works locally but
+ * can silently fail on Vercel — public assets aren't auto-included in
+ * function bundles unless the trace can see them. */
 function imgDataUrl(filename: string) {
-  const buf = readFileSync(join(process.cwd(), "public", filename));
+  // app/opengraph-image.tsx → ./public/<filename> via import.meta.url.
+  const url = new URL(`../public/${filename}`, import.meta.url);
+  const buf = readFileSync(url);
   return `data:image/png;base64,${buf.toString("base64")}`;
 }
 
