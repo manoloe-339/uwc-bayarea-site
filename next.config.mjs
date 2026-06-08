@@ -15,6 +15,7 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/opengraph-image": ["./public/uwc-bay-area-logo.png"],
     "/signup/opengraph-image": ["./public/uwc-bay-area-logo.png"],
+    "/join-whatsapp/opengraph-image": ["./public/uwc-bay-area-logo.png"],
   },
   images: {
     remotePatterns: [

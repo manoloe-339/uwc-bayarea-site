@@ -20,6 +20,10 @@ interface Props {
    * trigger button — parent decides when to open and close. */
   controlledOpen?: boolean;
   controlledOnClose?: () => void;
+  /** Fires when a submission succeeds (entering the 'sent' view). Lets
+   * a parent navigate to a dedicated thanks page instead of showing
+   * the inline sent confirmation. */
+  onSent?: () => void;
   /** Optional override for the choose-view headline/body. Useful for
    * embedding the modal behind other triggers (e.g. Foodies card
    * titles where the framing is "this meal is coordinated on WhatsApp"). */
@@ -38,6 +42,7 @@ export function JoinWhatsAppModal({
   whatsappUrl,
   ctaLabel,
   controlledOpen,
+  onSent,
   controlledOnClose,
   chooseTitle,
   chooseBody,
@@ -87,7 +92,12 @@ export function JoinWhatsAppModal({
     startTransition(async () => {
       const result = await sendJustVisitingNotification(formData);
       if (result.ok) {
+        // Set the local "sent" view even when a parent will navigate
+        // away — the brief flash is fine, and if the parent declines
+        // to navigate (default homepage modal behavior), the user
+        // still sees the in-modal confirmation.
         setView("sent");
+        onSent?.();
       } else {
         setError(result.error ?? "Something went wrong. Try again?");
       }
@@ -100,6 +110,7 @@ export function JoinWhatsAppModal({
       const result = await sendRegisteredAlumRequest(formData);
       if (result.ok) {
         setView("sent");
+        onSent?.();
       } else {
         setError(result.error ?? "Something went wrong. Try again?");
       }
