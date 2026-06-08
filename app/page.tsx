@@ -67,7 +67,7 @@ export default async function HomePage() {
         url={settings.whatsapp_url}
         headline="Connect"
         body="We have a WhatsApp Community for UWC Bay Area. Must be registered in our SF Bay Area mailing list or a UWC alumnus visiting. All Foodie events are coordinated through WhatsApp."
-        ctaLabel="Join UWC Bay Area →"
+        ctaLabel="Join UWC Bay Area WhatsApp →"
       />
       <FoodiesSection meals={foodies} recent={recentFoodies} whatsappUrl={settings.whatsapp_url} />
       <OtherGatheringsSection gatherings={otherGatherings} />
