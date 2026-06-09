@@ -74,6 +74,7 @@ async function fetchAll() {
     decadesRaw,
     expRaw,
     totalAlumni,
+    stagesRaw,
   ] = await Promise.all([
     sql`
       SELECT
@@ -220,6 +221,20 @@ async function fetchAll() {
       WHERE affiliation ILIKE '%alum%'
         AND deceased IS NOT TRUE AND moved_out IS NOT TRUE
     `,
+    sql`
+      SELECT
+        CASE
+          WHEN current_title ~* '\\m(student|phd|mba|candidate|undergrad|graduate student|postdoc|post[- ]?doc|fellow|researcher)\\M'
+          THEN 'student'
+          ELSE 'working'
+        END AS stage,
+        COUNT(*)::int AS n
+      FROM alumni
+      WHERE affiliation ILIKE '%alum%'
+        AND deceased IS NOT TRUE AND moved_out IS NOT TRUE
+        AND current_title IS NOT NULL AND TRIM(current_title) <> ''
+      GROUP BY stage
+    `,
   ]);
 
   return {
@@ -251,6 +266,7 @@ async function fetchAll() {
     }>,
     expRaw: expRaw as Array<{ band: string; n: number }>,
     totalAlumni: (totalAlumni as Array<{ n: number }>)[0].n,
+    stagesRaw: stagesRaw as Array<{ stage: string; n: number }>,
   };
 }
 
@@ -391,6 +407,10 @@ export default async function SnapshotPage() {
   const sizeBands = rollupSizeBands(data.sizeRows);
   const origins = rollupOrigins(data.originsRaw);
   const cities = rollupCities(data.cities, 30);
+  const studentCount =
+    data.stagesRaw.find((s) => s.stage === "student")?.n ?? 0;
+  const workingCount =
+    data.stagesRaw.find((s) => s.stage === "working")?.n ?? 0;
   const expBands = data.expRaw
     .slice()
     .sort(
@@ -596,6 +616,29 @@ export default async function SnapshotPage() {
                 </CountRow>
               </li>
             ))}
+          </ul>
+        </SectionCard>
+
+        {/* Career stage — students vs working */}
+        <SectionCard
+          title="Stage"
+          emoji="🎓"
+          total={studentCount + workingCount}
+        >
+          <ul className="space-y-0.5">
+            <li>
+              <CountRow
+                href={`/directory?q=${encodeURIComponent("student")}`}
+                count={studentCount}
+              >
+                Currently in school
+              </CountRow>
+            </li>
+            <li>
+              <CountRow href={`/directory`} count={workingCount}>
+                Working professional
+              </CountRow>
+            </li>
           </ul>
         </SectionCard>
 
