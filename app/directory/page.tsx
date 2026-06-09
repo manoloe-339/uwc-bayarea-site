@@ -651,8 +651,9 @@ function DirectoryCard({
             </div>
           )}
 
-          {/* Line 3: current city, plus a 🧳 "moved" badge if their
-              LinkedIn says they're outside the Bay Area now */}
+          {/* Line 3: current city, plus a 🧳 indicator (no text) when
+              LinkedIn says they're outside the Bay Area now. Click
+              through to the profile to see the new location. */}
           {(() => {
             const liveLoc = pickCurrentLocation({
               current_location: row.current_location,
@@ -666,9 +667,10 @@ function DirectoryCard({
                 {moved && (
                   <span
                     className="ml-1.5"
-                    title="LinkedIn says they're not in the Bay Area anymore"
+                    title={`LinkedIn says they're now in ${moved} — open profile for details`}
+                    aria-label={`Now in ${moved}`}
                   >
-                    🧳 {moved}
+                    🧳
                   </span>
                 )}
               </div>
