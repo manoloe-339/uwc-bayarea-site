@@ -1,25 +1,11 @@
 import { redirect } from "next/navigation";
 import { getCurrentDirectorySession } from "@/lib/directory-session";
-import {
-  listSavesForUser,
-  type SaveStatus,
-} from "@/lib/directory-saves";
+import { listSavesForUser } from "@/lib/directory-saves";
 import SavedList from "@/components/directory/SavedList";
 
 export const dynamic = "force-dynamic";
 
-type SP = { [k: string]: string | string[] | undefined };
-function pickStr(sp: SP, key: string): string | undefined {
-  const v = sp[key];
-  const s = Array.isArray(v) ? v[0] : v;
-  return s && s.trim() ? s.trim() : undefined;
-}
-
-export default async function SavedShortlistPage({
-  searchParams,
-}: {
-  searchParams: Promise<SP>;
-}) {
+export default async function SavedShortlistPage() {
   const session = await getCurrentDirectorySession();
   if (!session) redirect("/directory/login?next=%2Fdirectory%2Fsaved");
   if (session.kind !== "user") {
@@ -37,9 +23,6 @@ export default async function SavedShortlistPage({
     );
   }
 
-  const sp = await searchParams;
-  const statusFilter = pickStr(sp, "status") as SaveStatus | undefined;
-
   const allSaves = await listSavesForUser(session.user.id);
 
   return (
@@ -47,7 +30,7 @@ export default async function SavedShortlistPage({
       <h1 className="font-sans text-[28px] sm:text-[34px] font-bold text-[color:var(--navy-ink)] tracking-[-0.01em]">
         Your shortlist
       </h1>
-      <SavedList allSaves={allSaves} statusFilter={statusFilter} />
+      <SavedList allSaves={allSaves} />
     </section>
   );
 }

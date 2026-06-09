@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import SavedRow from "./SavedRow";
 import {
   SAVE_STATUSES,
@@ -38,30 +37,19 @@ interface RowData {
   alum_origin: string | null;
 }
 
-const STATUS_COLORS: Record<SaveStatus, string> = {
-  not_contacted: "bg-slate-100 text-slate-800 border-slate-200",
-  invite_sent: "bg-amber-50 text-amber-800 border-amber-200",
-  connected: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  replied: "bg-sky-50 text-sky-800 border-sky-200",
-  met: "bg-violet-50 text-violet-800 border-violet-200",
-  follow_up_later: "bg-orange-50 text-orange-800 border-orange-200",
-};
-
 interface Props {
   allSaves: RowData[];
-  statusFilter: SaveStatus | undefined;
 }
 
 /**
- * Owns hidden-row state so the chip-bar counts and "N saved" header
- * stay in sync as users unsave rows via the star. Hidden rows are
- * removed from BOTH the counts and the visible list immediately;
- * when the SaveStar's undo restores a row, it's re-added.
+ * Renders the saved shortlist grouped into sections by status. No
+ * filter chip bar — every non-empty status group is visible at once,
+ * so users scan the whole list in priority order without clicking.
+ * Owns hidden-row state (optimistic unsave) and the centralized undo
+ * toast.
  */
-export default function SavedList({ allSaves, statusFilter }: Props) {
-  // Set of alumni_ids currently hidden via optimistic unsave.
+export default function SavedList({ allSaves }: Props) {
   const [hidden, setHidden] = useState<Set<number>>(new Set());
-  // The pending undo entry — when set, the toast at the bottom shows.
   const [pending, setPending] = useState<PendingUndo>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -74,9 +62,6 @@ export default function SavedList({ allSaves, statusFilter }: Props) {
     });
   };
 
-  /** Fire the actual DELETE for the previously-shown undo entry
-   * BEFORE we overwrite the pending state. Otherwise rapid-fire
-   * unsaves would silently drop earlier deletes on the floor. */
   const flushPending = (entry: NonNullable<PendingUndo>) => {
     void fetch(`/api/directory/save?alumni_id=${entry.alumniId}`, {
       method: "DELETE",
@@ -121,76 +106,68 @@ export default function SavedList({ allSaves, statusFilter }: Props) {
         }),
       });
     } catch {
-      // best-effort — UI already restored the row optimistically
+      // best-effort
     }
   };
 
   const visibleSaves = allSaves.filter((s) => !hidden.has(s.alumni_id));
 
-  const counts: Record<SaveStatus, number> = {
-    not_contacted: 0,
-    invite_sent: 0,
-    connected: 0,
-    replied: 0,
-    met: 0,
-    follow_up_later: 0,
+  // Group by status. Order: declared SAVE_STATUSES order.
+  const groups: Record<SaveStatus, RowData[]> = {
+    not_contacted: [],
+    invite_sent: [],
+    connected: [],
+    replied: [],
+    met: [],
+    follow_up_later: [],
   };
-  for (const s of visibleSaves) counts[s.status] += 1;
+  for (const r of visibleSaves) groups[r.status].push(r);
 
-  const filtered = statusFilter
-    ? visibleSaves.filter((s) => s.status === statusFilter)
-    : visibleSaves;
+  if (visibleSaves.length === 0) {
+    return (
+      <>
+        <p className="text-sm text-[color:var(--muted)] mt-1 mb-5">
+          0 saved · personal to your account
+        </p>
+        <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)] text-sm">
+          Nothing saved yet. Click ★ Save on any profile to start.
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
-      <p className="text-sm text-[color:var(--muted)] mt-1 mb-5">
+      <p className="text-sm text-[color:var(--muted)] mt-1 mb-6">
         {visibleSaves.length} saved · personal to your account
       </p>
 
-      <div className="flex flex-wrap items-center gap-2 mb-5">
-        <Link
-          href="/directory/saved"
-          className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border ${
-            !statusFilter
-              ? "bg-navy text-white border-navy"
-              : "border-[color:var(--rule)] text-[color:var(--muted)] hover:text-navy hover:border-navy"
-          }`}
-        >
-          All ({visibleSaves.length})
-        </Link>
-        {SAVE_STATUSES.map((s) => (
-          <Link
-            key={s}
-            href={`/directory/saved?status=${s}`}
-            className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border ${
-              statusFilter === s
-                ? "bg-navy text-white border-navy"
-                : `${STATUS_COLORS[s]} hover:opacity-90`
-            }`}
-          >
-            {STATUS_LABELS[s]} ({counts[s]})
-          </Link>
-        ))}
+      <div className="space-y-7">
+        {SAVE_STATUSES.map((status) => {
+          const rows = groups[status];
+          if (rows.length === 0) return null;
+          return (
+            <section key={status}>
+              <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-2 flex items-center gap-2">
+                {STATUS_LABELS[status]}
+                <span className="text-[color:var(--muted)] font-normal tracking-normal lowercase">
+                  · {rows.length}
+                </span>
+              </h2>
+              <ul className="space-y-3">
+                {rows.map((row) => (
+                  <SavedRow
+                    key={row.id}
+                    row={row}
+                    onSavedChange={(saved) => setVisible(row.alumni_id, saved)}
+                    onUnsave={(prev) => onUnsave(row.alumni_id, prev)}
+                  />
+                ))}
+              </ul>
+            </section>
+          );
+        })}
       </div>
-
-      {filtered.length === 0 ? (
-        <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)] text-sm">
-          {visibleSaves.length === 0
-            ? "Nothing saved yet. Click ★ Save on any profile to start."
-            : "No saves match that status."}
-        </div>
-      ) : (
-        <ul className="space-y-3">
-          {filtered.map((row) => (
-            <SavedRow
-              key={row.id}
-              row={row}
-              onSavedChange={(saved) => setVisible(row.alumni_id, saved)}
-              onUnsave={(prev) => onUnsave(row.alumni_id, prev)}
-            />
-          ))}
-        </ul>
-      )}
 
       {pending && (
         <div

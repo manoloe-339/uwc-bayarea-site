@@ -39,18 +39,9 @@ function toDate(d: Date | string): Date {
   return typeof d === "string" ? new Date(d) : d;
 }
 
-/** "5d ago" / "2h ago" / "Just now" while within a week. Older →
- * absolute "Jun 2" / "Jun 2024". */
-function fmtRel(d: Date | string): string {
+/** Absolute "Jun 9" / "Jun 9, 2024" — concise, no relative weirdness. */
+function fmtAbsDate(d: Date | string): string {
   const date = toDate(d);
-  const diffMs = Date.now() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffH = Math.floor(diffMin / 60);
-  if (diffH < 24) return `${diffH}h ago`;
-  const diffD = Math.floor(diffH / 24);
-  if (diffD < 7) return `${diffD}d ago`;
   const sameYear = date.getFullYear() === new Date().getFullYear();
   return date.toLocaleDateString("en-US", {
     month: "short",
@@ -59,7 +50,7 @@ function fmtRel(d: Date | string): string {
   });
 }
 
-function fmtAbs(d: Date | string): string {
+function fmtFullTimestamp(d: Date | string): string {
   return toDate(d).toLocaleString("en-US", {
     year: "numeric",
     month: "short",
@@ -69,9 +60,6 @@ function fmtAbs(d: Date | string): string {
   });
 }
 
-/** Client-side row for /directory/saved. Visibility + undo are owned
- * by the parent SavedList (so the chip-bar counts stay in sync and
- * the undo toast survives the row unmount). */
 export default function SavedRow({
   row,
   onSavedChange,
@@ -101,12 +89,27 @@ export default function SavedRow({
 
   const updatedDiffMs =
     toDate(row.updated_at).getTime() - toDate(row.created_at).getTime();
-  // Treat updates within 60s of creation as "no real update yet".
   const everUpdated = updatedDiffMs > 60_000;
 
   return (
-    <li className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4">
-      <div className="flex items-start gap-3">
+    <li className="relative bg-white border border-[color:var(--rule)] rounded-[10px] p-4">
+      {/* Star pinned to the top-right of the card, independent of the
+          flex content below it. Inner content has pr-8 to leave room. */}
+      <SaveStar
+        alumniId={row.alumni_id}
+        alumName={name}
+        initial={{
+          status: row.status,
+          reason: row.reason,
+          note: row.note,
+        }}
+        canSave={true}
+        className="absolute top-1 right-1"
+        onSavedChange={onSavedChange}
+        onUnsave={onUnsave}
+      />
+
+      <div className="flex items-start gap-3 pr-8">
         <div className="shrink-0 flex flex-col items-center gap-1">
           <Link
             href={`/directory/${row.alumni_id}`}
@@ -144,61 +147,41 @@ export default function SavedRow({
             </span>
           )}
         </div>
+
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 min-w-0">
-              <Link
-                href={`/directory/${row.alumni_id}`}
-                title={name}
-                className="font-semibold text-[color:var(--navy-ink)] hover:underline truncate min-w-0"
+          <div className="flex items-center gap-2 min-w-0">
+            <Link
+              href={`/directory/${row.alumni_id}`}
+              title={name}
+              className="font-semibold text-[color:var(--navy-ink)] hover:underline truncate min-w-0"
+            >
+              {name}
+            </Link>
+            {linkedin ? (
+              <LinkedinIconLink
+                href={linkedin}
+                alumniId={row.alumni_id}
+                className="shrink-0 inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[#0A66C2] text-white text-[9px] font-bold hover:brightness-110 leading-none"
+              />
+            ) : (
+              <span
+                className="shrink-0 inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[9px] font-bold leading-none"
+                title="No LinkedIn on file"
               >
-                {name}
-              </Link>
-              {linkedin ? (
-                <LinkedinIconLink
-                  href={linkedin}
-                  alumniId={row.alumni_id}
-                  className="shrink-0 inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[#0A66C2] text-white text-[9px] font-bold hover:brightness-110 leading-none"
-                />
-              ) : (
-                <span
-                  className="shrink-0 inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[9px] font-bold leading-none"
-                  title="No LinkedIn on file"
-                >
-                  in
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <SavedStatusSelect
-                alumniId={row.alumni_id}
-                initialStatus={row.status}
-                reason={row.reason}
-                note={row.note}
-              />
-              <SaveStar
-                alumniId={row.alumni_id}
-                alumName={name}
-                initial={{
-                  status: row.status,
-                  reason: row.reason,
-                  note: row.note,
-                }}
-                canSave={true}
-                onSavedChange={onSavedChange}
-                onUnsave={onUnsave}
-              />
-            </div>
-          </div>
-          <div className="text-xs text-[color:var(--muted)] mt-0.5">
-            {sub}
-            {cityDisplay && (
-              <span>
-                {sub ? " · " : ""}
-                {cityDisplay}
+                in
               </span>
             )}
           </div>
+          {sub && (
+            <div className="text-xs text-[color:var(--muted)] mt-0.5">
+              {sub}
+            </div>
+          )}
+          {cityDisplay && (
+            <div className="text-xs text-[color:var(--muted)] mt-0.5">
+              {cityDisplay}
+            </div>
+          )}
           {(row.alum_current_title || row.alum_current_company) && (
             <div className="mt-1 text-xs text-[color:var(--navy-ink)]">
               {row.alum_current_title && (
@@ -233,23 +216,29 @@ export default function SavedRow({
               )}
             </div>
           )}
+
+          <div className="mt-3">
+            <SavedStatusSelect
+              alumniId={row.alumni_id}
+              initialStatus={row.status}
+              reason={row.reason}
+              note={row.note}
+            />
+          </div>
+
           <SavedReasonEditor
             alumniId={row.alumni_id}
             initialReason={row.reason}
             initialNote={row.note}
             status={row.status}
           />
+
           <div
-            className="mt-2 text-[11px] text-[color:var(--muted)] text-right"
-            title={`Saved ${fmtAbs(row.created_at)}\nLast updated ${fmtAbs(row.updated_at)}`}
+            className="mt-3 text-[11px] text-[color:var(--muted)] text-right"
+            title={`Saved ${fmtFullTimestamp(row.created_at)}\nLast updated ${fmtFullTimestamp(row.updated_at)}`}
           >
-            {everUpdated ? (
-              <>
-                Saved {fmtRel(row.created_at)} · Updated {fmtRel(row.updated_at)}
-              </>
-            ) : (
-              <>Saved {fmtRel(row.created_at)}</>
-            )}
+            Saved {fmtAbsDate(row.created_at)}
+            {everUpdated && <> · Updated {fmtAbsDate(row.updated_at)}</>}
           </div>
         </div>
       </div>
