@@ -32,6 +32,12 @@ export default async function DirectoryLayout({
             UWC Bay Area · Directory
           </Link>
           <div className="flex items-center gap-5">
+            <Link
+              href="/directory/snapshot"
+              className="text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"
+            >
+              Snapshot
+            </Link>
             {session?.kind === "user" && (
               <Link
                 href="/directory/saved"
