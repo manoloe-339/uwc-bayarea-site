@@ -228,11 +228,6 @@ export default async function DirectoryProfilePage({
               {location && (
                 <div className="text-sm text-[color:var(--muted)]">
                   {location}
-                  {fellBackToLinkedin && (
-                    <span className="text-[color:var(--muted)] italic">
-                      {" "}(per LinkedIn)
-                    </span>
-                  )}
                 </div>
               )}
               {(() => {
