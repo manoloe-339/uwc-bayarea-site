@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { sql } from "@/lib/db";
 import { FeedbackButton } from "@/components/directory/FeedbackButton";
+import LogoutButton from "@/components/directory/LogoutButton";
 import { getCurrentDirectorySession } from "@/lib/directory-session";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +48,7 @@ export default async function DirectoryLayout({
               </Link>
             )}
             <FeedbackButton />
+            {session && <LogoutButton />}
             <Link
               href="/"
               className="text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"
