@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import PasswordInput from "@/components/directory/PasswordInput";
 
 interface Props {
@@ -9,7 +8,6 @@ interface Props {
 }
 
 export default function DirectoryLoginForm({ next }: Props) {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -30,8 +28,10 @@ export default function DirectoryLoginForm({ next }: Props) {
         return;
       }
       const data = (await res.json()) as { next?: string };
-      router.push(data.next ?? "/directory");
-      router.refresh();
+      // Full reload so middleware sees the freshly-set Set-Cookie
+      // header — router.push() can race with cookie propagation and
+      // bounce the user back to /directory/login on the next render.
+      window.location.href = data.next ?? "/directory";
     });
   };
 

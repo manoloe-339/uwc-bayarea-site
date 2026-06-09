@@ -249,7 +249,9 @@ export default async function DirectoryPage({
     <section className="max-w-[1180px] mx-auto px-5 sm:px-7 py-8">
       <div className="mb-6">
         <h1 className="font-sans text-[28px] sm:text-[34px] font-bold text-[color:var(--navy-ink)] tracking-[-0.01em]">
-          Directory
+          {me?.first_name?.trim()
+            ? `Welcome, ${me.first_name.trim()}`
+            : "Directory"}
         </h1>
         <p className="text-sm text-[color:var(--muted)] mt-1.5 max-w-[68ch]">
           Search registered alumni and connect with them on LinkedIn.
