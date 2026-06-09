@@ -73,12 +73,13 @@ function domainsFromLinkedinUrl(
     const slug = cleanSlug(company[1]);
     return slug ? [`${slug}.com`] : [];
   }
-  const school = url.match(/\/school\/([^/?#]+)/i);
-  if (school) {
-    const slug = cleanSlug(school[1]);
-    if (!slug) return [];
-    return [`${slug}.edu`, `${slug}.org`, `${slug}.com`];
-  }
+  // Schools: skipped on purpose. LinkedIn school slugs are descriptive
+  // ("the-george-washington-university"), not domains, and Logo.dev
+  // returns a generic placeholder PNG with HTTP 200 for unknowns —
+  // which defeats our onError fallback chain. The render path falls
+  // straight to initials when school_logo_url is null; a server-side
+  // backfill (see scripts/backfill-school-logos.mjs) resolves real
+  // domains via Logo.dev's brand search API and writes them to the DB.
   return [];
 }
 
