@@ -445,7 +445,7 @@ export default async function SnapshotPage() {
         </SectionCard>
 
         {/* 2. UWC schools */}
-        <SectionCard title="By UWC" emoji="🏫" total={data.uwcs.length}>
+        <SectionCard title="UWC" emoji="🌐" total={data.uwcs.length}>
           <ul className="space-y-0.5">
             {data.uwcs.map((u) => (
               <li key={u.name}>
@@ -462,7 +462,7 @@ export default async function SnapshotPage() {
 
         {/* 3. Universities */}
         <SectionCard
-          title="By university"
+          title="University"
           emoji="🏛️"
           total={data.universities.length}
         >
@@ -482,7 +482,7 @@ export default async function SnapshotPage() {
 
         {/* 4. Industries */}
         <SectionCard
-          title="By industry"
+          title="Industry"
           emoji="💼"
           total={data.industries.length}
         >
@@ -502,7 +502,7 @@ export default async function SnapshotPage() {
 
         {/* 5. Company size */}
         <SectionCard
-          title="By company size"
+          title="Company size"
           emoji="📊"
           total={sizeBands.length}
         >
@@ -521,7 +521,7 @@ export default async function SnapshotPage() {
         </SectionCard>
 
         {/* 6. Cities */}
-        <SectionCard title="By city" emoji="🏙️" total={cities.length}>
+        <SectionCard title="City" emoji="🏙️" total={cities.length}>
           <ul className="space-y-0.5">
             {cities.map((c) => (
               <li key={c.display}>
@@ -537,7 +537,7 @@ export default async function SnapshotPage() {
         </SectionCard>
 
         {/* 7. Regions */}
-        <SectionCard title="By region" emoji="🌉" total={data.regions.length}>
+        <SectionCard title="Region" emoji="🌉" total={data.regions.length}>
           <ul className="space-y-0.5">
             {data.regions.map((r) => (
               <li key={r.name}>
@@ -554,7 +554,7 @@ export default async function SnapshotPage() {
 
         {/* 8. Country of origin */}
         <SectionCard
-          title="By origin"
+          title="Origin"
           emoji="🌍"
           total={origins.length}
         >
@@ -580,7 +580,7 @@ export default async function SnapshotPage() {
 
         {/* 9. Graduation decade */}
         <SectionCard
-          title="By graduation decade"
+          title="UWC graduation decade"
           emoji="🎓"
           total={data.decadesRaw.length}
         >
@@ -600,7 +600,7 @@ export default async function SnapshotPage() {
 
         {/* 10. Experience */}
         <SectionCard
-          title="By experience"
+          title="Experience"
           emoji="⏱️"
           total={expBands.length}
         >
