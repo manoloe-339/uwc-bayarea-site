@@ -496,13 +496,13 @@ function DirectoryCard({
                 rel="noopener noreferrer"
                 aria-label="LinkedIn profile"
                 title="LinkedIn Profile"
-                className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-sm bg-[#0A66C2] text-white text-[11px] font-bold hover:brightness-110"
+                className="inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[#0A66C2] text-white text-[9px] font-bold hover:brightness-110 leading-none"
               >
                 in
               </a>
             ) : (
               <span
-                className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-sm bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[11px] font-bold"
+                className="inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[9px] font-bold leading-none"
                 title="No LinkedIn on file"
                 aria-label="No LinkedIn on file"
               >
