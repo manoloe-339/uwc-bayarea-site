@@ -236,7 +236,14 @@ async function fetchAll() {
             SELECT 1 FROM alumni_education e
             WHERE e.alumni_id = alumni.id
               AND e.is_uwc IS NOT TRUE
-              AND (e.start_year IS NULL OR e.start_year <= EXTRACT(YEAR FROM NOW())::int)
+              -- start_year must be present AND recent enough for a
+              -- credible "ongoing" claim. Without this guard, alumni
+              -- with both years NULL (Logan Richard's Wharton, Stanford
+              -- entries — graduated long ago, just missing dates) were
+              -- being treated as current students.
+              AND e.start_year IS NOT NULL
+              AND e.start_year <= EXTRACT(YEAR FROM NOW())::int
+              AND e.start_year >= EXTRACT(YEAR FROM NOW())::int - 8
               AND (
                 e.end_year IS NULL
                 OR e.end_year > EXTRACT(YEAR FROM NOW())::int
