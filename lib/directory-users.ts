@@ -286,7 +286,7 @@ export async function countFlaggedUsers(): Promise<number> {
 
 export type RecentActivityRow = {
   at: Date;
-  action: "search" | "profile_view";
+  action: "search" | "profile_view" | "linkedin_click";
   target_id: number | null;
   target_name: string | null;
   query_json: unknown;
