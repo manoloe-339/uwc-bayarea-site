@@ -13,12 +13,19 @@
  *     "California", etc.)
  */
 
+// Covers the 9-county SF Bay Area (Alameda, Contra Costa, Marin, San
+// Mateo, San Francisco, Santa Clara, Solano, Sonoma, Napa) plus Santa
+// Cruz which is socially/commute-wise contiguous. List is intentionally
+// long — the cost of an extra entry is zero, the cost of a missing
+// entry is a false "moved" badge on someone still local.
 const BAY_AREA_PLACES = [
-  // Top-level
+  // Catch-alls
   "bay area",
+  "sf bay",
+  "northern california",
   // San Francisco
   "san francisco",
-  // East Bay
+  // Alameda County (East Bay)
   "oakland",
   "berkeley",
   "alameda",
@@ -29,10 +36,43 @@ const BAY_AREA_PLACES = [
   "hayward",
   "newark",
   "piedmont",
-  "richmond",
   "san leandro",
   "union city",
-  // South Bay
+  "castro valley",
+  "san lorenzo",
+  "ashland",
+  "cherryland",
+  "sunol",
+  // Alameda — Tri-Valley
+  "pleasanton",
+  "livermore",
+  "dublin",
+  // Contra Costa County (further East Bay)
+  "richmond",
+  "concord",
+  "walnut creek",
+  "lafayette",
+  "orinda",
+  "moraga",
+  "pleasant hill",
+  "martinez",
+  "antioch",
+  "pittsburg",
+  "bay point",
+  "brentwood",
+  "oakley",
+  "san ramon",
+  "danville",
+  "alamo",
+  "blackhawk",
+  "hercules",
+  "pinole",
+  "rodeo",
+  "crockett",
+  "el sobrante",
+  "kensington",
+  "clayton",
+  // Santa Clara County (South Bay)
   "san jose",
   "sunnyvale",
   "mountain view",
@@ -43,7 +83,10 @@ const BAY_AREA_PLACES = [
   "saratoga",
   "cupertino",
   "gilroy",
-  // Peninsula
+  "morgan hill",
+  "monte sereno",
+  "los altos",
+  // San Mateo County (Peninsula)
   "palo alto",
   "menlo park",
   "redwood city",
@@ -54,13 +97,21 @@ const BAY_AREA_PLACES = [
   "south san francisco",
   "daly city",
   "pacifica",
-  "los altos",
   "stanford",
   "atherton",
   "portola valley",
   "woodside",
   "half moon bay",
-  // North Bay
+  "san carlos",
+  "belmont",
+  "foster city",
+  "hillsborough",
+  "brisbane",
+  "colma",
+  "el granada",
+  "moss beach",
+  "montara",
+  // Marin County (North Bay)
   "marin",
   "novato",
   "san rafael",
@@ -69,12 +120,42 @@ const BAY_AREA_PLACES = [
   "mill valley",
   "corte madera",
   "larkspur",
+  "fairfax",
+  "san anselmo",
+  "ross",
+  "kentfield",
+  "belvedere",
+  // Sonoma County
   "petaluma",
   "santa rosa",
+  "rohnert park",
+  "sebastopol",
+  "healdsburg",
+  "windsor",
+  "cotati",
+  "sonoma",
+  // Napa County
   "napa",
+  "american canyon",
+  "yountville",
+  "st. helena",
+  "saint helena",
+  "calistoga",
+  // Solano County
   "vallejo",
-  // Santa Cruz fringe — close enough socially / commute-wise
+  "benicia",
+  "fairfield",
+  "vacaville",
+  "suisun city",
+  "dixon",
+  "rio vista",
+  // Santa Cruz County
   "santa cruz",
+  "capitola",
+  "scotts valley",
+  "watsonville",
+  "aptos",
+  "soquel",
 ];
 
 /** Strings that are too vague to count as a real "new location". */
