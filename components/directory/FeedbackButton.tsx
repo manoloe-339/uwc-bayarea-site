@@ -5,16 +5,30 @@ import { useEffect, useRef, useState } from "react";
 interface Props {
   /** When defined, the modal defaults its topic to "profile" and
    * captures this alumni_id so the admin tool can link back to the
-   * profile being commented on. */
+   * profile being commented on. When omitted, the button auto-detects
+   * the alumni_id from the URL pathname on open (so a single button in
+   * the layout works correctly across list, profile, and saved pages). */
   alumniId?: number;
 }
 
 type Topic = "general" | "profile" | "bug";
 type Status = "idle" | "sending" | "sent" | "error";
 
+function detectAlumniIdFromPath(): number | null {
+  if (typeof window === "undefined") return null;
+  const m = window.location.pathname.match(/^\/directory\/(\d+)(?:\/|$)/);
+  if (!m) return null;
+  const id = Number(m[1]);
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
 export function FeedbackButton({ alumniId }: Props) {
   const [open, setOpen] = useState(false);
-  const [topic, setTopic] = useState<Topic>(alumniId ? "profile" : "general");
+  const [detectedAlumniId, setDetectedAlumniId] = useState<number | null>(null);
+  const effectiveAlumniId = alumniId ?? detectedAlumniId ?? null;
+  const [topic, setTopic] = useState<Topic>(
+    effectiveAlumniId ? "profile" : "general",
+  );
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -22,11 +36,15 @@ export function FeedbackButton({ alumniId }: Props) {
 
   useEffect(() => {
     if (open) {
+      // Detect alumni_id from the current URL on open (the layout
+      // button has no prop; the per-profile button passes it in).
+      const detected = alumniId ?? detectAlumniIdFromPath();
+      setDetectedAlumniId(detected);
       // Reset to defaults each time the modal opens so a previously-
       // sent message doesn't leak into the next feedback.
       setStatus("idle");
       setError(null);
-      setTopic(alumniId ? "profile" : "general");
+      setTopic(detected ? "profile" : "general");
       setMessage("");
       // Focus after the transition completes.
       requestAnimationFrame(() => messageRef.current?.focus());
@@ -44,7 +62,7 @@ export function FeedbackButton({ alumniId }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           topic,
-          alumni_id: topic === "profile" ? (alumniId ?? null) : null,
+          alumni_id: topic === "profile" ? effectiveAlumniId : null,
           message: message.trim(),
           // contact_name intentionally not sent — the admin knows who
           // submitted from the session_id (per-user → user_id, shared →
@@ -129,8 +147,8 @@ export function FeedbackButton({ alumniId }: Props) {
                     className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
                   >
                     <option value="general">General comment / suggestion</option>
-                    <option value="profile" disabled={!alumniId}>
-                      About this profile {alumniId ? "" : "(open a profile to use this)"}
+                    <option value="profile" disabled={!effectiveAlumniId}>
+                      About this profile {effectiveAlumniId ? "" : "(open a profile to use this)"}
                     </option>
                     <option value="bug">Bug or broken link</option>
                   </select>

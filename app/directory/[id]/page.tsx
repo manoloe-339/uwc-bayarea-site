@@ -10,7 +10,6 @@ import {
 import { getCurrentDirectorySession } from "@/lib/directory-session";
 import { getSaveForAlumnus, REASON_LABELS, STATUS_LABELS } from "@/lib/directory-saves";
 import { linkedinHref } from "@/lib/linkedin-url";
-import { FeedbackButton } from "@/components/directory/FeedbackButton";
 import { SaveButton } from "@/components/directory/SaveButton";
 import { CompanyLogo } from "@/components/directory/CompanyLogo";
 import { originFlagString } from "@/lib/country-flag";
@@ -114,14 +113,13 @@ export default async function DirectoryProfilePage({
 
   return (
     <section className="max-w-[800px] mx-auto px-5 sm:px-7 py-8">
-      <div className="mb-5 text-sm flex items-center justify-between">
+      <div className="mb-5 text-sm">
         <Link
           href="/directory"
           className="text-[color:var(--muted)] hover:text-navy"
         >
           ← Back to directory
         </Link>
-        <FeedbackButton alumniId={id} />
       </div>
 
       {existingSave && canSave && (
