@@ -113,19 +113,18 @@ export default async function DirectoryProfilePage({
 
   const name = displayName(row.first_name, row.last_name);
   const sub = [row.uwc_college, row.grad_year].filter(Boolean).join(" · ");
-  // Dedup: if region is just the city repeated (or vice versa), show only one.
-  const locParts = [row.current_city, row.region]
-    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
-    .map(titleCase);
-  const seenLoc = new Set<string>();
-  const location = locParts
-    .filter((p) => {
-      const k = p.trim().toLowerCase();
-      if (seenLoc.has(k)) return false;
-      seenLoc.add(k);
-      return true;
-    })
-    .join(" · ");
+  // Prefer the LinkedIn-derived "where they actually are now" — job
+  // location first, profile location next — so the displayed
+  // location reflects their current job rather than the signup-time
+  // current_city (which is often stale once people move). Fall back
+  // to the registered city when no LinkedIn signal is available.
+  const liveLocation = pickCurrentLocation({
+    current_location: row.current_location,
+    location_full: row.location_full,
+  });
+  const location =
+    liveLocation ??
+    (row.current_city ? titleCase(row.current_city) : "");
   const linkedin = linkedinHref(row.linkedin_url);
 
   return (
@@ -155,8 +154,16 @@ export default async function DirectoryProfilePage({
         </div>
       )}
 
-      <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-6 sm:p-8">
-        <div className="flex items-start gap-5 mb-6">
+      <div className="relative bg-white border border-[color:var(--rule)] rounded-[10px] p-6 sm:p-8">
+        <SaveStar
+          alumniId={id}
+          alumName={name}
+          initial={existingSave}
+          canSave={canSave}
+          size={28}
+          className="absolute top-3 right-3"
+        />
+        <div className="flex items-start gap-5 mb-6 pr-10">
           <div className="shrink-0 flex flex-col items-center gap-2">
             <div className="w-[110px] h-[110px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] ring-[3px] ring-navy">
               {row.photo_url ? (
@@ -196,8 +203,22 @@ export default async function DirectoryProfilePage({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="font-sans text-[28px] font-bold text-[color:var(--navy-ink)] leading-[1.1]">
-              {name}
+            <h1 className="font-sans text-[28px] font-bold text-[color:var(--navy-ink)] leading-[1.1] flex items-center gap-2.5 flex-wrap">
+              <span>{name}</span>
+              {linkedin ? (
+                <LinkedinIconLink
+                  href={linkedin}
+                  alumniId={id}
+                  className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[#0A66C2] text-white text-[11px] font-bold hover:brightness-110 leading-none align-middle"
+                />
+              ) : (
+                <span
+                  className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[11px] font-bold leading-none align-middle"
+                  title="No LinkedIn on file"
+                >
+                  in
+                </span>
+              )}
             </h1>
             <div className="mt-2.5 space-y-1 text-[color:var(--navy-ink)]">
               {sub && (
@@ -211,11 +232,7 @@ export default async function DirectoryProfilePage({
                 </div>
               )}
               {(() => {
-                const liveLoc = pickCurrentLocation({
-                  current_location: row.current_location,
-                  location_full: row.location_full,
-                });
-                const moved = detectMovedFromBayArea(liveLoc);
+                const moved = detectMovedFromBayArea(liveLocation);
                 if (!moved) return null;
                 return (
                   <div
@@ -226,29 +243,6 @@ export default async function DirectoryProfilePage({
                   </div>
                 );
               })()}
-            </div>
-            <div className="mt-4 flex items-center gap-3 flex-wrap">
-              {linkedin ? (
-                <LinkedinIconLink
-                  href={linkedin}
-                  alumniId={id}
-                  className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-[4px] bg-[#0A66C2] text-white text-[14px] font-bold hover:brightness-110 leading-none"
-                />
-              ) : (
-                <span
-                  className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-[4px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[14px] font-bold leading-none"
-                  title="No LinkedIn on file"
-                >
-                  in
-                </span>
-              )}
-              <SaveStar
-                alumniId={id}
-                alumName={name}
-                initial={existingSave}
-                canSave={canSave}
-                size={26}
-              />
             </div>
           </div>
         </div>
@@ -278,7 +272,14 @@ export default async function DirectoryProfilePage({
             <ol className="relative border-l-2 border-[color:var(--rule)] pl-5 space-y-4">
               {careers.map((cc, i) => {
                 const companyHref = linkedinHref(cc.company_linkedin_url);
-                const companyName = companyDisplayName(cc);
+                // For the current job (is_current=true), fall back to
+                // the alum's current_company if the career row's
+                // company field is missing — some Apify rows come back
+                // with title but no companyName for founder/self-
+                // employed entries (Rebecca Bahr's "Founder" row).
+                const companyName =
+                  companyDisplayName(cc) ??
+                  (cc.is_current ? row.current_company : null);
                 const sizeLabel = cc.company_size
                   ? cc.company_size.replace(/\s+employees?\s*/i, "").trim()
                   : null;

@@ -62,6 +62,10 @@ export default function SaveStar({
   const [note, setNote] = useState<string>(initial?.note ?? "");
   const [flash, setFlash] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
+  /** True when the modal was opened on an empty star (i.e. this is a
+   * fresh save, not an edit). Determines whether the "Saved to your
+   * shortlist" toast fires when the user clicks Done. */
+  const [wasFreshSave, setWasFreshSave] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [undoFor, setUndoFor] = useState<Initial>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -114,13 +118,9 @@ export default function SaveStar({
       });
       if (!wasSaved) {
         onSavedChange?.(true);
-        // First-save toast — mirrors the unsave undo style so users
-        // get immediate confirmation that the click registered, and
-        // (on the cards/profile pages) a visual cue pointing to the
-        // shortlist.
-        setSavedToast(true);
-        if (savedToastTimer.current) clearTimeout(savedToastTimer.current);
-        savedToastTimer.current = setTimeout(() => setSavedToast(false), 3500);
+        // Don't fire the "Saved to your shortlist" toast yet — it
+        // shows when the user clicks Done so it isn't covered by the
+        // open modal. wasFreshSave was set in handleStarClick.
       }
       setFlash(true);
       setTimeout(() => setFlash(false), 1200);
@@ -138,6 +138,7 @@ export default function SaveStar({
       // Create the save right away so the star fills without waiting
       // for the modal to be submitted. Modal opens for optional
       // reason/note collection — those autosave as the user fills them.
+      setWasFreshSave(true);
       void autosave();
       setOpen(true);
       return;
@@ -340,7 +341,21 @@ export default function SaveStar({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    setOpen(false);
+                    // Fire the toast AFTER the modal closes — so it
+                    // isn't covered by the dialog overlay.
+                    if (wasFreshSave) {
+                      setSavedToast(true);
+                      if (savedToastTimer.current)
+                        clearTimeout(savedToastTimer.current);
+                      savedToastTimer.current = setTimeout(
+                        () => setSavedToast(false),
+                        3500,
+                      );
+                    }
+                    setWasFreshSave(false);
+                  }}
                   className="bg-navy text-white px-5 py-2 rounded text-sm font-semibold hover:opacity-90"
                 >
                   Done
