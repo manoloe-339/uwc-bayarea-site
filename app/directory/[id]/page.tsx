@@ -119,13 +119,23 @@ export default async function DirectoryProfilePage({
   // location reflects their current job rather than the signup-time
   // current_city (which is often stale once people move). Fall back
   // to the registered city when no LinkedIn signal is available.
-  const liveLocation = pickCurrentLocation({
+  // Primary location = what the alum typed at signup (authoritative
+  // for "where they consider home"). LinkedIn-derived location is
+  // only used as a fallback when signup is empty, AND surfaces via
+  // the 🧳 badge below when it disagrees (i.e. they've moved out of
+  // the Bay Area per LinkedIn).
+  const signupCity = row.current_city
+    ? formatLocationForDisplay(titleCase(row.current_city))
+    : null;
+  const linkedinLoc = pickCurrentLocation({
     current_location: row.current_location,
     location_full: row.location_full,
   });
-  const rawLocation =
-    liveLocation ?? (row.current_city ? titleCase(row.current_city) : "");
-  const location = formatLocationForDisplay(rawLocation);
+  const formattedLinkedin = linkedinLoc
+    ? formatLocationForDisplay(linkedinLoc)
+    : null;
+  const location = signupCity ?? formattedLinkedin ?? "";
+  const fellBackToLinkedin = !signupCity && !!formattedLinkedin;
   const linkedin = linkedinHref(row.linkedin_url);
 
   return (
@@ -206,17 +216,19 @@ export default async function DirectoryProfilePage({
           <div className="min-w-0 flex-1">
             <h1 className="font-sans text-[28px] font-bold text-[color:var(--navy-ink)] leading-[1.1]">
               <span className="block">{titleCase(row.first_name) || "—"}</span>
-              <span className="block flex items-center gap-2.5 flex-wrap">
-                <span>{titleCase(row.last_name)}</span>
+              <span className="flex items-center gap-2.5 min-w-0">
+                <span className="truncate min-w-0" title={titleCase(row.last_name)}>
+                  {titleCase(row.last_name)}
+                </span>
                 {linkedin ? (
                   <LinkedinIconLink
                     href={linkedin}
                     alumniId={id}
-                    className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[#0A66C2] text-white text-[11px] font-bold hover:brightness-110 leading-none align-middle"
+                    className="shrink-0 inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[#0A66C2] text-white text-[11px] font-bold hover:brightness-110 leading-none align-middle"
                   />
                 ) : (
                   <span
-                    className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[11px] font-bold leading-none align-middle"
+                    className="shrink-0 inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[11px] font-bold leading-none align-middle"
                     title="No LinkedIn on file"
                   >
                     in
@@ -233,15 +245,22 @@ export default async function DirectoryProfilePage({
               {location && (
                 <div className="text-sm text-[color:var(--muted)]">
                   {location}
+                  {fellBackToLinkedin && (
+                    <span className="text-[color:var(--muted)] italic">
+                      {" "}(per LinkedIn)
+                    </span>
+                  )}
                 </div>
               )}
               {(() => {
-                const moved = detectMovedFromBayArea(liveLocation);
-                if (!moved) return null;
+                const moved = detectMovedFromBayArea(linkedinLoc);
+                // Don't double-show: if LinkedIn IS the primary
+                // location, the 🧳 badge would just repeat it.
+                if (!moved || fellBackToLinkedin) return null;
                 return (
                   <div
                     className="text-sm text-[color:var(--muted)]"
-                    title="LinkedIn says they're not in the Bay Area anymore"
+                    title="LinkedIn says they're now somewhere else"
                   >
                     🧳 {formatLocationForDisplay(moved)}
                   </div>
