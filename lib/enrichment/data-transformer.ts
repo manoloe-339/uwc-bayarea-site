@@ -121,17 +121,69 @@ export function detectUwc(
 /* Transformers                                                       */
 /* ------------------------------------------------------------------ */
 
-/** Pull a logo URL for the current company by finding the current
- * experience entry (jobStillWorking === true). If none flagged
- * current, the first experience is the de-facto headline. */
-function findCurrentCompanyLogo(
+/** Patterns that mark an experience as a non-employment entry — an
+ * alumni association, board seat, or other unpaid affiliation.
+ *
+ * Intentionally narrow: "Fellow", "Member", "Advisor", and "Mentor"
+ * on their own are valid job titles (Research Fellow, Member of
+ * Technical Staff at OpenAI, Senior Advisor at McKinsey). We only
+ * filter when the experience clearly isn't employment:
+ *   - title mentions "alumni" explicitly (e.g. Luke Pustejovsky's
+ *     "Member I Harvard Alumni for Mental Health");
+ *   - title is a board seat ("Board of Directors / Advisors /
+ *     Trustees");
+ *   - the "company" is the alma mater's LinkedIn /school/ page AND
+ *     the title contains an alumni- or membership-marker (so we
+ *     don't filter out actual school employees like research
+ *     fellows or staff). */
+const NON_EMPLOYMENT_TITLE_PATTERNS: RegExp[] = [
+  /\balumni\b/i,
+  /\bboard of (directors|advisors|trustees|governors)\b/i,
+];
+
+const SCHOOL_PAGE_RE = /linkedin\.com\/school\//i;
+const SCHOOL_AFFILIATION_TITLE_RE = /\b(alumni|alum|member|chapter)\b/i;
+
+function looksLikeEmployment(exp: ApifyExperienceEntry): boolean {
+  const title = exp.title ?? "";
+  if (NON_EMPLOYMENT_TITLE_PATTERNS.some((re) => re.test(title))) return false;
+  if (
+    exp.companyLink1 &&
+    SCHOOL_PAGE_RE.test(exp.companyLink1) &&
+    SCHOOL_AFFILIATION_TITLE_RE.test(title)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/** Pick the "headline" experience for populating alumni.current_*
+ * fields. Apify's profile.jobTitle / profile.companyName reflect the
+ * top of LinkedIn's experiences list verbatim — but LinkedIn orders
+ * by most-recent-start, so a 2024 alumni-group membership outranks a
+ * 2020 CEO role. We pick the most-recently-started experience that
+ * looks like real employment (filtering out members, advisors, etc).
+ * Falls back to the first experience when nothing passes the filter. */
+function pickHeadlineExperience(
   profile: ApifyProfile,
-): string | null {
+): ApifyExperienceEntry | null {
   if (!Array.isArray(profile.experiences) || profile.experiences.length === 0) {
     return null;
   }
-  const current = profile.experiences.find((e) => e.jobStillWorking === true);
-  return blank(current?.logo) ?? blank(profile.experiences[0]?.logo);
+  const currents = profile.experiences.filter(
+    (e) => e.jobStillWorking === true,
+  );
+  const pool = currents.length > 0 ? currents : profile.experiences;
+  const real = pool.filter(looksLikeEmployment);
+  // First entry in each pool is the most-recently-started (LinkedIn's
+  // own ordering). No date parsing needed.
+  return real[0] ?? pool[0] ?? null;
+}
+
+function findCurrentCompanyLogo(
+  profile: ApifyProfile,
+): string | null {
+  return blank(pickHeadlineExperience(profile)?.logo);
 }
 
 export function buildAlumniPatch(
@@ -139,7 +191,30 @@ export function buildAlumniPatch(
   photoUrl: string | null
 ): AlumniPatch {
   const uwc = detectUwc(profile.educations);
-  const startedOn = profile.jobStartedOn ?? null;
+  const headline = pickHeadlineExperience(profile);
+  // Prefer the filtered headline (skips membership/advisor roles) when
+  // it diverges from Apify's top-level jobTitle. Falls back to the
+  // profile-level fields when nothing in experiences passes the filter
+  // or experiences is missing entirely.
+  const currentTitle = blank(headline?.title) ?? blank(profile.jobTitle);
+  const currentCompany =
+    blank(headline?.companyName) ?? blank(profile.companyName);
+  const currentCompanyLinkedin =
+    blank(headline?.companyLink1) ?? blank(profile.companyLinkedin);
+  const currentCompanyIndustry =
+    blank(headline?.companyIndustry) ?? blank(profile.companyIndustry);
+  const currentCompanySize =
+    blank(headline?.companySize) ?? blank(profile.companySize);
+  const currentCompanyWebsite =
+    blank(headline?.companyWebsite) ?? blank(profile.companyWebsite);
+  const currentLocation =
+    blank(headline?.jobLocation) ?? blank(profile.jobLocation);
+  const currentSince =
+    blank(
+      typeof headline?.period?.startedOn === "string"
+        ? headline.period.startedOn
+        : headline?.jobStartedOn,
+    ) ?? blank(profile.jobStartedOn);
   return {
     linkedin_url: profile.linkedinUrl ?? "",
     linkedin_alternate_email: blank(profile.email),
@@ -149,15 +224,15 @@ export function buildAlumniPatch(
     location_country: blank(profile.addressCountryOnly),
     location_full: blank(profile.addressWithCountry),
     photo_url: photoUrl,
-    current_title: blank(profile.jobTitle),
-    current_company: blank(profile.companyName),
-    current_company_linkedin: blank(profile.companyLinkedin),
-    current_company_industry: blank(profile.companyIndustry),
-    current_company_size: blank(profile.companySize),
-    current_company_website: blank(profile.companyWebsite),
+    current_title: currentTitle,
+    current_company: currentCompany,
+    current_company_linkedin: currentCompanyLinkedin,
+    current_company_industry: currentCompanyIndustry,
+    current_company_size: currentCompanySize,
+    current_company_website: currentCompanyWebsite,
     current_company_logo_url: findCurrentCompanyLogo(profile),
-    current_location: blank(profile.jobLocation),
-    current_since: blank(startedOn),
+    current_location: currentLocation,
+    current_since: currentSince,
     total_experience_years:
       typeof profile.totalExperienceYears === "number" ? profile.totalExperienceYears : null,
     first_role_year:
