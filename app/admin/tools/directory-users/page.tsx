@@ -11,6 +11,7 @@ import {
   revokeDirectoryUserAction,
   unrevokeDirectoryUserAction,
 } from "./actions";
+import InvitePicker from "./InvitePicker";
 
 export const dynamic = "force-dynamic";
 
@@ -76,29 +77,7 @@ export default async function DirectoryUsersPage({
           + Invite a new user
         </summary>
         <form action={inviteDirectoryUserAction} className="mt-3 space-y-3">
-          <label className="block">
-            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-              Alumni ID
-            </span>
-            <input
-              name="alumni_id"
-              type="number"
-              required
-              placeholder="e.g. 381"
-              className="w-full sm:w-[160px] border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
-            />
-            <span className="block mt-1 text-xs text-[color:var(--muted)]">
-              Find an alum&rsquo;s ID via{" "}
-              <Link
-                href="/admin/alumni"
-                className="text-navy hover:underline"
-              >
-                /admin/alumni
-              </Link>{" "}
-              — it&rsquo;s shown at the top of their record. (A picker
-              widget here is a v2 add.)
-            </span>
-          </label>
+          <InvitePicker />
           <label className="block">
             <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
               Email override (optional)
