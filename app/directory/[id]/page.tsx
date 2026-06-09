@@ -10,7 +10,7 @@ import {
 import { getCurrentDirectorySession } from "@/lib/directory-session";
 import { getSaveForAlumnus, REASON_LABELS, STATUS_LABELS } from "@/lib/directory-saves";
 import { linkedinHref } from "@/lib/linkedin-url";
-import { SaveButton } from "@/components/directory/SaveButton";
+import SaveStar from "@/components/directory/SaveStar";
 import { CompanyLogo } from "@/components/directory/CompanyLogo";
 import { originCountryNames, originFlagString } from "@/lib/country-flag";
 import {
@@ -220,7 +220,7 @@ export default async function DirectoryProfilePage({
                 );
               })()}
             </div>
-            <div className="mt-4 flex items-center gap-2 flex-wrap">
+            <div className="mt-4 flex items-center gap-3 flex-wrap">
               {linkedin ? (
                 <a
                   href={linkedin}
@@ -235,13 +235,12 @@ export default async function DirectoryProfilePage({
                   No LinkedIn on file
                 </span>
               )}
-            </div>
-            <div className="mt-3">
-              <SaveButton
+              <SaveStar
                 alumniId={id}
+                alumName={name}
                 initial={existingSave}
                 canSave={canSave}
-                variant="banner"
+                size={26}
               />
             </div>
           </div>

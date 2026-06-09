@@ -13,7 +13,7 @@ import { getCurrentDirectorySession } from "@/lib/directory-session";
 import { linkedinHref } from "@/lib/linkedin-url";
 import { parseSearchQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser";
 import { listSavesForUser } from "@/lib/directory-saves";
-import { SaveButton } from "@/components/directory/SaveButton";
+import SaveStar from "@/components/directory/SaveStar";
 import { DirectoryNLToggle } from "@/components/directory/DirectoryNLToggle";
 import { originCountryNames, originFlagString } from "@/lib/country-flag";
 import {
@@ -562,8 +562,18 @@ function DirectoryCard({
   const linkedin = linkedinHref(row.linkedin_url);
   const companyHref = linkedinHref(row.current_company_linkedin);
 
+  const fullName =
+    [row.first_name, row.last_name].filter(Boolean).join(" ") || "(no name)";
+
   return (
-    <li className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 hover:border-navy">
+    <li className="relative bg-white border border-[color:var(--rule)] rounded-[10px] p-4 hover:border-navy">
+      <SaveStar
+        alumniId={row.id}
+        alumName={fullName}
+        initial={initialSave ? { ...initialSave } : null}
+        canSave={canSave}
+        className="absolute top-2 right-2"
+      />
       <div className="flex gap-3">
         <Link
           href={`/directory/${row.id}`}
@@ -695,13 +705,6 @@ function DirectoryCard({
             </div>
           )}
         </div>
-      </div>
-      <div className="mt-3 pl-[76px]">
-        <SaveButton
-          alumniId={row.id}
-          initial={initialSave}
-          canSave={canSave}
-        />
       </div>
     </li>
   );
