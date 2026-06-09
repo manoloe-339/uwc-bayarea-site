@@ -203,22 +203,25 @@ export default async function DirectoryProfilePage({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="font-sans text-[28px] font-bold text-[color:var(--navy-ink)] leading-[1.1] flex items-center gap-2.5 flex-wrap">
-              <span>{name}</span>
-              {linkedin ? (
-                <LinkedinIconLink
-                  href={linkedin}
-                  alumniId={id}
-                  className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[#0A66C2] text-white text-[11px] font-bold hover:brightness-110 leading-none align-middle"
-                />
-              ) : (
-                <span
-                  className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[11px] font-bold leading-none align-middle"
-                  title="No LinkedIn on file"
-                >
-                  in
-                </span>
-              )}
+            <h1 className="font-sans text-[28px] font-bold text-[color:var(--navy-ink)] leading-[1.1]">
+              <span className="block">{titleCase(row.first_name) || "—"}</span>
+              <span className="block flex items-center gap-2.5 flex-wrap">
+                <span>{titleCase(row.last_name)}</span>
+                {linkedin ? (
+                  <LinkedinIconLink
+                    href={linkedin}
+                    alumniId={id}
+                    className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[#0A66C2] text-white text-[11px] font-bold hover:brightness-110 leading-none align-middle"
+                  />
+                ) : (
+                  <span
+                    className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[11px] font-bold leading-none align-middle"
+                    title="No LinkedIn on file"
+                  >
+                    in
+                  </span>
+                )}
+              </span>
             </h1>
             <div className="mt-2.5 space-y-1 text-[color:var(--navy-ink)]">
               {sub && (
