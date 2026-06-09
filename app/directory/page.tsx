@@ -15,6 +15,7 @@ import { parseSearchQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser"
 import { listSavesForUser } from "@/lib/directory-saves";
 import type { SaveReason, SaveStatus } from "@/lib/directory-saves-shared";
 import SaveStar from "@/components/directory/SaveStar";
+import LinkedinIconLink from "@/components/directory/LinkedinIconLink";
 import { DirectoryNLToggle } from "@/components/directory/DirectoryNLToggle";
 import { originCountryNames, originFlagString } from "@/lib/country-flag";
 import {
