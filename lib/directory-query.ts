@@ -23,6 +23,8 @@ import { sql } from "./db";
  * can't show up on /directory.
  */
 
+export type DirectoryExpBand = "0-3" | "3-7" | "7-15" | "15+";
+
 export type DirectoryFilters = {
   /** Broad free-text search across name + role + bio + past careers + education. */
   q?: string;
@@ -35,8 +37,11 @@ export type DirectoryFilters = {
   yearTo?: number;
   industries?: string[];
   industryGroup?: string;
+  industry?: string; // specific current_company_industry single-select
+  city?: string;
   company?: string;
   university?: string;
+  expBand?: DirectoryExpBand;
 };
 
 export type DirectoryAlumnusRow = {
@@ -62,10 +67,15 @@ export type DirectoryAlumnusRow = {
 
 export type DirectoryCareerRow = {
   alumni_id: number;
+  position: number | null;
   company: string | null;
+  company_industry: string | null;
+  company_linkedin_url: string | null;
+  location: string | null;
   title: string | null;
   start_date: string | null;
   end_date: string | null;
+  is_current: boolean | null;
 };
 
 const SELECT_DIRECTORY_FIELDS = `
@@ -152,6 +162,30 @@ function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
   if (f.industries && f.industries.length > 0) {
     push((n) => `current_company_industry = ANY($${n})`, f.industries);
   }
+  if (f.industry) {
+    push((n) => `current_company_industry = $${n}`, f.industry);
+  }
+  if (f.city) {
+    push(
+      (n) => `lower(coalesce(current_city,'')) LIKE $${n}`,
+      `%${f.city.toLowerCase()}%`,
+    );
+  }
+  if (f.expBand === "0-3") {
+    parts.push(
+      `(total_experience_years IS NOT NULL AND total_experience_years::numeric < 3)`,
+    );
+  } else if (f.expBand === "3-7") {
+    parts.push(
+      `(total_experience_years::numeric >= 3 AND total_experience_years::numeric < 7)`,
+    );
+  } else if (f.expBand === "7-15") {
+    parts.push(
+      `(total_experience_years::numeric >= 7 AND total_experience_years::numeric < 15)`,
+    );
+  } else if (f.expBand === "15+") {
+    parts.push(`(total_experience_years::numeric >= 15)`);
+  }
   if (f.company) {
     push(
       (n) => `lower(coalesce(current_company,'')) LIKE $${n}`,
@@ -215,10 +249,12 @@ export async function getDirectoryCareers(
   alumniId: number,
 ): Promise<DirectoryCareerRow[]> {
   const rows = (await sql.query(
-    `SELECT alumni_id, company, title, start_date, end_date
+    `SELECT alumni_id, position, company, company_industry, company_linkedin_url,
+            location, title, start_date, end_date, is_current
        FROM alumni_career
        WHERE alumni_id = $1
-       ORDER BY end_date DESC NULLS FIRST, start_date DESC NULLS LAST`,
+       ORDER BY is_current DESC NULLS LAST, position ASC NULLS LAST,
+                end_date DESC NULLS FIRST, start_date DESC NULLS LAST`,
     [alumniId],
   )) as DirectoryCareerRow[];
   return rows;

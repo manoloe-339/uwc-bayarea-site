@@ -16,15 +16,21 @@ export const dynamic = "force-dynamic";
 
 function fmtCareerDate(d: string | null): string {
   if (!d) return "";
-  // Stored as "M-YYYY" or similar from LinkedIn enrichment. Render as-is.
-  return d;
+  return d.trim();
 }
 
-function careerRange(start: string | null, end: string | null): string {
+function careerRange(
+  start: string | null,
+  end: string | null,
+  isCurrent: boolean | null,
+): string {
   const s = fmtCareerDate(start);
-  const e = end ? fmtCareerDate(end) : "present";
-  return s && e ? `${s} → ${e}` : s || e || "";
+  const endTrim = (end ?? "").trim();
+  const e = isCurrent || !endTrim ? "Present" : endTrim;
+  if (s && e) return `${s} – ${e}`;
+  return s || e || "";
 }
+
 
 export default async function DirectoryProfilePage({
   params,
@@ -183,27 +189,68 @@ export default async function DirectoryProfilePage({
 
         {careers.length > 0 && (
           <div className="mb-2">
-            <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-2">
-              Past roles
+            <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-3">
+              Career
             </div>
-            <ul className="space-y-2">
-              {careers.map((cc, i) => (
-                <li
-                  key={`${cc.alumni_id}-${i}`}
-                  className="text-sm text-[color:var(--navy-ink)]"
-                >
-                  <span className="font-semibold">
-                    {[cc.title, cc.company].filter(Boolean).join(" · ")}
-                  </span>
-                  {careerRange(cc.start_date, cc.end_date) && (
-                    <span className="text-[color:var(--muted)]">
-                      {" — "}
-                      {careerRange(cc.start_date, cc.end_date)}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <ol className="relative border-l-2 border-[color:var(--rule)] pl-5 space-y-4">
+              {careers.map((cc, i) => {
+                const companyHref = linkedinHref(cc.company_linkedin_url);
+                const meta = [cc.company_industry, cc.location]
+                  .filter(Boolean)
+                  .join(" · ");
+                const dateRange = careerRange(
+                  cc.start_date,
+                  cc.end_date,
+                  cc.is_current,
+                );
+                return (
+                  <li
+                    key={`${cc.alumni_id}-${i}`}
+                    className="relative text-sm text-[color:var(--navy-ink)]"
+                  >
+                    <span
+                      aria-hidden
+                      className={`absolute -left-[27px] top-1.5 w-2.5 h-2.5 rounded-full border-2 ${
+                        cc.is_current
+                          ? "bg-navy border-navy"
+                          : "bg-white border-[color:var(--rule)]"
+                      }`}
+                    />
+                    {cc.title && (
+                      <div className="font-semibold leading-tight">
+                        {cc.title}
+                      </div>
+                    )}
+                    {cc.company && (
+                      <div className="text-[color:var(--navy-ink)]">
+                        {companyHref ? (
+                          <a
+                            href={companyHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            {cc.company}
+                          </a>
+                        ) : (
+                          cc.company
+                        )}
+                      </div>
+                    )}
+                    {meta && (
+                      <div className="text-xs text-[color:var(--muted)]">
+                        {meta}
+                      </div>
+                    )}
+                    {dateRange && (
+                      <div className="text-[11px] text-[color:var(--muted)] font-mono mt-0.5">
+                        {dateRange}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
           </div>
         )}
       </div>

@@ -15,6 +15,7 @@ import { parseSearchQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser"
 import { listSavesForUser } from "@/lib/directory-saves";
 import { SaveButton } from "@/components/directory/SaveButton";
 import { DirectoryNLToggle } from "@/components/directory/DirectoryNLToggle";
+import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -91,8 +92,11 @@ export default async function DirectoryPage({
     yearFrom: pickNum(sp, "yearFrom"),
     yearTo: pickNum(sp, "yearTo"),
     industryGroup: pickStr(sp, "industryGroup"),
+    industry: pickStr(sp, "industry"),
+    city: pickStr(sp, "city"),
     company: pickStr(sp, "company"),
     university: pickStr(sp, "university"),
+    expBand: pickStr(sp, "expBand") as DirectoryFilters["expBand"],
   };
 
   const filters = nl ? await applyNaturalLanguage(baseFilters) : baseFilters;
@@ -107,8 +111,11 @@ export default async function DirectoryPage({
     !!filters.region ||
     !!filters.origin ||
     !!filters.industryGroup ||
+    !!filters.industry ||
+    !!filters.city ||
     !!filters.company ||
     !!filters.university ||
+    !!filters.expBand ||
     filters.yearFrom != null ||
     filters.yearTo != null;
   const session = await getCurrentDirectorySession();
@@ -119,10 +126,21 @@ export default async function DirectoryPage({
     void logDirectorySearch(sessionId, filters, userId);
   }
 
-  const [rows, total, mySaves] = await Promise.all([
+  const [rows, total, mySaves, industries] = await Promise.all([
     searchDirectoryAlumni(filters, 500),
     countDirectoryAlumni(filters),
     userId ? listSavesForUser(userId) : Promise.resolve([]),
+    sql`
+      SELECT current_company_industry AS value, COUNT(*)::int AS count
+      FROM alumni
+      WHERE current_company_industry IS NOT NULL
+        AND affiliation ILIKE '%alum%'
+        AND deceased IS NOT TRUE
+        AND moved_out IS NOT TRUE
+      GROUP BY current_company_industry
+      ORDER BY count DESC, current_company_industry ASC
+      LIMIT 60
+    ` as unknown as Promise<Array<{ value: string; count: number }>>,
   ]);
   // Build a quick lookup: alumni_id -> existing save (for the ★ button state).
   const savedByAlumni = new Map<number, { status: typeof mySaves[number]["status"]; reason: typeof mySaves[number]["reason"]; note: string | null }>();
@@ -248,6 +266,55 @@ export default async function DirectoryPage({
             type="number"
             defaultValue={filters.yearTo ?? ""}
             placeholder="e.g. 2020"
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          />
+        </label>
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            Industry
+          </span>
+          <select
+            name="industry"
+            defaultValue={filters.industry ?? ""}
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          >
+            <option value="">Any</option>
+            {(industries as Array<{ value: string; count: number }>).map(
+              (ind) => (
+                <option key={ind.value} value={ind.value}>
+                  {ind.value} ({ind.count})
+                </option>
+              ),
+            )}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            Experience
+          </span>
+          <select
+            name="expBand"
+            defaultValue={filters.expBand ?? ""}
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          >
+            <option value="">Any</option>
+            <option value="0-3">0–3 yrs (early)</option>
+            <option value="3-7">3–7 yrs</option>
+            <option value="7-15">7–15 yrs</option>
+            <option value="15+">15+ yrs (senior)</option>
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            City contains
+          </span>
+          <input
+            name="city"
+            defaultValue={filters.city ?? ""}
+            placeholder="e.g. San Francisco"
             className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
           />
         </label>
