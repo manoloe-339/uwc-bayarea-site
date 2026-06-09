@@ -14,6 +14,7 @@ import { linkedinHref } from "@/lib/linkedin-url";
 import { parseSearchQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser";
 import { listSavesForUser } from "@/lib/directory-saves";
 import { SaveButton } from "@/components/directory/SaveButton";
+import { DirectoryNLToggle } from "@/components/directory/DirectoryNLToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -159,7 +160,7 @@ export default async function DirectoryPage({
                 ? "🪄 Describe who you're looking for"
                 : "🔎 Search (role, company, bio, past jobs, school…)"}
             </span>
-            <NLToggle on={nl} sp={sp} />
+            <DirectoryNLToggle on={nl} />
           </span>
           <input
             name="q"
@@ -326,26 +327,6 @@ export default async function DirectoryPage({
         </div>
       )}
     </section>
-  );
-}
-
-function NLToggle({ on, sp }: { on: boolean; sp: SP }) {
-  // Build the opposite-mode URL by toggling the `nl` param.
-  const params = new URLSearchParams();
-  for (const [k, v] of Object.entries(sp)) {
-    if (k === "nl") continue;
-    const value = Array.isArray(v) ? v[0] : v;
-    if (typeof value === "string" && value) params.set(k, value);
-  }
-  if (!on) params.set("nl", "1");
-  const href = `/directory${params.toString() ? `?${params.toString()}` : ""}`;
-  return (
-    <Link
-      href={href}
-      className="text-[10px] tracking-[.22em] uppercase font-bold text-navy hover:underline"
-    >
-      {on ? "Standard search ↩" : "🪄 Natural language"}
-    </Link>
   );
 }
 
