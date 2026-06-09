@@ -72,12 +72,27 @@ export function normalizeLinkedinForStorage(
   // Drop query string, fragment, and any trailing slashes.
   s = s.split(/[?#]/)[0].replace(/\/+$/, "");
 
+  // Strip a trailing 2-5-letter locale path segment ("/ja", "/de",
+  // "/zh-cn", "/en-us"). LinkedIn renders profiles with these locale
+  // suffixes when the URL has a region subdomain (e.g. jp.linkedin.com),
+  // and the Apify scraper actor doesn't resolve them — it expects
+  // /in/<slug> with no further path. Slugs never contain "/", so any
+  // second path segment is always meta.
+  s = s.replace(/\/[a-z]{2,3}(?:-[a-z]{2,4})?$/i, "");
+
   // Validate: must match linkedin.com/in/<slug>. The slug may contain
-  // letters, digits, hyphens, and percent-encoded sequences (LinkedIn
-  // sometimes urlencodes non-ASCII characters). Reject anything else
-  // (company pages, posts, search results, etc.).
-  const match = s.match(/^linkedin\.com\/in\/([A-Za-z0-9._%-]+)$/i);
+  // letters (incl. accented / non-ASCII like ñ, á, ą), digits, hyphens,
+  // percent-encoded sequences, periods, underscores. Reject anything
+  // else (company pages, posts, search results, /u/ legacy URLs, etc.).
+  const match = s.match(/^linkedin\.com\/in\/([\p{L}\p{N}._%-]+)$/iu);
   if (!match) return null;
 
-  return `https://www.linkedin.com/in/${match[1].toLowerCase()}`;
+  // URL-encode the slug only when it contains non-ASCII chars so
+  // canonical URLs are valid (e.g. "alexandra-sánchez" →
+  // "alexandra-s%C3%A1nchez"). Pure-ASCII slugs pass through unchanged.
+  const slug = match[1].toLowerCase();
+  const finalSlug = /^[a-z0-9._%-]+$/i.test(slug)
+    ? slug
+    : encodeURIComponent(slug);
+  return `https://www.linkedin.com/in/${finalSlug}`;
 }

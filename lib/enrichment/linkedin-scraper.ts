@@ -55,5 +55,20 @@ export async function scrapeLinkedinProfile(url: string): Promise<ScrapeResult> 
     }
     return { ok: false, reason: "Apify returned zero profile items", runId: run.id, logTail };
   }
+  // Apify sometimes returns a successful run whose dataset item is an
+  // error-shape: { error: "...", linkedinUrl: "..." } instead of a
+  // profile. Treat as failure so the row doesn't get marked complete
+  // with empty data — applyProfile would otherwise nuke the child
+  // tables and leave the alumni-level fields stuck on COALESCE'd
+  // previous values, masking the broken scrape.
+  const errorField = (first as unknown as { error?: unknown }).error;
+  if (typeof errorField === "string" && errorField.length > 0) {
+    return {
+      ok: false,
+      reason: `Apify error response: ${errorField}`,
+      runId: run.id,
+      logTail: null,
+    };
+  }
   return { ok: true, profile: first, runId: run.id };
 }
