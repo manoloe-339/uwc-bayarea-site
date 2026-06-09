@@ -168,40 +168,25 @@ export default function SavedRow({
                 </span>
               )}
             </div>
-            <div className="flex flex-col items-end gap-1 shrink-0">
-              <div className="flex items-center gap-2">
-                <SavedStatusSelect
-                  alumniId={row.alumni_id}
-                  initialStatus={row.status}
-                  reason={row.reason}
-                  note={row.note}
-                />
-                <SaveStar
-                  alumniId={row.alumni_id}
-                  alumName={name}
-                  initial={{
-                    status: row.status,
-                    reason: row.reason,
-                    note: row.note,
-                  }}
-                  canSave={true}
-                  onSavedChange={onSavedChange}
-                  onUnsave={onUnsave}
-                />
-              </div>
-              <div
-                className="text-[11px] text-[color:var(--muted)]"
-                title={`Saved ${fmtAbs(row.created_at)}\nLast updated ${fmtAbs(row.updated_at)}`}
-              >
-                {everUpdated ? (
-                  <>
-                    Saved {fmtRel(row.created_at)} · Updated{" "}
-                    {fmtRel(row.updated_at)}
-                  </>
-                ) : (
-                  <>Saved {fmtRel(row.created_at)}</>
-                )}
-              </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <SavedStatusSelect
+                alumniId={row.alumni_id}
+                initialStatus={row.status}
+                reason={row.reason}
+                note={row.note}
+              />
+              <SaveStar
+                alumniId={row.alumni_id}
+                alumName={name}
+                initial={{
+                  status: row.status,
+                  reason: row.reason,
+                  note: row.note,
+                }}
+                canSave={true}
+                onSavedChange={onSavedChange}
+                onUnsave={onUnsave}
+              />
             </div>
           </div>
           <div className="text-xs text-[color:var(--muted)] mt-0.5">
@@ -252,6 +237,18 @@ export default function SavedRow({
             initialNote={row.note}
             status={row.status}
           />
+          <div
+            className="mt-2 text-[11px] text-[color:var(--muted)] text-right"
+            title={`Saved ${fmtAbs(row.created_at)}\nLast updated ${fmtAbs(row.updated_at)}`}
+          >
+            {everUpdated ? (
+              <>
+                Saved {fmtRel(row.created_at)} · Updated {fmtRel(row.updated_at)}
+              </>
+            ) : (
+              <>Saved {fmtRel(row.created_at)}</>
+            )}
+          </div>
         </div>
       </div>
     </li>
