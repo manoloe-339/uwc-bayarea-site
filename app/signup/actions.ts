@@ -23,6 +23,7 @@ import {
   DIFFED_FIELDS,
   type SubmissionDiff,
 } from "@/lib/signup-submissions";
+import { normalizeLinkedinForStorage } from "@/lib/linkedin-url";
 import {
   renderSimpleMarkdown,
   EMAIL_LINK_ATTRS,
@@ -146,7 +147,12 @@ export async function submitSignup(
   const currentCity = s(formData.get("current_city"));
   const region = cityToRegion(currentCity);
   const mobile = s(formData.get("mobile"));
-  const linkedinUrl = s(formData.get("linkedin_url"));
+  // Permissive normalize: turns "/manoloe", "linkedin.com/in/x", bare
+  // slugs, regional subdomains, trailing slashes, etc. into the canonical
+  // https://www.linkedin.com/in/<slug>. Returns null when the input
+  // can't plausibly be a profile URL (and we just store null in that case
+  // — better than persisting garbage).
+  const linkedinUrl = normalizeLinkedinForStorage(formData.get("linkedin_url"));
   const company = s(formData.get("company"));
   const working = s(formData.get("working"));
   const workLocation = s(formData.get("work_location"));

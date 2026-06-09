@@ -8,7 +8,7 @@ import { cityToRegion, REGIONS } from "@/lib/region";
 import { reasonLabel } from "@/lib/unsubscribe-reasons";
 import { resubscribe } from "@/app/unsubscribe/actions";
 import { fmtDate } from "@/lib/admin-time";
-import { linkedinHref } from "@/lib/linkedin-url";
+import { linkedinHref, normalizeLinkedinForStorage } from "@/lib/linkedin-url";
 import { FOLLOWUP_REASONS, FOLLOWUP_REASON_LABELS, type FollowupReason } from "@/lib/alumni-query";
 import { EnrichmentSection } from "@/components/enrichment/EnrichmentSection";
 import type { EnrichmentStatus as EnrichmentStatusType } from "@/types/enrichment";
@@ -210,7 +210,7 @@ async function updateAlumnus(id: number, formData: FormData) {
       last_name          = ${get("last_name")},
       email              = ${email.toLowerCase()},
       mobile             = ${get("mobile")},
-      linkedin_url       = ${get("linkedin_url")},
+      linkedin_url       = ${normalizeLinkedinForStorage(get("linkedin_url"))},
       origin             = ${get("origin")},
       uwc_college        = ${uwcCollege},
       uwc_college_raw    = ${uwcCollegeRaw},

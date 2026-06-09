@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { sql } from "@/lib/db";
+import { normalizeLinkedinForStorage } from "@/lib/linkedin-url";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,7 +56,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const uwc_college = clean(body.uwc_college);
   const grad_year = parseYear(body.grad_year);
   const photo_url = clean(body.photo_url);
-  const linkedin_url = clean(body.linkedin_url);
+  // Permissive normalize — handles partial inputs like "manoloe" or
+  // "linkedin.com/in/..." and turns them into canonical URLs. Returns
+  // null when the input can't be a profile URL.
+  const linkedin_url = normalizeLinkedinForStorage(body.linkedin_url);
   const current_title = clean(body.current_title);
   const current_company = clean(body.current_company);
 
