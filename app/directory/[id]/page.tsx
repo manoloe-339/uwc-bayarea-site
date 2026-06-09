@@ -14,6 +14,31 @@ import { SaveButton } from "@/components/directory/SaveButton";
 
 export const dynamic = "force-dynamic";
 
+/** Derive a readable company name from a LinkedIn company URL when the
+ * scraped `company` string is missing. LinkedIn's `/company/<slug>/`
+ * pattern is reliable; "the-world-bank-group" → "The World Bank Group". */
+function deriveCompanyFromLinkedinUrl(url: string | null): string | null {
+  if (!url) return null;
+  const m = url.match(/\/company\/([^/?#]+)/i);
+  if (!m) return null;
+  const slug = decodeURIComponent(m[1]).replace(/-+/g, " ").trim();
+  if (!slug) return null;
+  // Title-case each word.
+  return slug
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+
+function companyDisplayName(cc: {
+  company: string | null;
+  company_linkedin_url: string | null;
+}): string | null {
+  const direct = cc.company?.trim();
+  if (direct) return direct;
+  return deriveCompanyFromLinkedinUrl(cc.company_linkedin_url);
+}
+
 function fmtCareerDate(d: string | null): string {
   if (!d) return "";
   return d.trim();
@@ -195,6 +220,7 @@ export default async function DirectoryProfilePage({
             <ol className="relative border-l-2 border-[color:var(--rule)] pl-5 space-y-4">
               {careers.map((cc, i) => {
                 const companyHref = linkedinHref(cc.company_linkedin_url);
+                const companyName = companyDisplayName(cc);
                 const meta = [cc.company_industry, cc.location]
                   .filter(Boolean)
                   .join(" · ");
@@ -221,7 +247,7 @@ export default async function DirectoryProfilePage({
                         {cc.title}
                       </div>
                     )}
-                    {cc.company && (
+                    {companyName && (
                       <div className="text-[color:var(--navy-ink)]">
                         {companyHref ? (
                           <a
@@ -230,10 +256,10 @@ export default async function DirectoryProfilePage({
                             rel="noopener noreferrer"
                             className="hover:underline"
                           >
-                            {cc.company}
+                            {companyName}
                           </a>
                         ) : (
-                          cc.company
+                          companyName
                         )}
                       </div>
                     )}
