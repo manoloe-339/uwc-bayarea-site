@@ -82,6 +82,7 @@ export type DirectoryAlumnusRow = {
   current_company: string | null;
   current_company_industry: string | null;
   current_company_size: string | null;
+  current_company_website: string | null;
   location_full: string | null;
 };
 
@@ -92,6 +93,7 @@ export type DirectoryCareerRow = {
   company_industry: string | null;
   company_size: string | null;
   company_linkedin_url: string | null;
+  company_website: string | null;
   location: string | null;
   title: string | null;
   start_date: string | null;
@@ -104,7 +106,7 @@ const SELECT_DIRECTORY_FIELDS = `
   current_city, region, origin,
   photo_url, headline, linkedin_about, linkedin_url,
   current_title, current_company, current_company_industry,
-  current_company_size, location_full
+  current_company_size, current_company_website, location_full
 `;
 
 function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
@@ -288,7 +290,8 @@ export async function getDirectoryCareers(
   alumniId: number,
 ): Promise<DirectoryCareerRow[]> {
   const rows = (await sql.query(
-    `SELECT alumni_id, position, company, company_industry, company_size, company_linkedin_url,
+    `SELECT alumni_id, position, company, company_industry, company_size,
+            company_linkedin_url, company_website,
             location, title, start_date, end_date, is_current
        FROM alumni_career
        WHERE alumni_id = $1

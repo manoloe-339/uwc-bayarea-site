@@ -11,6 +11,7 @@ import { getSaveForAlumnus, REASON_LABELS, STATUS_LABELS } from "@/lib/directory
 import { linkedinHref } from "@/lib/linkedin-url";
 import { FeedbackButton } from "@/components/directory/FeedbackButton";
 import { SaveButton } from "@/components/directory/SaveButton";
+import { CompanyLogo } from "@/components/directory/CompanyLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -187,16 +188,25 @@ export default async function DirectoryProfilePage({
             <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
               Now
             </div>
-            <div className="text-sm text-[color:var(--navy-ink)]">
-              {row.current_title}
-              {row.current_title && row.current_company && " at "}
-              {row.current_company}
-              {row.current_company_industry && (
-                <span className="text-[color:var(--muted)]">
-                  {" · "}
-                  {row.current_company_industry}
-                </span>
+            <div className="flex items-center gap-2.5 text-sm text-[color:var(--navy-ink)]">
+              {row.current_company && (
+                <CompanyLogo
+                  website={row.current_company_website}
+                  companyName={row.current_company}
+                  size={28}
+                />
               )}
+              <div>
+                {row.current_title}
+                {row.current_title && row.current_company && " at "}
+                {row.current_company}
+                {row.current_company_industry && (
+                  <span className="text-[color:var(--muted)]">
+                    {" · "}
+                    {row.current_company_industry}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -251,7 +261,12 @@ export default async function DirectoryProfilePage({
                       </div>
                     )}
                     {companyName && (
-                      <div className="text-[color:var(--navy-ink)]">
+                      <div className="flex items-center gap-2 text-[color:var(--navy-ink)]">
+                        <CompanyLogo
+                          website={cc.company_website}
+                          companyName={companyName}
+                          size={20}
+                        />
                         {companyHref ? (
                           <a
                             href={companyHref}
@@ -262,7 +277,7 @@ export default async function DirectoryProfilePage({
                             {companyName}
                           </a>
                         ) : (
-                          companyName
+                          <span>{companyName}</span>
                         )}
                       </div>
                     )}
