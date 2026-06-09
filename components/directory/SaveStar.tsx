@@ -204,7 +204,7 @@ export default function SaveStar({
         aria-label={isSaved ? "Remove from shortlist" : "Add to shortlist"}
         aria-pressed={isSaved}
         title={isSaved ? "Saved — click to remove" : "Save to shortlist"}
-        className={`inline-flex items-center justify-center rounded transition-colors [@media(hover:hover)]:hover:bg-[color:var(--ivory-2)] ${className}`}
+        className={`inline-flex items-center justify-center rounded transition-colors ${className}`}
         style={{
           width: size + 8,
           height: size + 8,
