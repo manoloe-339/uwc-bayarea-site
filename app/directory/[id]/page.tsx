@@ -8,7 +8,7 @@ import {
   logDirectoryProfileView,
 } from "@/lib/directory-query";
 import { getCurrentDirectorySession } from "@/lib/directory-session";
-import { getSaveForAlumnus, REASON_LABELS, STATUS_LABELS } from "@/lib/directory-saves";
+import { getSaveForAlumnus } from "@/lib/directory-saves";
 import { linkedinHref } from "@/lib/linkedin-url";
 import SaveStar from "@/components/directory/SaveStar";
 import { CompanyLogo } from "@/components/directory/CompanyLogo";
@@ -148,22 +148,6 @@ export default async function DirectoryProfilePage({
           ← Back to directory
         </Link>
       </div>
-
-      {existingSave && canSave && (
-        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-[10px] px-4 py-3 text-xs text-amber-900">
-          <span className="font-bold">★ On your shortlist</span>
-          {" — "}
-          <span>Status: {STATUS_LABELS[existingSave.status]}</span>
-          {existingSave.reason && (
-            <span>{" · "}Reason: {REASON_LABELS[existingSave.reason]}</span>
-          )}
-          {existingSave.note && (
-            <div className="mt-1 italic text-[color:var(--muted)]">
-              &ldquo;{existingSave.note}&rdquo;
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="relative bg-white border border-[color:var(--rule)] rounded-[10px] p-6 sm:p-8">
         <SaveStar
