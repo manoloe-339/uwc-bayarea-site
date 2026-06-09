@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { getCurrentDirectorySession } from "@/lib/directory-session";
 import {
   listSavesForUser,
-  REASON_LABELS,
   SAVE_STATUSES,
   STATUS_LABELS,
   type SaveStatus,
@@ -12,6 +11,7 @@ import {
 import { linkedinHref } from "@/lib/linkedin-url";
 import SaveStar from "@/components/directory/SaveStar";
 import SavedStatusSelect from "@/components/directory/SavedStatusSelect";
+import SavedReasonEditor from "@/components/directory/SavedReasonEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -236,16 +236,12 @@ export default async function SavedShortlistPage({
                           ))}
                       </div>
                     )}
-                    {row.reason && (
-                      <div className="mt-2 text-xs text-[color:var(--muted)]">
-                        Reason: {REASON_LABELS[row.reason]}
-                      </div>
-                    )}
-                    {row.note && (
-                      <div className="mt-2 text-xs italic text-[color:var(--navy-ink)] border-l-2 border-[color:var(--rule)] pl-2">
-                        {row.note}
-                      </div>
-                    )}
+                    <SavedReasonEditor
+                      alumniId={row.alumni_id}
+                      initialReason={row.reason}
+                      initialNote={row.note}
+                      status={row.status}
+                    />
                   </div>
                 </div>
               </li>

@@ -29,12 +29,12 @@ export const SAVE_REASONS = [
 export type SaveReason = (typeof SAVE_REASONS)[number];
 
 export const STATUS_LABELS: Record<SaveStatus, string> = {
-  not_contacted: "Not contacted",
-  invite_sent: "Invite sent",
-  connected: "Connected",
-  replied: "Replied",
-  met: "Met",
-  follow_up_later: "Follow up later",
+  not_contacted: "📭 Not contacted",
+  invite_sent: "✉️ Invite sent",
+  connected: "🤝 Connected",
+  replied: "💬 Replied",
+  met: "☕ Met",
+  follow_up_later: "⏰ Follow up later",
 };
 
 export const REASON_LABELS: Record<SaveReason, string> = {
