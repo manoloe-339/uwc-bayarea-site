@@ -253,12 +253,11 @@ export default async function DirectoryPage({
             ? `Welcome, ${me.first_name.trim()}`
             : "Directory"}
         </h1>
-        <p className="text-sm text-[color:var(--muted)] mt-1.5 max-w-[68ch]">
-          Search registered alumni and connect with them on LinkedIn.
+        <p className="text-sm text-[color:var(--muted)] mt-1.5">
+          Search and connect on LinkedIn.
         </p>
-        <p className="text-sm text-[color:var(--muted)] max-w-[68ch]">
-          Contact info is intentionally not shown — reach out via their
-          LinkedIn profile.
+        <p className="text-sm text-[color:var(--muted)]">
+          Contact info is not shown.
         </p>
       </div>
 
