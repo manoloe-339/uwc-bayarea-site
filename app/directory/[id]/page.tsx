@@ -12,7 +12,7 @@ import { getSaveForAlumnus, REASON_LABELS, STATUS_LABELS } from "@/lib/directory
 import { linkedinHref } from "@/lib/linkedin-url";
 import SaveStar from "@/components/directory/SaveStar";
 import { CompanyLogo } from "@/components/directory/CompanyLogo";
-import LinkedinProfileButton from "@/components/directory/LinkedinProfileButton";
+import LinkedinIconLink from "@/components/directory/LinkedinIconLink";
 import { originCountryNames, originFlagString } from "@/lib/country-flag";
 import {
   detectMovedFromBayArea,
@@ -157,25 +157,41 @@ export default async function DirectoryProfilePage({
 
       <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-6 sm:p-8">
         <div className="flex items-start gap-5 mb-6">
-          <div className="shrink-0 w-[110px] h-[110px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] ring-[3px] ring-navy">
-            {row.photo_url ? (
-              <Image
-                src={row.photo_url}
-                alt=""
-                width={110}
-                height={110}
-                className="object-cover w-full h-full"
-                unoptimized
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-2xl font-bold">
-                {name
-                  .split(" ")
-                  .map((p) => p[0])
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .join("")
-                  .toUpperCase()}
+          <div className="shrink-0 flex flex-col items-center gap-2">
+            <div className="w-[110px] h-[110px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] ring-[3px] ring-navy">
+              {row.photo_url ? (
+                <Image
+                  src={row.photo_url}
+                  alt=""
+                  width={110}
+                  height={110}
+                  className="object-cover w-full h-full"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-2xl font-bold">
+                  {name
+                    .split(" ")
+                    .map((p) => p[0])
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase()}
+                </div>
+              )}
+            </div>
+            {row.origin && originFlagString(row.origin) && (
+              <div className="flex flex-col items-center gap-0.5">
+                <span
+                  className="text-[28px] leading-none text-black"
+                  style={{ fontVariantEmoji: "emoji" }}
+                  aria-label={`From ${originCountryNames(row.origin) ?? row.origin}`}
+                >
+                  {originFlagString(row.origin)}
+                </span>
+                <span className="text-[11px] text-[color:var(--muted)] text-center max-w-[120px]">
+                  {originCountryNames(row.origin) ?? row.origin}
+                </span>
               </div>
             )}
           </div>
@@ -187,16 +203,6 @@ export default async function DirectoryProfilePage({
               {sub && (
                 <div className="text-[15px] font-semibold leading-tight">
                   {sub}
-                </div>
-              )}
-              {row.origin && (
-                <div className="text-[15px] leading-tight">
-                  {originFlagString(row.origin) && (
-                    <span className="mr-1.5 text-[18px] align-[-2px]" aria-hidden>
-                      {originFlagString(row.origin)}
-                    </span>
-                  )}
-                  {originCountryNames(row.origin) ?? row.origin}
                 </div>
               )}
               {location && (
@@ -223,10 +229,17 @@ export default async function DirectoryProfilePage({
             </div>
             <div className="mt-4 flex items-center gap-3 flex-wrap">
               {linkedin ? (
-                <LinkedinProfileButton href={linkedin} alumniId={id} />
+                <LinkedinIconLink
+                  href={linkedin}
+                  alumniId={id}
+                  className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-[4px] bg-[#0A66C2] text-white text-[14px] font-bold hover:brightness-110 leading-none"
+                />
               ) : (
-                <span className="inline-flex items-center gap-2 border border-dashed border-[color:var(--rule)] text-[color:var(--muted)] px-4 py-2 rounded text-xs font-bold tracking-[.18em] uppercase">
-                  No LinkedIn on file
+                <span
+                  className="inline-flex items-center justify-center w-[28px] h-[28px] rounded-[4px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[14px] font-bold leading-none"
+                  title="No LinkedIn on file"
+                >
+                  in
                 </span>
               )}
               <SaveStar

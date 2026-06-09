@@ -61,9 +61,11 @@ export default function SaveStar({
   const [reason, setReason] = useState<SaveReason | "">(initial?.reason ?? "");
   const [note, setNote] = useState<string>(initial?.note ?? "");
   const [flash, setFlash] = useState(false);
+  const [savedToast, setSavedToast] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [undoFor, setUndoFor] = useState<Initial>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastNote = useRef<string>(initial?.note ?? "");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -110,7 +112,16 @@ export default function SaveStar({
         reason: r || null,
         note: (n ?? "").trim() || null,
       });
-      if (!wasSaved) onSavedChange?.(true);
+      if (!wasSaved) {
+        onSavedChange?.(true);
+        // First-save toast — mirrors the unsave undo style so users
+        // get immediate confirmation that the click registered, and
+        // (on the cards/profile pages) a visual cue pointing to the
+        // shortlist.
+        setSavedToast(true);
+        if (savedToastTimer.current) clearTimeout(savedToastTimer.current);
+        savedToastTimer.current = setTimeout(() => setSavedToast(false), 3500);
+      }
       setFlash(true);
       setTimeout(() => setFlash(false), 1200);
     } finally {
@@ -206,6 +217,16 @@ export default function SaveStar({
           <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.6l-5.9 3.07 1.13-6.57L2.45 9.44l6.6-.96L12 2.5z" />
         </svg>
       </button>
+
+      {savedToast && (
+        <div
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-navy text-white px-4 py-2.5 rounded-full shadow-lg text-sm flex items-center gap-2"
+          role="status"
+        >
+          <span aria-hidden>⭐</span>
+          Saved to your shortlist
+        </div>
+      )}
 
       {undoFor && (
         <div

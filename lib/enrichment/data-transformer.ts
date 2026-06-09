@@ -219,9 +219,14 @@ export function buildCareerRows(
     const start = typeof exp.period?.startedOn === "string"
       ? exp.period.startedOn
       : exp.jobStartedOn ?? null;
+    // Symmetry with `start`: prefer period.endedOn when populated,
+    // fall back to top-level jobEndedOn. Older actor versions used
+    // period.* but the newer ones return jobEndedOn at the top level
+    // — without this fallback, ~83% of past jobs landed with a NULL
+    // end_date and rendered as "Present" in the UI.
     const end = typeof exp.period?.endedOn === "string"
       ? exp.period.endedOn
-      : null;
+      : exp.jobEndedOn ?? null;
     // Prefer exp.companyName when present — newer Apify versions
     // expose it as the canonical company name. Fall back to subtitle
     // (older versions) but skip it when it's all digits (those are
