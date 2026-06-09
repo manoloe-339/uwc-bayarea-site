@@ -9,6 +9,7 @@ interface Props {
 
 export default function DirectoryLoginForm({ next }: Props) {
   const router = useRouter();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -20,7 +21,7 @@ export default function DirectoryLoginForm({ next }: Props) {
       const res = await fetch("/api/directory/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, next }),
+        body: JSON.stringify({ email, password, next }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -37,13 +38,29 @@ export default function DirectoryLoginForm({ next }: Props) {
     <form onSubmit={submit} className="space-y-4">
       <label className="block">
         <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+          Email
+        </span>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoFocus
+          autoComplete="email"
+          placeholder="your@email.com"
+          className="w-full border border-[color:var(--rule)] rounded px-3 py-2.5 text-sm bg-white"
+        />
+        <span className="block mt-1 text-xs text-[color:var(--muted)]">
+          Leave blank if you were given a shared admin password.
+        </span>
+      </label>
+      <label className="block">
+        <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
           Password
         </span>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          autoFocus
           autoComplete="current-password"
           required
           className="w-full border border-[color:var(--rule)] rounded px-3 py-2.5 text-sm bg-white"

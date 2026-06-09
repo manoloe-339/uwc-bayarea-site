@@ -1,0 +1,155 @@
+import { sql } from "./db";
+
+export const SAVE_STATUSES = [
+  "not_contacted",
+  "invite_sent",
+  "connected",
+  "replied",
+  "met",
+  "follow_up_later",
+  "closed",
+] as const;
+export type SaveStatus = (typeof SAVE_STATUSES)[number];
+
+export const SAVE_REASONS = [
+  "job",
+  "referral",
+  "mentor",
+  "founder",
+  "industry",
+  "other",
+] as const;
+export type SaveReason = (typeof SAVE_REASONS)[number];
+
+export const STATUS_LABELS: Record<SaveStatus, string> = {
+  not_contacted: "Not contacted",
+  invite_sent: "Invite sent",
+  connected: "Connected",
+  replied: "Replied",
+  met: "Met",
+  follow_up_later: "Follow up later",
+  closed: "Closed",
+};
+export const REASON_LABELS: Record<SaveReason, string> = {
+  job: "Job opportunity",
+  referral: "Referral / intro",
+  mentor: "Mentorship",
+  founder: "Founder / peer",
+  industry: "Industry interest",
+  other: "Other",
+};
+
+export const MAX_NOTE_CHARS = 300;
+
+export function isSaveStatus(v: string): v is SaveStatus {
+  return (SAVE_STATUSES as readonly string[]).includes(v);
+}
+export function isSaveReason(v: string): v is SaveReason {
+  return (SAVE_REASONS as readonly string[]).includes(v);
+}
+
+export type DirectorySaveRow = {
+  id: number;
+  directory_user_id: number;
+  alumni_id: number;
+  reason: SaveReason | null;
+  status: SaveStatus;
+  note: string | null;
+  created_at: Date;
+  updated_at: Date;
+  // Joined alumni fields for list rendering.
+  alum_first_name: string | null;
+  alum_last_name: string | null;
+  alum_uwc_college: string | null;
+  alum_grad_year: number | null;
+  alum_current_title: string | null;
+  alum_current_company: string | null;
+  alum_current_city: string | null;
+  alum_photo_url: string | null;
+  alum_linkedin_url: string | null;
+};
+
+export async function listSavesForUser(
+  directoryUserId: number,
+): Promise<DirectorySaveRow[]> {
+  const rows = (await sql`
+    SELECT s.*,
+           a.first_name      AS alum_first_name,
+           a.last_name       AS alum_last_name,
+           a.uwc_college     AS alum_uwc_college,
+           a.grad_year       AS alum_grad_year,
+           a.current_title   AS alum_current_title,
+           a.current_company AS alum_current_company,
+           a.current_city    AS alum_current_city,
+           a.photo_url       AS alum_photo_url,
+           a.linkedin_url    AS alum_linkedin_url
+    FROM directory_saves s
+    LEFT JOIN alumni a ON a.id = s.alumni_id
+    WHERE s.directory_user_id = ${directoryUserId}
+    ORDER BY s.updated_at DESC
+  `) as DirectorySaveRow[];
+  return rows;
+}
+
+export async function getSaveForAlumnus(
+  directoryUserId: number,
+  alumniId: number,
+): Promise<{
+  id: number;
+  reason: SaveReason | null;
+  status: SaveStatus;
+  note: string | null;
+} | null> {
+  const rows = (await sql`
+    SELECT id, reason, status, note
+    FROM directory_saves
+    WHERE directory_user_id = ${directoryUserId} AND alumni_id = ${alumniId}
+    LIMIT 1
+  `) as Array<{
+    id: number;
+    reason: SaveReason | null;
+    status: SaveStatus;
+    note: string | null;
+  }>;
+  return rows[0] ?? null;
+}
+
+export async function upsertSave(args: {
+  directoryUserId: number;
+  alumniId: number;
+  status?: SaveStatus;
+  reason?: SaveReason | null;
+  note?: string | null;
+}): Promise<DirectorySaveRow> {
+  const status = args.status ?? "not_contacted";
+  const reason = args.reason ?? null;
+  const note =
+    args.note != null ? args.note.slice(0, MAX_NOTE_CHARS) : null;
+  // Note: ON CONFLICT only writes the fields that the caller actually
+  // supplied. We can't easily express "ignore null inputs" in a single
+  // INSERT, so the caller is responsible for passing the values they
+  // want persisted. (The route handler does this from the request body.)
+  const rows = (await sql`
+    INSERT INTO directory_saves
+      (directory_user_id, alumni_id, status, reason, note)
+    VALUES
+      (${args.directoryUserId}, ${args.alumniId}, ${status}, ${reason}, ${note})
+    ON CONFLICT (directory_user_id, alumni_id) DO UPDATE SET
+      status     = EXCLUDED.status,
+      reason     = EXCLUDED.reason,
+      note       = EXCLUDED.note,
+      updated_at = NOW()
+    RETURNING *
+  `) as DirectorySaveRow[];
+  return rows[0];
+}
+
+export async function deleteSave(
+  directoryUserId: number,
+  alumniId: number,
+): Promise<void> {
+  await sql`
+    DELETE FROM directory_saves
+    WHERE directory_user_id = ${directoryUserId} AND alumni_id = ${alumniId}
+  `;
+}

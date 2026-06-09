@@ -30,12 +30,20 @@ export async function middleware(req: NextRequest) {
   }
 
   /* ---------------- Directory (read-only) gate ---------------- */
-  // The directory has its own credential and cookie — deliberately
-  // separate from admin so a leak of one doesn't escalate to the other.
-  // /directory/login and /api/directory/login are exempted so the user
-  // can actually log in.
+  // Two parallel auth paths, checked here at the edge with cookie
+  // signature verification only (DB checks happen in the page-level
+  // guard so revoked users get caught on next page load).
+  //   1. dir_user cookie — per-user account, signed payload {uid, ver, exp}
+  //   2. directory_session cookie — shared DIRECTORY_PASSWORD fallback
+  // Exempted paths are public so the user can actually sign in or set
+  // their initial password via an invite token.
   if (path.startsWith("/directory") || path.startsWith("/api/directory")) {
-    if (path === "/directory/login" || path === "/api/directory/login") {
+    if (
+      path === "/directory/login" ||
+      path === "/api/directory/login" ||
+      path === "/directory/setup" ||
+      path === "/api/directory/setup"
+    ) {
       return NextResponse.next();
     }
     const dirSecret = process.env.DIRECTORY_PASSWORD;
@@ -45,6 +53,12 @@ export async function middleware(req: NextRequest) {
         { status: 503 },
       );
     }
+    // Per-user cookie signed with DIRECTORY_PASSWORD-derived key.
+    const userCookie = req.cookies.get("dir_user")?.value;
+    if (userCookie && (await verifyUserCookieEdge(userCookie, dirSecret))) {
+      return NextResponse.next();
+    }
+    // Shared fallback cookie.
     const dirCookie = req.cookies.get(DIRECTORY_COOKIE_NAME)?.value;
     if (dirCookie && (await verifyCookie(dirCookie, dirSecret))) {
       return NextResponse.next();
@@ -153,6 +167,43 @@ async function signCookie(secret: string): Promise<string> {
   const payloadB64 = b64url(payloadBytes);
   const sig = await crypto.subtle.sign("HMAC", key, payloadBytes as BufferSource);
   return `${payloadB64}.${b64url(new Uint8Array(sig))}`;
+}
+
+/** Verify the per-user dir_user cookie at the edge — signature + exp
+ * only (the DB-backed session_version check is left to the page-level
+ * guard so middleware stays Edge-safe and cheap). */
+async function verifyUserCookieEdge(cookie: string, secret: string): Promise<boolean> {
+  const parts = cookie.split(".");
+  if (parts.length !== 2) return false;
+  let payloadBytes: Uint8Array;
+  let sigBytes: Uint8Array;
+  try {
+    payloadBytes = b64urlDecode(parts[0]);
+    sigBytes = b64urlDecode(parts[1]);
+  } catch {
+    return false;
+  }
+  const key = await getHmacKey(`dir-user::${secret}`);
+  let valid = false;
+  try {
+    valid = await crypto.subtle.verify(
+      "HMAC",
+      key,
+      sigBytes as BufferSource,
+      payloadBytes as BufferSource,
+    );
+  } catch {
+    return false;
+  }
+  if (!valid) return false;
+  try {
+    const payload = JSON.parse(new TextDecoder().decode(payloadBytes)) as {
+      exp?: number;
+    };
+    return typeof payload.exp === "number" && payload.exp > Date.now();
+  } catch {
+    return false;
+  }
 }
 
 async function verifyCookie(cookie: string, secret: string): Promise<boolean> {

@@ -229,19 +229,21 @@ export async function getDirectoryCareers(
 export async function logDirectorySearch(
   session_id: string,
   filters: DirectoryFilters,
+  directory_user_id: number | null = null,
 ): Promise<void> {
   await sql`
-    INSERT INTO directory_views (session_id, action, query_json)
-    VALUES (${session_id}, 'search', ${JSON.stringify(filters)}::jsonb)
+    INSERT INTO directory_views (session_id, action, query_json, directory_user_id)
+    VALUES (${session_id}, 'search', ${JSON.stringify(filters)}::jsonb, ${directory_user_id})
   `;
 }
 
 export async function logDirectoryProfileView(
   session_id: string,
   alumni_id: number,
+  directory_user_id: number | null = null,
 ): Promise<void> {
   await sql`
-    INSERT INTO directory_views (session_id, action, target_id)
-    VALUES (${session_id}, 'profile_view', ${alumni_id})
+    INSERT INTO directory_views (session_id, action, target_id, directory_user_id)
+    VALUES (${session_id}, 'profile_view', ${alumni_id}, ${directory_user_id})
   `;
 }

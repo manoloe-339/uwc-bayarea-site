@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import Image from "next/image";
 import { COLLEGES } from "@/lib/uwc-colleges";
 import { REGIONS } from "@/lib/region";
@@ -10,12 +9,11 @@ import {
   type DirectoryFilters,
   type DirectoryAlumnusRow,
 } from "@/lib/directory-query";
-import {
-  DIRECTORY_COOKIE,
-  hashSessionForAudit,
-} from "@/lib/directory-auth";
+import { getCurrentDirectorySession } from "@/lib/directory-session";
 import { linkedinHref } from "@/lib/linkedin-url";
 import { parseSearchQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser";
+import { listSavesForUser } from "@/lib/directory-saves";
+import { SaveButton } from "@/components/directory/SaveButton";
 
 export const dynamic = "force-dynamic";
 
@@ -112,17 +110,29 @@ export default async function DirectoryPage({
     !!filters.university ||
     filters.yearFrom != null ||
     filters.yearTo != null;
-  if (hasAnyFilter) {
-    const c = await cookies();
-    const cookieValue = c.get(DIRECTORY_COOKIE)?.value ?? "";
-    const sessionId = cookieValue ? await hashSessionForAudit(cookieValue) : "";
-    void logDirectorySearch(sessionId, filters);
+  const session = await getCurrentDirectorySession();
+  const userId = session?.kind === "user" ? session.user.id : null;
+  const sessionId = session?.auditSessionId ?? "";
+
+  if (hasAnyFilter && sessionId) {
+    void logDirectorySearch(sessionId, filters, userId);
   }
 
-  const [rows, total] = await Promise.all([
+  const [rows, total, mySaves] = await Promise.all([
     searchDirectoryAlumni(filters, 500),
     countDirectoryAlumni(filters),
+    userId ? listSavesForUser(userId) : Promise.resolve([]),
   ]);
+  // Build a quick lookup: alumni_id -> existing save (for the ★ button state).
+  const savedByAlumni = new Map<number, { status: typeof mySaves[number]["status"]; reason: typeof mySaves[number]["reason"]; note: string | null }>();
+  for (const s of mySaves) {
+    savedByAlumni.set(s.alumni_id, {
+      status: s.status,
+      reason: s.reason,
+      note: s.note,
+    });
+  }
+  const canSave = session?.kind === "user";
 
   return (
     <section className="max-w-[1180px] mx-auto px-5 sm:px-7 py-8">
@@ -301,7 +311,12 @@ export default async function DirectoryPage({
 
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {rows.map((r) => (
-          <DirectoryCard key={r.id} row={r} />
+          <DirectoryCard
+            key={r.id}
+            row={r}
+            canSave={canSave}
+            initialSave={savedByAlumni.get(r.id) ?? null}
+          />
         ))}
       </ul>
 
@@ -334,7 +349,19 @@ function NLToggle({ on, sp }: { on: boolean; sp: SP }) {
   );
 }
 
-function DirectoryCard({ row }: { row: DirectoryAlumnusRow }) {
+function DirectoryCard({
+  row,
+  canSave,
+  initialSave,
+}: {
+  row: DirectoryAlumnusRow;
+  canSave: boolean;
+  initialSave: {
+    status: "not_contacted" | "invite_sent" | "connected" | "replied" | "met" | "follow_up_later" | "closed";
+    reason: "job" | "referral" | "mentor" | "founder" | "industry" | "other" | null;
+    note: string | null;
+  } | null;
+}) {
   const name =
     [row.first_name, row.last_name].filter(Boolean).join(" ") || "(no name)";
   const sub = [row.uwc_college, row.grad_year].filter(Boolean).join(" · ");
@@ -345,69 +372,78 @@ function DirectoryCard({ row }: { row: DirectoryAlumnusRow }) {
   const linkedin = linkedinHref(row.linkedin_url);
 
   return (
-    <li className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 flex gap-3 hover:border-navy">
-      <Link
-        href={`/directory/${row.id}`}
-        className="block shrink-0 w-[64px] h-[64px] rounded-full overflow-hidden bg-[color:var(--ivory-2)]"
-      >
-        {row.photo_url ? (
-          <Image
-            src={row.photo_url}
-            alt=""
-            width={64}
-            height={64}
-            className="object-cover w-full h-full"
-            unoptimized
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-xs">
-            {name
-              .split(" ")
-              .map((p) => p[0])
-              .filter(Boolean)
-              .slice(0, 2)
-              .join("")
-              .toUpperCase()}
-          </div>
-        )}
-      </Link>
-      <div className="min-w-0 flex-1">
+    <li className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 hover:border-navy">
+      <div className="flex gap-3">
         <Link
           href={`/directory/${row.id}`}
-          className="block font-semibold text-[color:var(--navy-ink)] hover:underline"
+          className="block shrink-0 w-[64px] h-[64px] rounded-full overflow-hidden bg-[color:var(--ivory-2)]"
         >
-          {name}
-        </Link>
-        <div className="text-xs text-[color:var(--muted)] mt-0.5 truncate">
-          {sub}
-          {row.current_city && (
-            <span>
-              {sub ? " · " : ""}
-              {row.current_city}
-            </span>
-          )}
-        </div>
-        {role && (
-          <div className="text-xs text-[color:var(--navy-ink)] mt-1 line-clamp-2">
-            {role}
-          </div>
-        )}
-        <div className="mt-2 flex items-center gap-3 text-xs">
-          {linkedin ? (
-            <a
-              href={linkedin}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-navy font-semibold hover:underline"
-            >
-              LinkedIn ↗
-            </a>
+          {row.photo_url ? (
+            <Image
+              src={row.photo_url}
+              alt=""
+              width={64}
+              height={64}
+              className="object-cover w-full h-full"
+              unoptimized
+            />
           ) : (
-            <span className="text-[color:var(--muted)] italic">
-              No LinkedIn on file
-            </span>
+            <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-xs">
+              {name
+                .split(" ")
+                .map((p) => p[0])
+                .filter(Boolean)
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
+            </div>
           )}
+        </Link>
+        <div className="min-w-0 flex-1">
+          <Link
+            href={`/directory/${row.id}`}
+            className="block font-semibold text-[color:var(--navy-ink)] hover:underline"
+          >
+            {name}
+          </Link>
+          <div className="text-xs text-[color:var(--muted)] mt-0.5 truncate">
+            {sub}
+            {row.current_city && (
+              <span>
+                {sub ? " · " : ""}
+                {row.current_city}
+              </span>
+            )}
+          </div>
+          {role && (
+            <div className="text-xs text-[color:var(--navy-ink)] mt-1 line-clamp-2">
+              {role}
+            </div>
+          )}
+          <div className="mt-2 flex items-center gap-3 text-xs">
+            {linkedin ? (
+              <a
+                href={linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-navy font-semibold hover:underline"
+              >
+                Open on LinkedIn → invite ↗
+              </a>
+            ) : (
+              <span className="text-[color:var(--muted)] italic">
+                No LinkedIn on file
+              </span>
+            )}
+          </div>
         </div>
+      </div>
+      <div className="mt-3 pl-[76px]">
+        <SaveButton
+          alumniId={row.id}
+          initial={initialSave}
+          canSave={canSave}
+        />
       </div>
     </li>
   );

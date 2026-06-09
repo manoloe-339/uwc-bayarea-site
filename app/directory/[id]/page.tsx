@@ -1,18 +1,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
 import {
   getDirectoryAlumnus,
   getDirectoryCareers,
   logDirectoryProfileView,
 } from "@/lib/directory-query";
-import {
-  DIRECTORY_COOKIE,
-  hashSessionForAudit,
-} from "@/lib/directory-auth";
+import { getCurrentDirectorySession } from "@/lib/directory-session";
+import { getSaveForAlumnus, REASON_LABELS, STATUS_LABELS } from "@/lib/directory-saves";
 import { linkedinHref } from "@/lib/linkedin-url";
 import { FeedbackButton } from "@/components/directory/FeedbackButton";
+import { SaveButton } from "@/components/directory/SaveButton";
 
 export const dynamic = "force-dynamic";
 
@@ -42,13 +40,17 @@ export default async function DirectoryProfilePage({
 
   const careers = await getDirectoryCareers(id);
 
-  // Audit log
-  const c = await cookies();
-  const cookieValue = c.get(DIRECTORY_COOKIE)?.value ?? "";
-  if (cookieValue) {
-    const sessionId = await hashSessionForAudit(cookieValue);
-    void logDirectoryProfileView(sessionId, id);
+  // Identity + audit
+  const session = await getCurrentDirectorySession();
+  const userId = session?.kind === "user" ? session.user.id : null;
+  const sessionId = session?.auditSessionId ?? "";
+  if (sessionId) {
+    void logDirectoryProfileView(sessionId, id, userId);
   }
+
+  // Existing save state (if any) so the ★ Save button shows current values.
+  const existingSave = userId ? await getSaveForAlumnus(userId, id) : null;
+  const canSave = session?.kind === "user";
 
   const name =
     [row.first_name, row.last_name].filter(Boolean).join(" ") || "(no name)";
@@ -67,6 +69,22 @@ export default async function DirectoryProfilePage({
         </Link>
         <FeedbackButton alumniId={id} />
       </div>
+
+      {existingSave && canSave && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-[10px] px-4 py-3 text-xs text-amber-900">
+          <span className="font-bold">★ On your shortlist</span>
+          {" — "}
+          <span>Status: {STATUS_LABELS[existingSave.status]}</span>
+          {existingSave.reason && (
+            <span>{" · "}Reason: {REASON_LABELS[existingSave.reason]}</span>
+          )}
+          {existingSave.note && (
+            <div className="mt-1 italic text-[color:var(--muted)]">
+              &ldquo;{existingSave.note}&rdquo;
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-6 sm:p-8">
         <div className="flex items-start gap-5 mb-6">
@@ -106,7 +124,7 @@ export default async function DirectoryProfilePage({
               {row.origin && <div>From {row.origin}</div>}
               {location && <div>{location}</div>}
             </div>
-            <div className="mt-4">
+            <div className="mt-4 flex items-center gap-2 flex-wrap">
               {linkedin ? (
                 <a
                   href={linkedin}
@@ -114,13 +132,21 @@ export default async function DirectoryProfilePage({
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-[#0A66C2] text-white px-4 py-2 rounded text-xs font-bold tracking-[.18em] uppercase hover:opacity-90"
                 >
-                  Open LinkedIn ↗
+                  Open on LinkedIn → invite ↗
                 </a>
               ) : (
                 <span className="inline-flex items-center gap-2 border border-dashed border-[color:var(--rule)] text-[color:var(--muted)] px-4 py-2 rounded text-xs font-bold tracking-[.18em] uppercase">
                   No LinkedIn on file
                 </span>
               )}
+            </div>
+            <div className="mt-3">
+              <SaveButton
+                alumniId={id}
+                initial={existingSave}
+                canSave={canSave}
+                variant="banner"
+              />
             </div>
           </div>
         </div>
