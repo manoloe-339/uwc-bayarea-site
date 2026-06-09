@@ -13,6 +13,7 @@ import { getCurrentDirectorySession } from "@/lib/directory-session";
 import { linkedinHref } from "@/lib/linkedin-url";
 import { parseSearchQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser";
 import { listSavesForUser } from "@/lib/directory-saves";
+import type { SaveReason, SaveStatus } from "@/lib/directory-saves-shared";
 import SaveStar from "@/components/directory/SaveStar";
 import { DirectoryNLToggle } from "@/components/directory/DirectoryNLToggle";
 import { originCountryNames, originFlagString } from "@/lib/country-flag";
@@ -545,8 +546,8 @@ function DirectoryCard({
   row: DirectoryAlumnusRow;
   canSave: boolean;
   initialSave: {
-    status: "not_contacted" | "invite_sent" | "connected" | "replied" | "met" | "follow_up_later" | "closed";
-    reason: "job" | "referral" | "mentor" | "founder" | "industry" | "other" | null;
+    status: SaveStatus;
+    reason: SaveReason | null;
     note: string | null;
   } | null;
 }) {

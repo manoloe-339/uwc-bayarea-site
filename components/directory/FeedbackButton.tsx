@@ -87,7 +87,7 @@ export function FeedbackButton({ alumniId }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-xs font-bold tracking-[.22em] uppercase text-[color:var(--muted)] hover:text-navy border-b border-transparent hover:border-navy pb-0.5"
+        className="text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"
       >
         Feedback
       </button>
