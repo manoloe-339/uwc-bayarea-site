@@ -85,6 +85,10 @@ export interface ApifyExperienceEntry {
   description?: string | null;
   companyLink1?: string | null;
   companyId?: string | null;
+  /** Newer Apify actor versions return this as the canonical company
+   * name. Older versions only populated `subtitle`, sometimes with
+   * the company ID instead of a name. Prefer this when present. */
+  companyName?: string | null;
   companyIndustry?: string | null;
   companySize?: string | null;
   companyWebsite?: string | null;

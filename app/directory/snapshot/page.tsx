@@ -102,6 +102,7 @@ async function fetchAll() {
       FROM alumni_career c
       JOIN alumni a ON a.id = c.alumni_id
       WHERE c.company IS NOT NULL AND TRIM(c.company) <> ''
+        AND c.company !~ '^[0-9]+$'  -- skip stray LinkedIn companyIds
         AND a.affiliation ILIKE '%alum%'
         AND a.deceased IS NOT TRUE AND a.moved_out IS NOT TRUE
       GROUP BY c.company

@@ -222,11 +222,20 @@ export function buildCareerRows(
     const end = typeof exp.period?.endedOn === "string"
       ? exp.period.endedOn
       : null;
-    // Prefer the explicit subtitle text; if it's missing, derive the
-    // company name from the LinkedIn URL slug rather than storing null.
-    const companyFromSubtitle = blank(exp.subtitle);
+    // Prefer exp.companyName when present — newer Apify versions
+    // expose it as the canonical company name. Fall back to subtitle
+    // (older versions) but skip it when it's all digits (those are
+    // LinkedIn companyIds, not names). Last resort: derive from the
+    // LinkedIn URL slug.
+    const companyFromApify =
+      blank(exp.companyName) ??
+      (() => {
+        const sub = blank(exp.subtitle);
+        if (!sub) return null;
+        return /^\d+$/.test(sub) ? null : sub;
+      })();
     const company =
-      companyFromSubtitle ?? deriveCompanyFromLinkedinUrl(exp.companyLink1);
+      companyFromApify ?? deriveCompanyFromLinkedinUrl(exp.companyLink1);
     return {
       position: i,
       title: blank(exp.title),
