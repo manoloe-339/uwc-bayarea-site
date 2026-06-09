@@ -161,12 +161,33 @@ export default async function SavedShortlistPage({
                   </Link>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2 flex-wrap">
-                      <Link
-                        href={`/directory/${row.alumni_id}`}
-                        className="font-semibold text-[color:var(--navy-ink)] hover:underline"
-                      >
-                        {name}
-                      </Link>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Link
+                          href={`/directory/${row.alumni_id}`}
+                          className="font-semibold text-[color:var(--navy-ink)] hover:underline"
+                        >
+                          {name}
+                        </Link>
+                        {linkedin ? (
+                          <a
+                            href={linkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="LinkedIn profile"
+                            title="LinkedIn Profile"
+                            className="inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[#0A66C2] text-white text-[9px] font-bold hover:brightness-110 leading-none"
+                          >
+                            in
+                          </a>
+                        ) : (
+                          <span
+                            className="inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[9px] font-bold leading-none"
+                            title="No LinkedIn on file"
+                          >
+                            in
+                          </span>
+                        )}
+                      </div>
                       <span
                         className={`text-[10px] tracking-[.18em] uppercase font-bold px-2 py-0.5 rounded-full border ${STATUS_COLORS[row.status]}`}
                       >
@@ -203,32 +224,11 @@ export default async function SavedShortlistPage({
                           ))}
                       </div>
                     )}
-                    <div className="mt-2 flex items-center gap-2 text-xs">
-                      {linkedin ? (
-                        <a
-                          href={linkedin}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label="LinkedIn profile"
-                          title="LinkedIn Profile"
-                          className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-[3px] bg-[#0A66C2] text-white text-[10px] font-bold hover:brightness-110 leading-none"
-                        >
-                          in
-                        </a>
-                      ) : (
-                        <span
-                          className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[10px] font-bold leading-none"
-                          title="No LinkedIn on file"
-                        >
-                          in
-                        </span>
-                      )}
-                      {row.reason && (
-                        <span className="text-[color:var(--muted)] ml-1">
-                          Reason: {REASON_LABELS[row.reason]}
-                        </span>
-                      )}
-                    </div>
+                    {row.reason && (
+                      <div className="mt-2 text-xs text-[color:var(--muted)]">
+                        Reason: {REASON_LABELS[row.reason]}
+                      </div>
+                    )}
                     {row.note && (
                       <div className="mt-2 text-xs italic text-[color:var(--navy-ink)] border-l-2 border-[color:var(--rule)] pl-2">
                         {row.note}
