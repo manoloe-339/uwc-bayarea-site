@@ -16,6 +16,7 @@ import { listSavesForUser } from "@/lib/directory-saves";
 import { SaveButton } from "@/components/directory/SaveButton";
 import { DirectoryNLToggle } from "@/components/directory/DirectoryNLToggle";
 import { originCountryNames, originFlagString } from "@/lib/country-flag";
+import { detectMovedFromBayArea } from "@/lib/location-moved";
 import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -632,12 +633,25 @@ function DirectoryCard({
             </div>
           )}
 
-          {/* Line 3: current city */}
-          {row.current_city && (
-            <div className="text-xs text-[color:var(--muted)] mt-0.5">
-              {row.current_city}
-            </div>
-          )}
+          {/* Line 3: current city, plus a 🧳 "moved" badge if their
+              LinkedIn says they're outside the Bay Area now */}
+          {(() => {
+            const moved = detectMovedFromBayArea(row.location_full);
+            if (!row.current_city && !moved) return null;
+            return (
+              <div className="text-xs text-[color:var(--muted)] mt-0.5">
+                {row.current_city}
+                {moved && (
+                  <span
+                    className="ml-1.5 italic text-orange-700"
+                    title="LinkedIn says they're not in the Bay Area anymore"
+                  >
+                    🧳 {moved}
+                  </span>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Lines 4 & 5: current role on one line, company on the next */}
           {(row.current_title || row.current_company) && (

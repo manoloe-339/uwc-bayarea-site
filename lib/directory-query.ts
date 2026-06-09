@@ -266,11 +266,16 @@ export async function searchDirectoryAlumni(
   limit = 500,
 ): Promise<DirectoryAlumnusRow[]> {
   const { where, params } = buildWhere(f);
+  // Default order is RANDOM() so the directory reads as a discovery
+  // surface rather than "whoever was imported most recently". The
+  // re-randomization on each page load is intentional — users browsing
+  // the directory should see a different mix every time. To find a
+  // specific person again, use the Name or broad-search filter.
   const rows = (await sql.query(
     `SELECT ${SELECT_DIRECTORY_FIELDS}
        FROM alumni
        ${where}
-       ORDER BY enriched_at DESC NULLS LAST, last_name ASC, first_name ASC
+       ORDER BY RANDOM()
        LIMIT ${limit}`,
     params,
   )) as DirectoryAlumnusRow[];
