@@ -177,6 +177,18 @@ export async function touchLastSeen(userId: number): Promise<void> {
   `;
 }
 
+/** Same as touchLastSeen but with a 1-minute SQL-side throttle so
+ * we can call it from getCurrentDirectorySession() on every page
+ * render without writing on every request. */
+export async function touchLastSeenIfStale(userId: number): Promise<void> {
+  await sql`
+    UPDATE directory_users
+    SET last_seen_at = NOW()
+    WHERE id = ${userId}
+      AND (last_seen_at IS NULL OR last_seen_at < NOW() - INTERVAL '1 minute')
+  `;
+}
+
 export async function revokeDirectoryUser(id: number): Promise<void> {
   await sql`
     UPDATE directory_users

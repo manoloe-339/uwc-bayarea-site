@@ -21,6 +21,7 @@ import {
 } from "./directory-crypto";
 import {
   getDirectoryUserById,
+  touchLastSeenIfStale,
   type DirectoryUserRow,
 } from "./directory-users";
 
@@ -66,6 +67,11 @@ export async function getCurrentDirectorySession(): Promise<DirectorySession | n
       if (payload) {
         const user = await getDirectoryUserById(payload.uid);
         if (user && user.status === "active" && user.session_version === payload.ver) {
+          // Best-effort: keep last_seen_at fresh as a proxy for
+          // "last activity" rather than "last login". The SQL-side
+          // 1-minute throttle inside touchLastSeenIfStale keeps this
+          // from writing on every page render.
+          void touchLastSeenIfStale(user.id);
           return {
             kind: "user",
             user,
