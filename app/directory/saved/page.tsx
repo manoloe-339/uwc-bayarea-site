@@ -12,6 +12,7 @@ import { linkedinHref } from "@/lib/linkedin-url";
 import SaveStar from "@/components/directory/SaveStar";
 import SavedStatusSelect from "@/components/directory/SavedStatusSelect";
 import SavedReasonEditor from "@/components/directory/SavedReasonEditor";
+import SavedRowWrapper from "@/components/directory/SavedRowWrapper";
 
 export const dynamic = "force-dynamic";
 
@@ -128,8 +129,9 @@ export default async function SavedShortlistPage({
             const linkedin = linkedinHref(row.alum_linkedin_url);
             const companyHref = linkedinHref(row.alum_current_company_linkedin);
             return (
+              <SavedRowWrapper key={row.id}>
+                {(onSavedChange) => (
               <li
-                key={row.id}
                 className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4"
               >
                 <div className="flex items-start gap-3">
@@ -203,6 +205,7 @@ export default async function SavedShortlistPage({
                             note: row.note,
                           }}
                           canSave={true}
+                          onSavedChange={onSavedChange}
                         />
                       </div>
                     </div>
@@ -245,6 +248,8 @@ export default async function SavedShortlistPage({
                   </div>
                 </div>
               </li>
+                )}
+              </SavedRowWrapper>
             );
           })}
         </ul>

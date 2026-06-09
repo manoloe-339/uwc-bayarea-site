@@ -26,6 +26,9 @@ interface Props {
   className?: string;
   /** Pixel size of the star glyph. Defaults to 22. */
   size?: number;
+  /** Fired when the saved state flips. Lets a parent row hide itself
+   * during the optimistic unsave window (and reshow on undo). */
+  onSavedChange?: (saved: boolean) => void;
 }
 
 /**
@@ -42,15 +45,18 @@ export default function SaveStar({
   canSave,
   className = "",
   size = 22,
+  onSavedChange,
 }: Props) {
   const [saved, setSaved] = useState<Initial>(initial);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [reason, setReason] = useState<SaveReason | "">(initial?.reason ?? "");
   const [note, setNote] = useState<string>(initial?.note ?? "");
+  const [flash, setFlash] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [undoFor, setUndoFor] = useState<Initial>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastNote = useRef<string>(initial?.note ?? "");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -67,17 +73,59 @@ export default function SaveStar({
 
   if (!canSave) return null;
 
-  /** Star click. If not saved → open the save-with-reason modal. If
-   * already saved → toggle off immediately, with a 5s undo window
-   * before the actual DELETE hits the server. (Pattern lifted from
-   * the old inline SaveButton.) */
+  /** Persist whatever's currently in the modal (status + reason +
+   * note). Used by autosave on reason change and on note blur. */
+  const autosave = async (patch?: { reason?: SaveReason | ""; note?: string }) => {
+    const r = patch?.reason !== undefined ? patch.reason : reason;
+    const n = patch?.note !== undefined ? patch.note : note;
+    const wasSaved = !!saved;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/directory/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          alumni_id: alumniId,
+          status: saved?.status ?? "not_contacted",
+          reason: r || null,
+          note: (n ?? "").trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setError(data.error ?? `Save failed (${res.status})`);
+        return;
+      }
+      setSaved({
+        status: saved?.status ?? "not_contacted",
+        reason: r || null,
+        note: (n ?? "").trim() || null,
+      });
+      if (!wasSaved) onSavedChange?.(true);
+      setFlash(true);
+      setTimeout(() => setFlash(false), 1200);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Star click. If not saved → create the save immediately (with
+   * whatever's in initial / "not_contacted") AND open the modal so
+   * the user can optionally add reason + note (which then autosave).
+   * If already saved → toggle off with a 5s undo window. */
   const handleStarClick = () => {
     if (!saved) {
+      // Create the save right away so the star fills without waiting
+      // for the modal to be submitted. Modal opens for optional
+      // reason/note collection — those autosave as the user fills them.
+      void autosave();
       setOpen(true);
       return;
     }
     const prev = saved;
     setSaved(null);
+    onSavedChange?.(false);
     setUndoFor(prev);
     if (undoTimer.current) clearTimeout(undoTimer.current);
     undoTimer.current = setTimeout(async () => {
@@ -103,42 +151,12 @@ export default function SaveStar({
           note: undoFor.note,
         }),
       });
-      if (res.ok) setSaved(undoFor);
+      if (res.ok) {
+        setSaved(undoFor);
+        onSavedChange?.(true);
+      }
     } finally {
       setUndoFor(null);
-      setBusy(false);
-    }
-  };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/directory/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          alumni_id: alumniId,
-          // Preserve existing status on edits; default to not_contacted
-          // for first-time saves.
-          status: saved?.status ?? "not_contacted",
-          reason: reason || null,
-          note: note.trim() || null,
-        }),
-      });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(data.error ?? `Save failed (${res.status})`);
-        return;
-      }
-      setSaved({
-        status: saved?.status ?? "not_contacted",
-        reason: reason || null,
-        note: note.trim() || null,
-      });
-      setOpen(false);
-    } finally {
       setBusy(false);
     }
   };
@@ -221,14 +239,19 @@ export default function SaveStar({
               </button>
             </div>
 
-            <form onSubmit={submit} className="space-y-3">
+            <div className="space-y-3">
               <label className="block">
                 <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
                   Reason (optional)
                 </span>
                 <select
                   value={reason}
-                  onChange={(e) => setReason(e.target.value as SaveReason | "")}
+                  disabled={busy}
+                  onChange={(e) => {
+                    const next = e.target.value as SaveReason | "";
+                    setReason(next);
+                    void autosave({ reason: next });
+                  }}
                   className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
                 >
                   <option value="">—</option>
@@ -248,6 +271,12 @@ export default function SaveStar({
                   ref={textareaRef}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
+                  onBlur={() => {
+                    if (note !== lastNote.current) {
+                      lastNote.current = note;
+                      void autosave({ note });
+                    }
+                  }}
                   maxLength={MAX_NOTE_CHARS}
                   rows={3}
                   placeholder="Why are you saving them?"
@@ -262,26 +291,26 @@ export default function SaveStar({
               )}
 
               <p className="text-[11px] text-[color:var(--muted)] italic">
-                Change status or remove from your list on the Saved page.
+                Changes save automatically. Manage status or remove on the Saved page.
               </p>
 
-              <div className="flex items-center justify-end gap-2 pt-1">
+              <div className="flex items-center justify-end gap-3 pt-1">
+                <span
+                  className={`text-[10px] tracking-[.18em] uppercase font-bold ${
+                    flash ? "text-emerald-700" : "text-transparent"
+                  } transition-colors`}
+                >
+                  Saved ✓
+                </span>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="text-xs text-[color:var(--muted)] hover:text-navy"
+                  className="bg-navy text-white px-5 py-2 rounded text-sm font-semibold hover:opacity-90"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="bg-navy text-white px-5 py-2 rounded text-sm font-semibold hover:opacity-90 disabled:opacity-50"
-                >
-                  {busy ? "Saving…" : isSaved ? "Update" : "Save"}
+                  Done
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
