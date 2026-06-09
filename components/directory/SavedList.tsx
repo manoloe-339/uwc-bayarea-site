@@ -177,9 +177,9 @@ export default function SavedList({ allSaves }: Props) {
       {pending && (
         <div
           role="status"
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-navy text-white px-4 py-2.5 rounded-full shadow-lg text-sm flex items-center gap-3"
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-navy text-white px-4 py-2 rounded-full shadow-lg text-sm whitespace-nowrap flex items-center gap-3"
         >
-          Removed from your shortlist.
+          Removed from your shortlist
           <button
             type="button"
             onClick={() => void onUndo()}
