@@ -224,17 +224,31 @@ async function fetchAll() {
     sql`
       SELECT
         CASE
-          -- Pure timeline signal: a non-UWC education entry that has
-          -- started but not yet ended. start_year <= this year (or
-          -- null), end_year >= this year (or null). No title
-          -- inference — if you have an ongoing enrollment in your
-          -- profile, you're a current student.
+          -- Timeline signal: a non-UWC education entry that has started
+          -- but not yet ended. Year-precision only on the education
+          -- columns; to handle "graduated in May 2026" not looking the
+          -- same as "graduating Dec 2026", when end_year equals the
+          -- current year we additionally require there to be NO
+          -- current job — if they've already started a new position,
+          -- their education is effectively over even if the year
+          -- column hasn't ticked over.
           WHEN EXISTS (
             SELECT 1 FROM alumni_education e
             WHERE e.alumni_id = alumni.id
               AND e.is_uwc IS NOT TRUE
               AND (e.start_year IS NULL OR e.start_year <= EXTRACT(YEAR FROM NOW())::int)
-              AND (e.end_year IS NULL OR e.end_year >= EXTRACT(YEAR FROM NOW())::int)
+              AND (
+                e.end_year IS NULL
+                OR e.end_year > EXTRACT(YEAR FROM NOW())::int
+                OR (
+                  e.end_year = EXTRACT(YEAR FROM NOW())::int
+                  AND NOT EXISTS (
+                    SELECT 1 FROM alumni_career c
+                    WHERE c.alumni_id = alumni.id
+                      AND c.is_current = TRUE
+                  )
+                )
+              )
           )
           THEN 'student'
           ELSE 'working'
