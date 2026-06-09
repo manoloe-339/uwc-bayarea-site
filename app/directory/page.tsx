@@ -34,6 +34,66 @@ function pickNum(sp: SP, key: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** Filter-field classname. When `active`, swap the white/grey
+ * baseline for a navy-bordered, lightly-tinted "on" look so a glance
+ * at the form tells you which filters are constraining the result
+ * set. */
+function fieldClass(active: boolean): string {
+  return `w-full border rounded px-3 py-2 text-sm ${
+    active
+      ? "border-navy bg-[color:var(--ivory-2)] font-medium"
+      : "border-[color:var(--rule)] bg-white"
+  }`;
+}
+
+/** Build a list of human-readable chips for every filter currently
+ * constraining the result set. Empty array means no filters applied. */
+function activeFilterChips(
+  f: DirectoryFilters,
+): Array<{ key: string; label: string }> {
+  const chips: Array<{ key: string; label: string }> = [];
+  if (f.q) chips.push({ key: "q", label: `"${f.q}"` });
+  if (f.name) chips.push({ key: "name", label: `name: ${f.name}` });
+  if (f.college) chips.push({ key: "college", label: f.college });
+  if (f.region) chips.push({ key: "region", label: f.region });
+  if (f.yearFrom != null || f.yearTo != null) {
+    const from = f.yearFrom != null ? String(f.yearFrom) : "…";
+    const to = f.yearTo != null ? String(f.yearTo) : "…";
+    chips.push({ key: "grad", label: `grad ${from}–${to}` });
+  }
+  if (f.industry) chips.push({ key: "industry", label: f.industry });
+  if (f.industriesIncludePast) {
+    chips.push({ key: "industryPast", label: "+ past roles" });
+  }
+  if (f.companySizeBand) {
+    const sizeLabels: Record<string, string> = {
+      startup: "Startup (1–50)",
+      small: "Small (51–500)",
+      mid: "Mid (501–5K)",
+      large: "Large (5K–50K)",
+      enterprise: "Enterprise (50K+)",
+    };
+    chips.push({
+      key: "size",
+      label: sizeLabels[f.companySizeBand] ?? f.companySizeBand,
+    });
+  }
+  if (f.expBand) {
+    const expLabels: Record<string, string> = {
+      "0-3": "0–3 yrs",
+      "3-7": "3–7 yrs",
+      "7-15": "7–15 yrs",
+      "15+": "15+ yrs",
+    };
+    chips.push({ key: "exp", label: expLabels[f.expBand] ?? f.expBand });
+  }
+  if (f.city) chips.push({ key: "city", label: `city: ${f.city}` });
+  if (f.origin) chips.push({ key: "origin", label: `origin: ${f.origin}` });
+  if (f.company) chips.push({ key: "company", label: `company: ${f.company}` });
+  if (f.university) chips.push({ key: "university", label: `uni: ${f.university}` });
+  return chips;
+}
+
 /** Translate a Claude-parsed query into our directory filter shape.
  * Only assigns fields that map cleanly to the directory's allowlist.
  * The NL parser also emits things like subscription/engagement filters
@@ -192,7 +252,7 @@ export default async function DirectoryPage({
                 ? "e.g. designers in SF who used to work at Stripe"
                 : "e.g. fintech, Stripe, designer"
             }
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            className={fieldClass(!!filters.q)}
           />
         </label>
 
@@ -206,7 +266,7 @@ export default async function DirectoryPage({
               type="text"
               defaultValue={pickStr(sp, "name") ?? ""}
               placeholder="e.g. Jane Doe — or just Doe"
-              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+              className={fieldClass(!!filters.name)}
             />
           </label>
         )}
@@ -218,7 +278,7 @@ export default async function DirectoryPage({
           <select
             name="college"
             defaultValue={filters.college ?? ""}
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            className={fieldClass(!!filters.college)}
           >
             <option value="">Any</option>
             {COLLEGES.map((c) => (
@@ -236,7 +296,7 @@ export default async function DirectoryPage({
           <select
             name="region"
             defaultValue={filters.region ?? ""}
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            className={fieldClass(!!filters.region)}
           >
             <option value="">Any</option>
             {REGIONS.map((r) => (
@@ -256,7 +316,7 @@ export default async function DirectoryPage({
             type="number"
             defaultValue={filters.yearFrom ?? ""}
             placeholder="e.g. 2010"
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            className={fieldClass(filters.yearFrom != null)}
           />
         </label>
 
@@ -269,7 +329,7 @@ export default async function DirectoryPage({
             type="number"
             defaultValue={filters.yearTo ?? ""}
             placeholder="e.g. 2020"
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            className={fieldClass(filters.yearTo != null)}
           />
         </label>
 
@@ -280,7 +340,7 @@ export default async function DirectoryPage({
           <select
             name="industry"
             defaultValue={filters.industry ?? ""}
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            className={fieldClass(!!filters.industry)}
           >
             <option value="">Any</option>
             {(industries as Array<{ value: string; count: number }>).map(
@@ -309,7 +369,7 @@ export default async function DirectoryPage({
           <select
             name="companySizeBand"
             defaultValue={filters.companySizeBand ?? ""}
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            className={fieldClass(!!filters.companySizeBand)}
           >
             <option value="">Any</option>
             <option value="startup">Startup (1–50)</option>
@@ -327,7 +387,7 @@ export default async function DirectoryPage({
           <select
             name="expBand"
             defaultValue={filters.expBand ?? ""}
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            className={fieldClass(!!filters.expBand)}
           >
             <option value="">Any</option>
             <option value="0-3">0–3 yrs (early)</option>
@@ -345,7 +405,7 @@ export default async function DirectoryPage({
             name="city"
             defaultValue={filters.city ?? ""}
             placeholder="e.g. San Francisco"
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            className={fieldClass(!!filters.city)}
           />
         </label>
 
@@ -357,7 +417,7 @@ export default async function DirectoryPage({
             name="origin"
             defaultValue={filters.origin ?? ""}
             placeholder="e.g. Brazil"
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            className={fieldClass(!!filters.origin)}
           />
         </label>
 
@@ -369,7 +429,7 @@ export default async function DirectoryPage({
             name="company"
             defaultValue={filters.company ?? ""}
             placeholder="e.g. Stripe"
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            className={fieldClass(!!filters.company)}
           />
         </label>
 
@@ -381,7 +441,7 @@ export default async function DirectoryPage({
             name="university"
             defaultValue={filters.university ?? ""}
             placeholder="e.g. Stanford"
-            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            className={fieldClass(!!filters.university)}
           />
         </label>
 
@@ -406,6 +466,26 @@ export default async function DirectoryPage({
           </div>
         </div>
       </form>
+
+      {(() => {
+        const chips = activeFilterChips(filters);
+        if (chips.length === 0) return null;
+        return (
+          <div className="mb-4 flex items-center flex-wrap gap-2 text-sm text-[color:var(--navy-ink)]">
+            <span className="font-semibold">
+              {total} {total === 1 ? "alum" : "alumni"} matching
+            </span>
+            {chips.map((c) => (
+              <span
+                key={c.key}
+                className="inline-flex items-center bg-[color:var(--ivory-2)] border border-navy text-navy rounded-full px-2.5 py-0.5 text-xs font-medium"
+              >
+                {c.label}
+              </span>
+            ))}
+          </div>
+        );
+      })()}
 
       <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {rows.map((r) => (
