@@ -18,6 +18,7 @@ import {
   detectMovedFromBayArea,
   pickCurrentLocation,
 } from "@/lib/location-moved";
+import { displayName, titleCase } from "@/lib/text-format";
 
 export const dynamic = "force-dynamic";
 
@@ -110,13 +111,12 @@ export default async function DirectoryProfilePage({
   const existingSave = userId ? await getSaveForAlumnus(userId, id) : null;
   const canSave = session?.kind === "user";
 
-  const name =
-    [row.first_name, row.last_name].filter(Boolean).join(" ") || "(no name)";
+  const name = displayName(row.first_name, row.last_name);
   const sub = [row.uwc_college, row.grad_year].filter(Boolean).join(" · ");
   // Dedup: if region is just the city repeated (or vice versa), show only one.
-  const locParts = [row.current_city, row.region].filter(
-    (v): v is string => typeof v === "string" && v.trim().length > 0,
-  );
+  const locParts = [row.current_city, row.region]
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    .map(titleCase);
   const seenLoc = new Set<string>();
   const location = locParts
     .filter((p) => {

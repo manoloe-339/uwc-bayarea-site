@@ -22,6 +22,7 @@ import {
   detectMovedFromBayArea,
   pickCurrentLocation,
 } from "@/lib/location-moved";
+import { displayName, titleCase } from "@/lib/text-format";
 import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -265,7 +266,7 @@ export default async function DirectoryPage({
           <span className="flex items-center justify-between mb-1">
             <span className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
               {nl
-                ? "🪄 Describe your search"
+                ? "🪄 Describe"
                 : "🔎 Search (role, company, bio, past jobs, school…)"}
             </span>
             <DirectoryNLToggle on={nl} />
@@ -316,47 +317,53 @@ export default async function DirectoryPage({
           </select>
         </label>
 
+        {/* Row: most-used contextual filters next to UWC */}
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🌉 Region
-          </span>
-          <select
-            name="region"
-            defaultValue={filters.region ?? ""}
-            className={fieldClass(!!filters.region)}
-          >
-            <option value="">Any</option>
-            {REGIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🎓 Grad year (from)
+            🏙️ City
           </span>
           <input
-            name="yearFrom"
-            type="number"
-            defaultValue={filters.yearFrom ?? ""}
-            placeholder="e.g. 2010"
-            className={fieldClass(filters.yearFrom != null)}
+            name="city"
+            defaultValue={filters.city ?? ""}
+            placeholder="e.g. San Francisco"
+            className={fieldClass(!!filters.city)}
           />
         </label>
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🎓 Grad year (to)
+            🏷️ Company
           </span>
           <input
-            name="yearTo"
-            type="number"
-            defaultValue={filters.yearTo ?? ""}
-            placeholder="e.g. 2020"
-            className={fieldClass(filters.yearTo != null)}
+            name="company"
+            defaultValue={filters.company ?? ""}
+            placeholder="e.g. Stripe"
+            className={fieldClass(!!filters.company)}
+          />
+        </label>
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            🏛️ University
+          </span>
+          <input
+            name="university"
+            defaultValue={filters.university ?? ""}
+            placeholder="e.g. Stanford"
+            className={fieldClass(!!filters.university)}
+          />
+        </label>
+
+        {/* Row: origin + work-related filters */}
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            🌍 Origin
+          </span>
+          <input
+            name="origin"
+            defaultValue={filters.origin ?? ""}
+            placeholder="e.g. Brazil"
+            className={fieldClass(!!filters.origin)}
           />
         </label>
 
@@ -415,51 +422,48 @@ export default async function DirectoryPage({
           </select>
         </label>
 
+        {/* Row: region + grad year — least frequently changed */}
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🏙️ City
+            🌉 Region
+          </span>
+          <select
+            name="region"
+            defaultValue={filters.region ?? ""}
+            className={fieldClass(!!filters.region)}
+          >
+            <option value="">Any</option>
+            {REGIONS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            🎓 Grad year (from)
           </span>
           <input
-            name="city"
-            defaultValue={filters.city ?? ""}
-            placeholder="e.g. San Francisco"
-            className={fieldClass(!!filters.city)}
+            name="yearFrom"
+            type="number"
+            defaultValue={filters.yearFrom ?? ""}
+            placeholder="e.g. 2010"
+            className={fieldClass(filters.yearFrom != null)}
           />
         </label>
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🌍 Origin
+            🎓 Grad year (to)
           </span>
           <input
-            name="origin"
-            defaultValue={filters.origin ?? ""}
-            placeholder="e.g. Brazil"
-            className={fieldClass(!!filters.origin)}
-          />
-        </label>
-
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🏷️ Company
-          </span>
-          <input
-            name="company"
-            defaultValue={filters.company ?? ""}
-            placeholder="e.g. Stripe"
-            className={fieldClass(!!filters.company)}
-          />
-        </label>
-
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🏛️ University
-          </span>
-          <input
-            name="university"
-            defaultValue={filters.university ?? ""}
-            placeholder="e.g. Stanford"
-            className={fieldClass(!!filters.university)}
+            name="yearTo"
+            type="number"
+            defaultValue={filters.yearTo ?? ""}
+            placeholder="e.g. 2020"
+            className={fieldClass(filters.yearTo != null)}
           />
         </label>
 
@@ -550,44 +554,55 @@ function DirectoryCard({
   const linkedin = linkedinHref(row.linkedin_url);
   const companyHref = linkedinHref(row.current_company_linkedin);
 
-  const fullName =
-    [row.first_name, row.last_name].filter(Boolean).join(" ") || "(no name)";
+  const displayedName = displayName(row.first_name, row.last_name);
 
   return (
     <li className="relative bg-white border border-[color:var(--rule)] rounded-[10px] p-4 hover:border-navy">
       <SaveStar
         alumniId={row.id}
-        alumName={fullName}
+        alumName={displayedName}
         initial={initialSave ? { ...initialSave } : null}
         canSave={canSave}
         className="absolute top-2 right-2"
       />
-      <div className="flex gap-3">
-        <Link
-          href={`/directory/${row.id}`}
-          className="block shrink-0 w-[64px] h-[64px] rounded-full overflow-hidden bg-[color:var(--ivory-2)]"
-        >
-          {row.photo_url ? (
-            <Image
-              src={row.photo_url}
-              alt=""
-              width={64}
-              height={64}
-              className="object-cover w-full h-full"
-              unoptimized
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-xs">
-              {name
-                .split(" ")
-                .map((p) => p[0])
-                .filter(Boolean)
-                .slice(0, 2)
-                .join("")
-                .toUpperCase()}
-            </div>
+      <div className="flex gap-3 pr-8">
+        <div className="shrink-0 flex flex-col items-center gap-1">
+          <Link
+            href={`/directory/${row.id}`}
+            className="block w-[64px] h-[64px] rounded-full overflow-hidden bg-[color:var(--ivory-2)]"
+          >
+            {row.photo_url ? (
+              <Image
+                src={row.photo_url}
+                alt=""
+                width={64}
+                height={64}
+                className="object-cover w-full h-full"
+                unoptimized
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-xs">
+                {displayedName
+                  .split(" ")
+                  .map((p) => p[0])
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase()}
+              </div>
+            )}
+          </Link>
+          {flag && (
+            <span
+              className="text-[20px] leading-none text-black"
+              style={{ fontVariantEmoji: "emoji" }}
+              title={countryLabel}
+              aria-label={`From ${countryLabel}`}
+            >
+              {flag}
+            </span>
           )}
-        </Link>
+        </div>
         <div className="min-w-0 flex-1">
           {/* Line 1: name + LinkedIn icon */}
           <div className="flex items-center gap-2 flex-wrap">
@@ -595,7 +610,7 @@ function DirectoryCard({
               href={`/directory/${row.id}`}
               className="font-semibold text-[color:var(--navy-ink)] hover:underline"
             >
-              {name}
+              {displayedName}
             </Link>
             {linkedin ? (
               <LinkedinIconLink
@@ -614,20 +629,10 @@ function DirectoryCard({
             )}
           </div>
 
-          {/* Line 2: UWC + year + flag */}
-          {(uwcLine || flag) && (
-            <div className="text-xs text-[color:var(--muted)] mt-0.5 flex items-center gap-1.5">
-              {uwcLine && <span>{uwcLine}</span>}
-              {flag && (
-                <span
-                  className="text-[16px] leading-none text-black"
-                  style={{ fontVariantEmoji: "emoji" }}
-                  title={countryLabel}
-                  aria-label={`From ${countryLabel}`}
-                >
-                  {flag}
-                </span>
-              )}
+          {/* Line 2: UWC + year */}
+          {uwcLine && (
+            <div className="text-xs text-[color:var(--muted)] mt-0.5">
+              {uwcLine}
             </div>
           )}
 
@@ -643,7 +648,7 @@ function DirectoryCard({
             if (!row.current_city && !moved) return null;
             return (
               <div className="text-xs text-[color:var(--muted)] mt-0.5">
-                {row.current_city}
+                {row.current_city ? titleCase(row.current_city) : null}
                 {moved && (
                   <span
                     className="ml-1.5"

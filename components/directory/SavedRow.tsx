@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { linkedinHref } from "@/lib/linkedin-url";
 import { originFlagString, originCountryNames } from "@/lib/country-flag";
+import { displayName, titleCase } from "@/lib/text-format";
 import LinkedinIconLink from "./LinkedinIconLink";
 import SaveStar from "./SaveStar";
 import SavedStatusSelect from "./SavedStatusSelect";
@@ -84,12 +85,13 @@ export default function SavedRow({
     note: string | null;
   }) => void;
 }) {
-  const name =
-    [row.alum_first_name, row.alum_last_name].filter(Boolean).join(" ") ||
-    "(no name)";
+  const name = displayName(row.alum_first_name, row.alum_last_name);
   const sub = [row.alum_uwc_college, row.alum_grad_year]
     .filter(Boolean)
     .join(" · ");
+  const cityDisplay = row.alum_current_city
+    ? titleCase(row.alum_current_city)
+    : null;
   const linkedin = linkedinHref(row.alum_linkedin_url);
   const companyHref = linkedinHref(row.alum_current_company_linkedin);
   const flag = row.alum_origin ? originFlagString(row.alum_origin) : "";
@@ -105,31 +107,43 @@ export default function SavedRow({
   return (
     <li className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4">
       <div className="flex items-start gap-3">
-        <Link
-          href={`/directory/${row.alumni_id}`}
-          className="block shrink-0 w-[56px] h-[56px] rounded-full overflow-hidden bg-[color:var(--ivory-2)]"
-        >
-          {row.alum_photo_url ? (
-            <Image
-              src={row.alum_photo_url}
-              alt=""
-              width={56}
-              height={56}
-              className="object-cover w-full h-full"
-              unoptimized
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-xs">
-              {name
-                .split(" ")
-                .map((p) => p[0])
-                .filter(Boolean)
-                .slice(0, 2)
-                .join("")
-                .toUpperCase()}
-            </div>
+        <div className="shrink-0 flex flex-col items-center gap-1">
+          <Link
+            href={`/directory/${row.alumni_id}`}
+            className="block w-[56px] h-[56px] rounded-full overflow-hidden bg-[color:var(--ivory-2)]"
+          >
+            {row.alum_photo_url ? (
+              <Image
+                src={row.alum_photo_url}
+                alt=""
+                width={56}
+                height={56}
+                className="object-cover w-full h-full"
+                unoptimized
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-xs">
+                {name
+                  .split(" ")
+                  .map((p) => p[0])
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase()}
+              </div>
+            )}
+          </Link>
+          {flag && (
+            <span
+              className="text-[18px] leading-none text-black"
+              style={{ fontVariantEmoji: "emoji" }}
+              title={countryLabel}
+              aria-label={`From ${countryLabel}`}
+            >
+              {flag}
+            </span>
           )}
-        </Link>
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2 flex-wrap">
@@ -139,16 +153,6 @@ export default function SavedRow({
               >
                 {name}
               </Link>
-              {flag && (
-                <span
-                  className="text-[16px] leading-none text-black"
-                  style={{ fontVariantEmoji: "emoji" }}
-                  title={countryLabel}
-                  aria-label={`From ${countryLabel}`}
-                >
-                  {flag}
-                </span>
-              )}
               {linkedin ? (
                 <LinkedinIconLink
                   href={linkedin}
@@ -187,10 +191,10 @@ export default function SavedRow({
           </div>
           <div className="text-xs text-[color:var(--muted)] mt-0.5">
             {sub}
-            {row.alum_current_city && (
+            {cityDisplay && (
               <span>
                 {sub ? " · " : ""}
-                {row.alum_current_city}
+                {cityDisplay}
               </span>
             )}
           </div>
