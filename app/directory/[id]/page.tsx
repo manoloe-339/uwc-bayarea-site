@@ -192,6 +192,7 @@ export default async function DirectoryProfilePage({
               {row.current_company && (
                 <CompanyLogo
                   website={row.current_company_website}
+                  linkedinUrl={row.current_company_linkedin}
                   companyName={row.current_company}
                   size={28}
                 />
@@ -264,6 +265,7 @@ export default async function DirectoryProfilePage({
                       <div className="flex items-center gap-2 text-[color:var(--navy-ink)]">
                         <CompanyLogo
                           website={cc.company_website}
+                          linkedinUrl={cc.company_linkedin_url}
                           companyName={companyName}
                           size={20}
                         />

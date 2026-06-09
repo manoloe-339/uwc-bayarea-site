@@ -80,6 +80,7 @@ export type DirectoryAlumnusRow = {
   linkedin_url: string | null;
   current_title: string | null;
   current_company: string | null;
+  current_company_linkedin: string | null;
   current_company_industry: string | null;
   current_company_size: string | null;
   current_company_website: string | null;
@@ -105,8 +106,9 @@ const SELECT_DIRECTORY_FIELDS = `
   id, first_name, last_name, uwc_college, grad_year,
   current_city, region, origin,
   photo_url, headline, linkedin_about, linkedin_url,
-  current_title, current_company, current_company_industry,
-  current_company_size, current_company_website, location_full
+  current_title, current_company, current_company_linkedin,
+  current_company_industry, current_company_size,
+  current_company_website, location_full
 `;
 
 function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {

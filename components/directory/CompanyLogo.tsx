@@ -5,6 +5,9 @@ import { companyLogoUrl } from "@/lib/company-logo";
 
 interface Props {
   website: string | null;
+  /** LinkedIn company URL — used as a secondary domain source when
+   * `website` is missing (slug.com heuristic). */
+  linkedinUrl?: string | null;
   companyName: string | null;
   /** Pixel size of the rendered box (square). Default 24. */
   size?: number;
@@ -17,9 +20,9 @@ function initialsOf(name: string | null): string {
   return ini || "·";
 }
 
-export function CompanyLogo({ website, companyName, size = 24 }: Props) {
+export function CompanyLogo({ website, linkedinUrl = null, companyName, size = 24 }: Props) {
   const [errored, setErrored] = useState(false);
-  const url = companyLogoUrl(website, Math.max(size * 2, 48));
+  const url = companyLogoUrl(website, linkedinUrl, Math.max(size * 2, 48));
 
   if (!url || errored) {
     return (
