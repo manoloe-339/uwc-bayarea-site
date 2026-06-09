@@ -498,7 +498,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
               {eventMode
                 ? "🎉 Describe your event (natural language)"
                 : searchNL
-                  ? "🪄 Describe who you're looking for (natural language)"
+                  ? "🪄 Describe your search (natural language)"
                   : "🔎 Search any field (city, bio, work, phone…)"}
             </span>
             {!eventMode && <SearchNLToggle on={searchNL} />}
@@ -538,7 +538,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
 
         {!searchNL && <>
         {/* Row 2 — college / region / year / industry */}
-        <Select label={<><img src="/uwc-logo-square.png" alt="" className="inline-block w-4 h-4 mr-1 align-[-3px]" /> College</>} name="college" defaultValue={filters.college}>
+        <Select label={<><img src="/uwc-logo-square.png" alt="" className="inline-block w-4 h-4 mr-1 align-[-3px]" /> UWC</>} name="college" defaultValue={filters.college}>
           <option value="">Any</option>
           {COLLEGES.map((c) => (
             <option key={c.canonical} value={c.canonical}>
@@ -702,7 +702,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
             Natural-language search
           </p>
           <p className="text-sm text-[color:var(--muted)]">
-            Describe who you&rsquo;re looking for above, then click <span className="font-semibold text-navy">Apply filters</span> to run the search.
+            Describe your search above, then click <span className="font-semibold text-navy">Apply filters</span> to run the search.
           </p>
         </div>
       )}
