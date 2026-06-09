@@ -16,7 +16,6 @@ export const SAVE_STATUSES = [
   "replied",
   "met",
   "follow_up_later",
-  "closed",
 ] as const;
 export type SaveStatus = (typeof SAVE_STATUSES)[number];
 
@@ -36,7 +35,6 @@ export const STATUS_LABELS: Record<SaveStatus, string> = {
   replied: "Replied",
   met: "Met",
   follow_up_later: "Follow up later",
-  closed: "Closed",
 };
 
 export const REASON_LABELS: Record<SaveReason, string> = {

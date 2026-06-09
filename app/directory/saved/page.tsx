@@ -10,7 +10,8 @@ import {
   type SaveStatus,
 } from "@/lib/directory-saves";
 import { linkedinHref } from "@/lib/linkedin-url";
-import { SaveButton } from "@/components/directory/SaveButton";
+import SaveStar from "@/components/directory/SaveStar";
+import SavedStatusSelect from "@/components/directory/SavedStatusSelect";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,6 @@ const STATUS_COLORS: Record<SaveStatus, string> = {
   replied: "bg-sky-50 text-sky-800 border-sky-200",
   met: "bg-violet-50 text-violet-800 border-violet-200",
   follow_up_later: "bg-orange-50 text-orange-800 border-orange-200",
-  closed: "bg-stone-100 text-stone-700 border-stone-200",
 };
 
 export default async function SavedShortlistPage({
@@ -65,7 +65,6 @@ export default async function SavedShortlistPage({
     replied: 0,
     met: 0,
     follow_up_later: 0,
-    closed: 0,
   };
   for (const s of allSaves) {
     if (statusFilter === undefined || s.status in counts) counts[s.status] += 1;
@@ -131,8 +130,19 @@ export default async function SavedShortlistPage({
             return (
               <li
                 key={row.id}
-                className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4"
+                className="relative bg-white border border-[color:var(--rule)] rounded-[10px] p-4"
               >
+                <SaveStar
+                  alumniId={row.alumni_id}
+                  alumName={name}
+                  initial={{
+                    status: row.status,
+                    reason: row.reason,
+                    note: row.note,
+                  }}
+                  canSave={true}
+                  className="absolute top-2 right-2"
+                />
                 <div className="flex items-start gap-3">
                   <Link
                     href={`/directory/${row.alumni_id}`}
@@ -188,11 +198,12 @@ export default async function SavedShortlistPage({
                           </span>
                         )}
                       </div>
-                      <span
-                        className={`text-[10px] tracking-[.18em] uppercase font-bold px-2 py-0.5 rounded-full border ${STATUS_COLORS[row.status]}`}
-                      >
-                        {STATUS_LABELS[row.status]}
-                      </span>
+                      <SavedStatusSelect
+                        alumniId={row.alumni_id}
+                        initialStatus={row.status}
+                        reason={row.reason}
+                        note={row.note}
+                      />
                     </div>
                     <div className="text-xs text-[color:var(--muted)] mt-0.5">
                       {sub}
@@ -235,17 +246,6 @@ export default async function SavedShortlistPage({
                       </div>
                     )}
                   </div>
-                </div>
-                <div className="mt-3 pl-[68px]">
-                  <SaveButton
-                    alumniId={row.alumni_id}
-                    initial={{
-                      status: row.status,
-                      reason: row.reason,
-                      note: row.note,
-                    }}
-                    canSave={true}
-                  />
                 </div>
               </li>
             );
