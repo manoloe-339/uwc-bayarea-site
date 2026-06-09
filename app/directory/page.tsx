@@ -273,7 +273,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            College
+            🏫 College
           </span>
           <select
             name="college"
@@ -291,7 +291,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            Region
+            🌉 Region
           </span>
           <select
             name="region"
@@ -309,7 +309,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            Grad year (from)
+            🎓 Grad year (from)
           </span>
           <input
             name="yearFrom"
@@ -322,7 +322,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            Grad year (to)
+            🎓 Grad year (to)
           </span>
           <input
             name="yearTo"
@@ -335,7 +335,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            Industry
+            💼 Industry
           </span>
           <select
             name="industry"
@@ -364,7 +364,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            Company size
+            🏢 Company size
           </span>
           <select
             name="companySizeBand"
@@ -382,7 +382,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            Experience
+            ⏱️ Experience
           </span>
           <select
             name="expBand"
@@ -399,7 +399,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            City contains
+            🏙️ City contains
           </span>
           <input
             name="city"
@@ -411,7 +411,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            Origin contains
+            🌍 Origin contains
           </span>
           <input
             name="origin"
@@ -423,7 +423,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            Company contains
+            🏷️ Company contains
           </span>
           <input
             name="company"
@@ -435,7 +435,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            University contains
+            🏛️ University contains
           </span>
           <input
             name="university"
