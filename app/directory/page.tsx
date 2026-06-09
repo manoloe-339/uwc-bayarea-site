@@ -311,7 +311,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🏫 College
+            🌐 UWC
           </span>
           <select
             name="college"
