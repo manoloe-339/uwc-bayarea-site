@@ -199,13 +199,14 @@ export default function SavedRow({
             )}
           </div>
           {(row.alum_current_title || row.alum_current_company) && (
-            <div className="text-xs text-[color:var(--navy-ink)] mt-1 flex items-center gap-2 flex-wrap">
-              {row.alum_current_title && <span>{row.alum_current_title}</span>}
-              {row.alum_current_title && row.alum_current_company && (
-                <span className="text-[color:var(--muted)]">at</span>
+            <div className="mt-1 text-xs text-[color:var(--navy-ink)]">
+              {row.alum_current_title && (
+                <div className="line-clamp-1" title={row.alum_current_title}>
+                  {row.alum_current_title}
+                </div>
               )}
               {row.alum_current_company && (
-                <span className="inline-flex items-center gap-1.5">
+                <div className="flex items-center gap-2 mt-0.5">
                   <CompanyLogo
                     storedLogoUrl={row.alum_current_company_logo_url}
                     website={row.alum_current_company_website}
@@ -218,16 +219,16 @@ export default function SavedRow({
                       href={companyHref}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-medium hover:underline"
+                      className="font-medium hover:underline line-clamp-1"
                     >
                       {row.alum_current_company}
                     </a>
                   ) : (
-                    <span className="font-medium">
+                    <span className="font-medium line-clamp-1">
                       {row.alum_current_company}
                     </span>
                   )}
-                </span>
+                </div>
               )}
             </div>
           )}
