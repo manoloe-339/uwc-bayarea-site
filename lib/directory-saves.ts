@@ -1,52 +1,19 @@
 import { sql } from "./db";
+import { MAX_NOTE_CHARS, type SaveReason, type SaveStatus } from "./directory-saves-shared";
 
-export const SAVE_STATUSES = [
-  "not_contacted",
-  "invite_sent",
-  "connected",
-  "replied",
-  "met",
-  "follow_up_later",
-  "closed",
-] as const;
-export type SaveStatus = (typeof SAVE_STATUSES)[number];
-
-export const SAVE_REASONS = [
-  "job",
-  "referral",
-  "mentor",
-  "founder",
-  "industry",
-  "other",
-] as const;
-export type SaveReason = (typeof SAVE_REASONS)[number];
-
-export const STATUS_LABELS: Record<SaveStatus, string> = {
-  not_contacted: "Not contacted",
-  invite_sent: "Invite sent",
-  connected: "Connected",
-  replied: "Replied",
-  met: "Met",
-  follow_up_later: "Follow up later",
-  closed: "Closed",
-};
-export const REASON_LABELS: Record<SaveReason, string> = {
-  job: "Job opportunity",
-  referral: "Referral / intro",
-  mentor: "Mentorship",
-  founder: "Founder / peer",
-  industry: "Industry interest",
-  other: "Other",
-};
-
-export const MAX_NOTE_CHARS = 300;
-
-export function isSaveStatus(v: string): v is SaveStatus {
-  return (SAVE_STATUSES as readonly string[]).includes(v);
-}
-export function isSaveReason(v: string): v is SaveReason {
-  return (SAVE_REASONS as readonly string[]).includes(v);
-}
+// Re-export the shared constants/types so existing server-side
+// imports of @/lib/directory-saves keep working without changes.
+export {
+  SAVE_STATUSES,
+  SAVE_REASONS,
+  STATUS_LABELS,
+  REASON_LABELS,
+  MAX_NOTE_CHARS,
+  isSaveStatus,
+  isSaveReason,
+  type SaveStatus,
+  type SaveReason,
+} from "./directory-saves-shared";
 
 export type DirectorySaveRow = {
   id: number;

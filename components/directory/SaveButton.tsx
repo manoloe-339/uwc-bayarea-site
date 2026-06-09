@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+// IMPORTANT: import constants/types from the *shared* file, NOT
+// @/lib/directory-saves — the latter pulls in the SQL client and
+// crashes the client bundle with "DATABASE_URL is not set".
 import {
   MAX_NOTE_CHARS,
   REASON_LABELS,
@@ -9,7 +12,7 @@ import {
   STATUS_LABELS,
   type SaveReason,
   type SaveStatus,
-} from "@/lib/directory-saves";
+} from "@/lib/directory-saves-shared";
 
 type Initial = {
   status: SaveStatus;
