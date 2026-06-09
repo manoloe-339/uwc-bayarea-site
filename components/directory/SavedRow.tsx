@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { linkedinHref } from "@/lib/linkedin-url";
 import { originFlagString, originCountryNames } from "@/lib/country-flag";
+import LinkedinIconLink from "./LinkedinIconLink";
 import SaveStar from "./SaveStar";
 import SavedStatusSelect from "./SavedStatusSelect";
 import SavedReasonEditor from "./SavedReasonEditor";
@@ -149,16 +150,11 @@ export default function SavedRow({
                 </span>
               )}
               {linkedin ? (
-                <a
+                <LinkedinIconLink
                   href={linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="LinkedIn profile"
-                  title="LinkedIn Profile"
+                  alumniId={row.alumni_id}
                   className="inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[#0A66C2] text-white text-[9px] font-bold hover:brightness-110 leading-none"
-                >
-                  in
-                </a>
+                />
               ) : (
                 <span
                   className="inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[9px] font-bold leading-none"

@@ -368,3 +368,18 @@ export async function logDirectoryProfileView(
     VALUES (${session_id}, 'profile_view', ${alumni_id}, ${directory_user_id})
   `;
 }
+
+/** Logged when the user clicks the LinkedIn icon to actually open
+ * an alum's LinkedIn page — the moment they're trying to connect.
+ * Stronger intent signal than profile_view; useful for admin to see
+ * "who is the user actually reaching out to?" */
+export async function logDirectoryLinkedinClick(
+  session_id: string,
+  alumni_id: number,
+  directory_user_id: number | null = null,
+): Promise<void> {
+  await sql`
+    INSERT INTO directory_views (session_id, action, target_id, directory_user_id)
+    VALUES (${session_id}, 'linkedin_click', ${alumni_id}, ${directory_user_id})
+  `;
+}

@@ -74,6 +74,18 @@ export default async function DirectoryUserActivityPage({
                       {row.target_name ?? `#${row.target_id}`}
                     </Link>
                   </>
+                ) : row.action === "linkedin_click" ? (
+                  <>
+                    <span className="font-semibold text-[#0A66C2]">
+                      Clicked LinkedIn →
+                    </span>{" "}
+                    <Link
+                      href={`/admin/alumni/${row.target_id}`}
+                      className="text-navy hover:underline"
+                    >
+                      {row.target_name ?? `#${row.target_id}`}
+                    </Link>
+                  </>
                 ) : (
                   <>
                     Searched{" "}

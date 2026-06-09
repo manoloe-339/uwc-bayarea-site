@@ -12,6 +12,7 @@ import { getSaveForAlumnus, REASON_LABELS, STATUS_LABELS } from "@/lib/directory
 import { linkedinHref } from "@/lib/linkedin-url";
 import SaveStar from "@/components/directory/SaveStar";
 import { CompanyLogo } from "@/components/directory/CompanyLogo";
+import LinkedinProfileButton from "@/components/directory/LinkedinProfileButton";
 import { originCountryNames, originFlagString } from "@/lib/country-flag";
 import {
   detectMovedFromBayArea,
@@ -222,14 +223,7 @@ export default async function DirectoryProfilePage({
             </div>
             <div className="mt-4 flex items-center gap-3 flex-wrap">
               {linkedin ? (
-                <a
-                  href={linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-[#0A66C2] text-white px-4 py-2 rounded text-xs font-bold tracking-[.18em] uppercase hover:opacity-90"
-                >
-                  LinkedIn Profile
-                </a>
+                <LinkedinProfileButton href={linkedin} alumniId={id} />
               ) : (
                 <span className="inline-flex items-center gap-2 border border-dashed border-[color:var(--rule)] text-[color:var(--muted)] px-4 py-2 rounded text-xs font-bold tracking-[.18em] uppercase">
                   No LinkedIn on file
