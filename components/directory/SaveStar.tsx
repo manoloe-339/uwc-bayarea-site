@@ -49,6 +49,8 @@ export default function SaveStar({
   const [reason, setReason] = useState<SaveReason | "">(initial?.reason ?? "");
   const [note, setNote] = useState<string>(initial?.note ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [undoFor, setUndoFor] = useState<Initial>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -64,6 +66,49 @@ export default function SaveStar({
   }, [open, saved]);
 
   if (!canSave) return null;
+
+  /** Star click. If not saved → open the save-with-reason modal. If
+   * already saved → toggle off immediately, with a 5s undo window
+   * before the actual DELETE hits the server. (Pattern lifted from
+   * the old inline SaveButton.) */
+  const handleStarClick = () => {
+    if (!saved) {
+      setOpen(true);
+      return;
+    }
+    const prev = saved;
+    setSaved(null);
+    setUndoFor(prev);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(async () => {
+      setUndoFor(null);
+      await fetch(`/api/directory/save?alumni_id=${alumniId}`, {
+        method: "DELETE",
+      }).catch(() => undefined);
+    }, 5000);
+  };
+
+  const undo = async () => {
+    if (!undoFor) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setBusy(true);
+    try {
+      const res = await fetch("/api/directory/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          alumni_id: alumniId,
+          status: undoFor.status,
+          reason: undoFor.reason,
+          note: undoFor.note,
+        }),
+      });
+      if (res.ok) setSaved(undoFor);
+    } finally {
+      setUndoFor(null);
+      setBusy(false);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,9 +149,10 @@ export default function SaveStar({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        aria-label={isSaved ? "Edit shortlist entry" : "Add to shortlist"}
-        title={isSaved ? "On your shortlist — edit notes" : "Save to shortlist"}
+        onClick={handleStarClick}
+        aria-label={isSaved ? "Remove from shortlist" : "Add to shortlist"}
+        aria-pressed={isSaved}
+        title={isSaved ? "Saved — click to remove" : "Save to shortlist"}
         className={`inline-flex items-center justify-center rounded hover:bg-[color:var(--ivory-2)] transition-colors ${className}`}
         style={{
           width: size + 8,
@@ -127,6 +173,23 @@ export default function SaveStar({
           <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.6l-5.9 3.07 1.13-6.57L2.45 9.44l6.6-.96L12 2.5z" />
         </svg>
       </button>
+
+      {undoFor && (
+        <div
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-navy text-white px-4 py-2.5 rounded-full shadow-lg text-sm flex items-center gap-3"
+          role="status"
+        >
+          Removed from your shortlist.
+          <button
+            type="button"
+            onClick={undo}
+            disabled={busy}
+            className="font-bold uppercase tracking-[.18em] text-xs hover:underline disabled:opacity-50"
+          >
+            Undo
+          </button>
+        </div>
+      )}
 
       {open && (
         <div

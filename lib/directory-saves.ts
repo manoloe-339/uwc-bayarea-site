@@ -31,6 +31,7 @@ export type DirectorySaveRow = {
   alum_grad_year: number | null;
   alum_current_title: string | null;
   alum_current_company: string | null;
+  alum_current_company_linkedin: string | null;
   alum_current_city: string | null;
   alum_photo_url: string | null;
   alum_linkedin_url: string | null;
@@ -47,6 +48,7 @@ export async function listSavesForUser(
            a.grad_year       AS alum_grad_year,
            a.current_title   AS alum_current_title,
            a.current_company AS alum_current_company,
+           a.current_company_linkedin AS alum_current_company_linkedin,
            a.current_city    AS alum_current_city,
            a.photo_url       AS alum_photo_url,
            a.linkedin_url    AS alum_linkedin_url

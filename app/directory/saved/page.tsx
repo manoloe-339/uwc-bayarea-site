@@ -126,11 +126,8 @@ export default async function SavedShortlistPage({
             const sub = [row.alum_uwc_college, row.alum_grad_year]
               .filter(Boolean)
               .join(" · ");
-            const role =
-              row.alum_current_title && row.alum_current_company
-                ? `${row.alum_current_title} at ${row.alum_current_company}`
-                : row.alum_current_title || row.alum_current_company || null;
             const linkedin = linkedinHref(row.alum_linkedin_url);
+            const companyHref = linkedinHref(row.alum_current_company_linkedin);
             return (
               <li
                 key={row.id}
@@ -185,24 +182,49 @@ export default async function SavedShortlistPage({
                         </span>
                       )}
                     </div>
-                    {role && (
+                    {(row.alum_current_title || row.alum_current_company) && (
                       <div className="text-xs text-[color:var(--navy-ink)] mt-1">
-                        {role}
+                        {row.alum_current_title}
+                        {row.alum_current_title && row.alum_current_company && " at "}
+                        {row.alum_current_company &&
+                          (companyHref ? (
+                            <a
+                              href={companyHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium hover:underline"
+                            >
+                              {row.alum_current_company}
+                            </a>
+                          ) : (
+                            <span className="font-medium">
+                              {row.alum_current_company}
+                            </span>
+                          ))}
                       </div>
                     )}
-                    <div className="mt-2 flex items-center gap-3 text-xs">
-                      {linkedin && (
+                    <div className="mt-2 flex items-center gap-2 text-xs">
+                      {linkedin ? (
                         <a
                           href={linkedin}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-navy font-semibold hover:underline"
+                          aria-label="LinkedIn profile"
+                          title="LinkedIn Profile"
+                          className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-[3px] bg-[#0A66C2] text-white text-[10px] font-bold hover:brightness-110 leading-none"
                         >
-                          Open on LinkedIn → invite ↗
+                          in
                         </a>
+                      ) : (
+                        <span
+                          className="inline-flex items-center justify-center w-[18px] h-[18px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[10px] font-bold leading-none"
+                          title="No LinkedIn on file"
+                        >
+                          in
+                        </span>
                       )}
                       {row.reason && (
-                        <span className="text-[color:var(--muted)]">
+                        <span className="text-[color:var(--muted)] ml-1">
                           Reason: {REASON_LABELS[row.reason]}
                         </span>
                       )}
