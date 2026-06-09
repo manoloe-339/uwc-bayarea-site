@@ -67,9 +67,6 @@ function activeFilterChips(
     chips.push({ key: "grad", label: `grad ${from}–${to}` });
   }
   if (f.industry) chips.push({ key: "industry", label: f.industry });
-  if (f.industriesIncludePast) {
-    chips.push({ key: "industryPast", label: "+ past roles" });
-  }
   if (f.companySizeBand) {
     const sizeLabels: Record<string, string> = {
       startup: "Startup (1–50)",
@@ -283,15 +280,6 @@ export default async function DirectoryPage({
             }
             className={fieldClass(!!filters.q)}
           />
-          <label className="flex items-center gap-2 mt-2 text-xs text-[color:var(--muted)] cursor-pointer w-fit">
-            <input
-              type="checkbox"
-              name="industriesIncludePast"
-              value="1"
-              defaultChecked={!!filters.industriesIncludePast}
-            />
-            <span>Include past roles when filtering by industry</span>
-          </label>
         </label>
 
         {!nl && (
@@ -428,7 +416,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🏙️ City contains
+            🏙️ City
           </span>
           <input
             name="city"
@@ -440,7 +428,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🌍 Origin contains
+            🌍 Origin
           </span>
           <input
             name="origin"
@@ -452,7 +440,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🏷️ Company contains
+            🏷️ Company
           </span>
           <input
             name="company"
@@ -464,7 +452,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🏛️ University contains
+            🏛️ University
           </span>
           <input
             name="university"

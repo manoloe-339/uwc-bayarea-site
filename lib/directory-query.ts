@@ -201,8 +201,10 @@ function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
   if (f.yearFrom != null) push((n) => `grad_year >= $${n}`, f.yearFrom);
   if (f.yearTo != null) push((n) => `grad_year <= $${n}`, f.yearTo);
 
-  // Industry filter — optionally extends to past roles via alumni_career.
-  // Single `industry` and multi-select `industries` follow the same scope.
+  // Industry filter — always matches both current AND past roles
+  // (industriesIncludePast prop still parsed for URL compatibility
+  // but no longer toggles behavior; the directory's mental model is
+  // "find me network ties to fintech", not "find me current-only").
   const industryValues = f.industries && f.industries.length > 0
     ? f.industries
     : f.industry
@@ -211,14 +213,10 @@ function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
   if (industryValues.length > 0) {
     params.push(industryValues);
     const idx = params.length;
-    if (f.industriesIncludePast) {
-      parts.push(`(current_company_industry = ANY($${idx})
-        OR EXISTS (SELECT 1 FROM alumni_career c
-                   WHERE c.alumni_id = alumni.id
-                     AND c.company_industry = ANY($${idx})))`);
-    } else {
-      parts.push(`current_company_industry = ANY($${idx})`);
-    }
+    parts.push(`(current_company_industry = ANY($${idx})
+      OR EXISTS (SELECT 1 FROM alumni_career c
+                 WHERE c.alumni_id = alumni.id
+                   AND c.company_industry = ANY($${idx})))`);
   }
   if (f.companySizeBand) {
     const sizes = DIR_SIZE_BANDS[f.companySizeBand];
@@ -246,8 +244,15 @@ function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
     parts.push(`(total_experience_years::numeric >= 15)`);
   }
   if (f.company) {
+    // Company filter — always matches both current and past employers.
+    // Searching "Stripe" finds anyone who has ever worked there, which
+    // matches what users expect from a network-discovery tool.
     push(
-      (n) => `lower(coalesce(current_company,'')) LIKE $${n}`,
+      (n) =>
+        `(lower(coalesce(current_company,'')) LIKE $${n}
+          OR EXISTS (SELECT 1 FROM alumni_career c
+                     WHERE c.alumni_id = alumni.id
+                       AND lower(coalesce(c.company,'')) LIKE $${n}))`,
       `%${f.company.toLowerCase()}%`,
     );
   }
