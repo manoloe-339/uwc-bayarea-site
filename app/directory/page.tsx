@@ -443,7 +443,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🎓 Grad year (from)
+            🎓 UWC grad year (from)
           </span>
           <input
             name="yearFrom"
@@ -456,7 +456,7 @@ export default async function DirectoryPage({
 
         <label className="block">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🎓 Grad year (to)
+            🎓 UWC grad year (to)
           </span>
           <input
             name="yearTo"
@@ -563,13 +563,13 @@ function DirectoryCard({
         alumName={displayedName}
         initial={initialSave ? { ...initialSave } : null}
         canSave={canSave}
-        className="absolute top-2 right-2"
+        className="absolute top-1 right-1"
       />
       <div className="flex gap-3 pr-8">
         <div className="shrink-0 flex flex-col items-center gap-1">
           <Link
             href={`/directory/${row.id}`}
-            className="block w-[64px] h-[64px] rounded-full overflow-hidden bg-[color:var(--ivory-2)]"
+            className="block w-[64px] h-[64px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] ring-2 ring-navy"
           >
             {row.photo_url ? (
               <Image
@@ -604,11 +604,14 @@ function DirectoryCard({
           )}
         </div>
         <div className="min-w-0 flex-1">
-          {/* Line 1: name + LinkedIn icon */}
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Line 1: name + LinkedIn icon. Truncate long names so the
+              LinkedIn icon stays on the same line and never wraps
+              into the star's territory. */}
+          <div className="flex items-center gap-2 min-w-0">
             <Link
               href={`/directory/${row.id}`}
-              className="font-semibold text-[color:var(--navy-ink)] hover:underline"
+              title={displayedName}
+              className="font-semibold text-[color:var(--navy-ink)] hover:underline truncate min-w-0"
             >
               {displayedName}
             </Link>
@@ -616,11 +619,11 @@ function DirectoryCard({
               <LinkedinIconLink
                 href={linkedin}
                 alumniId={row.id}
-                className="inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[#0A66C2] text-white text-[9px] font-bold hover:brightness-110 leading-none"
+                className="shrink-0 inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[#0A66C2] text-white text-[9px] font-bold hover:brightness-110 leading-none"
               />
             ) : (
               <span
-                className="inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[9px] font-bold leading-none"
+                className="shrink-0 inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[9px] font-bold leading-none"
                 title="No LinkedIn on file"
                 aria-label="No LinkedIn on file"
               >

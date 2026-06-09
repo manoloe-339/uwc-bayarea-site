@@ -110,7 +110,7 @@ export default function SavedRow({
         <div className="shrink-0 flex flex-col items-center gap-1">
           <Link
             href={`/directory/${row.alumni_id}`}
-            className="block w-[56px] h-[56px] rounded-full overflow-hidden bg-[color:var(--ivory-2)]"
+            className="block w-[56px] h-[56px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] ring-2 ring-navy"
           >
             {row.alum_photo_url ? (
               <Image
@@ -146,10 +146,11 @@ export default function SavedRow({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 min-w-0">
               <Link
                 href={`/directory/${row.alumni_id}`}
-                className="font-semibold text-[color:var(--navy-ink)] hover:underline"
+                title={name}
+                className="font-semibold text-[color:var(--navy-ink)] hover:underline truncate min-w-0"
               >
                 {name}
               </Link>
@@ -157,11 +158,11 @@ export default function SavedRow({
                 <LinkedinIconLink
                   href={linkedin}
                   alumniId={row.alumni_id}
-                  className="inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[#0A66C2] text-white text-[9px] font-bold hover:brightness-110 leading-none"
+                  className="shrink-0 inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[#0A66C2] text-white text-[9px] font-bold hover:brightness-110 leading-none"
                 />
               ) : (
                 <span
-                  className="inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[9px] font-bold leading-none"
+                  className="shrink-0 inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[9px] font-bold leading-none"
                   title="No LinkedIn on file"
                 >
                   in

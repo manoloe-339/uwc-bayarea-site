@@ -157,7 +157,7 @@ export default async function DirectoryProfilePage({
 
       <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-6 sm:p-8">
         <div className="flex items-start gap-5 mb-6">
-          <div className="shrink-0 w-[110px] h-[110px] rounded-full overflow-hidden bg-[color:var(--ivory-2)]">
+          <div className="shrink-0 w-[110px] h-[110px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] ring-[3px] ring-navy">
             {row.photo_url ? (
               <Image
                 src={row.photo_url}
