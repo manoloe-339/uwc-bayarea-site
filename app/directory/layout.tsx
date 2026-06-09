@@ -32,7 +32,7 @@ export default async function DirectoryLayout({
             href="/directory"
             className="text-[12px] tracking-[.32em] uppercase font-bold text-navy hover:opacity-80 truncate"
           >
-            <span className="hidden sm:inline">UWC Bay Area · </span>Directory
+            UWC Bay Area<span className="hidden sm:inline"> · Directory</span>
           </Link>
 
           {/* Desktop nav */}
