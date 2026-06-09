@@ -278,6 +278,15 @@ export default async function DirectoryPage({
             }
             className={fieldClass(!!filters.q)}
           />
+          <label className="flex items-center gap-2 mt-2 text-xs text-[color:var(--muted)] cursor-pointer w-fit">
+            <input
+              type="checkbox"
+              name="industriesIncludePast"
+              value="1"
+              defaultChecked={!!filters.industriesIncludePast}
+            />
+            <span>Include past roles when filtering by industry</span>
+          </label>
         </label>
 
         {!nl && (
@@ -375,15 +384,6 @@ export default async function DirectoryPage({
               ),
             )}
           </select>
-          <label className="flex items-center gap-2 mt-1 text-[11px] text-[color:var(--muted)]">
-            <input
-              type="checkbox"
-              name="industriesIncludePast"
-              value="1"
-              defaultChecked={!!filters.industriesIncludePast}
-            />
-            <span>Include past roles</span>
-          </label>
         </label>
 
         <label className="block">
