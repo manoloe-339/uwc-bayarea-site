@@ -15,7 +15,7 @@ import { parseSearchQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser"
 import { listSavesForUser } from "@/lib/directory-saves";
 import { SaveButton } from "@/components/directory/SaveButton";
 import { DirectoryNLToggle } from "@/components/directory/DirectoryNLToggle";
-import { originFlagString } from "@/lib/country-flag";
+import { originCountryNames, originFlagString } from "@/lib/country-flag";
 import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -446,6 +446,9 @@ function DirectoryCard({
     .filter(Boolean)
     .join(" · ");
   const flag = row.origin ? originFlagString(row.origin) : "";
+  const countryLabel = row.origin
+    ? originCountryNames(row.origin) ?? row.origin
+    : "";
   const linkedin = linkedinHref(row.linkedin_url);
   const companyHref = linkedinHref(row.current_company_linkedin);
 
@@ -514,9 +517,9 @@ function DirectoryCard({
               {uwcLine && <span>{uwcLine}</span>}
               {flag && (
                 <span
-                  className="text-[16px] leading-none"
-                  title={`From ${row.origin}`}
-                  aria-hidden
+                  className="text-[16px] leading-none cursor-help"
+                  title={countryLabel}
+                  aria-label={`From ${countryLabel}`}
                 >
                   {flag}
                 </span>
