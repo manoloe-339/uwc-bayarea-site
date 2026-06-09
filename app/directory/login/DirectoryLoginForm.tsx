@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import PasswordInput from "@/components/directory/PasswordInput";
 
 interface Props {
   next: string;
@@ -57,13 +58,11 @@ export default function DirectoryLoginForm({ next }: Props) {
         <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
           Password
         </span>
-        <input
-          type="password"
+        <PasswordInput
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={setPassword}
           autoComplete="current-password"
           required
-          className="w-full border border-[color:var(--rule)] rounded px-3 py-2.5 text-sm bg-white"
         />
       </label>
       {error && (

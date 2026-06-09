@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import PasswordInput from "@/components/directory/PasswordInput";
 
 interface Props {
   token: string;
@@ -57,17 +58,14 @@ export default function DirectorySetupForm({ token, email }: Props) {
         <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
           New password
         </span>
-        <input
-          type="password"
+        <PasswordInput
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={setPassword}
           autoFocus
           autoComplete="new-password"
           required
           minLength={8}
-          className={`w-full border rounded px-3 py-2.5 text-sm bg-white ${
-            tooShort ? "border-red-500" : "border-[color:var(--rule)]"
-          }`}
+          errored={tooShort}
         />
         {tooShort && (
           <span className="block mt-1 text-xs text-red-700">
@@ -80,15 +78,12 @@ export default function DirectorySetupForm({ token, email }: Props) {
         <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
           Confirm password
         </span>
-        <input
-          type="password"
+        <PasswordInput
           value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
+          onChange={setConfirm}
           autoComplete="new-password"
           required
-          className={`w-full border rounded px-3 py-2.5 text-sm bg-white ${
-            mismatch ? "border-red-500" : "border-[color:var(--rule)]"
-          }`}
+          errored={mismatch}
         />
         {mismatch && (
           <span className="block mt-1 text-xs text-red-700">
