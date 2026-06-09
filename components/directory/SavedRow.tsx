@@ -3,9 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { linkedinHref } from "@/lib/linkedin-url";
+import { originFlagString, originCountryNames } from "@/lib/country-flag";
 import SaveStar from "./SaveStar";
 import SavedStatusSelect from "./SavedStatusSelect";
 import SavedReasonEditor from "./SavedReasonEditor";
+import { CompanyLogo } from "./CompanyLogo";
 import type { SaveReason, SaveStatus } from "@/lib/directory-saves-shared";
 
 interface RowData {
@@ -14,6 +16,8 @@ interface RowData {
   status: SaveStatus;
   reason: SaveReason | null;
   note: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
   alum_first_name: string | null;
   alum_last_name: string | null;
   alum_uwc_college: string | null;
@@ -21,15 +25,51 @@ interface RowData {
   alum_current_title: string | null;
   alum_current_company: string | null;
   alum_current_company_linkedin: string | null;
+  alum_current_company_website: string | null;
+  alum_current_company_logo_url: string | null;
   alum_current_city: string | null;
   alum_photo_url: string | null;
   alum_linkedin_url: string | null;
+  alum_origin: string | null;
 }
 
-/** Client-side row for /directory/saved. Defers visibility AND undo
- * ownership to the parent SavedList (so counts in the chip-bar can
- * react to unsaves AND the undo toast lives at a level that doesn't
- * unmount when the row disappears). */
+function toDate(d: Date | string): Date {
+  return typeof d === "string" ? new Date(d) : d;
+}
+
+/** "5d ago" / "2h ago" / "Just now" while within a week. Older →
+ * absolute "Jun 2" / "Jun 2024". */
+function fmtRel(d: Date | string): string {
+  const date = toDate(d);
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `${diffH}h ago`;
+  const diffD = Math.floor(diffH / 24);
+  if (diffD < 7) return `${diffD}d ago`;
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+}
+
+function fmtAbs(d: Date | string): string {
+  return toDate(d).toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/** Client-side row for /directory/saved. Visibility + undo are owned
+ * by the parent SavedList (so the chip-bar counts stay in sync and
+ * the undo toast survives the row unmount). */
 export default function SavedRow({
   row,
   onSavedChange,
@@ -43,7 +83,6 @@ export default function SavedRow({
     note: string | null;
   }) => void;
 }) {
-
   const name =
     [row.alum_first_name, row.alum_last_name].filter(Boolean).join(" ") ||
     "(no name)";
@@ -52,6 +91,15 @@ export default function SavedRow({
     .join(" · ");
   const linkedin = linkedinHref(row.alum_linkedin_url);
   const companyHref = linkedinHref(row.alum_current_company_linkedin);
+  const flag = row.alum_origin ? originFlagString(row.alum_origin) : "";
+  const countryLabel = row.alum_origin
+    ? originCountryNames(row.alum_origin) ?? row.alum_origin
+    : "";
+
+  const updatedDiffMs =
+    toDate(row.updated_at).getTime() - toDate(row.created_at).getTime();
+  // Treat updates within 60s of creation as "no real update yet".
+  const everUpdated = updatedDiffMs > 60_000;
 
   return (
     <li className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4">
@@ -90,6 +138,16 @@ export default function SavedRow({
               >
                 {name}
               </Link>
+              {flag && (
+                <span
+                  className="text-[16px] leading-none text-black"
+                  style={{ fontVariantEmoji: "emoji" }}
+                  title={countryLabel}
+                  aria-label={`From ${countryLabel}`}
+                >
+                  {flag}
+                </span>
+              )}
               {linkedin ? (
                 <a
                   href={linkedin}
@@ -110,25 +168,40 @@ export default function SavedRow({
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <SavedStatusSelect
-                alumniId={row.alumni_id}
-                initialStatus={row.status}
-                reason={row.reason}
-                note={row.note}
-              />
-              <SaveStar
-                alumniId={row.alumni_id}
-                alumName={name}
-                initial={{
-                  status: row.status,
-                  reason: row.reason,
-                  note: row.note,
-                }}
-                canSave={true}
-                onSavedChange={onSavedChange}
-                onUnsave={onUnsave}
-              />
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <div className="flex items-center gap-2">
+                <SavedStatusSelect
+                  alumniId={row.alumni_id}
+                  initialStatus={row.status}
+                  reason={row.reason}
+                  note={row.note}
+                />
+                <SaveStar
+                  alumniId={row.alumni_id}
+                  alumName={name}
+                  initial={{
+                    status: row.status,
+                    reason: row.reason,
+                    note: row.note,
+                  }}
+                  canSave={true}
+                  onSavedChange={onSavedChange}
+                  onUnsave={onUnsave}
+                />
+              </div>
+              <div
+                className="text-[11px] text-[color:var(--muted)]"
+                title={`Saved ${fmtAbs(row.created_at)}\nLast updated ${fmtAbs(row.updated_at)}`}
+              >
+                {everUpdated ? (
+                  <>
+                    Saved {fmtRel(row.created_at)} · Updated{" "}
+                    {fmtRel(row.updated_at)}
+                  </>
+                ) : (
+                  <>Saved {fmtRel(row.created_at)}</>
+                )}
+              </div>
             </div>
           </div>
           <div className="text-xs text-[color:var(--muted)] mt-0.5">
@@ -141,24 +214,36 @@ export default function SavedRow({
             )}
           </div>
           {(row.alum_current_title || row.alum_current_company) && (
-            <div className="text-xs text-[color:var(--navy-ink)] mt-1">
-              {row.alum_current_title}
-              {row.alum_current_title && row.alum_current_company && " at "}
-              {row.alum_current_company &&
-                (companyHref ? (
-                  <a
-                    href={companyHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium hover:underline"
-                  >
-                    {row.alum_current_company}
-                  </a>
-                ) : (
-                  <span className="font-medium">
-                    {row.alum_current_company}
-                  </span>
-                ))}
+            <div className="text-xs text-[color:var(--navy-ink)] mt-1 flex items-center gap-2 flex-wrap">
+              {row.alum_current_title && <span>{row.alum_current_title}</span>}
+              {row.alum_current_title && row.alum_current_company && (
+                <span className="text-[color:var(--muted)]">at</span>
+              )}
+              {row.alum_current_company && (
+                <span className="inline-flex items-center gap-1.5">
+                  <CompanyLogo
+                    storedLogoUrl={row.alum_current_company_logo_url}
+                    website={row.alum_current_company_website}
+                    linkedinUrl={row.alum_current_company_linkedin}
+                    companyName={row.alum_current_company}
+                    size={18}
+                  />
+                  {companyHref ? (
+                    <a
+                      href={companyHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium hover:underline"
+                    >
+                      {row.alum_current_company}
+                    </a>
+                  ) : (
+                    <span className="font-medium">
+                      {row.alum_current_company}
+                    </span>
+                  )}
+                </span>
+              )}
             </div>
           )}
           <SavedReasonEditor

@@ -21,6 +21,8 @@ interface RowData {
   status: SaveStatus;
   reason: SaveReason | null;
   note: string | null;
+  created_at: Date | string;
+  updated_at: Date | string;
   alum_first_name: string | null;
   alum_last_name: string | null;
   alum_uwc_college: string | null;
@@ -28,9 +30,12 @@ interface RowData {
   alum_current_title: string | null;
   alum_current_company: string | null;
   alum_current_company_linkedin: string | null;
+  alum_current_company_website: string | null;
+  alum_current_company_logo_url: string | null;
   alum_current_city: string | null;
   alum_photo_url: string | null;
   alum_linkedin_url: string | null;
+  alum_origin: string | null;
 }
 
 const STATUS_COLORS: Record<SaveStatus, string> = {

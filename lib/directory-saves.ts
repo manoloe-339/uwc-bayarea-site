@@ -32,9 +32,12 @@ export type DirectorySaveRow = {
   alum_current_title: string | null;
   alum_current_company: string | null;
   alum_current_company_linkedin: string | null;
+  alum_current_company_website: string | null;
+  alum_current_company_logo_url: string | null;
   alum_current_city: string | null;
   alum_photo_url: string | null;
   alum_linkedin_url: string | null;
+  alum_origin: string | null;
 };
 
 export async function listSavesForUser(
@@ -49,9 +52,12 @@ export async function listSavesForUser(
            a.current_title   AS alum_current_title,
            a.current_company AS alum_current_company,
            a.current_company_linkedin AS alum_current_company_linkedin,
+           a.current_company_website AS alum_current_company_website,
+           a.current_company_logo_url AS alum_current_company_logo_url,
            a.current_city    AS alum_current_city,
            a.photo_url       AS alum_photo_url,
-           a.linkedin_url    AS alum_linkedin_url
+           a.linkedin_url    AS alum_linkedin_url,
+           a.origin          AS alum_origin
     FROM directory_saves s
     LEFT JOIN alumni a ON a.id = s.alumni_id
     WHERE s.directory_user_id = ${directoryUserId}
