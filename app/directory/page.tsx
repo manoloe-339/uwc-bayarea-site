@@ -517,7 +517,7 @@ function DirectoryCard({
               {uwcLine && <span>{uwcLine}</span>}
               {flag && (
                 <span
-                  className="text-[16px] leading-none cursor-help"
+                  className="text-[16px] leading-none"
                   title={countryLabel}
                   aria-label={`From ${countryLabel}`}
                 >
