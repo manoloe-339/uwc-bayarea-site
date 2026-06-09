@@ -1,5 +1,6 @@
 import type { FeaturedAlumnusRow } from "@/lib/event-featured-alumni";
 import { LinkedInMark } from "@/components/icons/LinkedInMark";
+import { linkedinHref } from "@/lib/linkedin-url";
 
 function deriveCurrentRole(a: FeaturedAlumnusRow): string | null {
   // role_label override wins (e.g. "Guest speaker", "Co-host").
@@ -79,7 +80,7 @@ export function EventFeaturedAlumni({
           return a.linkedin_url ? (
             <a
               key={a.id}
-              href={a.linkedin_url}
+              href={linkedinHref(a.linkedin_url)}
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-center gap-3 py-1 cursor-pointer"

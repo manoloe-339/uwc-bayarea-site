@@ -8,6 +8,7 @@ import { cityToRegion, REGIONS } from "@/lib/region";
 import { reasonLabel } from "@/lib/unsubscribe-reasons";
 import { resubscribe } from "@/app/unsubscribe/actions";
 import { fmtDate } from "@/lib/admin-time";
+import { linkedinHref } from "@/lib/linkedin-url";
 import { FOLLOWUP_REASONS, FOLLOWUP_REASON_LABELS, type FollowupReason } from "@/lib/alumni-query";
 import { EnrichmentSection } from "@/components/enrichment/EnrichmentSection";
 import type { EnrichmentStatus as EnrichmentStatusType } from "@/types/enrichment";
@@ -458,7 +459,7 @@ export default async function AlumnusPage({
               labelAddon={
                 r.linkedin_url ? (
                   <a
-                    href={r.linkedin_url}
+                    href={linkedinHref(r.linkedin_url)}
                     target="_blank"
                     rel="noreferrer"
                     aria-label="Open LinkedIn profile"
@@ -582,7 +583,7 @@ export default async function AlumnusPage({
                 <ReadOnly
                   label="Company"
                   value={r.current_company}
-                  href={r.current_company_linkedin ?? undefined}
+                  href={linkedinHref(r.current_company_linkedin)}
                 />
                 <ReadOnly label="Industry" value={r.current_company_industry} />
                 <ReadOnly label="Company size" value={r.current_company_size} />

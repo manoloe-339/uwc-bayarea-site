@@ -17,6 +17,7 @@ import { SelectAllCheckbox, SelectedCountLink } from "@/components/admin/AlumniS
 import { AlumniOptionsSection } from "@/components/admin/AlumniOptionsSection";
 import { SearchNLToggle } from "@/components/admin/SearchNLToggle";
 import { FilterFormWithLoading } from "@/components/admin/FilterFormWithLoading";
+import { linkedinHref } from "@/lib/linkedin-url";
 
 export const dynamic = "force-dynamic";
 
@@ -768,7 +769,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                           <div className="mt-1 flex items-center gap-1.5">
                             {r.linkedin_url && (
                               <a
-                                href={r.linkedin_url}
+                                href={linkedinHref(r.linkedin_url)}
                                 target="_blank"
                                 rel="noreferrer"
                                 aria-label="LinkedIn profile"
@@ -873,7 +874,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                     <div className="mt-1 flex items-center gap-1.5">
                       {r.linkedin_url && (
                         <a
-                          href={r.linkedin_url}
+                          href={linkedinHref(r.linkedin_url)}
                           target="_blank"
                           rel="noreferrer"
                           aria-label="LinkedIn profile"
@@ -973,7 +974,7 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                     </Link>
                     {r.linkedin_url && (
                       <a
-                        href={r.linkedin_url}
+                        href={linkedinHref(r.linkedin_url)}
                         target="_blank"
                         rel="noreferrer"
                         aria-label="LinkedIn profile"
