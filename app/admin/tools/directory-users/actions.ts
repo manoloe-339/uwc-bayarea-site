@@ -17,18 +17,25 @@ async function sendInviteEmail(args: {
   firstName: string | null;
   inviteUrl: string;
 }): Promise<void> {
+  // Each paragraph is one continuous line so the email renderer wraps
+  // naturally instead of hard-breaking mid-sentence. Blank lines
+  // between paragraphs become spacers in the rendered HTML.
   const body = [
-    `You've been invited to the UWC Bay Area Directory beta — a read-only`,
-    `lookup of registered alumni for finding connections on LinkedIn. The`,
-    `directory is contact-info-free by design: you see names, photos,`,
-    `roles, and LinkedIn links, but never email or phone numbers.`,
+    `You've been invited to the UWC Bay Area Directory beta — a read-only lookup of registered alumni for finding connections on LinkedIn. The directory is contact-info-free by design: you see names, photos, roles, and LinkedIn links, but never email or phone numbers.`,
+    ``,
+    `A few things to know before you sign in:`,
+    ``,
+    `• This invite is personal and not transferable. Please don't share or forward it — we log activity per account, and transferred or shared access will be revoked.`,
+    ``,
+    `• It's not a tool for bulk LinkedIn outreach. Sending invites to dozens of alumni at once will get your access suspended. Reach out one connection at a time, where there's a real reason.`,
+    ``,
+    `• It's a beta. Every directory page has a "Feedback" link in the header — please use it to flag anything broken, weird, or worth improving.`,
     ``,
     `Click the link below to set your password and start using it:`,
     ``,
     args.inviteUrl,
     ``,
-    `The link is single-use and expires in 7 days. If it doesn't work or`,
-    `expires, just reply to this email and I'll resend.`,
+    `The link is single-use and expires in 7 days. If it doesn't work or expires, just reply to this email and I'll resend.`,
     ``,
     `— Manolo`,
   ].join("\n");
