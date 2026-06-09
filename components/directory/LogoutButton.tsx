@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 
-export default function LogoutButton() {
+interface Props {
+  className?: string;
+  label?: React.ReactNode;
+}
+
+export default function LogoutButton({ className, label }: Props = {}) {
   const [busy, setBusy] = useState(false);
 
   const onClick = async () => {
@@ -22,9 +27,12 @@ export default function LogoutButton() {
       type="button"
       onClick={onClick}
       disabled={busy}
-      className="text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy disabled:opacity-50"
+      className={
+        className ??
+        "text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy disabled:opacity-50"
+      }
     >
-      {busy ? "Logging out…" : "Log out"}
+      {busy ? "Logging out…" : (label ?? "Log out")}
     </button>
   );
 }

@@ -6,16 +6,15 @@ import { FeedbackButton } from "./FeedbackButton";
 import LogoutButton from "./LogoutButton";
 
 interface Props {
-  /** True when the visitor is a per-user account (vs shared-password). */
   isUserAccount: boolean;
-  /** True when any directory session is active (per-user or shared). */
   hasSession: boolean;
 }
 
 /**
- * Mobile-only collapsing menu for the directory header. Holds the
- * same Snapshot / Saved / Feedback / Log out / ← uwcbayarea.org
- * links that show inline on desktop.
+ * Mobile-only collapsing menu for the directory header. Every item
+ * shares the same row styling (emoji prefix, sentence-case label,
+ * sm text, navy ink, ivory-2 hover) so the menu reads as one
+ * coherent list rather than a mix of header-link + inline-button.
  */
 export default function DirectoryHamburger({
   isUserAccount,
@@ -24,7 +23,6 @@ export default function DirectoryHamburger({
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
-  // Close on click-outside or Escape.
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
@@ -43,6 +41,12 @@ export default function DirectoryHamburger({
     };
   }, [open]);
 
+  // Single source of truth for the menu-row look — applied to Links,
+  // the FeedbackButton trigger, and the LogoutButton trigger so every
+  // row looks identical.
+  const ROW =
+    "block w-full text-left px-4 py-2 text-sm text-[color:var(--navy-ink)] hover:bg-[color:var(--ivory-2)] disabled:opacity-50";
+
   return (
     <div className="relative" ref={panelRef}>
       <button
@@ -52,7 +56,15 @@ export default function DirectoryHamburger({
         aria-expanded={open}
         className="inline-flex items-center justify-center w-9 h-9 -mr-2 rounded text-navy hover:bg-[color:var(--ivory-2)]"
       >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        >
           {open ? (
             <>
               <line x1="6" y1="6" x2="18" y2="18" />
@@ -71,48 +83,55 @@ export default function DirectoryHamburger({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full mt-2 w-[220px] bg-white border border-[color:var(--rule)] rounded-[10px] shadow-lg py-2 z-50"
+          className="absolute right-0 top-full mt-2 w-[240px] bg-white border border-[color:var(--rule)] rounded-[10px] shadow-lg py-1.5 z-50"
         >
-          <Link
-            href="/directory"
-            onClick={() => setOpen(false)}
-            className="block px-4 py-2 text-sm text-[color:var(--navy-ink)] hover:bg-[color:var(--ivory-2)]"
-          >
+          <Link href="/directory" onClick={() => setOpen(false)} className={ROW}>
+            <span className="mr-2" aria-hidden>🔍</span>
             Directory
           </Link>
           <Link
             href="/directory/snapshot"
             onClick={() => setOpen(false)}
-            className="block px-4 py-2 text-sm text-[color:var(--navy-ink)] hover:bg-[color:var(--ivory-2)]"
+            className={ROW}
           >
+            <span className="mr-2" aria-hidden>📊</span>
             Snapshot
           </Link>
           {isUserAccount && (
             <Link
               href="/directory/saved"
               onClick={() => setOpen(false)}
-              className="block px-4 py-2 text-sm text-[color:var(--navy-ink)] hover:bg-[color:var(--ivory-2)]"
+              className={ROW}
             >
+              <span className="mr-2" aria-hidden>⭐</span>
               Saved
             </Link>
           )}
-          <div className="px-4 py-2">
-            <FeedbackButton />
-          </div>
+          <FeedbackButton
+            triggerClassName={ROW}
+            triggerLabel={
+              <>
+                <span className="mr-2" aria-hidden>💬</span>
+                Feedback
+              </>
+            }
+          />
           {hasSession && (
-            <div className="px-4 py-2">
-              <LogoutButton />
-            </div>
+            <LogoutButton
+              className={ROW}
+              label={
+                <>
+                  <span className="mr-2" aria-hidden>🚪</span>
+                  Log out
+                </>
+              }
+            />
           )}
-          <div className="px-4 py-2 border-t border-[color:var(--rule)] mt-1">
-            <Link
-              href="/"
-              onClick={() => setOpen(false)}
-              className="text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"
-            >
-              ← uwcbayarea.org
-            </Link>
-          </div>
+          <div className="border-t border-[color:var(--rule)] my-1.5" />
+          <Link href="/" onClick={() => setOpen(false)} className={ROW}>
+            <span className="mr-2" aria-hidden>🏠</span>
+            uwcbayarea.org
+          </Link>
         </div>
       )}
     </div>

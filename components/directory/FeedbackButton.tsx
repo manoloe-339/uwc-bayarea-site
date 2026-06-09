@@ -9,6 +9,13 @@ interface Props {
    * the alumni_id from the URL pathname on open (so a single button in
    * the layout works correctly across list, profile, and saved pages). */
   alumniId?: number;
+  /** Optional className override for the trigger button — used by the
+   * hamburger menu to render this with the same look as sibling
+   * menu items instead of the inline header-link styling. */
+  triggerClassName?: string;
+  /** Optional label override for the trigger button (e.g. to include
+   * an emoji prefix). Defaults to "Feedback". */
+  triggerLabel?: React.ReactNode;
 }
 
 type Topic = "general" | "profile" | "bug";
@@ -22,7 +29,11 @@ function detectAlumniIdFromPath(): number | null {
   return Number.isFinite(id) && id > 0 ? id : null;
 }
 
-export function FeedbackButton({ alumniId }: Props) {
+export function FeedbackButton({
+  alumniId,
+  triggerClassName,
+  triggerLabel,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [detectedAlumniId, setDetectedAlumniId] = useState<number | null>(null);
   const effectiveAlumniId = alumniId ?? detectedAlumniId ?? null;
@@ -87,9 +98,12 @@ export function FeedbackButton({ alumniId }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"
+        className={
+          triggerClassName ??
+          "text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"
+        }
       >
-        Feedback
+        {triggerLabel ?? "Feedback"}
       </button>
 
       {open && (
