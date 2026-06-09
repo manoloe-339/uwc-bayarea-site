@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getCurrentDirectorySession } from "@/lib/directory-session";
 import {
@@ -8,11 +7,7 @@ import {
   STATUS_LABELS,
   type SaveStatus,
 } from "@/lib/directory-saves";
-import { linkedinHref } from "@/lib/linkedin-url";
-import SaveStar from "@/components/directory/SaveStar";
-import SavedStatusSelect from "@/components/directory/SavedStatusSelect";
-import SavedReasonEditor from "@/components/directory/SavedReasonEditor";
-import SavedRowWrapper from "@/components/directory/SavedRowWrapper";
+import SavedRow from "@/components/directory/SavedRow";
 
 export const dynamic = "force-dynamic";
 
@@ -119,139 +114,9 @@ export default async function SavedShortlistPage({
         </div>
       ) : (
         <ul className="space-y-3">
-          {filtered.map((row) => {
-            const name =
-              [row.alum_first_name, row.alum_last_name].filter(Boolean).join(" ") ||
-              "(no name)";
-            const sub = [row.alum_uwc_college, row.alum_grad_year]
-              .filter(Boolean)
-              .join(" · ");
-            const linkedin = linkedinHref(row.alum_linkedin_url);
-            const companyHref = linkedinHref(row.alum_current_company_linkedin);
-            return (
-              <SavedRowWrapper key={row.id}>
-                {(onSavedChange) => (
-              <li
-                className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4"
-              >
-                <div className="flex items-start gap-3">
-                  <Link
-                    href={`/directory/${row.alumni_id}`}
-                    className="block shrink-0 w-[56px] h-[56px] rounded-full overflow-hidden bg-[color:var(--ivory-2)]"
-                  >
-                    {row.alum_photo_url ? (
-                      <Image
-                        src={row.alum_photo_url}
-                        alt=""
-                        width={56}
-                        height={56}
-                        className="object-cover w-full h-full"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-xs">
-                        {name
-                          .split(" ")
-                          .map((p) => p[0])
-                          .filter(Boolean)
-                          .slice(0, 2)
-                          .join("")
-                          .toUpperCase()}
-                      </div>
-                    )}
-                  </Link>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Link
-                          href={`/directory/${row.alumni_id}`}
-                          className="font-semibold text-[color:var(--navy-ink)] hover:underline"
-                        >
-                          {name}
-                        </Link>
-                        {linkedin ? (
-                          <a
-                            href={linkedin}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label="LinkedIn profile"
-                            title="LinkedIn Profile"
-                            className="inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[#0A66C2] text-white text-[9px] font-bold hover:brightness-110 leading-none"
-                          >
-                            in
-                          </a>
-                        ) : (
-                          <span
-                            className="inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[9px] font-bold leading-none"
-                            title="No LinkedIn on file"
-                          >
-                            in
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <SavedStatusSelect
-                          alumniId={row.alumni_id}
-                          initialStatus={row.status}
-                          reason={row.reason}
-                          note={row.note}
-                        />
-                        <SaveStar
-                          alumniId={row.alumni_id}
-                          alumName={name}
-                          initial={{
-                            status: row.status,
-                            reason: row.reason,
-                            note: row.note,
-                          }}
-                          canSave={true}
-                          onSavedChange={onSavedChange}
-                        />
-                      </div>
-                    </div>
-                    <div className="text-xs text-[color:var(--muted)] mt-0.5">
-                      {sub}
-                      {row.alum_current_city && (
-                        <span>
-                          {sub ? " · " : ""}
-                          {row.alum_current_city}
-                        </span>
-                      )}
-                    </div>
-                    {(row.alum_current_title || row.alum_current_company) && (
-                      <div className="text-xs text-[color:var(--navy-ink)] mt-1">
-                        {row.alum_current_title}
-                        {row.alum_current_title && row.alum_current_company && " at "}
-                        {row.alum_current_company &&
-                          (companyHref ? (
-                            <a
-                              href={companyHref}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-medium hover:underline"
-                            >
-                              {row.alum_current_company}
-                            </a>
-                          ) : (
-                            <span className="font-medium">
-                              {row.alum_current_company}
-                            </span>
-                          ))}
-                      </div>
-                    )}
-                    <SavedReasonEditor
-                      alumniId={row.alumni_id}
-                      initialReason={row.reason}
-                      initialNote={row.note}
-                      status={row.status}
-                    />
-                  </div>
-                </div>
-              </li>
-                )}
-              </SavedRowWrapper>
-            );
-          })}
+          {filtered.map((row) => (
+            <SavedRow key={row.id} row={row} />
+          ))}
         </ul>
       )}
     </section>
