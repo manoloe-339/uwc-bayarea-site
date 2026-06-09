@@ -130,19 +130,8 @@ export default async function SavedShortlistPage({
             return (
               <li
                 key={row.id}
-                className="relative bg-white border border-[color:var(--rule)] rounded-[10px] p-4"
+                className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4"
               >
-                <SaveStar
-                  alumniId={row.alumni_id}
-                  alumName={name}
-                  initial={{
-                    status: row.status,
-                    reason: row.reason,
-                    note: row.note,
-                  }}
-                  canSave={true}
-                  className="absolute top-2 right-2"
-                />
                 <div className="flex items-start gap-3">
                   <Link
                     href={`/directory/${row.alumni_id}`}
@@ -198,12 +187,24 @@ export default async function SavedShortlistPage({
                           </span>
                         )}
                       </div>
-                      <SavedStatusSelect
-                        alumniId={row.alumni_id}
-                        initialStatus={row.status}
-                        reason={row.reason}
-                        note={row.note}
-                      />
+                      <div className="flex items-center gap-2 shrink-0">
+                        <SavedStatusSelect
+                          alumniId={row.alumni_id}
+                          initialStatus={row.status}
+                          reason={row.reason}
+                          note={row.note}
+                        />
+                        <SaveStar
+                          alumniId={row.alumni_id}
+                          alumName={name}
+                          initial={{
+                            status: row.status,
+                            reason: row.reason,
+                            note: row.note,
+                          }}
+                          canSave={true}
+                        />
+                      </div>
                     </div>
                     <div className="text-xs text-[color:var(--muted)] mt-0.5">
                       {sub}
