@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { linkedinHref } from "@/lib/linkedin-url";
@@ -27,12 +26,17 @@ interface RowData {
   alum_linkedin_url: string | null;
 }
 
-/** Client-side row for /directory/saved. Owns its own visibility so
- * clicking the SaveStar to unsave can collapse the row immediately
- * (with the 5-second UNDO toast restoring it on click). */
-export default function SavedRow({ row }: { row: RowData }) {
-  const [visible, setVisible] = useState(true);
-  if (!visible) return null;
+/** Client-side row for /directory/saved. Defers visibility ownership
+ * to the parent SavedList (so counts in the chip-bar can react to
+ * unsaves). The parent passes a callback that this component forwards
+ * to SaveStar. */
+export default function SavedRow({
+  row,
+  onSavedChange,
+}: {
+  row: RowData;
+  onSavedChange?: (saved: boolean) => void;
+}) {
 
   const name =
     [row.alum_first_name, row.alum_last_name].filter(Boolean).join(" ") ||
@@ -116,7 +120,7 @@ export default function SavedRow({ row }: { row: RowData }) {
                   note: row.note,
                 }}
                 canSave={true}
-                onSavedChange={(saved) => setVisible(saved)}
+                onSavedChange={onSavedChange}
               />
             </div>
           </div>
