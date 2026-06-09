@@ -442,12 +442,12 @@ function DirectoryCard({
 }) {
   const name =
     [row.first_name, row.last_name].filter(Boolean).join(" ") || "(no name)";
-  const sub = [row.uwc_college, row.grad_year].filter(Boolean).join(" · ");
-  const role =
-    row.current_title && row.current_company
-      ? `${row.current_title} at ${row.current_company}`
-      : row.current_title || row.current_company || row.headline || null;
+  const uwcLine = [row.uwc_college, row.grad_year]
+    .filter(Boolean)
+    .join(" · ");
+  const flag = row.origin ? originFlagString(row.origin) : "";
   const linkedin = linkedinHref(row.linkedin_url);
+  const companyHref = linkedinHref(row.current_company_linkedin);
 
   return (
     <li className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 hover:border-navy">
@@ -478,32 +478,14 @@ function DirectoryCard({
           )}
         </Link>
         <div className="min-w-0 flex-1">
-          <Link
-            href={`/directory/${row.id}`}
-            className="block font-semibold text-[color:var(--navy-ink)] hover:underline"
-          >
-            {name}
-          </Link>
-          <div className="text-xs text-[color:var(--muted)] mt-0.5 truncate">
-            {sub}
-            {row.current_city && (
-              <span>
-                {sub ? " · " : ""}
-                {row.current_city}
-              </span>
-            )}
-            {row.origin && originFlagString(row.origin) && (
-              <span className="ml-1.5" title={`From ${row.origin}`} aria-hidden>
-                {originFlagString(row.origin)}
-              </span>
-            )}
-          </div>
-          {role && (
-            <div className="text-xs text-[color:var(--navy-ink)] mt-1 line-clamp-2">
-              {role}
-            </div>
-          )}
-          <div className="mt-2 flex items-center gap-2 text-xs">
+          {/* Line 1: name + LinkedIn icon */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href={`/directory/${row.id}`}
+              className="font-semibold text-[color:var(--navy-ink)] hover:underline"
+            >
+              {name}
+            </Link>
             {linkedin ? (
               <a
                 href={linkedin}
@@ -525,6 +507,50 @@ function DirectoryCard({
               </span>
             )}
           </div>
+
+          {/* Line 2: UWC + year + flag */}
+          {(uwcLine || flag) && (
+            <div className="text-xs text-[color:var(--muted)] mt-0.5 flex items-center gap-1.5">
+              {uwcLine && <span>{uwcLine}</span>}
+              {flag && (
+                <span
+                  className="text-[16px] leading-none"
+                  title={`From ${row.origin}`}
+                  aria-hidden
+                >
+                  {flag}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Line 3: current city */}
+          {row.current_city && (
+            <div className="text-xs text-[color:var(--muted)] mt-0.5">
+              {row.current_city}
+            </div>
+          )}
+
+          {/* Line 4: current role + clickable company */}
+          {(row.current_title || row.current_company) && (
+            <div className="text-xs text-[color:var(--navy-ink)] mt-1 line-clamp-2">
+              {row.current_title}
+              {row.current_title && row.current_company && " at "}
+              {row.current_company &&
+                (companyHref ? (
+                  <a
+                    href={companyHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline font-medium"
+                  >
+                    {row.current_company}
+                  </a>
+                ) : (
+                  <span className="font-medium">{row.current_company}</span>
+                ))}
+            </div>
+          )}
         </div>
       </div>
       <div className="mt-3 pl-[76px]">
