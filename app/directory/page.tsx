@@ -267,7 +267,7 @@ export default async function DirectoryPage({
           <span className="flex items-center justify-between mb-1">
             <span className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
               {nl
-                ? "🪄 Describe who you're looking for"
+                ? "🪄 Describe your search"
                 : "🔎 Search (role, company, bio, past jobs, school…)"}
             </span>
             <DirectoryNLToggle on={nl} />
