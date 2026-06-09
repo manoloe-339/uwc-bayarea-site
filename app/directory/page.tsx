@@ -534,24 +534,36 @@ function DirectoryCard({
             </div>
           )}
 
-          {/* Line 4: current role + clickable company */}
+          {/* Lines 4 & 5: current role on one line, company on the next */}
           {(row.current_title || row.current_company) && (
-            <div className="text-xs text-[color:var(--navy-ink)] mt-1 line-clamp-2">
-              {row.current_title}
-              {row.current_title && row.current_company && " at "}
-              {row.current_company &&
-                (companyHref ? (
-                  <a
-                    href={companyHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline font-medium"
-                  >
-                    {row.current_company}
-                  </a>
-                ) : (
-                  <span className="font-medium">{row.current_company}</span>
-                ))}
+            <div className="mt-1 text-xs text-[color:var(--navy-ink)]">
+              {row.current_title && (
+                <div
+                  className="line-clamp-1"
+                  title={row.current_title}
+                >
+                  {row.current_title}
+                </div>
+              )}
+              {row.current_company && (
+                <div
+                  className="line-clamp-1 font-medium"
+                  title={row.current_company}
+                >
+                  {companyHref ? (
+                    <a
+                      href={companyHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      {row.current_company}
+                    </a>
+                  ) : (
+                    row.current_company
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
