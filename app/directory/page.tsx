@@ -267,7 +267,7 @@ export default async function DirectoryPage({
             <span className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
               {nl
                 ? "🪄 Describe"
-                : "🔎 Search (role, company, bio, past jobs, school…)"}
+                : "🔎 Search"}
             </span>
             <DirectoryNLToggle on={nl} />
           </span>
@@ -287,7 +287,7 @@ export default async function DirectoryPage({
         {!nl && (
           <label className="block sm:col-span-2 lg:col-span-4">
             <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-              👤 Name (prefix match)
+              👤 Name
             </span>
             <input
               name="name"
