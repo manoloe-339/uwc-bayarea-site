@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   MAX_NOTE_CHARS,
   REASON_LABELS,
@@ -55,6 +56,7 @@ export default function SaveStar({
   onSavedChange,
   onUnsave,
 }: Props) {
+  const router = useRouter();
   const [saved, setSaved] = useState<Initial>(initial);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -121,6 +123,8 @@ export default function SaveStar({
         // Don't fire the "Saved to your shortlist" toast yet — it
         // shows when the user clicks Done so it isn't covered by the
         // open modal. wasFreshSave was set in handleStarClick.
+        // Refresh the route so the layout's savedCount badge updates.
+        router.refresh();
       }
       setFlash(true);
       setTimeout(() => setFlash(false), 1200);
@@ -160,6 +164,7 @@ export default function SaveStar({
       await fetch(`/api/directory/save?alumni_id=${alumniId}`, {
         method: "DELETE",
       }).catch(() => undefined);
+      router.refresh();
     }, 5000);
   };
 
@@ -181,6 +186,7 @@ export default function SaveStar({
       if (res.ok) {
         setSaved(undoFor);
         onSavedChange?.(true);
+        router.refresh();
       }
     } finally {
       setUndoFor(null);

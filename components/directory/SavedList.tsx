@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import SavedRow from "./SavedRow";
 import {
   SAVE_STATUSES,
@@ -49,6 +50,7 @@ interface Props {
  * toast.
  */
 export default function SavedList({ allSaves }: Props) {
+  const router = useRouter();
   const [hidden, setHidden] = useState<Set<number>>(new Set());
   const [pending, setPending] = useState<PendingUndo>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,7 +67,9 @@ export default function SavedList({ allSaves }: Props) {
   const flushPending = (entry: NonNullable<PendingUndo>) => {
     void fetch(`/api/directory/save?alumni_id=${entry.alumniId}`, {
       method: "DELETE",
-    }).catch(() => undefined);
+    })
+      .then(() => router.refresh())
+      .catch(() => undefined);
   };
 
   const onUnsave = (
@@ -105,6 +109,7 @@ export default function SavedList({ allSaves }: Props) {
           note: entry.prev.note,
         }),
       });
+      router.refresh();
     } catch {
       // best-effort
     }
