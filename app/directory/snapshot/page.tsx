@@ -224,21 +224,18 @@ async function fetchAll() {
     sql`
       SELECT
         CASE
-          -- Strong signal: an active non-UWC education entry whose
-          -- end_year is null or in the future. The previous regex
-          -- (which included "fellow", "researcher", "postdoc") was
-          -- over-matching to working professionals — "Senior Research
-          -- Fellow" or "Postdoctoral Researcher" are jobs, not
-          -- enrollment.
+          -- Pure timeline signal: a non-UWC education entry that has
+          -- started but not yet ended. start_year <= this year (or
+          -- null), end_year >= this year (or null). No title
+          -- inference — if you have an ongoing enrollment in your
+          -- profile, you're a current student.
           WHEN EXISTS (
             SELECT 1 FROM alumni_education e
             WHERE e.alumni_id = alumni.id
               AND e.is_uwc IS NOT TRUE
-              AND (e.end_year IS NULL OR e.end_year > EXTRACT(YEAR FROM NOW())::int)
+              AND (e.start_year IS NULL OR e.start_year <= EXTRACT(YEAR FROM NOW())::int)
+              AND (e.end_year IS NULL OR e.end_year >= EXTRACT(YEAR FROM NOW())::int)
           )
-          -- OR current_title clearly indicates active study.
-          OR current_title ~* '\\m(student|undergraduate|graduate student|masters? student|phd student|doctoral student|mba student|jd student)\\M'
-          OR current_title ~* '\\m(phd|mba|jd|masters?|doctoral|llm)\\s+candidate\\M'
           THEN 'student'
           ELSE 'working'
         END AS stage,
