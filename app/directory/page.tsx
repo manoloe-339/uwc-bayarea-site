@@ -254,10 +254,7 @@ export default async function DirectoryPage({
             : "Directory"}
         </h1>
         <p className="text-sm text-[color:var(--muted)] mt-1.5">
-          Search and connect on LinkedIn.
-        </p>
-        <p className="text-sm text-[color:var(--muted)]">
-          Contact info is not shown.
+          Search, and connect on LinkedIn.
         </p>
       </div>
 
