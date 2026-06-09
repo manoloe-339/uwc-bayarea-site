@@ -21,6 +21,7 @@ export const SAVE_STATUSES = [
 export type SaveStatus = (typeof SAVE_STATUSES)[number];
 
 export const SAVE_REASONS = [
+  "meet",
   "job",
   "referral",
   "mentor",
@@ -41,6 +42,7 @@ export const STATUS_LABELS: Record<SaveStatus, string> = {
 };
 
 export const REASON_LABELS: Record<SaveReason, string> = {
+  meet: "Want to meet!",
   job: "Job opportunity",
   referral: "Referral / intro",
   mentor: "Mentorship",
