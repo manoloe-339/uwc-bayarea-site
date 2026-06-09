@@ -84,6 +84,7 @@ export type DirectoryAlumnusRow = {
   current_company_industry: string | null;
   current_company_size: string | null;
   current_company_website: string | null;
+  current_company_logo_url: string | null;
   location_full: string | null;
 };
 
@@ -95,11 +96,24 @@ export type DirectoryCareerRow = {
   company_size: string | null;
   company_linkedin_url: string | null;
   company_website: string | null;
+  company_logo_url: string | null;
   location: string | null;
   title: string | null;
   start_date: string | null;
   end_date: string | null;
   is_current: boolean | null;
+};
+
+export type DirectoryEducationRow = {
+  alumni_id: number;
+  position: number | null;
+  school: string | null;
+  school_linkedin_url: string | null;
+  school_logo_url: string | null;
+  degree_field: string | null;
+  start_year: number | null;
+  end_year: number | null;
+  is_uwc: boolean | null;
 };
 
 const SELECT_DIRECTORY_FIELDS = `
@@ -108,7 +122,7 @@ const SELECT_DIRECTORY_FIELDS = `
   photo_url, headline, linkedin_about, linkedin_url,
   current_title, current_company, current_company_linkedin,
   current_company_industry, current_company_size,
-  current_company_website, location_full
+  current_company_website, current_company_logo_url, location_full
 `;
 
 function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
@@ -293,7 +307,7 @@ export async function getDirectoryCareers(
 ): Promise<DirectoryCareerRow[]> {
   const rows = (await sql.query(
     `SELECT alumni_id, position, company, company_industry, company_size,
-            company_linkedin_url, company_website,
+            company_linkedin_url, company_website, company_logo_url,
             location, title, start_date, end_date, is_current
        FROM alumni_career
        WHERE alumni_id = $1
@@ -301,6 +315,21 @@ export async function getDirectoryCareers(
                 end_date DESC NULLS FIRST, start_date DESC NULLS LAST`,
     [alumniId],
   )) as DirectoryCareerRow[];
+  return rows;
+}
+
+export async function getDirectoryEducation(
+  alumniId: number,
+): Promise<DirectoryEducationRow[]> {
+  const rows = (await sql.query(
+    `SELECT alumni_id, position, school, school_linkedin_url, school_logo_url,
+            degree_field, start_year, end_year, is_uwc
+       FROM alumni_education
+       WHERE alumni_id = $1
+       ORDER BY position ASC NULLS LAST,
+                end_year DESC NULLS FIRST, start_year DESC NULLS LAST`,
+    [alumniId],
+  )) as DirectoryEducationRow[];
   return rows;
 }
 

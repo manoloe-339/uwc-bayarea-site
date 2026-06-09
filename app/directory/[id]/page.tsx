@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import {
   getDirectoryAlumnus,
   getDirectoryCareers,
+  getDirectoryEducation,
   logDirectoryProfileView,
 } from "@/lib/directory-query";
 import { getCurrentDirectorySession } from "@/lib/directory-session";
@@ -12,6 +13,7 @@ import { linkedinHref } from "@/lib/linkedin-url";
 import { FeedbackButton } from "@/components/directory/FeedbackButton";
 import { SaveButton } from "@/components/directory/SaveButton";
 import { CompanyLogo } from "@/components/directory/CompanyLogo";
+import { originFlagString } from "@/lib/country-flag";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +73,7 @@ export default async function DirectoryProfilePage({
   if (!row) notFound();
 
   const careers = await getDirectoryCareers(id);
+  const education = await getDirectoryEducation(id);
 
   // Identity + audit
   const session = await getCurrentDirectorySession();
@@ -153,7 +156,16 @@ export default async function DirectoryProfilePage({
             )}
             <div className="text-xs text-[color:var(--muted)] mt-2 space-y-0.5">
               {sub && <div>{sub}</div>}
-              {row.origin && <div>From {row.origin}</div>}
+              {row.origin && (
+                <div>
+                  {originFlagString(row.origin) && (
+                    <span className="mr-1" aria-hidden>
+                      {originFlagString(row.origin)}
+                    </span>
+                  )}
+                  From {row.origin}
+                </div>
+              )}
               {location && <div>{location}</div>}
             </div>
             <div className="mt-4 flex items-center gap-2 flex-wrap">
@@ -164,7 +176,7 @@ export default async function DirectoryProfilePage({
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-[#0A66C2] text-white px-4 py-2 rounded text-xs font-bold tracking-[.18em] uppercase hover:opacity-90"
                 >
-                  Open on LinkedIn → invite ↗
+                  LinkedIn Profile
                 </a>
               ) : (
                 <span className="inline-flex items-center gap-2 border border-dashed border-[color:var(--rule)] text-[color:var(--muted)] px-4 py-2 rounded text-xs font-bold tracking-[.18em] uppercase">
@@ -297,6 +309,66 @@ export default async function DirectoryProfilePage({
                 );
               })}
             </ol>
+          </div>
+        )}
+
+        {education.length > 0 && (
+          <div className="mt-6">
+            <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-3">
+              Education
+            </div>
+            <ul className="space-y-3">
+              {education.map((ed, i) => {
+                const schoolHref = linkedinHref(ed.school_linkedin_url);
+                const range = [ed.start_year, ed.end_year]
+                  .filter((y): y is number => typeof y === "number" && y > 0)
+                  .join(" – ");
+                return (
+                  <li
+                    key={`${ed.alumni_id}-edu-${i}`}
+                    className="flex items-start gap-2.5 text-sm text-[color:var(--navy-ink)]"
+                  >
+                    <CompanyLogo
+                      website={null}
+                      linkedinUrl={ed.school_linkedin_url}
+                      companyName={ed.school}
+                      size={28}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold leading-tight flex items-center gap-2 flex-wrap">
+                        {ed.school && schoolHref ? (
+                          <a
+                            href={schoolHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            {ed.school}
+                          </a>
+                        ) : (
+                          <span>{ed.school ?? "—"}</span>
+                        )}
+                        {ed.is_uwc && (
+                          <span className="inline-flex items-center text-[10px] tracking-[.18em] uppercase font-bold text-navy bg-ivory-2 border border-[color:var(--rule)] rounded px-1.5 py-0.5">
+                            UWC
+                          </span>
+                        )}
+                      </div>
+                      {ed.degree_field && (
+                        <div className="text-xs text-[color:var(--muted)]">
+                          {ed.degree_field}
+                        </div>
+                      )}
+                      {range && (
+                        <div className="text-[11px] text-[color:var(--muted)] font-mono mt-0.5">
+                          {range}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
       </div>

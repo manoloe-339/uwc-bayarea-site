@@ -18,6 +18,7 @@ import { AlumniOptionsSection } from "@/components/admin/AlumniOptionsSection";
 import { SearchNLToggle } from "@/components/admin/SearchNLToggle";
 import { FilterFormWithLoading } from "@/components/admin/FilterFormWithLoading";
 import { linkedinHref } from "@/lib/linkedin-url";
+import { originFlagString } from "@/lib/country-flag";
 
 export const dynamic = "force-dynamic";
 
@@ -788,6 +789,11 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
                             {r.uwc_college ?? "—"}
                             {r.grad_year ? ` · ${r.grad_year}` : ""}
                             {r.location_city ? ` · ${r.location_city}` : ""}
+                            {r.origin && originFlagString(r.origin) && (
+                              <span className="ml-1.5" title={`From ${r.origin}`} aria-hidden>
+                                {originFlagString(r.origin)}
+                              </span>
+                            )}
                           </div>
                           <MatchLine info={searchMatches.get(r.id)} />
                           <div className="mt-1 flex items-center gap-1.5">

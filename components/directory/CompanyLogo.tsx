@@ -4,6 +4,10 @@ import { useState } from "react";
 import { companyLogoUrl } from "@/lib/company-logo";
 
 interface Props {
+  /** LinkedIn-served logo URL captured at enrichment time. Preferred
+   * source when present — but LinkedIn signs these with an expiry
+   * timestamp, so 404s are expected; we fall through to Logo.dev. */
+  storedLogoUrl?: string | null;
   website: string | null;
   /** LinkedIn company URL — used as a secondary domain source when
    * `website` is missing (slug.com heuristic). */
@@ -20,11 +24,25 @@ function initialsOf(name: string | null): string {
   return ini || "·";
 }
 
-export function CompanyLogo({ website, linkedinUrl = null, companyName, size = 24 }: Props) {
-  const [errored, setErrored] = useState(false);
-  const url = companyLogoUrl(website, linkedinUrl, Math.max(size * 2, 48));
+export function CompanyLogo({
+  storedLogoUrl = null,
+  website,
+  linkedinUrl = null,
+  companyName,
+  size = 24,
+}: Props) {
+  // Build the candidate list in priority order. The component walks
+  // through it on each <img> onError, finally rendering an initials
+  // block when all candidates are exhausted.
+  const candidates: string[] = [];
+  if (storedLogoUrl) candidates.push(storedLogoUrl);
+  const logoDevUrl = companyLogoUrl(website, linkedinUrl, Math.max(size * 2, 48));
+  if (logoDevUrl) candidates.push(logoDevUrl);
 
-  if (!url || errored) {
+  const [idx, setIdx] = useState(0);
+  const current = candidates[idx];
+
+  if (!current) {
     return (
       <span
         aria-hidden
@@ -43,11 +61,11 @@ export function CompanyLogo({ website, linkedinUrl = null, companyName, size = 2
   return (
     /* eslint-disable-next-line @next/next/no-img-element */
     <img
-      src={url}
+      src={current}
       alt=""
       width={size}
       height={size}
-      onError={() => setErrored(true)}
+      onError={() => setIdx((i) => i + 1)}
       loading="lazy"
       className="shrink-0 rounded bg-white object-contain"
       style={{ width: size, height: size }}

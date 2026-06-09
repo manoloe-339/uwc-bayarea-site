@@ -71,6 +71,8 @@ export interface ApifyEducationEntry {
   description?: string | null;
   companyId?: string | null;
   companyLink1?: string | null;
+  /** LinkedIn-served school logo URL, signed with an expiry param. */
+  logo?: string | null;
   period?: {
     startedOn?: { year?: number | string | null } | number | string | null;
     endedOn?: { year?: number | string | null } | number | string | null;
@@ -86,6 +88,8 @@ export interface ApifyExperienceEntry {
   companyIndustry?: string | null;
   companySize?: string | null;
   companyWebsite?: string | null;
+  /** LinkedIn-served company logo URL, signed with an expiry param. */
+  logo?: string | null;
   jobLocation?: string | null;
   jobStartedOn?: string | null;
   jobEndedOn?: string | null;

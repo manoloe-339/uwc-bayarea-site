@@ -90,10 +90,10 @@ async function writeChildRows(
   for (const e of education) {
     await sql`
       INSERT INTO alumni_education (
-        alumni_id, position, school, school_id, school_linkedin_url,
+        alumni_id, position, school, school_id, school_linkedin_url, school_logo_url,
         degree_field, start_year, end_year, is_uwc
       ) VALUES (
-        ${neonId}, ${e.position}, ${e.school}, ${e.school_id}, ${e.school_linkedin_url},
+        ${neonId}, ${e.position}, ${e.school}, ${e.school_id}, ${e.school_linkedin_url}, ${e.school_logo_url},
         ${e.degree_field}, ${e.start_year}, ${e.end_year}, ${e.is_uwc}
       )
     `;
@@ -102,11 +102,11 @@ async function writeChildRows(
     await sql`
       INSERT INTO alumni_career (
         alumni_id, position, title, company, company_linkedin_url,
-        company_industry, company_size, company_website,
+        company_industry, company_size, company_website, company_logo_url,
         start_date, end_date, location, is_current
       ) VALUES (
         ${neonId}, ${c.position}, ${c.title}, ${c.company}, ${c.company_linkedin_url},
-        ${c.company_industry}, ${c.company_size}, ${c.company_website},
+        ${c.company_industry}, ${c.company_size}, ${c.company_website}, ${c.company_logo_url},
         ${c.start_date}, ${c.end_date}, ${c.location}, ${c.is_current}
       )
     `;
@@ -157,6 +157,7 @@ async function applyProfile(
       current_company_industry  = COALESCE(${patch.current_company_industry}, current_company_industry),
       current_company_size      = COALESCE(${patch.current_company_size}, current_company_size),
       current_company_website   = COALESCE(${patch.current_company_website}, current_company_website),
+      current_company_logo_url  = COALESCE(${patch.current_company_logo_url}, current_company_logo_url),
       current_location          = COALESCE(${patch.current_location}, current_location),
       current_since             = COALESCE(${patch.current_since}, current_since),
       total_experience_years    = COALESCE(${patch.total_experience_years}, total_experience_years),

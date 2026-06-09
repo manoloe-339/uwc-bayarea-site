@@ -31,6 +31,7 @@ export type AlumniPatch = {
   current_company_industry: string | null;
   current_company_size: string | null;
   current_company_website: string | null;
+  current_company_logo_url: string | null;
   current_location: string | null;
   current_since: string | null;
   total_experience_years: number | null;
@@ -44,6 +45,7 @@ export type EducationRow = {
   school: string | null;
   school_id: string | null;
   school_linkedin_url: string | null;
+  school_logo_url: string | null;
   degree_field: string | null;
   start_year: number | null;
   end_year: number | null;
@@ -58,6 +60,7 @@ export type CareerRow = {
   company_industry: string | null;
   company_size: string | null;
   company_website: string | null;
+  company_logo_url: string | null;
   start_date: string | null;
   end_date: string | null;
   location: string | null;
@@ -118,6 +121,19 @@ export function detectUwc(
 /* Transformers                                                       */
 /* ------------------------------------------------------------------ */
 
+/** Pull a logo URL for the current company by finding the current
+ * experience entry (jobStillWorking === true). If none flagged
+ * current, the first experience is the de-facto headline. */
+function findCurrentCompanyLogo(
+  profile: ApifyProfile,
+): string | null {
+  if (!Array.isArray(profile.experiences) || profile.experiences.length === 0) {
+    return null;
+  }
+  const current = profile.experiences.find((e) => e.jobStillWorking === true);
+  return blank(current?.logo) ?? blank(profile.experiences[0]?.logo);
+}
+
 export function buildAlumniPatch(
   profile: ApifyProfile,
   photoUrl: string | null
@@ -139,6 +155,7 @@ export function buildAlumniPatch(
     current_company_industry: blank(profile.companyIndustry),
     current_company_size: blank(profile.companySize),
     current_company_website: blank(profile.companyWebsite),
+    current_company_logo_url: findCurrentCompanyLogo(profile),
     current_location: blank(profile.jobLocation),
     current_since: blank(startedOn),
     total_experience_years:
@@ -161,6 +178,7 @@ export function buildEducationRows(
       school: blank(e.title),
       school_id: blank(e.companyId),
       school_linkedin_url: blank(e.companyLink1),
+      school_logo_url: blank(e.logo),
       degree_field: blank(e.subtitle),
       start_year: normYear(e.period?.startedOn),
       end_year: normYear(e.period?.endedOn),
@@ -217,6 +235,7 @@ export function buildCareerRows(
       company_industry: blank(exp.companyIndustry),
       company_size: blank(exp.companySize),
       company_website: blank(exp.companyWebsite),
+      company_logo_url: blank(exp.logo),
       start_date: blank(start),
       end_date: blank(end),
       location: blank(exp.jobLocation),

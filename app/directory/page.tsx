@@ -15,6 +15,7 @@ import { parseSearchQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser"
 import { listSavesForUser } from "@/lib/directory-saves";
 import { SaveButton } from "@/components/directory/SaveButton";
 import { DirectoryNLToggle } from "@/components/directory/DirectoryNLToggle";
+import { originFlagString } from "@/lib/country-flag";
 import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -489,6 +490,11 @@ function DirectoryCard({
               <span>
                 {sub ? " · " : ""}
                 {row.current_city}
+              </span>
+            )}
+            {row.origin && originFlagString(row.origin) && (
+              <span className="ml-1.5" title={`From ${row.origin}`} aria-hidden>
+                {originFlagString(row.origin)}
               </span>
             )}
           </div>
