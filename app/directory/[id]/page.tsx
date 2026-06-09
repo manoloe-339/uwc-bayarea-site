@@ -166,24 +166,27 @@ export default async function DirectoryProfilePage({
             <h1 className="font-sans text-[28px] font-bold text-[color:var(--navy-ink)] leading-[1.1]">
               {name}
             </h1>
-            {row.headline && (
-              <p className="text-sm text-[color:var(--navy-ink)] italic mt-1">
-                {row.headline}
-              </p>
-            )}
-            <div className="text-xs text-[color:var(--muted)] mt-2 space-y-0.5">
-              {sub && <div>{sub}</div>}
+            <div className="mt-2.5 space-y-1 text-[color:var(--navy-ink)]">
+              {sub && (
+                <div className="text-[15px] font-semibold leading-tight">
+                  {sub}
+                </div>
+              )}
               {row.origin && (
-                <div>
+                <div className="text-[15px] leading-tight">
                   {originFlagString(row.origin) && (
-                    <span className="mr-1" aria-hidden>
+                    <span className="mr-1.5 text-[18px] align-[-2px]" aria-hidden>
                       {originFlagString(row.origin)}
                     </span>
                   )}
                   From {row.origin}
                 </div>
               )}
-              {location && <div>{location}</div>}
+              {location && (
+                <div className="text-sm text-[color:var(--muted)]">
+                  {location}
+                </div>
+              )}
             </div>
             <div className="mt-4 flex items-center gap-2 flex-wrap">
               {linkedin ? (
@@ -211,6 +214,12 @@ export default async function DirectoryProfilePage({
             </div>
           </div>
         </div>
+
+        {row.headline && (
+          <p className="text-sm text-[color:var(--navy-ink)] italic mb-3 leading-[1.4]">
+            {row.headline}
+          </p>
+        )}
 
         {(row.current_title || row.current_company) && (
           <div className="mb-5">
