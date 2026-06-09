@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { companyLogoUrl } from "@/lib/company-logo";
+import { companyLogoCandidates } from "@/lib/company-logo";
 
 interface Props {
   /** LinkedIn-served logo URL captured at enrichment time. Preferred
@@ -9,8 +9,8 @@ interface Props {
    * timestamp, so 404s are expected; we fall through to Logo.dev. */
   storedLogoUrl?: string | null;
   website: string | null;
-  /** LinkedIn company URL — used as a secondary domain source when
-   * `website` is missing (slug.com heuristic). */
+  /** LinkedIn company/school URL — used as a secondary domain source
+   * when `website` is missing. */
   linkedinUrl?: string | null;
   companyName: string | null;
   /** Pixel size of the rendered box (square). Default 24. */
@@ -31,13 +31,17 @@ export function CompanyLogo({
   companyName,
   size = 24,
 }: Props) {
-  // Build the candidate list in priority order. The component walks
-  // through it on each <img> onError, finally rendering an initials
-  // block when all candidates are exhausted.
+  // Priority-ordered candidate URLs. The component walks the list on
+  // each <img> onError, rendering an initials block when exhausted.
   const candidates: string[] = [];
   if (storedLogoUrl) candidates.push(storedLogoUrl);
-  const logoDevUrl = companyLogoUrl(website, linkedinUrl, Math.max(size * 2, 48));
-  if (logoDevUrl) candidates.push(logoDevUrl);
+  for (const u of companyLogoCandidates(
+    website,
+    linkedinUrl,
+    Math.max(size * 2, 48),
+  )) {
+    candidates.push(u);
+  }
 
   const [idx, setIdx] = useState(0);
   const current = candidates[idx];

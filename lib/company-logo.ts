@@ -1,19 +1,21 @@
 /**
- * Logo.dev render-time helper. We pass a publishable key (safe to inline
- * client-side) and Logo.dev's CDN returns a transparent PNG of the
- * company logo when one is known. Returns null when we don't have
- * enough information to build a request — callers should fall back to
- * an initials block in that case.
+ * Logo.dev render-time helper. Returns an ordered list of candidate
+ * image URLs the <CompanyLogo> component walks through on <img>
+ * onError, finally falling back to an initials block.
  *
  * Sources for the domain, in priority order:
- *   1. `company_website` from the LinkedIn enrichment payload
- *      (most reliable when present)
- *   2. Derived from the LinkedIn company slug (`/company/<slug>/`) by
- *      appending ".com". Lossy but catches major brands: the slug
- *      "linkedin" → linkedin.com, "citi" → citi.com, "stripe" →
- *      stripe.com. Wrong for "the-world-bank-group" (real domain is
- *      worldbank.org), but Logo.dev returns a generic placeholder for
- *      misses and the component swaps to an initials block on 404.
+ *   1. `company_website` from the enrichment payload (most reliable).
+ *   2. LinkedIn URL:
+ *      • `/company/<slug>/`  → try `<slug>.com`
+ *      • `/school/<slug>/`   → try `<slug>.edu`, `<slug>.org`, `<slug>.com`
+ *        (universities lean .edu, non-profits/UWCs lean .org, vocational
+ *        schools lean .com)
+ *
+ * Lossy by design — slug-derived domains are wrong for compound names
+ * (e.g. "the-world-bank-group" vs worldbank.org). Logo.dev returns a
+ * generic placeholder for unknowns and the component swaps to the
+ * next candidate on 404. The cheapest layer of coverage before Apify
+ * scrapes start populating stored URLs directly.
  */
 
 const COMMON_SUBDOMAINS = new Set([
@@ -30,9 +32,6 @@ const COMMON_SUBDOMAINS = new Set([
   "mobile",
 ]);
 
-/** Strip a leading subdomain when it's a well-known marketing prefix
- * (careers.linkedin.com → linkedin.com). Conservative: only strips one
- * level and only when the prefix is in our allowlist. */
 function stripMarketingSubdomain(host: string): string {
   const parts = host.split(".");
   if (parts.length < 3) return host;
@@ -56,33 +55,66 @@ function extractDomain(website: string | null | undefined): string | null {
   }
 }
 
-/** Derive a candidate domain from a LinkedIn company URL by appending
- * .com to the slug. Wrong for many edge cases (compound brands,
- * non-.com TLDs) but catches major brands cheaply when company_website
- * is missing. Render-time onError fallback handles misses. */
-function domainFromLinkedinUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  const m = url.match(/\/company\/([^/?#]+)/i);
-  if (!m) return null;
-  const slug = decodeURIComponent(m[1]).toLowerCase().trim();
+function cleanSlug(rawSlug: string): string | null {
+  const slug = decodeURIComponent(rawSlug).toLowerCase().trim();
   if (!slug) return null;
-  // Reject slugs that look like internal/synthetic (numbers only,
-  // or super long compound names that won't map to a real domain).
   if (/^\d+$/.test(slug)) return null;
-  if (slug.length > 40) return null;
-  // Keep simple slugs (letters / digits / hyphens) and add .com.
+  if (slug.length > 60) return null;
   if (!/^[a-z0-9-]+$/.test(slug)) return null;
-  return `${slug}.com`;
+  return slug;
 }
 
+function domainsFromLinkedinUrl(
+  url: string | null | undefined,
+): string[] {
+  if (!url) return [];
+  const company = url.match(/\/company\/([^/?#]+)/i);
+  if (company) {
+    const slug = cleanSlug(company[1]);
+    return slug ? [`${slug}.com`] : [];
+  }
+  const school = url.match(/\/school\/([^/?#]+)/i);
+  if (school) {
+    const slug = cleanSlug(school[1]);
+    if (!slug) return [];
+    return [`${slug}.edu`, `${slug}.org`, `${slug}.com`];
+  }
+  return [];
+}
+
+function buildLogoUrl(domain: string, token: string, size: number): string {
+  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(token)}&size=${size}&format=png`;
+}
+
+/**
+ * Ordered candidate URLs the renderer should try, best-first.
+ * Empty array means "no Logo.dev attempt is worth making — fall
+ * straight to initials".
+ */
+export function companyLogoCandidates(
+  website: string | null | undefined,
+  linkedinUrl: string | null | undefined = null,
+  size = 64,
+): string[] {
+  const token = process.env.NEXT_PUBLIC_LOGO_DEV_KEY;
+  if (!token) return [];
+  const domains: string[] = [];
+  const fromWebsite = extractDomain(website);
+  if (fromWebsite) domains.push(fromWebsite);
+  for (const d of domainsFromLinkedinUrl(linkedinUrl)) {
+    if (!domains.includes(d)) domains.push(d);
+  }
+  return domains.map((d) => buildLogoUrl(d, token, size));
+}
+
+/** Backwards-compatible single-URL form. Returns the highest-priority
+ * candidate or null. Prefer companyLogoCandidates() when the caller
+ * can use a multi-step fallback. */
 export function companyLogoUrl(
   website: string | null | undefined,
   linkedinUrl: string | null | undefined = null,
   size = 64,
 ): string | null {
-  const token = process.env.NEXT_PUBLIC_LOGO_DEV_KEY;
-  if (!token) return null;
-  const domain = extractDomain(website) ?? domainFromLinkedinUrl(linkedinUrl);
-  if (!domain) return null;
-  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(token)}&size=${size}&format=png`;
+  const all = companyLogoCandidates(website, linkedinUrl, size);
+  return all[0] ?? null;
 }

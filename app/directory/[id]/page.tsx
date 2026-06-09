@@ -42,9 +42,28 @@ function companyDisplayName(cc: {
   return deriveCompanyFromLinkedinUrl(cc.company_linkedin_url);
 }
 
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/** Apify returns career dates as "M-YYYY" or "MM-YYYY" (e.g.
+ * "5-2024", "05-2024", "11-2020"). Normalize to "May 2024". Falls
+ * back to the raw string when the format doesn't match — better to
+ * show something than nothing. */
 function fmtCareerDate(d: string | null): string {
   if (!d) return "";
-  return d.trim();
+  const raw = d.trim();
+  const m = raw.match(/^(\d{1,2})[-/](\d{4})$/);
+  if (m) {
+    const month = Number(m[1]);
+    if (month >= 1 && month <= 12) {
+      return `${MONTH_NAMES[month - 1]} ${m[2]}`;
+    }
+  }
+  const yearOnly = raw.match(/^(\d{4})$/);
+  if (yearOnly) return yearOnly[1];
+  return raw;
 }
 
 function careerRange(
@@ -54,7 +73,7 @@ function careerRange(
 ): string {
   const s = fmtCareerDate(start);
   const endTrim = (end ?? "").trim();
-  const e = isCurrent || !endTrim ? "Present" : endTrim;
+  const e = isCurrent || !endTrim ? "Present" : fmtCareerDate(endTrim);
   if (s && e) return `${s} – ${e}`;
   return s || e || "";
 }
@@ -203,6 +222,7 @@ export default async function DirectoryProfilePage({
             <div className="flex items-center gap-2.5 text-sm text-[color:var(--navy-ink)]">
               {row.current_company && (
                 <CompanyLogo
+                  storedLogoUrl={row.current_company_logo_url}
                   website={row.current_company_website}
                   linkedinUrl={row.current_company_linkedin}
                   companyName={row.current_company}
@@ -276,6 +296,7 @@ export default async function DirectoryProfilePage({
                     {companyName && (
                       <div className="flex items-center gap-2 text-[color:var(--navy-ink)]">
                         <CompanyLogo
+                          storedLogoUrl={cc.company_logo_url}
                           website={cc.company_website}
                           linkedinUrl={cc.company_linkedin_url}
                           companyName={companyName}
@@ -301,7 +322,7 @@ export default async function DirectoryProfilePage({
                       </div>
                     )}
                     {dateRange && (
-                      <div className="text-[11px] text-[color:var(--muted)] font-mono mt-0.5">
+                      <div className="text-[11px] text-[color:var(--muted)] mt-0.5 tabular-nums">
                         {dateRange}
                       </div>
                     )}
@@ -329,6 +350,7 @@ export default async function DirectoryProfilePage({
                     className="flex items-start gap-2.5 text-sm text-[color:var(--navy-ink)]"
                   >
                     <CompanyLogo
+                      storedLogoUrl={ed.school_logo_url}
                       website={null}
                       linkedinUrl={ed.school_linkedin_url}
                       companyName={ed.school}
@@ -355,7 +377,7 @@ export default async function DirectoryProfilePage({
                         </div>
                       )}
                       {range && (
-                        <div className="text-[11px] text-[color:var(--muted)] font-mono mt-0.5">
+                        <div className="text-[11px] text-[color:var(--muted)] mt-0.5 tabular-nums">
                           {range}
                         </div>
                       )}
