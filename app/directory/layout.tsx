@@ -51,7 +51,15 @@ export default async function DirectoryLayout({
                 Saved
               </Link>
             )}
-            <FeedbackButton />
+            <FeedbackButton
+              triggerClassName="inline-flex items-center gap-1.5 text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"
+              triggerLabel={
+                <>
+                  <span aria-hidden role="img">💬</span>
+                  Feedback
+                </>
+              }
+            />
             {session && <LogoutButton />}
             <Link
               href="/"
@@ -61,8 +69,15 @@ export default async function DirectoryLayout({
             </Link>
           </div>
 
-          {/* Mobile nav */}
-          <div className="md:hidden">
+          {/* Mobile nav — feedback always visible alongside the
+              hamburger, never buried in the menu. */}
+          <div className="md:hidden flex items-center gap-1">
+            <FeedbackButton
+              triggerClassName="inline-flex items-center justify-center w-9 h-9 rounded text-navy hover:bg-[color:var(--ivory-2)] text-[18px] leading-none"
+              triggerLabel={
+                <span aria-hidden role="img">💬</span>
+              }
+            />
             <DirectoryHamburger
               isUserAccount={session?.kind === "user"}
               hasSession={!!session}

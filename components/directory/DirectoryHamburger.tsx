@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FeedbackButton } from "./FeedbackButton";
 import LogoutButton from "./LogoutButton";
 
 interface Props {
@@ -107,15 +106,6 @@ export default function DirectoryHamburger({
               Saved
             </Link>
           )}
-          <FeedbackButton
-            triggerClassName={ROW}
-            triggerLabel={
-              <>
-                <span className="mr-2" aria-hidden>💬</span>
-                Feedback
-              </>
-            }
-          />
           {hasSession && (
             <LogoutButton
               className={ROW}
