@@ -301,6 +301,54 @@ export function pickCurrentLocation(opts: {
   return null;
 }
 
+/** True when any Bay Area place token appears in the location string. */
+function isInBayArea(loc: string): boolean {
+  const lower = loc.toLowerCase();
+  return BAY_AREA_PLACES.some((place) => lower.includes(place));
+}
+
+/**
+ * Clean up a LinkedIn-style location for display. Rules:
+ *
+ *   - If the location is in the Bay Area, drop the state + country
+ *     ("San Francisco, California, United States" → "San Francisco";
+ *     "San Francisco Bay Area" stays as-is).
+ *   - Otherwise drop the trailing ", United States" / ", USA" /
+ *     ", US" so US locations show as "City, State" rather than
+ *     "City, State, United States".
+ *   - International locations (Berlin, Germany; London, England,
+ *     United Kingdom) pass through unchanged — the country is real
+ *     information there.
+ *
+ * Returns "" when input is null/empty.
+ */
+const US_SUFFIX_RE =
+  /,\s*(?:united states|usa|u\.?s\.?(?:a\.)?)\s*$/i;
+
+export function formatLocationForDisplay(
+  loc: string | null | undefined,
+): string {
+  if (!loc) return "";
+  const trimmed = loc.trim();
+  if (!trimmed) return "";
+
+  if (isInBayArea(trimmed)) {
+    // Take the first comma-separated segment (or the whole string
+    // if no comma). Title-case it so "san francisco" → "San Francisco".
+    const first = trimmed.split(",")[0].trim();
+    return first.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  }
+
+  let s = trimmed;
+  // Loop in case the location has nested US-y suffixes.
+  for (let i = 0; i < 3; i++) {
+    const next = s.replace(US_SUFFIX_RE, "").trim();
+    if (next === s) break;
+    s = next;
+  }
+  return s;
+}
+
 /**
  * Returns the new location string for display when the alum has
  * apparently moved out of the Bay Area, or null otherwise.

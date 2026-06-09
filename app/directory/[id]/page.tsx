@@ -16,6 +16,7 @@ import LinkedinIconLink from "@/components/directory/LinkedinIconLink";
 import { originCountryNames, originFlagString } from "@/lib/country-flag";
 import {
   detectMovedFromBayArea,
+  formatLocationForDisplay,
   pickCurrentLocation,
 } from "@/lib/location-moved";
 import { displayName, titleCase } from "@/lib/text-format";
@@ -122,9 +123,9 @@ export default async function DirectoryProfilePage({
     current_location: row.current_location,
     location_full: row.location_full,
   });
-  const location =
-    liveLocation ??
-    (row.current_city ? titleCase(row.current_city) : "");
+  const rawLocation =
+    liveLocation ?? (row.current_city ? titleCase(row.current_city) : "");
+  const location = formatLocationForDisplay(rawLocation);
   const linkedin = linkedinHref(row.linkedin_url);
 
   return (
@@ -242,7 +243,7 @@ export default async function DirectoryProfilePage({
                     className="text-sm text-[color:var(--muted)]"
                     title="LinkedIn says they're not in the Bay Area anymore"
                   >
-                    🧳 {moved}
+                    🧳 {formatLocationForDisplay(moved)}
                   </div>
                 );
               })()}
