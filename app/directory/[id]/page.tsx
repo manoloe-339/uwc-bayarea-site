@@ -335,7 +335,7 @@ export default async function DirectoryProfilePage({
                       size={28}
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold leading-tight flex items-center gap-2 flex-wrap">
+                      <div className="font-semibold leading-tight">
                         {ed.school && schoolHref ? (
                           <a
                             href={schoolHref}
@@ -347,11 +347,6 @@ export default async function DirectoryProfilePage({
                           </a>
                         ) : (
                           <span>{ed.school ?? "—"}</span>
-                        )}
-                        {ed.is_uwc && (
-                          <span className="inline-flex items-center text-[10px] tracking-[.18em] uppercase font-bold text-navy bg-ivory-2 border border-[color:var(--rule)] rounded px-1.5 py-0.5">
-                            UWC
-                          </span>
                         )}
                       </div>
                       {ed.degree_field && (
