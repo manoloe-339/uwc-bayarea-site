@@ -189,7 +189,15 @@ export default async function DirectoryPage({
     void logDirectorySearch(sessionId, filters, userId);
   }
 
-  const [rows, total, mySaves, industries] = await Promise.all([
+  // Fetch the logged-in user's own name for personalizing the Name
+  // placeholder ("e.g. Manolo Espinosa — or just Espinosa"). Falls
+  // back to the generic Jane Doe when there's no linked alumni row
+  // (shared-password sessions, or per-user accounts not yet tied to
+  // an alumni record).
+  const currentUserAlumniId =
+    session?.kind === "user" ? session.user.alumni_id : null;
+
+  const [rows, total, mySaves, industries, currentUserName] = await Promise.all([
     searchDirectoryAlumni(filters, 500),
     countDirectoryAlumni(filters),
     userId ? listSavesForUser(userId) : Promise.resolve([]),
@@ -204,7 +212,23 @@ export default async function DirectoryPage({
       ORDER BY count DESC, current_company_industry ASC
       LIMIT 60
     ` as unknown as Promise<Array<{ value: string; count: number }>>,
+    currentUserAlumniId
+      ? (sql`SELECT first_name, last_name FROM alumni WHERE id = ${currentUserAlumniId} LIMIT 1` as unknown as Promise<
+          Array<{ first_name: string | null; last_name: string | null }>
+        >)
+      : Promise.resolve([] as Array<{ first_name: string | null; last_name: string | null }>),
   ]);
+
+  // Build a placeholder using the user's own name when available.
+  const me = currentUserName[0];
+  const namePlaceholder = (() => {
+    const first = me?.first_name?.trim();
+    const last = me?.last_name?.trim();
+    if (first && last) return `e.g. ${first} ${last} — or just ${last}`;
+    if (last) return `e.g. ${last}`;
+    if (first) return `e.g. ${first}`;
+    return "e.g. Jane Doe — or just Doe";
+  })();
   // Build a quick lookup: alumni_id -> existing save (for the ★ button state).
   const savedByAlumni = new Map<number, { status: typeof mySaves[number]["status"]; reason: typeof mySaves[number]["reason"]; note: string | null }>();
   for (const s of mySaves) {
@@ -265,7 +289,7 @@ export default async function DirectoryPage({
               name="name"
               type="text"
               defaultValue={pickStr(sp, "name") ?? ""}
-              placeholder="e.g. Jane Doe — or just Doe"
+              placeholder={namePlaceholder}
               className={fieldClass(!!filters.name)}
             />
           </label>
