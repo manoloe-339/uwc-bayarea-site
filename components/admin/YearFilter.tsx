@@ -43,6 +43,16 @@ export default function YearFilter({
     return { yearFrom: null, yearTo: null };
   }, [mode, y1, y2]);
 
+  // Active when a real year value has been resolved — matches the
+  // navy-highlight affordance used by Field/Select elsewhere on the
+  // form so it's visually obvious that "Graduation year" is filtering.
+  const active = yearFrom != null || yearTo != null;
+  const inputBase =
+    "border rounded px-3 py-2 text-sm " +
+    (active
+      ? "border-navy bg-[color:var(--ivory-2)] font-medium"
+      : "border-[color:var(--rule)] bg-white");
+
   return (
     <div className="block sm:col-span-2">
       <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
@@ -52,7 +62,7 @@ export default function YearFilter({
         <select
           value={mode}
           onChange={(e) => setMode(e.target.value as Mode)}
-          className="border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white min-w-[140px]"
+          className={`${inputBase} min-w-[140px]`}
         >
           <option value="any">Any year</option>
           <option value="exact">In year</option>
@@ -67,7 +77,7 @@ export default function YearFilter({
             value={y1}
             onChange={(e) => setY1(e.target.value)}
             placeholder={mode === "before" ? "2001" : mode === "after" ? "2010" : "1996"}
-            className="border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white w-[120px]"
+            className={`${inputBase} w-[120px]`}
           />
         )}
         {mode === "between" && (
@@ -78,7 +88,7 @@ export default function YearFilter({
               value={y2}
               onChange={(e) => setY2(e.target.value)}
               placeholder="2010"
-              className="border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white w-[120px]"
+              className={`${inputBase} w-[120px]`}
             />
           </>
         )}

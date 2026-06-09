@@ -1313,7 +1313,7 @@ function IndustryGroupSelect({
       <select
         name="industryGroup"
         defaultValue={selected ?? ""}
-        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+        className={fieldClass(!!selected)}
       >
         <option value="">Any</option>
         {INDUSTRY_GROUPS.map((g) => (
@@ -1327,6 +1327,7 @@ function IndustryGroupSelect({
 }
 
 function CompanyField({ options, value }: { options: CompanyOption[]; value?: string }) {
+  const active = typeof value === "string" && value.length > 0;
   return (
     <label className="block">
       <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
@@ -1337,7 +1338,7 @@ function CompanyField({ options, value }: { options: CompanyOption[]; value?: st
         name="company"
         defaultValue={value ?? ""}
         placeholder="e.g. Google"
-        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+        className={fieldClass(active)}
       />
       <datalist id="alumni-company-list">
         {options.map((o) => (
