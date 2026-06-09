@@ -91,7 +91,36 @@ const VAGUE_LOCATIONS = new Set([
   "earth",
   "remote",
   "worldwide",
+  "anywhere",
+  "global",
+  "international",
 ]);
+
+function isVague(s: string): boolean {
+  const trimmed = s.trim();
+  if (trimmed.length < 3) return true;
+  return VAGUE_LOCATIONS.has(trimmed.toLowerCase());
+}
+
+/**
+ * Pick the best available LinkedIn-derived location for display in the
+ * "where are they now" badge. Priority:
+ *   1. current_location (LinkedIn jobLocation) — set when they took
+ *      their current job, less likely to be a stale school/hometown
+ *   2. location_full (profile-level addressWithCountry) — often the
+ *      city LinkedIn shows next to the alum's name; can be stale
+ * Both must be non-vague (no "Remote", country-only, etc.) to count.
+ */
+export function pickCurrentLocation(opts: {
+  current_location: string | null | undefined;
+  location_full: string | null | undefined;
+}): string | null {
+  const jobLoc = opts.current_location?.trim();
+  if (jobLoc && !isVague(jobLoc)) return jobLoc;
+  const profLoc = opts.location_full?.trim();
+  if (profLoc && !isVague(profLoc)) return profLoc;
+  return null;
+}
 
 /**
  * Returns the new location string for display when the alum has

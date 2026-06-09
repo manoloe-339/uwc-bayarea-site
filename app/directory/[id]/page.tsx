@@ -13,7 +13,10 @@ import { linkedinHref } from "@/lib/linkedin-url";
 import { SaveButton } from "@/components/directory/SaveButton";
 import { CompanyLogo } from "@/components/directory/CompanyLogo";
 import { originCountryNames, originFlagString } from "@/lib/country-flag";
-import { detectMovedFromBayArea } from "@/lib/location-moved";
+import {
+  detectMovedFromBayArea,
+  pickCurrentLocation,
+} from "@/lib/location-moved";
 
 export const dynamic = "force-dynamic";
 
@@ -201,11 +204,15 @@ export default async function DirectoryProfilePage({
                 </div>
               )}
               {(() => {
-                const moved = detectMovedFromBayArea(row.location_full);
+                const liveLoc = pickCurrentLocation({
+                  current_location: row.current_location,
+                  location_full: row.location_full,
+                });
+                const moved = detectMovedFromBayArea(liveLoc);
                 if (!moved) return null;
                 return (
                   <div
-                    className="text-sm italic text-orange-700"
+                    className="text-sm text-[color:var(--muted)]"
                     title="LinkedIn says they're not in the Bay Area anymore"
                   >
                     🧳 {moved}

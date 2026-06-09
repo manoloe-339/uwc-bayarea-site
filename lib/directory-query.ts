@@ -85,6 +85,7 @@ export type DirectoryAlumnusRow = {
   current_company_size: string | null;
   current_company_website: string | null;
   current_company_logo_url: string | null;
+  current_location: string | null;
   location_full: string | null;
 };
 
@@ -122,7 +123,8 @@ const SELECT_DIRECTORY_FIELDS = `
   photo_url, headline, linkedin_about, linkedin_url,
   current_title, current_company, current_company_linkedin,
   current_company_industry, current_company_size,
-  current_company_website, current_company_logo_url, location_full
+  current_company_website, current_company_logo_url,
+  current_location, location_full
 `;
 
 function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
