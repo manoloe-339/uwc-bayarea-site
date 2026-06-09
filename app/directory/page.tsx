@@ -503,19 +503,25 @@ function DirectoryCard({
               {role}
             </div>
           )}
-          <div className="mt-2 flex items-center gap-3 text-xs">
+          <div className="mt-2 flex items-center gap-2 text-xs">
             {linkedin ? (
               <a
                 href={linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-navy font-semibold hover:underline"
+                aria-label="LinkedIn profile"
+                title="LinkedIn Profile"
+                className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-sm bg-[#0A66C2] text-white text-[11px] font-bold hover:brightness-110"
               >
-                Open on LinkedIn → invite ↗
+                in
               </a>
             ) : (
-              <span className="text-[color:var(--muted)] italic">
-                No LinkedIn on file
+              <span
+                className="inline-flex items-center justify-center w-[20px] h-[20px] rounded-sm bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[11px] font-bold"
+                title="No LinkedIn on file"
+                aria-label="No LinkedIn on file"
+              >
+                in
               </span>
             )}
           </div>
