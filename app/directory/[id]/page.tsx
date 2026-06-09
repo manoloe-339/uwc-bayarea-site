@@ -12,7 +12,7 @@ import { getSaveForAlumnus, REASON_LABELS, STATUS_LABELS } from "@/lib/directory
 import { linkedinHref } from "@/lib/linkedin-url";
 import { SaveButton } from "@/components/directory/SaveButton";
 import { CompanyLogo } from "@/components/directory/CompanyLogo";
-import { originFlagString } from "@/lib/country-flag";
+import { originCountryNames, originFlagString } from "@/lib/country-flag";
 
 export const dynamic = "force-dynamic";
 
@@ -108,7 +108,19 @@ export default async function DirectoryProfilePage({
   const name =
     [row.first_name, row.last_name].filter(Boolean).join(" ") || "(no name)";
   const sub = [row.uwc_college, row.grad_year].filter(Boolean).join(" · ");
-  const location = [row.current_city, row.region].filter(Boolean).join(" · ");
+  // Dedup: if region is just the city repeated (or vice versa), show only one.
+  const locParts = [row.current_city, row.region].filter(
+    (v): v is string => typeof v === "string" && v.trim().length > 0,
+  );
+  const seenLoc = new Set<string>();
+  const location = locParts
+    .filter((p) => {
+      const k = p.trim().toLowerCase();
+      if (seenLoc.has(k)) return false;
+      seenLoc.add(k);
+      return true;
+    })
+    .join(" · ");
   const linkedin = linkedinHref(row.linkedin_url);
 
   return (
@@ -179,7 +191,7 @@ export default async function DirectoryProfilePage({
                       {originFlagString(row.origin)}
                     </span>
                   )}
-                  From {row.origin}
+                  {originCountryNames(row.origin) ?? row.origin}
                 </div>
               )}
               {location && (
@@ -219,36 +231,6 @@ export default async function DirectoryProfilePage({
           <p className="text-sm text-[color:var(--navy-ink)] italic mb-3 leading-[1.4]">
             {row.headline}
           </p>
-        )}
-
-        {(row.current_title || row.current_company) && (
-          <div className="mb-5">
-            <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-              Now
-            </div>
-            <div className="flex items-center gap-2.5 text-sm text-[color:var(--navy-ink)]">
-              {row.current_company && (
-                <CompanyLogo
-                  storedLogoUrl={row.current_company_logo_url}
-                  website={row.current_company_website}
-                  linkedinUrl={row.current_company_linkedin}
-                  companyName={row.current_company}
-                  size={28}
-                />
-              )}
-              <div>
-                {row.current_title}
-                {row.current_title && row.current_company && " at "}
-                {row.current_company}
-                {row.current_company_industry && (
-                  <span className="text-[color:var(--muted)]">
-                    {" · "}
-                    {row.current_company_industry}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
         )}
 
         {row.linkedin_about && (

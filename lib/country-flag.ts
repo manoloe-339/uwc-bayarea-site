@@ -295,3 +295,40 @@ export function originFlagString(origin: string | null | undefined, max = 3): st
   const isos = extractCountryCodes(origin, max);
   return isos.map(flagEmoji).join(" ");
 }
+
+/** Manual overrides where Intl.DisplayNames would return a long-form
+ * we don't want (e.g. "United States" → "USA"), or where the demonym
+ * doesn't map to a country code Intl recognizes. */
+const ISO_DISPLAY_OVERRIDES: Record<string, string> = {
+  US: "USA",
+  GB: "UK",
+  AE: "UAE",
+  // Intl knows "Netherlands" already, but listed here for clarity:
+  NL: "Netherlands",
+};
+
+let regionFormatter: Intl.DisplayNames | null = null;
+function regionName(iso2: string): string {
+  if (ISO_DISPLAY_OVERRIDES[iso2]) return ISO_DISPLAY_OVERRIDES[iso2];
+  if (!regionFormatter) {
+    try {
+      regionFormatter = new Intl.DisplayNames(["en"], { type: "region" });
+    } catch {
+      return iso2;
+    }
+  }
+  return regionFormatter.of(iso2) ?? iso2;
+}
+
+/** Country names (joined " / " when multiple), normalized from messy
+ * origin strings. "Dutch" → "Netherlands"; "Brazil/France" → "Brazil /
+ * France". Returns null if no country was recognized — caller should
+ * fall back to the raw origin text. */
+export function originCountryNames(
+  origin: string | null | undefined,
+  max = 3,
+): string | null {
+  const isos = extractCountryCodes(origin, max);
+  if (isos.length === 0) return null;
+  return isos.map(regionName).join(" / ");
+}
