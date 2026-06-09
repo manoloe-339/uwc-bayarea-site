@@ -1,17 +1,9 @@
 import Link from "next/link";
-import { sql } from "@/lib/db";
 import { FeedbackButton } from "@/components/directory/FeedbackButton";
 import LogoutButton from "@/components/directory/LogoutButton";
 import { getCurrentDirectorySession } from "@/lib/directory-session";
 
 export const dynamic = "force-dynamic";
-
-async function getSavedCount(userId: number): Promise<number> {
-  const rows = (await sql`
-    SELECT COUNT(*)::int AS n FROM directory_saves WHERE directory_user_id = ${userId}
-  `) as { n: number }[];
-  return rows[0]?.n ?? 0;
-}
 
 export default async function DirectoryLayout({
   children,
@@ -19,8 +11,6 @@ export default async function DirectoryLayout({
   children: React.ReactNode;
 }) {
   const session = await getCurrentDirectorySession();
-  const savedCount =
-    session?.kind === "user" ? await getSavedCount(session.user.id) : 0;
 
   return (
     <div className="min-h-screen bg-[color:var(--ivory)]">
@@ -44,7 +34,7 @@ export default async function DirectoryLayout({
                 href="/directory/saved"
                 className="text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"
               >
-                Saved {savedCount > 0 ? `(${savedCount})` : ""}
+                Saved
               </Link>
             )}
             <FeedbackButton />
