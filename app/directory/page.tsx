@@ -1,0 +1,414 @@
+import Link from "next/link";
+import { cookies } from "next/headers";
+import Image from "next/image";
+import { COLLEGES } from "@/lib/uwc-colleges";
+import { REGIONS } from "@/lib/region";
+import {
+  searchDirectoryAlumni,
+  countDirectoryAlumni,
+  logDirectorySearch,
+  type DirectoryFilters,
+  type DirectoryAlumnusRow,
+} from "@/lib/directory-query";
+import {
+  DIRECTORY_COOKIE,
+  hashSessionForAudit,
+} from "@/lib/directory-auth";
+import { linkedinHref } from "@/lib/linkedin-url";
+import { parseSearchQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser";
+
+export const dynamic = "force-dynamic";
+
+type SP = { [k: string]: string | string[] | undefined };
+
+function pickStr(sp: SP, key: string): string | undefined {
+  const v = sp[key];
+  const s = Array.isArray(v) ? v[0] : v;
+  return s && s.trim() ? s.trim() : undefined;
+}
+function pickNum(sp: SP, key: string): number | undefined {
+  const s = pickStr(sp, key);
+  if (!s) return undefined;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** Translate a Claude-parsed query into our directory filter shape.
+ * Only assigns fields that map cleanly to the directory's allowlist.
+ * The NL parser also emits things like subscription/engagement filters
+ * elsewhere in the codebase; those don't exist on ParsedSearchQuery
+ * for the search-mode prompt today, but the explicit-fields approach
+ * below means a future field addition can't silently leak. */
+function applyParsedSearch(
+  base: DirectoryFilters,
+  parsed: ParsedSearchQuery,
+): DirectoryFilters {
+  const next: DirectoryFilters = { ...base };
+  if (parsed.college) next.college = parsed.college;
+  if (parsed.region) next.region = parsed.region;
+  if (parsed.origin) next.origin = parsed.origin;
+  if (parsed.minGradYear) next.yearFrom = parsed.minGradYear;
+  if (parsed.maxGradYear) next.yearTo = parsed.maxGradYear;
+  if (parsed.companyName) next.company = parsed.companyName;
+  if (parsed.university) next.university = parsed.university;
+  // The NL parser produces `industryGroups: IndustryGroup[]`. Take the
+  // first one as our single-select directory filter; in practice a user
+  // rarely needs more than one industry group via NL.
+  if (parsed.industryGroups && parsed.industryGroups.length > 0) {
+    next.industryGroup = parsed.industryGroups[0];
+  }
+  // The NL parser captures `city` separately; fold it into the broad
+  // search so the existing OR on current_city / location_full picks it up.
+  const cityChunk = parsed.city ? parsed.city : null;
+  if (cityChunk) {
+    next.q = next.q ? `${next.q} ${cityChunk}` : cityChunk;
+  }
+  return next;
+}
+
+async function applyNaturalLanguage(
+  filters: DirectoryFilters,
+): Promise<DirectoryFilters> {
+  if (!filters.q) return filters;
+  const result = await parseSearchQuery(filters.q);
+  if (!result.ok) return filters;
+  return applyParsedSearch(filters, result.parsed);
+}
+
+export default async function DirectoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<SP>;
+}) {
+  const sp = await searchParams;
+  const nl = pickStr(sp, "nl") === "1";
+
+  const baseFilters: DirectoryFilters = {
+    q: pickStr(sp, "q"),
+    name: pickStr(sp, "name"),
+    college: pickStr(sp, "college"),
+    region: pickStr(sp, "region"),
+    origin: pickStr(sp, "origin"),
+    yearFrom: pickNum(sp, "yearFrom"),
+    yearTo: pickNum(sp, "yearTo"),
+    industryGroup: pickStr(sp, "industryGroup"),
+    company: pickStr(sp, "company"),
+    university: pickStr(sp, "university"),
+  };
+
+  const filters = nl ? await applyNaturalLanguage(baseFilters) : baseFilters;
+
+  // Audit log every search except the initial empty load. Keeps the
+  // log meaningful — every applied filter is a "user did a thing"
+  // signal.
+  const hasAnyFilter =
+    !!filters.q ||
+    !!filters.name ||
+    !!filters.college ||
+    !!filters.region ||
+    !!filters.origin ||
+    !!filters.industryGroup ||
+    !!filters.company ||
+    !!filters.university ||
+    filters.yearFrom != null ||
+    filters.yearTo != null;
+  if (hasAnyFilter) {
+    const c = await cookies();
+    const cookieValue = c.get(DIRECTORY_COOKIE)?.value ?? "";
+    const sessionId = cookieValue ? await hashSessionForAudit(cookieValue) : "";
+    void logDirectorySearch(sessionId, filters);
+  }
+
+  const [rows, total] = await Promise.all([
+    searchDirectoryAlumni(filters, 500),
+    countDirectoryAlumni(filters),
+  ]);
+
+  return (
+    <section className="max-w-[1180px] mx-auto px-5 sm:px-7 py-8">
+      <div className="mb-6">
+        <h1 className="font-sans text-[28px] sm:text-[34px] font-bold text-[color:var(--navy-ink)] tracking-[-0.01em]">
+          Directory
+        </h1>
+        <p className="text-sm text-[color:var(--muted)] mt-1.5 max-w-[68ch]">
+          Search registered alumni and connect with them on LinkedIn.
+          Contact info is intentionally not shown — reach out via their
+          LinkedIn profile.
+        </p>
+      </div>
+
+      <form
+        method="get"
+        className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-4 gap-3"
+      >
+        {nl && <input type="hidden" name="nl" value="1" />}
+        <label className="block sm:col-span-2 lg:col-span-4">
+          <span className="flex items-center justify-between mb-1">
+            <span className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
+              {nl
+                ? "🪄 Describe who you're looking for"
+                : "🔎 Search (role, company, bio, past jobs, school…)"}
+            </span>
+            <NLToggle on={nl} sp={sp} />
+          </span>
+          <input
+            name="q"
+            type="text"
+            defaultValue={pickStr(sp, "q") ?? ""}
+            placeholder={
+              nl
+                ? "e.g. designers in SF who used to work at Stripe"
+                : "e.g. fintech, Stripe, designer"
+            }
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          />
+        </label>
+
+        {!nl && (
+          <label className="block sm:col-span-2 lg:col-span-4">
+            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+              👤 Name (prefix match)
+            </span>
+            <input
+              name="name"
+              type="text"
+              defaultValue={pickStr(sp, "name") ?? ""}
+              placeholder="e.g. Jane Doe — or just Doe"
+              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            />
+          </label>
+        )}
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            College
+          </span>
+          <select
+            name="college"
+            defaultValue={filters.college ?? ""}
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          >
+            <option value="">Any</option>
+            {COLLEGES.map((c) => (
+              <option key={c.canonical} value={c.canonical}>
+                {c.short}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            Region
+          </span>
+          <select
+            name="region"
+            defaultValue={filters.region ?? ""}
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          >
+            <option value="">Any</option>
+            {REGIONS.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            Grad year (from)
+          </span>
+          <input
+            name="yearFrom"
+            type="number"
+            defaultValue={filters.yearFrom ?? ""}
+            placeholder="e.g. 2010"
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          />
+        </label>
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            Grad year (to)
+          </span>
+          <input
+            name="yearTo"
+            type="number"
+            defaultValue={filters.yearTo ?? ""}
+            placeholder="e.g. 2020"
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          />
+        </label>
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            Origin contains
+          </span>
+          <input
+            name="origin"
+            defaultValue={filters.origin ?? ""}
+            placeholder="e.g. Brazil"
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          />
+        </label>
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            Company contains
+          </span>
+          <input
+            name="company"
+            defaultValue={filters.company ?? ""}
+            placeholder="e.g. Stripe"
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          />
+        </label>
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            University contains
+          </span>
+          <input
+            name="university"
+            defaultValue={filters.university ?? ""}
+            placeholder="e.g. Stanford"
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          />
+        </label>
+
+        <div className="sm:col-span-2 lg:col-span-4 flex items-center justify-between">
+          <span className="text-xs text-[color:var(--muted)]">
+            {total} {total === 1 ? "alum" : "alumni"}
+            {total > 500 && " (showing first 500)"}
+          </span>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/directory"
+              className="text-xs text-[color:var(--muted)] hover:text-navy"
+            >
+              Reset
+            </Link>
+            <button
+              type="submit"
+              className="bg-navy text-white px-5 py-2 rounded text-sm font-semibold hover:opacity-90"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {rows.map((r) => (
+          <DirectoryCard key={r.id} row={r} />
+        ))}
+      </ul>
+
+      {rows.length === 0 && (
+        <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)] text-sm">
+          No alumni match those filters.
+        </div>
+      )}
+    </section>
+  );
+}
+
+function NLToggle({ on, sp }: { on: boolean; sp: SP }) {
+  // Build the opposite-mode URL by toggling the `nl` param.
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    if (k === "nl") continue;
+    const value = Array.isArray(v) ? v[0] : v;
+    if (typeof value === "string" && value) params.set(k, value);
+  }
+  if (!on) params.set("nl", "1");
+  const href = `/directory${params.toString() ? `?${params.toString()}` : ""}`;
+  return (
+    <Link
+      href={href}
+      className="text-[10px] tracking-[.22em] uppercase font-bold text-navy hover:underline"
+    >
+      {on ? "Standard search ↩" : "🪄 Natural language"}
+    </Link>
+  );
+}
+
+function DirectoryCard({ row }: { row: DirectoryAlumnusRow }) {
+  const name =
+    [row.first_name, row.last_name].filter(Boolean).join(" ") || "(no name)";
+  const sub = [row.uwc_college, row.grad_year].filter(Boolean).join(" · ");
+  const role =
+    row.current_title && row.current_company
+      ? `${row.current_title} at ${row.current_company}`
+      : row.current_title || row.current_company || row.headline || null;
+  const linkedin = linkedinHref(row.linkedin_url);
+
+  return (
+    <li className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 flex gap-3 hover:border-navy">
+      <Link
+        href={`/directory/${row.id}`}
+        className="block shrink-0 w-[64px] h-[64px] rounded-full overflow-hidden bg-[color:var(--ivory-2)]"
+      >
+        {row.photo_url ? (
+          <Image
+            src={row.photo_url}
+            alt=""
+            width={64}
+            height={64}
+            className="object-cover w-full h-full"
+            unoptimized
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-xs">
+            {name
+              .split(" ")
+              .map((p) => p[0])
+              .filter(Boolean)
+              .slice(0, 2)
+              .join("")
+              .toUpperCase()}
+          </div>
+        )}
+      </Link>
+      <div className="min-w-0 flex-1">
+        <Link
+          href={`/directory/${row.id}`}
+          className="block font-semibold text-[color:var(--navy-ink)] hover:underline"
+        >
+          {name}
+        </Link>
+        <div className="text-xs text-[color:var(--muted)] mt-0.5 truncate">
+          {sub}
+          {row.current_city && (
+            <span>
+              {sub ? " · " : ""}
+              {row.current_city}
+            </span>
+          )}
+        </div>
+        {role && (
+          <div className="text-xs text-[color:var(--navy-ink)] mt-1 line-clamp-2">
+            {role}
+          </div>
+        )}
+        <div className="mt-2 flex items-center gap-3 text-xs">
+          {linkedin ? (
+            <a
+              href={linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-navy font-semibold hover:underline"
+            >
+              LinkedIn ↗
+            </a>
+          ) : (
+            <span className="text-[color:var(--muted)] italic">
+              No LinkedIn on file
+            </span>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}

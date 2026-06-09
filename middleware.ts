@@ -1,13 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/api/admin/:path*",
+    "/directory/:path*",
+    "/api/directory/:path*",
+  ],
 };
 
 const COOKIE_NAME = "admin_session";
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
+const DIRECTORY_COOKIE_NAME = "directory_session";
 
 export async function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname;
+
   // Vercel Blob upload completion webhooks are POSTed to
   // /api/admin/event-photos/upload from Vercel's infrastructure (not the
   // user's browser), so they don't carry the admin Basic Auth header.
@@ -16,11 +24,42 @@ export async function middleware(req: NextRequest) {
   // admin auth itself on the initial token-generation branch.
   if (
     req.method === "POST" &&
-    req.nextUrl.pathname === "/api/admin/event-photos/upload"
+    path === "/api/admin/event-photos/upload"
   ) {
     return NextResponse.next();
   }
 
+  /* ---------------- Directory (read-only) gate ---------------- */
+  // The directory has its own credential and cookie — deliberately
+  // separate from admin so a leak of one doesn't escalate to the other.
+  // /directory/login and /api/directory/login are exempted so the user
+  // can actually log in.
+  if (path.startsWith("/directory") || path.startsWith("/api/directory")) {
+    if (path === "/directory/login" || path === "/api/directory/login") {
+      return NextResponse.next();
+    }
+    const dirSecret = process.env.DIRECTORY_PASSWORD;
+    if (!dirSecret) {
+      return new NextResponse(
+        "Directory disabled: DIRECTORY_PASSWORD not set",
+        { status: 503 },
+      );
+    }
+    const dirCookie = req.cookies.get(DIRECTORY_COOKIE_NAME)?.value;
+    if (dirCookie && (await verifyCookie(dirCookie, dirSecret))) {
+      return NextResponse.next();
+    }
+    // Not a browser navigation? Return 401 instead of redirect.
+    if (path.startsWith("/api/directory")) {
+      return new NextResponse("Directory authentication required", { status: 401 });
+    }
+    const loginUrl = req.nextUrl.clone();
+    loginUrl.pathname = "/directory/login";
+    loginUrl.search = `?next=${encodeURIComponent(path + req.nextUrl.search)}`;
+    return NextResponse.redirect(loginUrl);
+  }
+
+  /* ---------------- Admin gate (unchanged) ---------------- */
   const expected = process.env.ADMIN_PASSWORD;
   if (!expected) {
     return new NextResponse("Admin disabled: ADMIN_PASSWORD not set", { status: 503 });
