@@ -236,19 +236,18 @@ async function fetchAll() {
             SELECT 1 FROM alumni_education e
             WHERE e.alumni_id = alumni.id
               AND e.is_uwc IS NOT TRUE
-              -- start_year must be present AND recent enough for a
-              -- credible "ongoing" claim. Without this guard, alumni
-              -- with both years NULL (Logan Richard's Wharton, Stanford
-              -- entries — graduated long ago, just missing dates) were
-              -- being treated as current students.
-              AND e.start_year IS NOT NULL
-              AND e.start_year <= EXTRACT(YEAR FROM NOW())::int
-              AND e.start_year >= EXTRACT(YEAR FROM NOW())::int - 8
+              AND (e.start_year IS NULL OR e.start_year <= EXTRACT(YEAR FROM NOW())::int)
               AND (
-                e.end_year IS NULL
-                OR e.end_year > EXTRACT(YEAR FROM NOW())::int
+                -- Clearly ongoing: program ends in the future.
+                e.end_year > EXTRACT(YEAR FROM NOW())::int
+                -- End-date missing OR ends this year: only count as
+                -- student when the alum has NO current job. A current
+                -- job is treated as proof they're no longer enrolled —
+                -- this catches data-quality cases like Logan Richard,
+                -- whose Wharton / Stanford entries lacked dates entirely
+                -- but who has a full-time job at Vanguard.
                 OR (
-                  e.end_year = EXTRACT(YEAR FROM NOW())::int
+                  (e.end_year IS NULL OR e.end_year = EXTRACT(YEAR FROM NOW())::int)
                   AND NOT EXISTS (
                     SELECT 1 FROM alumni_career c
                     WHERE c.alumni_id = alumni.id
