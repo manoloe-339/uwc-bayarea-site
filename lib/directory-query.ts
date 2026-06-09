@@ -25,6 +25,20 @@ import { sql } from "./db";
 
 export type DirectoryExpBand = "0-3" | "3-7" | "7-15" | "15+";
 
+export type DirectoryCompanySizeBand =
+  | "startup"
+  | "small"
+  | "mid"
+  | "large"
+  | "enterprise";
+const DIR_SIZE_BANDS: Record<DirectoryCompanySizeBand, string[]> = {
+  startup: ["1-10", "11-50"],
+  small: ["51-200", "201-500"],
+  mid: ["501-1000", "1001-5000"],
+  large: ["5001-10000"],
+  enterprise: ["10001+"],
+};
+
 export type DirectoryFilters = {
   /** Broad free-text search across name + role + bio + past careers + education. */
   q?: string;
@@ -42,6 +56,11 @@ export type DirectoryFilters = {
   company?: string;
   university?: string;
   expBand?: DirectoryExpBand;
+  companySizeBand?: DirectoryCompanySizeBand;
+  /** When true, the `industry` / `industries` filter also matches past
+   * roles via alumni_career.company_industry. Off by default (current
+   * company only). */
+  industriesIncludePast?: boolean;
 };
 
 export type DirectoryAlumnusRow = {
@@ -62,6 +81,7 @@ export type DirectoryAlumnusRow = {
   current_title: string | null;
   current_company: string | null;
   current_company_industry: string | null;
+  current_company_size: string | null;
   location_full: string | null;
 };
 
@@ -70,6 +90,7 @@ export type DirectoryCareerRow = {
   position: number | null;
   company: string | null;
   company_industry: string | null;
+  company_size: string | null;
   company_linkedin_url: string | null;
   location: string | null;
   title: string | null;
@@ -83,7 +104,7 @@ const SELECT_DIRECTORY_FIELDS = `
   current_city, region, origin,
   photo_url, headline, linkedin_about, linkedin_url,
   current_title, current_company, current_company_industry,
-  location_full
+  current_company_size, location_full
 `;
 
 function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
@@ -141,7 +162,8 @@ function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
         SELECT 1 FROM alumni_career c
         WHERE c.alumni_id = alumni.id
           AND (lower(coalesce(c.company,'')) LIKE $${qIdx}
-            OR lower(coalesce(c.title,'')) LIKE $${qIdx})
+            OR lower(coalesce(c.title,'')) LIKE $${qIdx}
+            OR lower(coalesce(c.company_industry,'')) LIKE $${qIdx})
       )
       OR EXISTS (
         SELECT 1 FROM alumni_education e
@@ -159,11 +181,28 @@ function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
   if (f.yearFrom != null) push((n) => `grad_year >= $${n}`, f.yearFrom);
   if (f.yearTo != null) push((n) => `grad_year <= $${n}`, f.yearTo);
 
-  if (f.industries && f.industries.length > 0) {
-    push((n) => `current_company_industry = ANY($${n})`, f.industries);
+  // Industry filter — optionally extends to past roles via alumni_career.
+  // Single `industry` and multi-select `industries` follow the same scope.
+  const industryValues = f.industries && f.industries.length > 0
+    ? f.industries
+    : f.industry
+      ? [f.industry]
+      : [];
+  if (industryValues.length > 0) {
+    params.push(industryValues);
+    const idx = params.length;
+    if (f.industriesIncludePast) {
+      parts.push(`(current_company_industry = ANY($${idx})
+        OR EXISTS (SELECT 1 FROM alumni_career c
+                   WHERE c.alumni_id = alumni.id
+                     AND c.company_industry = ANY($${idx})))`);
+    } else {
+      parts.push(`current_company_industry = ANY($${idx})`);
+    }
   }
-  if (f.industry) {
-    push((n) => `current_company_industry = $${n}`, f.industry);
+  if (f.companySizeBand) {
+    const sizes = DIR_SIZE_BANDS[f.companySizeBand];
+    push((n) => `current_company_size = ANY($${n})`, sizes);
   }
   if (f.city) {
     push(
@@ -249,7 +288,7 @@ export async function getDirectoryCareers(
   alumniId: number,
 ): Promise<DirectoryCareerRow[]> {
   const rows = (await sql.query(
-    `SELECT alumni_id, position, company, company_industry, company_linkedin_url,
+    `SELECT alumni_id, position, company, company_industry, company_size, company_linkedin_url,
             location, title, start_date, end_date, is_current
        FROM alumni_career
        WHERE alumni_id = $1

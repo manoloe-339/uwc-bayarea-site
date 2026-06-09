@@ -16,7 +16,6 @@ export function FeedbackButton({ alumniId }: Props) {
   const [open, setOpen] = useState(false);
   const [topic, setTopic] = useState<Topic>(alumniId ? "profile" : "general");
   const [message, setMessage] = useState("");
-  const [contactName, setContactName] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const messageRef = useRef<HTMLTextAreaElement | null>(null);
@@ -29,7 +28,6 @@ export function FeedbackButton({ alumniId }: Props) {
       setError(null);
       setTopic(alumniId ? "profile" : "general");
       setMessage("");
-      setContactName("");
       // Focus after the transition completes.
       requestAnimationFrame(() => messageRef.current?.focus());
     }
@@ -48,8 +46,11 @@ export function FeedbackButton({ alumniId }: Props) {
           topic,
           alumni_id: topic === "profile" ? (alumniId ?? null) : null,
           message: message.trim(),
-          contact_name: contactName.trim() || null,
-          page_url: typeof window !== "undefined" ? window.location.pathname : null,
+          // contact_name intentionally not sent — the admin knows who
+          // submitted from the session_id (per-user → user_id, shared →
+          // 'shared:' tag).
+          page_url:
+            typeof window !== "undefined" ? window.location.pathname : null,
         }),
       });
       if (!res.ok) {
@@ -146,19 +147,6 @@ export function FeedbackButton({ alumniId }: Props) {
                     required
                     rows={4}
                     placeholder="e.g. Her LinkedIn URL goes to a dead profile."
-                    className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-                    Your name (optional)
-                  </span>
-                  <input
-                    type="text"
-                    value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
-                    placeholder="So we can follow up if needed"
                     className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
                   />
                 </label>

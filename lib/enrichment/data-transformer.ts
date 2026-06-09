@@ -169,6 +169,29 @@ export function buildEducationRows(
   });
 }
 
+/** Last resort when Apify hands back an experience row without
+ * exp.subtitle (the company name). LinkedIn URL slugs are reliable:
+ * /company/the-world-bank-group/ → "The World Bank Group".
+ *
+ * Used when subtitle is missing — sometimes happens for promotion
+ * chains and certain compact-card LinkedIn layouts where the company
+ * name is rendered at the stack header rather than per-row. */
+export function deriveCompanyFromLinkedinUrl(
+  url: string | null | undefined,
+): string | null {
+  if (!url) return null;
+  const m = url.match(/\/company\/([^/?#]+)/i);
+  if (!m) return null;
+  let slug = decodeURIComponent(m[1]).replace(/-+/g, " ").trim();
+  if (!slug) return null;
+  // Title-case each word.
+  slug = slug
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
+  return slug;
+}
+
 export function buildCareerRows(
   experiences: ApifyExperienceEntry[] | null | undefined
 ): CareerRow[] {
@@ -181,10 +204,15 @@ export function buildCareerRows(
     const end = typeof exp.period?.endedOn === "string"
       ? exp.period.endedOn
       : null;
+    // Prefer the explicit subtitle text; if it's missing, derive the
+    // company name from the LinkedIn URL slug rather than storing null.
+    const companyFromSubtitle = blank(exp.subtitle);
+    const company =
+      companyFromSubtitle ?? deriveCompanyFromLinkedinUrl(exp.companyLink1);
     return {
       position: i,
       title: blank(exp.title),
-      company: blank(exp.subtitle),
+      company,
       company_linkedin_url: blank(exp.companyLink1),
       company_industry: blank(exp.companyIndustry),
       company_size: blank(exp.companySize),

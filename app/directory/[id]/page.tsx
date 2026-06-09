@@ -221,7 +221,10 @@ export default async function DirectoryProfilePage({
               {careers.map((cc, i) => {
                 const companyHref = linkedinHref(cc.company_linkedin_url);
                 const companyName = companyDisplayName(cc);
-                const meta = [cc.company_industry, cc.location]
+                const sizeLabel = cc.company_size
+                  ? cc.company_size.replace(/\s+employees?\s*/i, "").trim()
+                  : null;
+                const meta = [cc.company_industry, sizeLabel ? `${sizeLabel} employees` : null, cc.location]
                   .filter(Boolean)
                   .join(" · ");
                 const dateRange = careerRange(

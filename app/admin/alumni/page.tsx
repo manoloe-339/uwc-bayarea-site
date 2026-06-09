@@ -106,6 +106,8 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
     enrichmentStatus: pickStr(sp, "enrichmentStatus") as AlumniFilters["enrichmentStatus"],
     companyIdMap,
     expBand: pickStr(sp, "expBand") as ExperienceBand | undefined,
+    companySizeBand: pickStr(sp, "companySizeBand") as AlumniFilters["companySizeBand"],
+    industriesIncludePast: pickStr(sp, "industriesIncludePast") === "1",
     uwcVerified: pickStr(sp, "uwcVerified") as AlumniFilters["uwcVerified"],
     hasPhoto: pickStr(sp, "hasPhoto") === "1",
     linkedin: pickStr(sp, "linkedin") as AlumniFilters["linkedin"],
@@ -569,6 +571,28 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
           <option value="7-15">7–15 years</option>
           <option value="15+">15+ years</option>
         </Select>
+        <Select label="🏢 Current company size" name="companySizeBand" defaultValue={filters.companySizeBand ?? ""}>
+          <option value="">Any</option>
+          <option value="startup">Startup (1–50)</option>
+          <option value="small">Small (51–500)</option>
+          <option value="mid">Mid (501–5K)</option>
+          <option value="large">Large (5K–50K)</option>
+          <option value="enterprise">Enterprise (50K+)</option>
+        </Select>
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            🌐 Industry scope
+          </span>
+          <label className="flex items-center gap-2 mt-2 text-sm">
+            <input
+              type="checkbox"
+              name="industriesIncludePast"
+              value="1"
+              defaultChecked={!!filters.industriesIncludePast}
+            />
+            <span>Include past roles</span>
+          </label>
+        </label>
 
         {/* Row 4 — help tag / uwc verified / has photo */}
         <Field label="🤝 Help tag contains" name="help" defaultValue={filters.help} placeholder="e.g. events" />

@@ -97,6 +97,8 @@ export default async function DirectoryPage({
     company: pickStr(sp, "company"),
     university: pickStr(sp, "university"),
     expBand: pickStr(sp, "expBand") as DirectoryFilters["expBand"],
+    companySizeBand: pickStr(sp, "companySizeBand") as DirectoryFilters["companySizeBand"],
+    industriesIncludePast: pickStr(sp, "industriesIncludePast") === "1",
   };
 
   const filters = nl ? await applyNaturalLanguage(baseFilters) : baseFilters;
@@ -287,6 +289,33 @@ export default async function DirectoryPage({
                 </option>
               ),
             )}
+          </select>
+          <label className="flex items-center gap-2 mt-1 text-[11px] text-[color:var(--muted)]">
+            <input
+              type="checkbox"
+              name="industriesIncludePast"
+              value="1"
+              defaultChecked={!!filters.industriesIncludePast}
+            />
+            <span>Include past roles</span>
+          </label>
+        </label>
+
+        <label className="block">
+          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            Company size
+          </span>
+          <select
+            name="companySizeBand"
+            defaultValue={filters.companySizeBand ?? ""}
+            className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+          >
+            <option value="">Any</option>
+            <option value="startup">Startup (1–50)</option>
+            <option value="small">Small (51–500)</option>
+            <option value="mid">Mid (501–5K)</option>
+            <option value="large">Large (5K–50K)</option>
+            <option value="enterprise">Enterprise (50K+)</option>
           </select>
         </label>
 

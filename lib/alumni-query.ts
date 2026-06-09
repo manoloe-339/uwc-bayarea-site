@@ -16,10 +16,21 @@ export type LinkedinFilter =
   | "missing_unverified"
   | "missing_confirmed"
   | "has_unenriched";
-export type CompanySizeBand = "startup" | "large";
+/** Buckets that map a LinkedIn-style company size string (e.g. "11-50
+ * employees") to a coarser band for filtering. Five buckets — kept
+ * narrower than LinkedIn's 8 so users have a clean dropdown. */
+export type CompanySizeBand =
+  | "startup"
+  | "small"
+  | "mid"
+  | "large"
+  | "enterprise";
 const COMPANY_SIZE_BANDS: Record<CompanySizeBand, string[]> = {
-  startup: ["1-10", "11-50", "51-200"],
-  large: ["1001-5000", "5001-10000", "10001+"],
+  startup: ["1-10", "11-50"],
+  small: ["51-200", "201-500"],
+  mid: ["501-1000", "1001-5000"],
+  large: ["5001-10000"],
+  enterprise: ["10001+"],
 };
 export type CompanyTagFilter = "tech" | "non_tech" | "startup" | "not_startup";
 export const FOLLOWUP_REASONS = ["bad_record", "follow_up", "invite", "ask_for_help", "other"] as const;
@@ -202,7 +213,9 @@ export function buildWhere(f: AlumniFilters): { where: string; params: unknown[]
           OR EXISTS (
             SELECT 1 FROM alumni_career c
             WHERE c.alumni_id = alumni.id
-              AND (lower(c.company) LIKE $${qIdx} OR lower(c.title) LIKE $${qIdx})
+              AND (lower(c.company) LIKE $${qIdx}
+                OR lower(c.title) LIKE $${qIdx}
+                OR lower(c.company_industry) LIKE $${qIdx})
           )
           OR EXISTS (
             SELECT 1 FROM alumni_education e
