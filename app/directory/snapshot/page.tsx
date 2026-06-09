@@ -5,6 +5,7 @@ import {
   extractCountryCodes,
   originCountryNames,
 } from "@/lib/country-flag";
+import { normalizeCity } from "@/lib/city-normalize";
 
 export const dynamic = "force-dynamic";
 
@@ -156,7 +157,6 @@ async function fetchAll() {
         AND deceased IS NOT TRUE AND moved_out IS NOT TRUE
       GROUP BY current_city
       ORDER BY n DESC, current_city ASC
-      LIMIT 30
     `,
     sql`
       SELECT region AS name, COUNT(*)::int AS n
@@ -266,6 +266,46 @@ function rollupSizeBands(rows: Array<{ raw: string; n: number }>) {
     .map((b) => ({ band: b, label: SIZE_BAND_LABELS[b], n: acc[b] }));
 }
 
+/** Display-time city rollup: merges variant spellings ("SF" + "San
+ * Francisco" + "(soon!) San Francisco" + "San francisco") into a
+ * single canonical row. Picks the largest-cluster raw value as the
+ * filter target so the click-through ILIKE match still works against
+ * the un-normalized DB. */
+function rollupCities(rows: Array<{ name: string; n: number }>, limit = 30) {
+  const acc = new Map<
+    string,
+    { display: string; n: number; rawByCount: Map<string, number> }
+  >();
+  for (const r of rows) {
+    const norm = normalizeCity(r.name);
+    if (!norm) continue;
+    const cur = acc.get(norm.key) ?? {
+      display: norm.display,
+      n: 0,
+      rawByCount: new Map<string, number>(),
+    };
+    cur.n += r.n;
+    cur.rawByCount.set(r.name, (cur.rawByCount.get(r.name) ?? 0) + r.n);
+    acc.set(norm.key, cur);
+  }
+  return Array.from(acc.values())
+    .map((v) => {
+      // Use the raw value with the highest count as the filter target
+      // — captures the largest fraction of the cluster via ILIKE.
+      let best = "";
+      let bestN = -1;
+      for (const [raw, n] of v.rawByCount) {
+        if (n > bestN) {
+          best = raw;
+          bestN = n;
+        }
+      }
+      return { display: v.display, n: v.n, filterValue: best };
+    })
+    .sort((a, b) => b.n - a.n)
+    .slice(0, limit);
+}
+
 function rollupOrigins(rows: Array<{ raw: string; n: number }>) {
   const acc = new Map<string, { iso: string; n: number; rawSamples: Set<string> }>();
   for (const r of rows) {
@@ -349,6 +389,7 @@ export default async function SnapshotPage() {
   const data = await fetchAll();
   const sizeBands = rollupSizeBands(data.sizeRows);
   const origins = rollupOrigins(data.originsRaw);
+  const cities = rollupCities(data.cities, 30);
   const expBands = data.expRaw
     .slice()
     .sort(
@@ -480,15 +521,15 @@ export default async function SnapshotPage() {
         </SectionCard>
 
         {/* 6. Cities */}
-        <SectionCard title="By city" emoji="🏙️" total={data.cities.length}>
+        <SectionCard title="By city" emoji="🏙️" total={cities.length}>
           <ul className="space-y-0.5">
-            {data.cities.map((c) => (
-              <li key={c.name}>
+            {cities.map((c) => (
+              <li key={c.display}>
                 <CountRow
-                  href={`/directory?city=${encodeURIComponent(c.name)}`}
+                  href={`/directory?city=${encodeURIComponent(c.filterValue)}`}
                   count={c.n}
                 >
-                  {c.name}
+                  {c.display}
                 </CountRow>
               </li>
             ))}
