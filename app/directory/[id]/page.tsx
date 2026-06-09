@@ -216,19 +216,18 @@ export default async function DirectoryProfilePage({
           <div className="min-w-0 flex-1">
             <h1 className="font-sans text-[28px] font-bold text-[color:var(--navy-ink)] leading-[1.1]">
               <span className="block">{titleCase(row.first_name) || "—"}</span>
-              <span className="flex items-center gap-2.5 min-w-0">
-                <span className="truncate min-w-0" title={titleCase(row.last_name)}>
-                  {titleCase(row.last_name)}
-                </span>
+              <span className="block">
+                {titleCase(row.last_name)}
+                {" "}
                 {linkedin ? (
                   <LinkedinIconLink
                     href={linkedin}
                     alumniId={id}
-                    className="shrink-0 inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[#0A66C2] text-white text-[11px] font-bold hover:brightness-110 leading-none align-middle"
+                    className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[#0A66C2] text-white text-[11px] font-bold hover:brightness-110 leading-none align-middle"
                   />
                 ) : (
                   <span
-                    className="shrink-0 inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[11px] font-bold leading-none align-middle"
+                    className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[11px] font-bold leading-none align-middle"
                     title="No LinkedIn on file"
                   >
                     in

@@ -227,7 +227,7 @@ export default function SaveStar({
 
       {savedToast && (
         <div
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-navy text-white px-4 py-2.5 rounded-full shadow-lg text-sm flex items-center gap-2"
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-navy text-white px-4 py-2 rounded-full shadow-lg text-sm whitespace-nowrap flex items-center gap-2"
           role="status"
         >
           <span aria-hidden>⭐</span>
