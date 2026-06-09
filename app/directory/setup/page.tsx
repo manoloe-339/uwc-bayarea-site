@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import SiteHeader from "@/components/SiteHeader";
 import DirectorySetupForm from "./DirectorySetupForm";
 import { consumeInviteToken } from "@/lib/directory-users";
 
@@ -35,7 +34,6 @@ export default async function DirectorySetupPage({
     };
     return (
       <>
-        <SiteHeader />
         <section className="max-w-[480px] mx-auto px-5 sm:px-7 pt-20 sm:pt-[120px] pb-20 text-center">
           <div className="inline-flex items-center gap-3.5 text-[12px] tracking-[.32em] uppercase text-rose-700 font-bold mb-5">
             <span className="inline-block w-8 h-0.5 bg-rose-700" aria-hidden />
@@ -54,7 +52,6 @@ export default async function DirectorySetupPage({
 
   return (
     <>
-      <SiteHeader />
       <section className="max-w-[460px] mx-auto px-5 sm:px-7 pt-20 sm:pt-[120px] pb-20">
         <div className="inline-flex items-center gap-3.5 text-[12px] tracking-[.32em] uppercase text-navy font-bold mb-5">
           <span className="inline-block w-8 h-0.5 bg-navy" aria-hidden />
