@@ -29,6 +29,13 @@ interface Props {
   /** Fired when the saved state flips. Lets a parent row hide itself
    * during the optimistic unsave window (and reshow on undo). */
   onSavedChange?: (saved: boolean) => void;
+  /** Fired the instant the user toggles a save off. Parent receives
+   * the previous state so it can offer undo. When set, the SaveStar
+   * does NOT render its own toast or schedule its own DELETE — that
+   * becomes the parent's responsibility. Useful when the row hosting
+   * the SaveStar unmounts on unsave (e.g. /directory/saved), which
+   * would otherwise take the internal toast with it. */
+  onUnsave?: (prev: NonNullable<Initial>) => void;
 }
 
 /**
@@ -46,6 +53,7 @@ export default function SaveStar({
   className = "",
   size = 22,
   onSavedChange,
+  onUnsave,
 }: Props) {
   const [saved, setSaved] = useState<Initial>(initial);
   const [open, setOpen] = useState(false);
@@ -126,6 +134,13 @@ export default function SaveStar({
     const prev = saved;
     setSaved(null);
     onSavedChange?.(false);
+    // When parent provides onUnsave, defer the toast + DELETE timer
+    // to them — the row hosting this SaveStar is about to unmount,
+    // which would otherwise nuke our internal undo state.
+    if (onUnsave) {
+      onUnsave(prev);
+      return;
+    }
     setUndoFor(prev);
     if (undoTimer.current) clearTimeout(undoTimer.current);
     undoTimer.current = setTimeout(async () => {

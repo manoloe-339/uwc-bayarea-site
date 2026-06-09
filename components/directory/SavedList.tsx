@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import SavedRow from "./SavedRow";
 import {
@@ -9,6 +9,11 @@ import {
   type SaveReason,
   type SaveStatus,
 } from "@/lib/directory-saves-shared";
+
+type PendingUndo = {
+  alumniId: number;
+  prev: { status: SaveStatus; reason: SaveReason | null; note: string | null };
+} | null;
 
 interface RowData {
   id: number;
@@ -51,6 +56,9 @@ interface Props {
 export default function SavedList({ allSaves, statusFilter }: Props) {
   // Set of alumni_ids currently hidden via optimistic unsave.
   const [hidden, setHidden] = useState<Set<number>>(new Set());
+  // The pending undo entry — when set, the toast at the bottom shows.
+  const [pending, setPending] = useState<PendingUndo>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const setVisible = (alumniId: number, saved: boolean) => {
     setHidden((prev) => {
@@ -59,6 +67,57 @@ export default function SavedList({ allSaves, statusFilter }: Props) {
       else next.add(alumniId);
       return next;
     });
+  };
+
+  /** Fire the actual DELETE for the previously-shown undo entry
+   * BEFORE we overwrite the pending state. Otherwise rapid-fire
+   * unsaves would silently drop earlier deletes on the floor. */
+  const flushPending = (entry: NonNullable<PendingUndo>) => {
+    void fetch(`/api/directory/save?alumni_id=${entry.alumniId}`, {
+      method: "DELETE",
+    }).catch(() => undefined);
+  };
+
+  const onUnsave = (
+    alumniId: number,
+    prev: { status: SaveStatus; reason: SaveReason | null; note: string | null },
+  ) => {
+    if (undoTimer.current) {
+      clearTimeout(undoTimer.current);
+      if (pending) flushPending(pending);
+    }
+    setPending({ alumniId, prev });
+    undoTimer.current = setTimeout(() => {
+      setPending((cur) => {
+        if (cur && cur.alumniId === alumniId) {
+          flushPending(cur);
+          return null;
+        }
+        return cur;
+      });
+    }, 5000);
+  };
+
+  const onUndo = async () => {
+    const entry = pending;
+    if (!entry) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setPending(null);
+    setVisible(entry.alumniId, true);
+    try {
+      await fetch("/api/directory/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          alumni_id: entry.alumniId,
+          status: entry.prev.status,
+          reason: entry.prev.reason,
+          note: entry.prev.note,
+        }),
+      });
+    } catch {
+      // best-effort — UI already restored the row optimistically
+    }
   };
 
   const visibleSaves = allSaves.filter((s) => !hidden.has(s.alumni_id));
@@ -122,9 +181,26 @@ export default function SavedList({ allSaves, statusFilter }: Props) {
               key={row.id}
               row={row}
               onSavedChange={(saved) => setVisible(row.alumni_id, saved)}
+              onUnsave={(prev) => onUnsave(row.alumni_id, prev)}
             />
           ))}
         </ul>
+      )}
+
+      {pending && (
+        <div
+          role="status"
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-navy text-white px-4 py-2.5 rounded-full shadow-lg text-sm flex items-center gap-3"
+        >
+          Removed from your shortlist.
+          <button
+            type="button"
+            onClick={() => void onUndo()}
+            className="font-bold uppercase tracking-[.18em] text-xs hover:underline"
+          >
+            Undo
+          </button>
+        </div>
       )}
     </>
   );

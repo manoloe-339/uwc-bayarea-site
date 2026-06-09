@@ -26,16 +26,22 @@ interface RowData {
   alum_linkedin_url: string | null;
 }
 
-/** Client-side row for /directory/saved. Defers visibility ownership
- * to the parent SavedList (so counts in the chip-bar can react to
- * unsaves). The parent passes a callback that this component forwards
- * to SaveStar. */
+/** Client-side row for /directory/saved. Defers visibility AND undo
+ * ownership to the parent SavedList (so counts in the chip-bar can
+ * react to unsaves AND the undo toast lives at a level that doesn't
+ * unmount when the row disappears). */
 export default function SavedRow({
   row,
   onSavedChange,
+  onUnsave,
 }: {
   row: RowData;
   onSavedChange?: (saved: boolean) => void;
+  onUnsave?: (prev: {
+    status: SaveStatus;
+    reason: SaveReason | null;
+    note: string | null;
+  }) => void;
 }) {
 
   const name =
@@ -121,6 +127,7 @@ export default function SavedRow({
                 }}
                 canSave={true}
                 onSavedChange={onSavedChange}
+                onUnsave={onUnsave}
               />
             </div>
           </div>
