@@ -597,7 +597,8 @@ function DirectoryCard({
               {uwcLine && <span>{uwcLine}</span>}
               {flag && (
                 <span
-                  className="text-[16px] leading-none"
+                  className="text-[16px] leading-none text-black"
+                  style={{ fontVariantEmoji: "emoji" }}
                   title={countryLabel}
                   aria-label={`From ${countryLabel}`}
                 >
