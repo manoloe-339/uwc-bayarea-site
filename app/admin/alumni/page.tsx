@@ -1117,9 +1117,22 @@ export default async function AlumniPage({ searchParams }: { searchParams: Promi
   );
 }
 
+/** When a filter has a value applied, swap the white/grey baseline
+ * for a navy-bordered, lightly-tinted "on" look — same affordance
+ * the directory search uses, so it's obvious at a glance which
+ * filters are constraining the result set. */
+function fieldClass(active: boolean): string {
+  return `w-full border rounded px-3 py-2 text-sm ${
+    active
+      ? "border-navy bg-[color:var(--ivory-2)] font-medium"
+      : "border-[color:var(--rule)] bg-white"
+  }`;
+}
+
 function Field({ label, name, defaultValue, placeholder, type = "text", span = "" }: {
   label: React.ReactNode; name: string; defaultValue?: string; placeholder?: string; type?: string; span?: string;
 }) {
+  const active = typeof defaultValue === "string" && defaultValue.length > 0;
   return (
     <label className={`block ${span}`}>
       <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">{label}</span>
@@ -1128,7 +1141,7 @@ function Field({ label, name, defaultValue, placeholder, type = "text", span = "
         type={type}
         defaultValue={defaultValue ?? ""}
         placeholder={placeholder}
-        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+        className={fieldClass(active)}
       />
     </label>
   );
@@ -1137,13 +1150,14 @@ function Field({ label, name, defaultValue, placeholder, type = "text", span = "
 function Select({ label, name, defaultValue, children }: {
   label: React.ReactNode; name: string; defaultValue?: string; children: React.ReactNode;
 }) {
+  const active = typeof defaultValue === "string" && defaultValue.length > 0;
   return (
     <label className="block">
       <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">{label}</span>
       <select
         name={name}
         defaultValue={defaultValue ?? ""}
-        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+        className={fieldClass(active)}
       >
         {children}
       </select>
