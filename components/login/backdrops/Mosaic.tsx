@@ -70,9 +70,10 @@ export default function Mosaic({ pool }: Props) {
   return (
     <>
       <div
-        className="absolute -inset-2.5 z-0 grid gap-3 p-3"
+        className="absolute -inset-2.5 z-0 grid gap-2 sm:gap-3 p-3 [--cell-min:54px] sm:[--cell-min:96px]"
         style={{
-          gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
+          gridTemplateColumns:
+            "repeat(auto-fill, minmax(var(--cell-min), 1fr))",
           gridAutoRows: "1fr",
           gridAutoFlow: "dense",
         }}

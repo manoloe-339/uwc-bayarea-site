@@ -82,12 +82,17 @@ export default function Constellation({
     const base = Math.round((W * H) / 38000);
     const COUNT = Math.max(12, Math.min(65, Math.round(base * density)));
 
+    // Scale tile sizes by viewport width so mobile (≤640px) gets
+    // smaller bubbles with room to drift and collide; desktop keeps
+    // the original 54-200px range.
+    const sizeScale = Math.min(1, Math.max(0.55, W / 900));
+
     const nodes: Node[] = [];
     for (let i = 0; i < COUNT; i++) {
       const depth = 0.5 + Math.random();
-      let d = Math.round(54 * depth + Math.random() * 44);
+      let d = Math.round((54 * depth + Math.random() * 44) * sizeScale);
       if (Math.random() < 0.2) d = Math.round(d * 1.7);
-      d = Math.min(d, 200);
+      d = Math.min(d, Math.round(200 * sizeScale));
       const tile = tiles[(i * 5) % tiles.length];
       const el = document.createElement("div");
       el.className = "absolute top-0 left-0 will-change-transform";
