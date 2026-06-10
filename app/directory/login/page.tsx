@@ -13,6 +13,11 @@ import {
 import DirectoryLoginForm from "./DirectoryLoginForm";
 
 export const dynamic = "force-dynamic";
+// Belt and suspenders: never cache this page or any of its data
+// fetches. The animated backdrop should sample a fresh photo subset
+// from the full alumni pool on every visit.
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export const metadata: Metadata = {
   title: "Directory access · UWC Bay Area",
@@ -24,9 +29,12 @@ export const metadata: Metadata = {
  * ~120 cells × 2 sides (front + back), so the pool needs to be big
  * enough for unique assignments. 240 covers it comfortably. */
 const MIXED_POOL_SIZE = 240;
-/** Living Wall has 7 columns × 10 unique tiles = 70 minimum. We query
- * extra so the seed-shuffle picks different photos on every visit. */
-const PHOTO_QUERY_SIZE = 240;
+/** Query the full alumni-with-photos set on every visit (~406 today)
+ * so the photo sample varies as much as possible between page loads.
+ * The pool builder + per-request seed pick a different ~240 subset
+ * for the mixed pool, and the photoPool that feeds the Living Wall
+ * is re-shuffled per request below. */
+const PHOTO_QUERY_SIZE = 1000;
 
 /**
  * Sign-in surface. Server-fetches the alumni photo / UWC logo / org
@@ -106,6 +114,15 @@ export default async function DirectoryLoginPage({
     orgRows as Array<{ name: string; logo: string | null }>,
   );
   const flags = buildFlagTiles(originRows as Array<{ origin: string }>);
+  // Fisher-Yates shuffle the full photo list per request so every
+  // backdrop sees a different ordering. The Living Wall slices
+  // contiguously from the start, the buildTilePool re-shuffles
+  // internally for the mixed pool — both benefit.
+  for (let i = photos.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [photos[i], photos[j]] = [photos[j], photos[i]];
+  }
+
   // Mixed pool (60/25/10/5 mix, deduplicated, photos fill any gaps)
   // — used by Mosaic + Constellation.
   const mixedPool = buildTilePool({
