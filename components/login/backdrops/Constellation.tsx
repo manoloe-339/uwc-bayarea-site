@@ -90,9 +90,10 @@ export default function Constellation({
     const nodes: Node[] = [];
     for (let i = 0; i < COUNT; i++) {
       const depth = 0.5 + Math.random();
-      let d = Math.round((54 * depth + Math.random() * 44) * sizeScale);
+      // +10% over the previous range per Manolo's last note.
+      let d = Math.round((59.4 * depth + Math.random() * 48.4) * sizeScale);
       if (Math.random() < 0.2) d = Math.round(d * 1.7);
-      d = Math.min(d, Math.round(200 * sizeScale));
+      d = Math.min(d, Math.round(220 * sizeScale));
       const tile = tiles[(i * 5) % tiles.length];
       const el = document.createElement("div");
       el.className = "absolute top-0 left-0 will-change-transform";
@@ -156,13 +157,20 @@ export default function Constellation({
         // Larger sizes + bigger travel distances + longer hang time
         // so the burst reads as deliberate celebration rather than a
         // flicker. Per user feedback after the first deploy.
-        e.style.fontSize = (26 + Math.random() * 18).toFixed(0) + "px";
+        // Emoji size also scales with viewport — at mobile widths
+        // the original 26-44px glyphs felt comically large relative
+        // to the smaller bubbles.
+        e.style.fontSize =
+          ((26 + Math.random() * 18) * sizeScale).toFixed(0) + "px";
         const a = Math.random() * Math.PI * 2;
-        const dist = 95 + Math.random() * 200;
+        const dist = (95 + Math.random() * 200) * sizeScale;
         e.style.setProperty("--tx", (Math.cos(a) * dist).toFixed(0) + "px");
         e.style.setProperty(
           "--ty",
-          (Math.sin(a) * dist - (38 + Math.random() * 90)).toFixed(0) + "px",
+          (
+            Math.sin(a) * dist -
+            (38 + Math.random() * 90) * sizeScale
+          ).toFixed(0) + "px",
         );
         e.style.setProperty(
           "--rot",

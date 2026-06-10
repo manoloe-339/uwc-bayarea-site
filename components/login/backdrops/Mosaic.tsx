@@ -9,7 +9,7 @@ interface Props {
 }
 
 const MAX_CELLS = 120;
-const FLIP_INTERVAL_MS = 900;
+const FLIP_INTERVAL_MS = 810;
 
 /**
  * "Mosaic" backdrop — square-tile grid. Each cell holds a front and
