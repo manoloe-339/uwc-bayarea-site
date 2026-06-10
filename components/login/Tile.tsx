@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type LoginTile, tileBackground } from "./faces-shared";
 
 interface Props {
@@ -48,20 +48,37 @@ export default function Tile({
   imgWidth = 256,
 }: Props) {
   // Three-state image lifecycle: pending (not yet loaded) → loaded |
-  // failed. We render the <img> at opacity 0 until onLoad fires, so
-  // the browser's broken-image icon (iOS Safari shows a "?" square)
-  // never paints if a URL is bad or slow. onError flips to `failed`
-  // and the per-kind fallback (initials / label) renders instead.
+  // failed. We render the <img> at opacity 0 until it's known-loaded
+  // so the browser's broken-image icon (iOS Safari shows a "?"
+  // square) never paints when a URL is bad or slow.
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   // Reset both states when the tile changes — a slot that previously
   // failed shouldn't poison its replacement, and a previously-
   // loaded image shouldn't appear as already-loaded under the new
   // src (browser hasn't loaded the new one yet).
+  //
+  // Then immediately check `img.complete` against the just-mounted
+  // <img>. If the URL is already in the browser cache (which it
+  // usually is — warmImageCache preloads ahead of mount), onLoad
+  // can fire BEFORE React's listener is attached, leaving
+  // imgLoaded permanently false and the tile invisible. The
+  // `complete + naturalWidth > 0` probe catches that case.
   useEffect(() => {
     setImgLoaded(false);
     setImgFailed(false);
+    // RAF defer so we read .complete after React commits the new src.
+    const id = requestAnimationFrame(() => {
+      const img = imgRef.current;
+      if (!img) return;
+      if (img.complete) {
+        if (img.naturalWidth > 0) setImgLoaded(true);
+        else setImgFailed(true);
+      }
+    });
+    return () => cancelAnimationFrame(id);
   }, [tile.id]);
 
   const radius = square ? "18%" : "50%";
@@ -95,6 +112,7 @@ export default function Tile({
       >
         {!imgFailed ? (
           <img
+            ref={imgRef}
             src={optimized(tile.imgUrl, imgWidth)}
             alt={tile.label}
             onLoad={() => setImgLoaded(true)}
@@ -141,6 +159,7 @@ export default function Tile({
         title={noTitle ? undefined : tile.label}
       >
         <img
+          ref={imgRef}
           src={optimized(tile.imgUrl, imgWidth)}
           alt={tile.label}
           onLoad={() => setImgLoaded(true)}
@@ -175,6 +194,7 @@ export default function Tile({
       >
         {hasImage ? (
           <img
+            ref={imgRef}
             src={optimized(tile.imgUrl as string, imgWidth)}
             alt={tile.label}
             onLoad={() => setImgLoaded(true)}
@@ -215,6 +235,7 @@ export default function Tile({
     >
       {hasImage && (
         <img
+          ref={imgRef}
           src={optimized(tile.imgUrl as string, imgWidth)}
           alt={tile.label}
           onLoad={() => setImgLoaded(true)}
