@@ -58,13 +58,21 @@ export default async function DirectoryLoginPage({
       LIMIT ${PHOTO_QUERY_SIZE}
     `,
     sql`
-      SELECT school, MAX(school_logo_url) AS logo
+      -- GROUP BY the LOGO URL (not the school name) so variant
+      -- spellings of the same UWC ("UWC USA", "UWC-USA",
+      -- "UWC USA Armand Hammer...") collapse into a single tile.
+      -- MIN(school) picks a representative name for tooltips.
+      SELECT MIN(school) AS school, school_logo_url AS logo
       FROM alumni_education
       WHERE is_uwc = true
-      GROUP BY school
+        AND school_logo_url IS NOT NULL
+      GROUP BY school_logo_url
     `,
     sql`
-      SELECT name, MAX(logo) AS logo, SUM(n)::int AS total FROM (
+      -- Same idea: dedup by logo URL, not by name. Two companies in
+      -- the DB with slightly different names but the same LinkedIn
+      -- logo (e.g. "Google" vs "Google LLC") become one tile.
+      SELECT MIN(name) AS name, logo, SUM(n)::int AS total FROM (
         SELECT current_company AS name,
                current_company_logo_url AS logo,
                COUNT(*)::int AS n
@@ -81,7 +89,7 @@ export default async function DirectoryLoginPage({
           AND school_logo_url IS NOT NULL
         GROUP BY school, school_logo_url
       ) u
-      GROUP BY name
+      GROUP BY logo
       ORDER BY total DESC
       LIMIT 80
     `,

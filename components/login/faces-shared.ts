@@ -118,10 +118,9 @@ export function buildPhotoTiles(
 }
 
 /** Build UWC tiles directly from the alumni_education rows that have
- * is_uwc=true and a logo. Each (school, logo) the LinkedIn scrape
- * stored becomes one tile — no canonical-name mapping needed, since
- * the logo itself is what we're showing. Dedups by school name so a
- * UWC with 60 alumni records only generates one tile. */
+ * a logo. Dedups by LOGO URL — two DB rows that share a logo (e.g.
+ * "UWC USA" + "UWC-USA" both pointing at the same Vercel Blob) end
+ * up as one tile, so the same UWC never appears twice in the pool. */
 export function buildUwcTiles(
   dbLogos: Array<{ school: string; logo: string | null }>,
 ): LoginTile[] {
@@ -129,11 +128,11 @@ export function buildUwcTiles(
   const out: LoginTile[] = [];
   for (const r of dbLogos) {
     if (!r.school || !r.logo) continue;
-    if (seen.has(r.school)) continue;
-    seen.add(r.school);
+    if (seen.has(r.logo)) continue;
+    seen.add(r.logo);
     out.push({
       kind: "uwc",
-      id: `uwc-${r.school}`,
+      id: `uwc-${r.logo}`,
       imgUrl: r.logo,
       label: r.school,
     });
@@ -144,15 +143,22 @@ export function buildUwcTiles(
 export function buildOrgTiles(
   rows: Array<{ name: string; logo: string | null }>,
 ): LoginTile[] {
-  return rows
-    .filter((r) => r.name && r.logo)
-    .map((r) => ({
-      kind: "org" as const,
-      id: `org-${r.name}`,
+  // Dedup by logo URL (defensive — the SQL also dedups).
+  const seen = new Set<string>();
+  const out: LoginTile[] = [];
+  for (const r of rows) {
+    if (!r.name || !r.logo) continue;
+    if (seen.has(r.logo)) continue;
+    seen.add(r.logo);
+    out.push({
+      kind: "org",
+      id: `org-${r.logo}`,
       imgUrl: r.logo,
       initials: initialsOf(r.name),
       label: r.name,
-    }));
+    });
+  }
+  return out;
 }
 
 function regionName(iso2: string): string {
@@ -272,7 +278,12 @@ export function buildTilePool(opts: {
   const place = (pool: LoginTile[], salt: number) => {
     if (pool.length === 0) return;
     const stride = target / pool.length;
-    const startOffset = jit(salt) * stride; // jitter the phase
+    // Jitter across the FULL pool length (not just one stride) —
+    // small offsets only nudged positions by ~13 cells, which felt
+    // like nothing moved between loads. Now the start can land
+    // anywhere in [0, target) and the stride still spreads the
+    // category evenly across the pool after the modulo + sort.
+    const startOffset = jit(salt) * target;
     for (let i = 0; i < pool.length; i++) {
       placed.push({
         pos: (startOffset + i * stride) % target,
