@@ -91,6 +91,10 @@ function warmImageCache(
  *               true, polling pauses so we don't yank tiles around
  *               while they're signing in.
  */
+/** Backdrop cycle length — must match ROTATE_MS in LoginBackdrop.
+ * The pill's ring countdown uses this to compute progress. */
+const CYCLE_MS = 10_000;
+
 export default function LoginExperience({
   initialPools,
   initialBackdrop,
@@ -99,6 +103,12 @@ export default function LoginExperience({
 }: Props) {
   const [pools, setPools] = useState(initialPools);
   const [showForm, setShowForm] = useState(false);
+  // Timestamp of the current backdrop's start. LoginBackdrop fires
+  // onCycleStart whenever the active backdrop changes, including the
+  // initial mount, so this stays in lockstep with the rotation.
+  const [cycleStartedAt, setCycleStartedAt] = useState<number>(() =>
+    Date.now(),
+  );
 
   useEffect(() => {
     if (showForm) return;
@@ -135,6 +145,7 @@ export default function LoginExperience({
         mixedPool={pools.mixedPool}
         photoPool={pools.photoPool}
         initial={initialBackdrop}
+        onCycleStart={() => setCycleStartedAt(Date.now())}
       />
 
       <header className="fixed top-0 left-0 right-0 z-[60] h-16 flex items-center">
@@ -187,6 +198,8 @@ export default function LoginExperience({
           next={next}
           showForm={showForm}
           onShowFormChange={setShowForm}
+          cycleStartedAt={cycleStartedAt}
+          cycleMs={CYCLE_MS}
         />
       </main>
     </LoadingGate>

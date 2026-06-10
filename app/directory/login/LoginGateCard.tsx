@@ -9,6 +9,12 @@ interface Props {
    * it also drives whether to poll for fresh pool data. */
   showForm: boolean;
   onShowFormChange: (next: boolean) => void;
+  /** Timestamp the current backdrop started (Date.now()-style). The
+   * SVG ring's animation is keyed to this so it restarts cleanly
+   * each cycle, in perfect sync with the rotation. */
+  cycleStartedAt: number;
+  /** Cycle length in ms — controls the ring fill duration. */
+  cycleMs: number;
 }
 
 /**
@@ -31,6 +37,8 @@ export default function LoginGateCard({
   next,
   showForm,
   onShowFormChange,
+  cycleStartedAt,
+  cycleMs,
 }: Props) {
   // Slight delay before the pill becomes interactable, so the
   // entrance animation gets a chance to play unmolested.
@@ -53,6 +61,37 @@ export default function LoginGateCard({
         data-entered={entered ? "1" : "0"}
         data-hidden={showForm ? "1" : "0"}
       >
+        {/* Countdown ring traced around the pill outline. `key` is
+            the cycle timestamp so React reset-mounts the SVG every
+            rotation, restarting the CSS animation cleanly. The
+            `--cycle-ms` custom property drives the keyframe
+            duration so it always matches the backdrop's actual
+            cycle. pathLength=100 lets us animate stroke-dashoffset
+            in clean 0-100 units regardless of the rect's real
+            perimeter. */}
+        <svg
+          key={cycleStartedAt}
+          aria-hidden
+          className="lg-pill__ring"
+          style={{ ["--cycle-ms" as never]: `${cycleMs}ms` }}
+        >
+          <rect
+            x="1.5"
+            y="1.5"
+            width="calc(100% - 3px)"
+            height="calc(100% - 3px)"
+            rx="999"
+            ry="999"
+            pathLength={100}
+            fill="none"
+            stroke="var(--navy)"
+            strokeWidth="2"
+            strokeOpacity="0.45"
+            strokeDasharray="100"
+            strokeDashoffset="100"
+            strokeLinecap="round"
+          />
+        </svg>
         <span aria-hidden className="lg-pill__dot" />
         <span className="lg-pill__label">Log in</span>
         <svg
@@ -165,6 +204,43 @@ export default function LoginGateCard({
           outline: 2px solid var(--navy);
           outline-offset: 3px;
         }
+        /* SVG countdown ring traced around the pill. Sits absolutely
+         * inside the button, fills it edge to edge, doesn't intercept
+         * clicks. */
+        .lg-pill__ring {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          overflow: visible;
+        }
+        .lg-pill__ring rect {
+          /* Drains from full (offset=100, invisible) to empty
+           * (offset=0, fully drawn) over one cycle. Visually: ring
+           * fills clockwise as the rotation approaches. */
+          animation: lg-ring-fill var(--cycle-ms, 10000ms) linear forwards;
+        }
+        @keyframes lg-ring-fill {
+          from {
+            stroke-dashoffset: 100;
+          }
+          to {
+            stroke-dashoffset: 0;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lg-pill__ring rect {
+            animation: none;
+            stroke-dashoffset: 0;
+          }
+        }
+        /* Hide the ring while the form is shown (pill is fading out
+         * anyway, no point drawing the countdown). */
+        .lg-pill[data-hidden="1"] .lg-pill__ring {
+          opacity: 0;
+        }
+
         .lg-pill__dot {
           width: 7px;
           height: 7px;

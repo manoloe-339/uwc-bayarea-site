@@ -18,6 +18,10 @@ interface Props {
    * agree and the user doesn't see a one-frame flash from the default
    * before the random pick lands. */
   initial: BackdropId;
+  /** Fired whenever the active backdrop changes (including the
+   * initial mount). Used by the parent to drive the Log-in pill's
+   * countdown ring so the ring and the rotation share one timer. */
+  onCycleStart?: (id: BackdropId) => void;
 }
 
 const ORDER: BackdropId[] = ["living", "mosaic", "constellation"];
@@ -38,6 +42,7 @@ export default function LoginBackdrop({
   mixedPool,
   photoPool,
   initial,
+  onCycleStart,
 }: Props) {
   const [current, setCurrent] = useState<BackdropId>(initial);
   const [previous, setPrevious] = useState<BackdropId | null>(null);
@@ -47,6 +52,15 @@ export default function LoginBackdrop({
   // it holds the rotator behind a progress bar until enough images
   // are settled in the browser cache, then reveals everything at
   // once. Nothing to preload here.
+
+  // Fire onCycleStart for the initial backdrop too, so the pill's
+  // ring countdown starts from the moment the page is interactive.
+  useEffect(() => {
+    onCycleStart?.(initial);
+    // We only fire on mount; subsequent rotations fire from the
+    // interval effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Cycle setup. Skipped under reduce-motion — the user simply gets
   // whichever backdrop was chosen on the server.
@@ -66,6 +80,7 @@ export default function LoginBackdrop({
         setPrevious(c);
         if (previousTimeout.current) clearTimeout(previousTimeout.current);
         previousTimeout.current = setTimeout(() => setPrevious(null), FADE_MS);
+        onCycleStart?.(next);
         return next;
       });
     }, ROTATE_MS);
@@ -73,6 +88,10 @@ export default function LoginBackdrop({
       clearInterval(t);
       if (previousTimeout.current) clearTimeout(previousTimeout.current);
     };
+    // onCycleStart is intentionally not a dep — it's a "fire and
+    // forget" hook for the parent and we don't want timer churn if
+    // the parent's identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
