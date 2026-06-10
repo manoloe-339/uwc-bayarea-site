@@ -8,16 +8,16 @@ interface Props {
 }
 
 const INPUT_CLASS =
-  "w-full bg-white border-[1.5px] border-[color:var(--rule)] rounded-[11px] " +
-  "px-4 py-[15px] text-[16px] text-[color:var(--navy-ink)] placeholder:text-[color:var(--muted-2)] " +
+  "w-full bg-white border-[1.5px] border-[color:var(--rule)] rounded-[9px] " +
+  "px-3 py-[10px] text-[14px] text-[color:var(--navy-ink)] placeholder:text-[color:var(--muted-2)] " +
   "transition focus:outline-none focus:border-[color:var(--navy)] " +
-  "focus:[box-shadow:0_0_0_4px_rgba(2,101,168,.14)]";
+  "focus:[box-shadow:0_0_0_3px_rgba(2,101,168,.14)]";
 
-const PASSWORD_CLASS = INPUT_CLASS + " pr-[78px]";
+const PASSWORD_CLASS = INPUT_CLASS + " pr-[66px]";
 
 const LABEL_CLASS =
-  "block text-[12px] tracking-[.18em] uppercase font-bold " +
-  "text-[color:var(--muted)] mb-[9px] mt-[14px]";
+  "block text-[10px] tracking-[.18em] uppercase font-bold " +
+  "text-[color:var(--muted)] mb-[6px] mt-[10px]";
 
 export default function DirectoryLoginForm({ next }: Props) {
   const [email, setEmail] = useState("");
@@ -59,7 +59,7 @@ export default function DirectoryLoginForm({ next }: Props) {
           placeholder="your@email.com"
           className={INPUT_CLASS}
         />
-        <span className="block mt-2 text-[14px] text-[color:var(--muted)] leading-snug">
+        <span className="block mt-1.5 text-[12px] text-[color:var(--muted)] leading-snug">
           Leave blank if you were given a shared admin password.
         </span>
       </label>
@@ -84,7 +84,7 @@ export default function DirectoryLoginForm({ next }: Props) {
       <button
         type="submit"
         disabled={pending || !password}
-        className="mt-[26px] w-full bg-navy text-white rounded-[11px] py-[17px] text-[17px] font-bold transition hover:brightness-110 active:scale-[.985] disabled:opacity-50"
+        className="mt-[18px] w-full bg-navy text-white rounded-[9px] py-[11px] text-[14px] font-bold transition hover:brightness-110 active:scale-[.985] disabled:opacity-50"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>
