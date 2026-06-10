@@ -47,12 +47,20 @@ export default function Tile({
   noTitle,
   imgWidth = 256,
 }: Props) {
+  // Three-state image lifecycle: pending (not yet loaded) → loaded |
+  // failed. We render the <img> at opacity 0 until onLoad fires, so
+  // the browser's broken-image icon (iOS Safari shows a "?" square)
+  // never paints if a URL is bad or slow. onError flips to `failed`
+  // and the per-kind fallback (initials / label) renders instead.
+  const [imgLoaded, setImgLoaded] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
 
-  // Reset the failure flag whenever the tile changes — otherwise a
-  // tile slot that previously failed to load would also hide its
-  // replacement when the parent swaps in a new pool.
+  // Reset both states when the tile changes — a slot that previously
+  // failed shouldn't poison its replacement, and a previously-
+  // loaded image shouldn't appear as already-loaded under the new
+  // src (browser hasn't loaded the new one yet).
   useEffect(() => {
+    setImgLoaded(false);
     setImgFailed(false);
   }, [tile.id]);
 
@@ -89,6 +97,7 @@ export default function Tile({
           <img
             src={optimized(tile.imgUrl, imgWidth)}
             alt={tile.label}
+            onLoad={() => setImgLoaded(true)}
             onError={() => setImgFailed(true)}
             style={{
               position: "absolute",
@@ -97,6 +106,7 @@ export default function Tile({
               height: "100%",
               objectFit: "contain",
               objectPosition: "center",
+              opacity: imgLoaded ? 1 : 0,
             }}
           />
         ) : (
@@ -133,13 +143,14 @@ export default function Tile({
         <img
           src={optimized(tile.imgUrl, imgWidth)}
           alt={tile.label}
+          onLoad={() => setImgLoaded(true)}
           onError={() => setImgFailed(true)}
           style={{
             width: "100%",
             height: "100%",
             objectFit: "contain",
             objectPosition: "center",
-            opacity: imgFailed ? 0 : 1,
+            opacity: imgLoaded && !imgFailed ? 1 : 0,
           }}
         />
       </div>
@@ -166,12 +177,14 @@ export default function Tile({
           <img
             src={optimized(tile.imgUrl as string, imgWidth)}
             alt={tile.label}
+            onLoad={() => setImgLoaded(true)}
             onError={() => setImgFailed(true)}
             style={{
               width: "100%",
               height: "100%",
               objectFit: "contain",
               objectPosition: "center",
+              opacity: imgLoaded ? 1 : 0,
             }}
           />
         ) : (
@@ -204,8 +217,8 @@ export default function Tile({
         <img
           src={optimized(tile.imgUrl as string, imgWidth)}
           alt={tile.label}
+          onLoad={() => setImgLoaded(true)}
           onError={() => setImgFailed(true)}
-          loading="lazy"
           style={{
             position: "absolute",
             inset: 0,
@@ -213,6 +226,7 @@ export default function Tile({
             height: "100%",
             objectFit: "cover",
             objectPosition: "center",
+            opacity: imgLoaded ? 1 : 0,
           }}
         />
       )}

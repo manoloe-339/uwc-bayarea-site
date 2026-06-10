@@ -147,7 +147,12 @@ export default function Constellation({
         y: Math.random() * H,
         vx: Math.cos(ang) * spd * speed,
         vy: Math.sin(ang) * spd * speed,
-        angle: Math.random() * 360,
+        // Start near-upright (±25°) so the field reads as "people"
+        // not "tumbling tiles." Random 0–360 made the bulk show up
+        // sideways or upside down on arrival. Collision physics
+        // still adds rotation freely after that — only the INITIAL
+        // pose is constrained.
+        angle: (Math.random() - 0.5) * 50,
         va: baseVa,
         baseVa,
       });
