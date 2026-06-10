@@ -61,14 +61,18 @@ export default function LoginGateCard({
         data-entered={entered ? "1" : "0"}
         data-hidden={showForm ? "1" : "0"}
       >
-        {/* Countdown ring traced around the pill outline. `key` is
-            the cycle timestamp so React reset-mounts the SVG every
-            rotation, restarting the CSS animation cleanly. The
-            `--cycle-ms` custom property drives the keyframe
-            duration so it always matches the backdrop's actual
-            cycle. pathLength=100 lets us animate stroke-dashoffset
-            in clean 0-100 units regardless of the rect's real
-            perimeter. */}
+        {/* Countdown ring sits ON the pill's outer edge — replaces
+            the old faint border. Two rect strokes share the same
+            outline:
+              - track: always-visible faint navy, so the pill never
+                appears borderless mid-cycle.
+              - fill:  bolder navy, animated 0 → full perimeter via
+                stroke-dashoffset over one cycle.
+            pathLength=100 normalizes the perimeter so dasharray
+            works in clean 0-100 units regardless of the pill's
+            actual size. React reset-mounts the SVG each cycle
+            (via `key={cycleStartedAt}`) so the animation restarts
+            cleanly. */}
         <svg
           key={cycleStartedAt}
           aria-hidden
@@ -76,17 +80,31 @@ export default function LoginGateCard({
           style={{ ["--cycle-ms" as never]: `${cycleMs}ms` }}
         >
           <rect
-            x="1.5"
-            y="1.5"
-            width="calc(100% - 3px)"
-            height="calc(100% - 3px)"
+            className="lg-pill__ring-track"
+            x="1"
+            y="1"
+            width="calc(100% - 2px)"
+            height="calc(100% - 2px)"
+            rx="999"
+            ry="999"
+            fill="none"
+            stroke="var(--navy)"
+            strokeOpacity="0.18"
+            strokeWidth="2"
+          />
+          <rect
+            className="lg-pill__ring-fill"
+            x="1"
+            y="1"
+            width="calc(100% - 2px)"
+            height="calc(100% - 2px)"
             rx="999"
             ry="999"
             pathLength={100}
             fill="none"
             stroke="var(--navy)"
+            strokeOpacity="0.65"
             strokeWidth="2"
-            strokeOpacity="0.45"
             strokeDasharray="100"
             strokeDashoffset="100"
             strokeLinecap="round"
@@ -162,7 +180,10 @@ export default function LoginGateCard({
           text-transform: uppercase;
           color: var(--navy-ink);
           background: rgba(255, 255, 255, 0.97);
-          border: 1px solid rgba(11, 37, 69, 0.08);
+          /* The old 1px navy border is replaced by the SVG ring
+           * track inside .lg-pill__ring — keeps a clean visual
+           * edge while letting the ring fill animate on top. */
+          border: none;
           box-shadow:
             inset 0 1px 0 rgba(255, 255, 255, 0.6),
             0 2px 0 var(--ivory-3),
@@ -215,10 +236,11 @@ export default function LoginGateCard({
           pointer-events: none;
           overflow: visible;
         }
-        .lg-pill__ring rect {
-          /* Drains from full (offset=100, invisible) to empty
-           * (offset=0, fully drawn) over one cycle. Visually: ring
-           * fills clockwise as the rotation approaches. */
+        .lg-pill__ring-fill {
+          /* Drains from invisible (offset=100) to fully drawn
+           * (offset=0) over one cycle. Visually: a navy stroke
+           * traces clockwise around the pill's edge as the next
+           * rotation approaches. */
           animation: lg-ring-fill var(--cycle-ms, 10000ms) linear forwards;
         }
         @keyframes lg-ring-fill {
@@ -230,7 +252,7 @@ export default function LoginGateCard({
           }
         }
         @media (prefers-reduced-motion: reduce) {
-          .lg-pill__ring rect {
+          .lg-pill__ring-fill {
             animation: none;
             stroke-dashoffset: 0;
           }
