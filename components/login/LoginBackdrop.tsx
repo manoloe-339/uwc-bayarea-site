@@ -101,8 +101,15 @@ export default function LoginBackdrop({
     >
       {ORDER.map((id) => {
         const isCurrent = id === current;
-        const isPrevious = id === previous;
-        if (!isCurrent && !isPrevious) return null;
+        // All three backdrops stay mounted continuously, even when
+        // invisible. Otherwise, when the rotation reaches a backdrop
+        // for the first time, all its <img>s mount + decode in a
+        // burst — even with the URLs warm in the HTTP cache, the
+        // decoded-bitmap cache is per-element, so the user sees
+        // tiles pop in over a second or two. Keeping them mounted
+        // means the decode happens once at page load (covered by
+        // LoadingGate), and subsequent rotation cycles just flip
+        // opacity.
         return (
           <div
             key={id}
@@ -110,9 +117,18 @@ export default function LoginBackdrop({
             style={{
               opacity: isCurrent ? 1 : 0,
               transitionDuration: `${FADE_MS}ms`,
+              // pointer-events:none on hidden ones is cosmetic — the
+              // backdrops don't have interactive elements anyway.
+              pointerEvents: isCurrent ? "auto" : "none",
             }}
+            aria-hidden={!isCurrent}
           >
-            <BackdropFor id={id} mixedPool={mixedPool} photoPool={photoPool} />
+            <BackdropFor
+              id={id}
+              mixedPool={mixedPool}
+              photoPool={photoPool}
+              active={isCurrent}
+            />
           </div>
         );
       })}
@@ -124,16 +140,20 @@ function BackdropFor({
   id,
   mixedPool,
   photoPool,
+  active,
 }: {
   id: BackdropId;
   mixedPool: LoginTile[];
   photoPool: LoginTile[];
+  active: boolean;
 }) {
   if (id === "living") return <LivingWall pool={photoPool} />;
   if (id === "mosaic") return <Mosaic pool={mixedPool} />;
   // Constellation is photos-only too — logo tiles inside rotating
   // circular nodes look wrong (the logo's own rectangular backplate
   // shows as a "square inside a circle", and the rotation tilts
-  // wordmarks awkwardly).
-  return <Constellation pool={photoPool} />;
+  // wordmarks awkwardly). The `active` flag pauses the rAF physics
+  // loop when the backdrop is invisible so we don't burn CPU on
+  // off-screen drift.
+  return <Constellation pool={photoPool} active={active} />;
 }

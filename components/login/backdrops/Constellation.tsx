@@ -13,6 +13,10 @@ interface Props {
   density?: number;
   /** Multiplies linear & angular speeds. */
   speed?: number;
+  /** When false, the rAF physics loop is paused — used by the
+   * parent to suspend off-screen Constellation instances without
+   * unmounting them (keeps the decoded image bitmaps warm). */
+  active?: boolean;
 }
 
 const HAPPY = [
@@ -49,6 +53,7 @@ export default function Constellation({
   pool,
   density = 1.45,
   speed = 1,
+  active = true,
 }: Props) {
   const fieldRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -59,6 +64,12 @@ export default function Constellation({
   // once) and from the swap effect.
   const poolRef = useRef(pool);
   poolRef.current = pool;
+  // Active flag accessible from the rAF loop closure. When false,
+  // the loop short-circuits and skips physics + paint — keeping
+  // decoded bitmaps in memory but not spending CPU on invisible
+  // drift.
+  const activeRef = useRef(active);
+  activeRef.current = active;
 
   useEffect(() => {
     const field = fieldRef.current;
@@ -191,6 +202,12 @@ export default function Constellation({
     };
 
     const frame = () => {
+      // Skip physics + paint when the backdrop isn't visible. Keeps
+      // the rAF loop alive (instant resume) at near-zero CPU cost.
+      if (!activeRef.current) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
       const MAX_SPD = 2.4 * speed;
       const MIN_SPD = 0.3 * speed;
       ctx.clearRect(0, 0, W, H);
