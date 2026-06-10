@@ -45,7 +45,9 @@ export default async function DirectoryLoginPage({
       ? sp.next
       : "/directory";
 
-  const [photoRows, uwcRows, orgRows, originRows] = await Promise.all([
+  // UWC logos come from a frozen hardcoded list in faces-shared
+  // (`UWC_LOGOS`) — exactly 18, no DB lookup, no name-variant noise.
+  const [photoRows, orgRows, originRows] = await Promise.all([
     sql`
       SELECT id, first_name, last_name, photo_url
       FROM alumni
@@ -56,17 +58,6 @@ export default async function DirectoryLoginPage({
         AND moved_out IS NOT TRUE
       ORDER BY RANDOM()
       LIMIT ${PHOTO_QUERY_SIZE}
-    `,
-    sql`
-      -- GROUP BY the LOGO URL (not the school name) so variant
-      -- spellings of the same UWC ("UWC USA", "UWC-USA",
-      -- "UWC USA Armand Hammer...") collapse into a single tile.
-      -- MIN(school) picks a representative name for tooltips.
-      SELECT MIN(school) AS school, school_logo_url AS logo
-      FROM alumni_education
-      WHERE is_uwc = true
-        AND school_logo_url IS NOT NULL
-      GROUP BY school_logo_url
     `,
     sql`
       -- Same idea: dedup by logo URL, not by name. Two companies in
@@ -110,9 +101,7 @@ export default async function DirectoryLoginPage({
       photo_url: string | null;
     }>,
   );
-  const uwcs = buildUwcTiles(
-    uwcRows as Array<{ school: string; logo: string | null }>,
-  );
+  const uwcs = buildUwcTiles();
   const orgs = buildOrgTiles(
     orgRows as Array<{ name: string; logo: string | null }>,
   );

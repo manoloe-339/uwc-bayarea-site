@@ -13,6 +13,39 @@
 
 import { extractCountryCodes } from "@/lib/country-flag";
 
+/**
+ * Canonical list of UWC logos for the login backdrop. Frozen by hand
+ * (no DB lookup) so name-variant noise in alumni_education
+ * ("UWC USA" vs "UWC-USA" vs "UWC USA Armand Hammer United World
+ * College of the American West") can never duplicate a tile. Each
+ * URL is the Vercel-Blob asset we backfilled from LinkedIn.
+ *
+ * 18 entries — all currently-operating UWCs. (UWC Simón Bolívar
+ * closed in 2012; no logo on file.) Edit this list — and only this
+ * list — if a UWC's official mark changes or we want a different
+ * image for one of them.
+ */
+const UWC_LOGOS: Array<{ name: string; url: string }> = [
+  { name: "UWC Atlantic", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/6b3cd189bab61b317c7e6aba.jpg" },
+  { name: "UWC Pearson", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/f9a5c7159703e6a3068a5999.jpg" },
+  { name: "UWC USA", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/db9ec0624929ebc519c29e04.jpg" },
+  { name: "UWC Adriatic", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/6dafe4f483023b19277a7c5e.jpg" },
+  { name: "UWC Red Cross Nordic", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/b56648ffabea7d1d0446dd2a.jpg" },
+  { name: "UWC Mahindra", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/a75ec6c3fca5080bb1b8b4fa.jpg" },
+  { name: "UWC Costa Rica", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/445b0c0de0340c671e7dd26b.jpg" },
+  { name: "UWC Waterford Kamhlaba", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/87ab45f3da11473dc8febf48.jpg" },
+  { name: "UWC Mostar", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/9338f94c5b8c99da0087622a.jpg" },
+  { name: "UWC Li Po Chun", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/00995ff3317fbad58dd78fd2.jpg" },
+  { name: "UWC Robert Bosch College", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/f4bced753e49ea2af9cea165.jpg" },
+  { name: "UWC Dilijan", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/ac8df365daaa8aa7d801b695.jpg" },
+  { name: "UWC Maastricht", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/a504264cd4e735f5438e533e.jpg" },
+  { name: "UWC Changshu China", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/9449bd9b4bed3f7d7d897adf.jpg" },
+  { name: "UWC Thailand", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/92a260ec58266a951ee427e9.jpg" },
+  { name: "UWC ISAK Japan", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/ebcf4f8721a49b331ecefe4e.jpg" },
+  { name: "UWC South East Asia", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/1a07b264c0f6b2a17179c71a.jpg" },
+  { name: "UWC East Africa", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/1b3112dbe9fc890e6c9d0632.jpg" },
+];
+
 export type LoginTile =
   | {
       kind: "photo";
@@ -117,27 +150,16 @@ export function buildPhotoTiles(
   return out;
 }
 
-/** Build UWC tiles directly from the alumni_education rows that have
- * a logo. Dedups by LOGO URL — two DB rows that share a logo (e.g.
- * "UWC USA" + "UWC-USA" both pointing at the same Vercel Blob) end
- * up as one tile, so the same UWC never appears twice in the pool. */
-export function buildUwcTiles(
-  dbLogos: Array<{ school: string; logo: string | null }>,
-): LoginTile[] {
-  const seen = new Set<string>();
-  const out: LoginTile[] = [];
-  for (const r of dbLogos) {
-    if (!r.school || !r.logo) continue;
-    if (seen.has(r.logo)) continue;
-    seen.add(r.logo);
-    out.push({
-      kind: "uwc",
-      id: `uwc-${r.logo}`,
-      imgUrl: r.logo,
-      label: r.school,
-    });
-  }
-  return out;
+/** Build the UWC tile list from the frozen UWC_LOGOS constant — no
+ * DB lookup. Exactly one tile per canonical UWC, never duplicates,
+ * never affected by alumni-entered name variants. */
+export function buildUwcTiles(): LoginTile[] {
+  return UWC_LOGOS.map((u) => ({
+    kind: "uwc" as const,
+    id: `uwc-${u.name}`,
+    imgUrl: u.url,
+    label: u.name,
+  }));
 }
 
 export function buildOrgTiles(
