@@ -33,6 +33,7 @@ import { scrapeLinkedinProfile } from "./linkedin-scraper";
 import { discoverCandidates } from "./linkedin-search";
 import { pickBestCandidate } from "./claude-matcher";
 import { downloadAndUploadPhoto } from "./photo-uploader";
+import { rehostLogos, shouldRehost } from "./logo-uploader";
 
 type FinalStatus = "complete" | "failed" | "needs_review";
 
@@ -139,6 +140,25 @@ async function applyProfile(
   const eduRows = buildEducationRows(profile.educations);
   const careerRows = buildCareerRows(profile.experiences);
   const volRows = buildVolunteeringRows(profile.volunteerAndAwards);
+
+  // Re-host every logo URL referenced by this profile before writing.
+  // We never want media.licdn.com URLs in our DB — they expire and
+  // they leak third-party traffic from our app. Failures fall through
+  // to the original URL (better than null while we still trust the
+  // LinkedIn link for the short term).
+  const logoSources: Array<string | null | undefined> = [
+    patch.current_company_logo_url,
+    ...eduRows.map((e) => e.school_logo_url),
+    ...careerRows.map((c) => c.company_logo_url),
+  ];
+  const logoMap = await rehostLogos(logoSources);
+  const rehost = (u: string | null): string | null => {
+    if (!u || !shouldRehost(u)) return u;
+    return logoMap.get(u) ?? u;
+  };
+  patch.current_company_logo_url = rehost(patch.current_company_logo_url);
+  for (const e of eduRows) e.school_logo_url = rehost(e.school_logo_url);
+  for (const c of careerRows) c.company_logo_url = rehost(c.company_logo_url);
 
   await sql`
     UPDATE alumni SET
