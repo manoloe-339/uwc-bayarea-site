@@ -16,7 +16,13 @@ const KIND_LABELS: Record<Row["kind"], string> = {
   flag: "Flag",
 };
 
-export default async function LoginAssetsPage() {
+export default async function LoginAssetsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const sp = await searchParams;
+  const errorMessage = typeof sp.error === "string" ? sp.error : null;
   const rows = (await sql`
     SELECT id, kind, label, image_url
     FROM login_assets
@@ -43,6 +49,15 @@ export default async function LoginAssetsPage() {
         assets</a>) — these supplement the photo + UWC pools the login already
         draws from.
       </p>
+
+      {errorMessage && (
+        <div
+          role="alert"
+          className="mt-4 px-4 py-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-800"
+        >
+          <strong className="font-bold">Action failed:</strong> {errorMessage}
+        </div>
+      )}
 
       <section className="mt-8 bg-white border border-[color:var(--rule)] rounded-[10px] p-5">
         <h2 className="font-bold text-[color:var(--navy-ink)] mb-3">

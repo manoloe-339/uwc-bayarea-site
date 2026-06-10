@@ -1,20 +1,29 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
 import crypto from "node:crypto";
 import { sql } from "@/lib/db";
 import { COLLEGES } from "@/lib/uwc-colleges";
 
 export type UwcSlot = "logo" | "campus" | "other";
+const PAGE = "/admin/tools/uwc-assets";
 
 function isValidCanonical(c: string): boolean {
   return COLLEGES.some((x) => x.canonical === c);
 }
 
-/** Returns the upload payload + filename extension for either a
- * file-input upload or a remote URL fetched server-side. Throws when
- * neither input is usable. */
+/** Redirect back to the admin page with an `?error=...` query so
+ * the user sees a friendly message instead of the framework's
+ * "Application error: server-side exception" page. */
+function failTo(message: string): never {
+  redirect(`${PAGE}?error=${encodeURIComponent(message)}`);
+}
+
+/** Pick an image payload from either the form file input or a URL.
+ * URL is fetched server-side. Returns the bytes + a safe filename
+ * extension. */
 async function loadImageInput(
   file: File | null,
   url: string,
@@ -37,7 +46,6 @@ async function loadImageInput(
   if (!res.ok) throw new Error(`Fetch failed (HTTP ${res.status})`);
   const data = await res.blob();
   if (data.size === 0) throw new Error("Remote URL returned an empty body.");
-  // Derive extension from the path (or content-type as fallback).
   let ext =
     trimmed.split("?")[0].match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase() ?? "";
   if (!ext || ext.length > 5) {
@@ -54,25 +62,38 @@ async function loadImageInput(
 /** Upload (or replace) one of the three asset slots for a UWC.
  * Accepts either a file (form-upload) or a remote URL (server-side
  * fetched + re-hosted). One or the other — file wins if both are
- * present. */
+ * present. Errors redirect back to the page with ?error=...
+ * instead of throwing (so the user doesn't hit the framework's
+ * generic Application Error screen). */
 export async function uploadUwcAsset(formData: FormData): Promise<void> {
   const canonical = String(formData.get("canonical") ?? "");
   const slot = String(formData.get("slot") ?? "") as UwcSlot;
   const file = formData.get("file") as File | null;
   const url = String(formData.get("url") ?? "");
-  if (!isValidCanonical(canonical)) throw new Error("invalid canonical");
+  if (!isValidCanonical(canonical)) failTo("Unknown UWC.");
   if (slot !== "logo" && slot !== "campus" && slot !== "other") {
-    throw new Error("invalid slot");
+    failTo("Unknown asset slot.");
   }
 
-  const { data, ext } = await loadImageInput(file, url);
+  let payload: { data: Blob; ext: string };
+  try {
+    payload = await loadImageInput(file, url);
+  } catch (err) {
+    failTo(err instanceof Error ? err.message : "Couldn't load image.");
+  }
+  const { data, ext } = payload;
   const slug = canonical.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   const hash = crypto.randomBytes(6).toString("hex");
   const key = `uwc/${slug}/${slot}-${hash}.${ext}`;
-  const uploaded = await put(key, data, {
-    access: "public",
-    allowOverwrite: true,
-  });
+  let uploaded: { url: string };
+  try {
+    uploaded = await put(key, data, {
+      access: "public",
+      allowOverwrite: true,
+    });
+  } catch (err) {
+    failTo(err instanceof Error ? err.message : "Upload to storage failed.");
+  }
 
   // Ensure the row exists, then set the right column. Three explicit
   // statements (rather than dynamic column names) keep us on the

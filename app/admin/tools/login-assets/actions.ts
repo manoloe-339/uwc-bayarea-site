@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { put, del } from "@vercel/blob";
 import crypto from "node:crypto";
 import { sql } from "@/lib/db";
@@ -8,13 +9,18 @@ import { sql } from "@/lib/db";
 export type AssetKind = "university_logo" | "company_logo" | "flag";
 
 const VALID_KINDS: AssetKind[] = ["university_logo", "company_logo", "flag"];
+const PAGE = "/admin/tools/login-assets";
 
 function isValidKind(k: string): k is AssetKind {
   return (VALID_KINDS as string[]).includes(k);
 }
 
-/** Resolve image bytes from either a form-uploaded file or a
- * server-fetched URL. File wins if both are present. */
+function failTo(message: string): never {
+  redirect(`${PAGE}?error=${encodeURIComponent(message)}`);
+}
+
+/** Resolve image bytes from either a form-uploaded file or a URL.
+ * URL is fetched server-side. File wins when both are provided. */
 async function loadImageInput(
   file: File | null,
   url: string,
@@ -55,18 +61,29 @@ export async function createLoginAsset(formData: FormData): Promise<void> {
   const label = String(formData.get("label") ?? "").trim();
   const file = formData.get("file") as File | null;
   const url = String(formData.get("url") ?? "");
-  if (!isValidKind(kind)) throw new Error("invalid kind");
-  if (!label) throw new Error("label required");
+  if (!isValidKind(kind)) failTo("Unknown asset kind.");
+  if (!label) failTo("Label is required.");
 
-  const { data, ext } = await loadImageInput(file, url);
+  let payload: { data: Blob; ext: string };
+  try {
+    payload = await loadImageInput(file, url);
+  } catch (err) {
+    failTo(err instanceof Error ? err.message : "Couldn't load image.");
+  }
+  const { data, ext } = payload;
   const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) || "asset";
   const hash = crypto.randomBytes(6).toString("hex");
   const key = `login-library/${kind}/${slug}-${hash}.${ext}`;
 
-  const uploaded = await put(key, data, {
-    access: "public",
-    allowOverwrite: true,
-  });
+  let uploaded: { url: string };
+  try {
+    uploaded = await put(key, data, {
+      access: "public",
+      allowOverwrite: true,
+    });
+  } catch (err) {
+    failTo(err instanceof Error ? err.message : "Upload to storage failed.");
+  }
 
   await sql`
     INSERT INTO login_assets (kind, label, image_url)

@@ -17,7 +17,13 @@ const SLOTS: Array<{ key: UwcSlot; label: string; help: string }> = [
   { key: "other", label: "Other photo", help: "Anything else — students, classroom, signage." },
 ];
 
-export default async function UwcAssetsPage() {
+export default async function UwcAssetsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const sp = await searchParams;
+  const errorMessage = typeof sp.error === "string" ? sp.error : null;
   const rows = (await sql`
     SELECT canonical, logo_url, campus_url, other_url FROM uwc_assets
   `) as Row[];
@@ -34,6 +40,15 @@ export default async function UwcAssetsPage() {
         replaces the previous file. Vercel auto-generates resized versions; the
         login page requests them at the right width per backdrop.
       </p>
+
+      {errorMessage && (
+        <div
+          role="alert"
+          className="mt-4 px-4 py-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-800"
+        >
+          <strong className="font-bold">Upload failed:</strong> {errorMessage}
+        </div>
+      )}
 
       <div className="mt-8 space-y-4">
         {COLLEGES.map((c) => {
