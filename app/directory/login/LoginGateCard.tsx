@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import DirectoryLoginForm from "./DirectoryLoginForm";
 
 interface Props {
@@ -49,10 +49,38 @@ export default function LoginGateCard({
     return () => clearTimeout(t);
   }, []);
 
+  // Measure the pill at layout time and rebuild the SVG path so it
+  // traces an exact capsule (straight top/bottom, semicircle ends)
+  // that hugs the live element. Using <rect rx=999> would oval the
+  // capsule because rx/ry on a rect each clamp to half their axis
+  // independently — there's no way to get a true capsule from a
+  // single rect. The path d starts at top-center (M w/2 0) and
+  // sweeps clockwise so the fill + bead originate at the top.
+  const pillRef = useRef<HTMLButtonElement>(null);
+  const [pathD, setPathD] = useState("");
+  useLayoutEffect(() => {
+    const el = pillRef.current;
+    if (!el) return;
+    const sync = () => {
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+      if (w === 0 || h === 0) return;
+      const r = h / 2;
+      setPathD(
+        `M ${w / 2} 0 H ${w - r} A ${r} ${r} 0 0 1 ${w - r} ${h} H ${r} A ${r} ${r} 0 0 1 ${r} 0 Z`,
+      );
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <>
       {/* Idle pill */}
       <button
+        ref={pillRef}
         type="button"
         onClick={() => onShowFormChange(true)}
         aria-label="Open sign-in form"
@@ -61,54 +89,32 @@ export default function LoginGateCard({
         data-entered={entered ? "1" : "0"}
         data-hidden={showForm ? "1" : "0"}
       >
-        {/* Countdown ring sits ON the pill's outer edge — replaces
-            the old faint border. Two rect strokes share the same
-            outline:
-              - track: always-visible faint navy, so the pill never
-                appears borderless mid-cycle.
-              - fill:  bolder navy, animated 0 → full perimeter via
-                stroke-dashoffset over one cycle.
+        {/* Outline ring. Three stroked <path> elements share the
+            same `d` so they trace an identical capsule:
+              - track: always-on faint navy, so the pill keeps a
+                clean static edge.
+              - fill:  navy stroke, drawn arc grows from 0 → full
+                perimeter via stroke-dashoffset over one cycle.
+              - head:  a zero-length round dash → a glowing bead
+                that sits exactly on the leading edge of fill.
+            React reset-mounts the SVG on each new cycle (via
+            `key={cycleStartedAt}`) so both animations restart
+            cleanly and stay in lockstep.
             pathLength=100 normalizes the perimeter so dasharray
-            works in clean 0-100 units regardless of the pill's
-            actual size. React reset-mounts the SVG each cycle
-            (via `key={cycleStartedAt}`) so the animation restarts
-            cleanly. */}
+            works in clean 0-100 units regardless of pill size. */}
         <svg
           key={cycleStartedAt}
           aria-hidden
           className="lg-pill__ring"
           style={{ ["--cycle-ms" as never]: `${cycleMs}ms` }}
         >
-          <rect
-            className="lg-pill__ring-track"
-            x="1"
-            y="1"
-            width="calc(100% - 2px)"
-            height="calc(100% - 2px)"
-            rx="999"
-            ry="999"
-            fill="none"
-            stroke="var(--navy)"
-            strokeOpacity="0.18"
-            strokeWidth="2"
-          />
-          <rect
-            className="lg-pill__ring-fill"
-            x="1"
-            y="1"
-            width="calc(100% - 2px)"
-            height="calc(100% - 2px)"
-            rx="999"
-            ry="999"
-            pathLength={100}
-            fill="none"
-            stroke="var(--navy)"
-            strokeOpacity="0.65"
-            strokeWidth="2"
-            strokeDasharray="100"
-            strokeDashoffset="100"
-            strokeLinecap="round"
-          />
+          {pathD && (
+            <>
+              <path className="lg-pill__track" pathLength={100} d={pathD} />
+              <path className="lg-pill__fill" pathLength={100} d={pathD} />
+              <path className="lg-pill__head" pathLength={100} d={pathD} />
+            </>
+          )}
         </svg>
         <span aria-hidden className="lg-pill__dot" />
         <span className="lg-pill__label">Log in</span>
@@ -170,8 +176,11 @@ export default function LoginGateCard({
           position: relative;
           display: inline-flex;
           align-items: center;
-          gap: 12px;
-          padding: 16px 26px 16px 22px;
+          gap: 14px;
+          /* Equalized L/R padding — required for an axis-symmetric
+           * capsule so the ring path's top-center start point lines
+           * up with the visual top-center of the pill. */
+          padding: 16px 24px;
           border-radius: 999px;
           font-family: Inter, system-ui, sans-serif;
           font-weight: 700;
@@ -180,14 +189,12 @@ export default function LoginGateCard({
           text-transform: uppercase;
           color: var(--navy-ink);
           background: rgba(255, 255, 255, 0.97);
-          /* The old 1px navy border is replaced by the SVG ring
-           * track inside .lg-pill__ring — keeps a clean visual
-           * edge while letting the ring fill animate on top. */
+          /* The ring is the only outline. No CSS border, no inner
+           * white highlight, no ivory lip — those previously painted
+           * faint rims just outside the stroke and made the line
+           * look tucked inside a halo. Just one soft drop shadow. */
           border: none;
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.6),
-            0 2px 0 var(--ivory-3),
-            0 12px 30px -10px rgba(11, 37, 69, 0.55);
+          box-shadow: 0 16px 36px -18px rgba(11, 37, 69, 0.6);
           cursor: pointer;
           /* Entrance: invisible + pushed down. data-entered=1 lifts it. */
           opacity: 0;
@@ -211,10 +218,7 @@ export default function LoginGateCard({
           animation: none;
         }
         .lg-pill:hover {
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.7),
-            0 3px 0 var(--ivory-3),
-            0 22px 40px -14px rgba(11, 37, 69, 0.65);
+          box-shadow: 0 22px 50px -16px rgba(11, 37, 69, 0.7);
           transform: translateY(-2px) scale(1.02);
           animation-play-state: paused;
         }
@@ -225,9 +229,10 @@ export default function LoginGateCard({
           outline: 2px solid var(--navy);
           outline-offset: 3px;
         }
-        /* SVG countdown ring traced around the pill. Sits absolutely
-         * inside the button, fills it edge to edge, doesn't intercept
-         * clicks. */
+        /* SVG countdown ring. Sits absolutely inside the button,
+         * traces the live pill silhouette (path d is rebuilt from
+         * offsetWidth/Height), and the stroke is CENTERED on the
+         * edge so the line IS the visible frame. */
         .lg-pill__ring {
           position: absolute;
           inset: 0;
@@ -236,11 +241,25 @@ export default function LoginGateCard({
           pointer-events: none;
           overflow: visible;
         }
-        .lg-pill__ring-fill {
-          /* Drains from invisible (offset=100) to fully drawn
-           * (offset=0) over one cycle. Visually: a navy stroke
-           * traces clockwise around the pill's edge as the next
-           * rotation approaches. */
+        .lg-pill__ring path {
+          fill: none;
+        }
+        /* Track: always-on faint navy, gives the pill a clean
+         * static edge between cycles. */
+        .lg-pill__track {
+          stroke: rgba(11, 37, 69, 0.2);
+          stroke-width: 3px;
+        }
+        /* Fill: navy stroke that draws over one cycle. Tiny
+         * drop-shadow gives the leading edge a hair of glow so it
+         * reads cleanly against the white pill. */
+        .lg-pill__fill {
+          stroke: var(--navy);
+          stroke-width: 3px;
+          stroke-linecap: round;
+          stroke-dasharray: 100;
+          stroke-dashoffset: 100;
+          filter: drop-shadow(0 0 2px rgba(2, 101, 168, 0.55));
           animation: lg-ring-fill var(--cycle-ms, 10000ms) linear forwards;
         }
         @keyframes lg-ring-fill {
@@ -251,10 +270,36 @@ export default function LoginGateCard({
             stroke-dashoffset: 0;
           }
         }
+        /* Head: a zero-length round dash → renders as a dot. Moves
+         * via dashoffset 0 → -100 in sync with the fill's leading
+         * edge. Stronger glow filter makes it read as a "fuse." */
+        .lg-pill__head {
+          stroke: #dcebfb;
+          stroke-width: 5px;
+          stroke-linecap: round;
+          stroke-dasharray: 0.001 200;
+          stroke-dashoffset: 0;
+          filter:
+            drop-shadow(0 0 3px var(--navy))
+            drop-shadow(0 0 7px rgba(2, 101, 168, 0.85));
+          animation: lg-head-travel var(--cycle-ms, 10000ms) linear forwards;
+        }
+        @keyframes lg-head-travel {
+          from {
+            stroke-dashoffset: 0;
+          }
+          to {
+            stroke-dashoffset: -100;
+          }
+        }
         @media (prefers-reduced-motion: reduce) {
-          .lg-pill__ring-fill {
+          .lg-pill__fill {
             animation: none;
             stroke-dashoffset: 0;
+            filter: none;
+          }
+          .lg-pill__head {
+            display: none;
           }
         }
         /* Hide the ring while the form is shown (pill is fading out
@@ -285,16 +330,10 @@ export default function LoginGateCard({
         @keyframes lg-breathe {
           0%,
           100% {
-            box-shadow:
-              inset 0 1px 0 rgba(255, 255, 255, 0.6),
-              0 2px 0 var(--ivory-3),
-              0 12px 30px -10px rgba(11, 37, 69, 0.55);
+            box-shadow: 0 16px 36px -18px rgba(11, 37, 69, 0.6);
           }
           50% {
-            box-shadow:
-              inset 0 1px 0 rgba(255, 255, 255, 0.7),
-              0 2px 0 var(--ivory-3),
-              0 18px 36px -12px rgba(11, 37, 69, 0.7);
+            box-shadow: 0 24px 50px -20px rgba(11, 37, 69, 0.65);
           }
         }
         @media (prefers-reduced-motion: reduce) {
@@ -303,12 +342,13 @@ export default function LoginGateCard({
           }
         }
 
-        /* Mobile: pill ~10% smaller. */
+        /* Mobile: pill ~10% smaller. Padding stays symmetric so the
+         * ring path's top-center origin lines up visually. */
         @media (max-width: 640px) {
           .lg-pill {
-            padding: 14px 23px 14px 20px;
+            padding: 14px 22px;
             font-size: 12.5px;
-            gap: 10px;
+            gap: 12px;
           }
           .lg-pill__dot {
             width: 6px;
