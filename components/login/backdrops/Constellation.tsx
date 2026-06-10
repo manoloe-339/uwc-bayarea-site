@@ -186,14 +186,22 @@ export default function Constellation({
         // to the smaller bubbles.
         e.style.fontSize =
           ((26 + Math.random() * 18) * sizeScale).toFixed(0) + "px";
-        const a = Math.random() * Math.PI * 2;
-        const dist = (95 + Math.random() * 200) * sizeScale;
+        // Spread particles evenly around the burst origin instead
+        // of fully random angles — partition the circle into n
+        // sectors, give each particle one sector with a small
+        // jitter, so they fly out in different directions and don't
+        // pile on top of each other.
+        const baseAngle = ((k + Math.random() * 0.4) / n) * Math.PI * 2;
+        const a = baseAngle;
+        // +10% travel distance per Manolo's feedback so the burst
+        // breathes more rather than stacking.
+        const dist = (105 + Math.random() * 220) * sizeScale;
         e.style.setProperty("--tx", (Math.cos(a) * dist).toFixed(0) + "px");
         e.style.setProperty(
           "--ty",
           (
             Math.sin(a) * dist -
-            (38 + Math.random() * 90) * sizeScale
+            (42 + Math.random() * 100) * sizeScale
           ).toFixed(0) + "px",
         );
         e.style.setProperty(

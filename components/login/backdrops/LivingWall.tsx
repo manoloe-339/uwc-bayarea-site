@@ -6,6 +6,10 @@ import type { LoginTile } from "../faces-shared";
 
 interface Props {
   pool: LoginTile[];
+  /** Visibility flag — pool updates are deferred until this flips
+   * to false, so the user never sees a mid-cycle tile swap (the
+   * same fix Mosaic has). */
+  active?: boolean;
 }
 
 const TARGET_COL_WIDTH = 110;
@@ -30,10 +34,24 @@ const PER_COL = 12;
  * Tiles assigned across columns come from a single shuffle so the
  * same photo never appears in two columns simultaneously.
  */
-export default function LivingWall({ pool }: Props) {
+export default function LivingWall({ pool, active = true }: Props) {
   const wallRef = useRef<HTMLDivElement | null>(null);
   const [tilePx, setTilePx] = useState(96);
   const [colCount, setColCount] = useState(7);
+
+  // Pool we actually render with. Deferred from the prop until the
+  // backdrop is inactive — same idea as Mosaic. The scroll
+  // animation runs continuously, so a tile-content swap while the
+  // user is watching gets read as "old tiles flashing through" as
+  // each <img> finishes its new fetch independently. Holding the
+  // swap until off-screen keeps each on-screen pass stable.
+  const [displayPool, setDisplayPool] = useState<LoginTile[]>(pool);
+  useEffect(() => {
+    if (!active) setDisplayPool(pool);
+  }, [active, pool]);
+  useEffect(() => {
+    if (displayPool.length === 0 && pool.length > 0) setDisplayPool(pool);
+  }, [pool, displayPool.length]);
 
   useEffect(() => {
     const wall = wallRef.current;
@@ -58,7 +76,7 @@ export default function LivingWall({ pool }: Props) {
 
   const columns = useMemo(() => {
     const out: LoginTile[][] = [];
-    if (pool.length === 0) return out;
+    if (displayPool.length === 0) return out;
     // Distribute the pool across columns so a single photo only
     // shows up once across the entire wall. Each column gets a
     // CONTIGUOUS slice of the pool (PER_COL tiles, wrapping at the
@@ -67,14 +85,14 @@ export default function LivingWall({ pool }: Props) {
     // colCount * PER_COL).
     for (let c = 0; c < colCount; c++) {
       const col: LoginTile[] = [];
-      const start = (c * PER_COL) % pool.length;
+      const start = (c * PER_COL) % displayPool.length;
       for (let i = 0; i < PER_COL; i++) {
-        col.push(pool[(start + i) % pool.length]);
+        col.push(displayPool[(start + i) % displayPool.length]);
       }
       out.push(col);
     }
     return out;
-  }, [pool, colCount]);
+  }, [displayPool, colCount]);
 
   if (columns.length === 0) return null;
 

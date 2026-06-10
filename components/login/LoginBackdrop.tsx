@@ -147,7 +147,7 @@ function BackdropFor({
   photoPool: LoginTile[];
   active: boolean;
 }) {
-  if (id === "living") return <LivingWall pool={photoPool} />;
+  if (id === "living") return <LivingWall pool={photoPool} active={active} />;
   if (id === "mosaic") return <Mosaic pool={mixedPool} active={active} />;
   // Constellation is photos-only too — logo tiles inside rotating
   // circular nodes look wrong (the logo's own rectangular backplate
