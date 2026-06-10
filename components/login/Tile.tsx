@@ -69,9 +69,11 @@ export default function Tile({
   };
   const wrapClass = (className ?? "") + " select-none";
 
-  // ----- Flag tile: curated image (Vercel Blob) cover-cropped into
-  // the tile shape. Background is the deep-blue gradient so partial
-  // coverage on round tiles still reads as flag-on-navy.
+  // ----- Flag tile: curated image rendered exactly as the admin
+  // cropped it, contained inside the tile. The admin's crop sets
+  // the framing — if they cropped square + tight, the flag fills
+  // the tile edge to edge; if they kept the 4:3 source as-is, it
+  // shows with navy bars top + bottom (matches the tile bg).
   if (tile.kind === "flag") {
     return (
       <div
@@ -93,7 +95,7 @@ export default function Tile({
               inset: 0,
               width: "100%",
               height: "100%",
-              objectFit: "cover",
+              objectFit: "contain",
               objectPosition: "center",
             }}
           />
