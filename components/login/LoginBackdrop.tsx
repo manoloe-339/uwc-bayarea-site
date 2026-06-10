@@ -107,5 +107,9 @@ function BackdropFor({
 }) {
   if (id === "living") return <LivingWall pool={photoPool} />;
   if (id === "mosaic") return <Mosaic pool={mixedPool} />;
-  return <Constellation pool={mixedPool} />;
+  // Constellation is photos-only too — logo tiles inside rotating
+  // circular nodes look wrong (the logo's own rectangular backplate
+  // shows as a "square inside a circle", and the rotation tilts
+  // wordmarks awkwardly).
+  return <Constellation pool={photoPool} />;
 }

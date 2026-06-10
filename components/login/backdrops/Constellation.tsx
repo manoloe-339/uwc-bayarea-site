@@ -204,9 +204,12 @@ export default function Constellation({
         n.va += (n.baseVa - n.va) * 0.02;
         if (n.va > 3) n.va = 3;
         else if (n.va < -3) n.va = -3;
-        n.el.style.transform = `translate(${n.x - n.d / 2}px, ${n.y - n.d / 2}px) rotate(${n.angle}deg)`;
+        // Position only — visual transform is applied AFTER the
+        // iterative separation pass below.
       }
 
+      // Pass 1 — physics + emoji bursts + line drawing. Velocity
+      // change happens here so collisions feel elastic.
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const a = nodes[i];
@@ -237,11 +240,6 @@ export default function Constellation({
                 b.vx -= rel * nx;
                 b.vy -= rel * ny;
               }
-              const ov = (minDist - dist) / 2;
-              a.x -= nx * ov;
-              a.y -= ny * ov;
-              b.x += nx * ov;
-              b.y += ny * ov;
               const tx = -ny;
               const ty = nx;
               const relT = (b.vx - a.vx) * tx + (b.vy - a.vy) * ty;
@@ -254,6 +252,47 @@ export default function Constellation({
             touch.delete(key);
           }
         }
+      }
+      // Pass 2-4 — iterative position separation so NO two bubbles
+      // visibly overlap by the time we paint this frame. One-pass
+      // separation in the physics loop sometimes left residual
+      // overlap when three+ bubbles met simultaneously. Three more
+      // passes resolves the chain.
+      for (let pass = 0; pass < 3; pass++) {
+        let movedAny = false;
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const a = nodes[i];
+            const b = nodes[j];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const dist = Math.hypot(dx, dy) || 0.001;
+            const minDist = a.r + b.r + 0.5;
+            if (dist < minDist) {
+              const nx = dx / dist;
+              const ny = dy / dist;
+              const ov = (minDist - dist) / 2;
+              a.x -= nx * ov;
+              a.y -= ny * ov;
+              b.x += nx * ov;
+              b.y += ny * ov;
+              movedAny = true;
+            }
+          }
+        }
+        // Re-clamp to walls after each separation pass.
+        for (const n of nodes) {
+          const r = n.r;
+          if (n.x < r) n.x = r;
+          else if (n.x > W - r) n.x = W - r;
+          if (n.y < r) n.y = r;
+          else if (n.y > H - r) n.y = H - r;
+        }
+        if (!movedAny) break;
+      }
+      // Apply the resolved positions to the DOM.
+      for (const n of nodes) {
+        n.el.style.transform = `translate(${n.x - n.d / 2}px, ${n.y - n.d / 2}px) rotate(${n.angle}deg)`;
       }
 
       raf = requestAnimationFrame(frame);

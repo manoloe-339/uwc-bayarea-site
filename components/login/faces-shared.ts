@@ -202,15 +202,23 @@ function shuffleSeeded<T>(arr: T[], seed: number): T[] {
   return out;
 }
 
-/** Combine the four pools at the 60 / 25 / 10 / 5 mix — but with a
- * hard "no duplicates" guarantee within the returned pool. When a
- * category is short of unique tiles to hit its target (e.g. we only
- * have ~18 distinct UWC logos but the 25% ratio asks for 60), we
- * take what we have and refill the shortfall with extra photos
- * (which we have plenty of). Net effect: every tile in the returned
- * pool is distinct by id, photos can run above 60% when other
- * categories under-supply, and the user never sees the same face /
- * logo / flag twice in a single mosaic.
+/** Combine the four pools at the 60 / 25 / 10 / 5 mix and return them
+ * in a STRIDE-DISTRIBUTED order (not a random shuffle), so when the
+ * Mosaic walks pool[0..N] it never clusters two same-category tiles
+ * adjacent to each other.
+ *
+ * Each tile gets a "target position" along [0, target):
+ *   - photos at i * (target / photoCount)
+ *   - UWCs   at (i + 0.4) * (target / uwcCount)
+ *   - orgs   at (i + 0.7) * (target / orgCount)
+ *   - flags  at (i + 0.2) * (target / flagCount)
+ * The fractional offsets keep categories from landing on the same
+ * slot when their strides happen to align. We then sort by target
+ * position to get a deterministic, well-spread ordering.
+ *
+ * No duplicates by id are emitted. Categories cap at their available
+ * supply (e.g. ~18 unique UWCs); shortfalls are filled with extra
+ * photos (we always have plenty).
  */
 export function buildTilePool(opts: {
   target: number;
@@ -232,25 +240,51 @@ export function buildTilePool(opts: {
     return shuffled.slice(0, Math.min(n, shuffled.length));
   };
 
-  const picked = [
-    ...take(uwcs, wantUwc, 2),
-    ...take(orgs, wantOrg, 3),
-    ...take(flags, wantFlag, 4),
-  ];
-  const usedPhotoIds = new Set<string>();
-  const photoExtras = take(photos, wantPhoto, 1);
-  for (const p of photoExtras) usedPhotoIds.add(p.id);
+  const pickedUwcs = take(uwcs, wantUwc, 2);
+  const pickedOrgs = take(orgs, wantOrg, 3);
+  const pickedFlags = take(flags, wantFlag, 4);
+  const pickedPhotos = take(photos, wantPhoto, 1);
 
-  // Top up to `target` from any remaining unused photos when the
-  // logo/flag pools came up short.
-  const remaining = target - picked.length - photoExtras.length;
-  let topUp: LoginTile[] = [];
-  if (remaining > 0) {
-    const leftover = shuffleSeeded(photos, seed ^ 5).filter(
-      (p) => !usedPhotoIds.has(p.id),
-    );
-    topUp = leftover.slice(0, remaining);
-  }
+  // Top up photos to fill any shortfall from logo/flag categories.
+  const totalSoFar =
+    pickedUwcs.length + pickedOrgs.length + pickedFlags.length + pickedPhotos.length;
+  const shortfall = target - totalSoFar;
+  const usedPhotoIds = new Set(pickedPhotos.map((p) => p.id));
+  const photoExtras =
+    shortfall > 0
+      ? shuffleSeeded(photos, seed ^ 5)
+          .filter((p) => !usedPhotoIds.has(p.id))
+          .slice(0, shortfall)
+      : [];
+  const allPhotos = [...pickedPhotos, ...photoExtras];
 
-  return shuffleSeeded([...photoExtras, ...topUp, ...picked], seed);
+  // Per-visit jitter: each category's start offset rotates based on
+  // the seed so the same logo doesn't always land in the same cell
+  // across loads. Without this the stride distribution is fully
+  // deterministic and the Mosaic feels static on refresh.
+  const jit = (salt: number) => {
+    const s = (seed ^ salt) >>> 0;
+    return ((s % 1000) / 1000) % 1; // [0, 1)
+  };
+
+  type Placed = { pos: number; tile: LoginTile };
+  const placed: Placed[] = [];
+  const place = (pool: LoginTile[], salt: number) => {
+    if (pool.length === 0) return;
+    const stride = target / pool.length;
+    const startOffset = jit(salt) * stride; // jitter the phase
+    for (let i = 0; i < pool.length; i++) {
+      placed.push({
+        pos: (startOffset + i * stride) % target,
+        tile: pool[i],
+      });
+    }
+  };
+  place(allPhotos, 11);
+  place(pickedUwcs, 22);
+  place(pickedOrgs, 33);
+  place(pickedFlags, 44);
+
+  placed.sort((a, b) => a.pos - b.pos);
+  return placed.map((p) => p.tile);
 }
