@@ -58,7 +58,7 @@ export default function LivingWall({ pool }: Props) {
     <div className="absolute inset-0 overflow-hidden">
       <div
         ref={wallRef}
-        className="absolute inset-0 -top-40 -bottom-40 flex gap-5 justify-center px-4"
+        className="absolute inset-0 -top-40 -bottom-40 flex gap-5 justify-center items-start px-4"
       >
         {columns.map((col, ci) => {
           const dur = 38 + (ci % 4) * 9;

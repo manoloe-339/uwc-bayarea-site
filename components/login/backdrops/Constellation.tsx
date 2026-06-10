@@ -47,7 +47,7 @@ type Node = {
  */
 export default function Constellation({
   pool,
-  density = 1.6,
+  density = 1.45,
   speed = 1,
 }: Props) {
   const fieldRef = useRef<HTMLDivElement | null>(null);
@@ -76,11 +76,11 @@ export default function Constellation({
     };
     size();
 
-    // Lower divisor + higher cap = denser field. Original spec
-    // hit ~22 nodes on a 1440x900 viewport; new defaults land at
-    // ~50, which the user wanted (less empty space).
+    // Density tuned to ~45 nodes on a 1440x900 viewport — denser
+    // than the original ~22, but a touch lighter than the first
+    // pass at ~50 which felt slightly crowded.
     const base = Math.round((W * H) / 38000);
-    const COUNT = Math.max(12, Math.min(72, Math.round(base * density)));
+    const COUNT = Math.max(12, Math.min(65, Math.round(base * density)));
 
     const nodes: Node[] = [];
     for (let i = 0; i < COUNT; i++) {
