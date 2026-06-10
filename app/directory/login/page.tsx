@@ -36,6 +36,13 @@ const MIXED_POOL_SIZE = 240;
  * is re-shuffled per request below. */
 const PHOTO_QUERY_SIZE = 1000;
 
+/** Alumni whose LinkedIn profile picture is actually a school crest
+ * or company logo — the file lives at /alumni-photos/<id>.jpg (so
+ * the URL-based NOT IN can't catch it) but the image content is a
+ * logo. Add an id here when you spot another one. Long-term we can
+ * promote this to an admin checkbox on the alumni record. */
+const EXCLUDE_FROM_LOGIN_PHOTOS = [99];
+
 /**
  * Sign-in surface. Server-fetches the alumni photo / UWC logo / org
  * logo / flag pools, mixes them at the 60/25/10/5 ratio, and hands
@@ -69,6 +76,7 @@ export default async function DirectoryLoginPage({
         AND affiliation ILIKE '%alum%'
         AND deceased IS NOT TRUE
         AND moved_out IS NOT TRUE
+        AND id != ALL(${EXCLUDE_FROM_LOGIN_PHOTOS}::int[])
         AND photo_url NOT IN (
           SELECT school_logo_url
           FROM alumni_education
