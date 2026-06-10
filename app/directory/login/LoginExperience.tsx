@@ -17,6 +17,64 @@ interface Props {
 
 const REFRESH_MS = 30_000;
 
+/** Collect every URL the new pool's tiles will render. Mirrors the
+ * widths the backdrops actually request (384 for photos in Living
+ * Wall + Constellation, 256 for everything in Mosaic) so the
+ * preload hits the same cache entries the live <img>s will. */
+function collectPoolUrls(pools: {
+  photoPool: LoginTile[];
+  mixedPool: LoginTile[];
+}): string[] {
+  const opt = (u: string, w: number) =>
+    u.endsWith(".svg")
+      ? u
+      : `/_next/image?url=${encodeURIComponent(u)}&w=${w}&q=70`;
+  const out = new Set<string>();
+  for (const t of pools.photoPool) {
+    if (t.kind === "photo") out.add(opt(t.imgUrl, 384));
+  }
+  for (const t of pools.mixedPool) {
+    if (t.kind === "uwc" || t.kind === "org" || t.kind === "flag") {
+      if (t.imgUrl) out.add(opt(t.imgUrl, 256));
+    }
+  }
+  return Array.from(out);
+}
+
+/** Warm the browser cache for every URL the new pool will render.
+ * Resolves when `threshold` fraction have settled (loaded or
+ * errored) OR when `maxMs` elapses, whichever comes first — so an
+ * unusually slow image doesn't block the swap indefinitely. */
+function warmImageCache(
+  pools: { photoPool: LoginTile[]; mixedPool: LoginTile[] },
+  threshold: number,
+  maxMs: number,
+): Promise<void> {
+  const urls = collectPoolUrls(pools);
+  if (urls.length === 0) return Promise.resolve();
+  const target = Math.max(1, Math.ceil(urls.length * threshold));
+  return new Promise<void>((resolve) => {
+    let settled = 0;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      resolve();
+    };
+    const onOne = () => {
+      settled++;
+      if (settled >= target) finish();
+    };
+    for (const u of urls) {
+      const img = new window.Image();
+      img.onload = onOne;
+      img.onerror = onOne;
+      img.src = u;
+    }
+    setTimeout(finish, maxMs);
+  });
+}
+
 /**
  * Top-level client wrapper for /directory/login. Owns two pieces of
  * state the previous reload-based design couldn't share cleanly:
@@ -54,6 +112,14 @@ export default function LoginExperience({
           photoPool: LoginTile[];
           mixedPool: LoginTile[];
         };
+        // PRELOAD before swap. If we just setState() right away, each
+        // <img src> swap on the Living Wall + Mosaic + Constellation
+        // happens at its own pace — fast for cached URLs, slow for
+        // cold ones — so for a beat the user sees a mix of old + new
+        // tiles. Warming the browser cache first means every src
+        // update resolves instantly from cache, so all tiles
+        // visually swap in lockstep.
+        await warmImageCache(data, 0.75, 5_500);
         setPools(data);
       } catch {
         // Silently ignore — next tick will retry.

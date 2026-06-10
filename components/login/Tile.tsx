@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type LoginTile, tileBackground } from "./faces-shared";
 
 interface Props {
@@ -48,6 +48,13 @@ export default function Tile({
   imgWidth = 256,
 }: Props) {
   const [imgFailed, setImgFailed] = useState(false);
+
+  // Reset the failure flag whenever the tile changes — otherwise a
+  // tile slot that previously failed to load would also hide its
+  // replacement when the parent swaps in a new pool.
+  useEffect(() => {
+    setImgFailed(false);
+  }, [tile.id]);
 
   const radius = square ? "18%" : "50%";
   const wrapStyle: React.CSSProperties = {
