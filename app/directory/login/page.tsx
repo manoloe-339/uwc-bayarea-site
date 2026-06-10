@@ -168,17 +168,23 @@ export default async function DirectoryLoginPage({
   )[Math.floor(Math.random() * 3)];
 
   // Image URLs the LoadingGate uses to gauge "enough loaded to show
-  // the page". We pass photo URLs from the photoPool (Living Wall +
-  // Constellation backdrop, both photo-only) plus the logo URLs from
-  // the mixed pool (Mosaic). Half of these have to settle before the
-  // sign-in card is revealed.
+  // the page". These must match what the backdrops actually request
+  // (Vercel-optimized URLs at the right width per backdrop), so the
+  // preloads and the live tile <img> tags hit the same cache entry.
+  const opt = (u: string, w: number) =>
+    u.endsWith(".svg") ? u : `/_next/image?url=${encodeURIComponent(u)}&w=${w}&q=70`;
   const preloadUrls: string[] = [];
+  // Living Wall + Constellation: photoPool at the larger Constellation
+  // width (384) covers both — Living Wall's 256-px request will hit
+  // the same cached optimization once it's already served at 384,
+  // and the cost difference is negligible at scale.
   for (const t of photoPool) {
-    if (t.kind === "photo") preloadUrls.push(t.imgUrl);
+    if (t.kind === "photo") preloadUrls.push(opt(t.imgUrl, 384));
   }
+  // Mosaic: logos + flags at 192px.
   for (const t of mixedPool) {
     if (t.kind === "uwc" || t.kind === "org") {
-      if (t.imgUrl) preloadUrls.push(t.imgUrl);
+      if (t.imgUrl) preloadUrls.push(opt(t.imgUrl, 192));
     } else if (t.kind === "flag") {
       preloadUrls.push(t.svgUrl);
     }

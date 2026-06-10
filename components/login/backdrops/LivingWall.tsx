@@ -114,6 +114,7 @@ export default function LivingWall({ pool }: Props) {
                 <Tile
                   key={`${ci}-${i}`}
                   tile={tile}
+                  imgWidth={384}
                   style={{
                     width: `${tilePx}px`,
                     height: `${tilePx}px`,

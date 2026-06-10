@@ -98,6 +98,7 @@ export default function Mosaic({ pool }: Props) {
                 <Tile
                   tile={cell.front}
                   square
+                  imgWidth={192}
                   style={{ width: "100%", height: "100%" }}
                   noTitle
                 />
@@ -109,6 +110,7 @@ export default function Mosaic({ pool }: Props) {
                 <Tile
                   tile={cell.back}
                   square
+                  imgWidth={192}
                   style={{ width: "100%", height: "100%" }}
                   noTitle
                 />

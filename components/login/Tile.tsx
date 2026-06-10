@@ -15,6 +15,22 @@ interface Props {
   style?: React.CSSProperties;
   /** Hide the tooltip — Mosaic does this to avoid 120 hover bubbles. */
   noTitle?: boolean;
+  /** Pixel width to request from Vercel Image Optimization. Backdrops
+   * pass a size matched to where the tile renders so we don't pull
+   * 450x450 JPEGs to fill a 110px circle. */
+  imgWidth?: number;
+}
+
+/** Build a `/_next/image?...` URL so Vercel resizes the source on the
+ * fly. Source must be a host that's whitelisted in next.config's
+ * images.remotePatterns. Local /public assets pass through unchanged
+ * — Next won't double-optimize an SVG anyway. q=70 is a good size
+ * vs. quality tradeoff for the small tile sizes we render at. */
+function optimized(url: string, width: number): string {
+  // SVGs are vector — Next.js skips optimization for them, so just
+  // return the raw URL. Same for absolute paths under /flags/ etc.
+  if (url.endsWith(".svg")) return url;
+  return `/_next/image?url=${encodeURIComponent(url)}&w=${width}&q=70`;
 }
 
 /**
@@ -29,6 +45,7 @@ export default function Tile({
   className,
   style,
   noTitle,
+  imgWidth = 256,
 }: Props) {
   const [imgFailed, setImgFailed] = useState(false);
 
@@ -109,7 +126,7 @@ export default function Tile({
         title={noTitle ? undefined : tile.label}
       >
         <img
-          src={tile.imgUrl}
+          src={optimized(tile.imgUrl, imgWidth)}
           alt={tile.label}
           onError={() => setImgFailed(true)}
           style={{
@@ -142,7 +159,7 @@ export default function Tile({
       >
         {hasImage ? (
           <img
-            src={tile.imgUrl as string}
+            src={optimized(tile.imgUrl as string, imgWidth)}
             alt={tile.label}
             onError={() => setImgFailed(true)}
             style={{
@@ -180,7 +197,7 @@ export default function Tile({
     >
       {hasImage && (
         <img
-          src={tile.imgUrl as string}
+          src={optimized(tile.imgUrl as string, imgWidth)}
           alt={tile.label}
           onError={() => setImgFailed(true)}
           loading="lazy"

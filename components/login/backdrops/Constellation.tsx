@@ -104,6 +104,7 @@ export default function Constellation({
       root.render(
         <Tile
           tile={tile}
+          imgWidth={384}
           style={{
             width: "100%",
             height: "100%",
