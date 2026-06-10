@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 
 interface Props {
@@ -11,6 +11,52 @@ interface Props {
   /** Fires when the user clicks Save with the cropped JPEG blob. */
   onSave: (blob: Blob) => Promise<void> | void;
   onCancel: () => void;
+}
+
+/** Rasterize an SVG (or any image) to a fixed-size square PNG data
+ * URL, with white background and aspect preserved (letterboxed).
+ * react-easy-crop relies on the source's intrinsic naturalWidth /
+ * naturalHeight, but SVGs that only declare a viewBox (like the
+ * lipis/flag-icons set) return ambiguous natural dimensions when
+ * loaded via <img>, throwing the crop coordinate system off. By
+ * rasterizing first we hand the cropper a well-formed bitmap with
+ * naturalWidth = naturalHeight = SIZE. */
+async function rasterize(src: string, size = 1024): Promise<string> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new Image();
+    el.crossOrigin = "anonymous";
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("Failed to load source"));
+    el.src = src;
+  });
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas not supported");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, size, size);
+  // Preserve aspect by fitting "contain" inside the square — extra
+  // space is white (matches the saved crop's background). naturalW/H
+  // for SVGs without explicit dims defaults to 300x150 across most
+  // browsers, which is fine: we just letterbox to 4:3-ish here.
+  const w = img.naturalWidth || 300;
+  const h = img.naturalHeight || 150;
+  const aspect = w / h;
+  let drawW: number, drawH: number, drawX: number, drawY: number;
+  if (aspect >= 1) {
+    drawW = size;
+    drawH = size / aspect;
+    drawX = 0;
+    drawY = (size - drawH) / 2;
+  } else {
+    drawH = size;
+    drawW = size * aspect;
+    drawY = 0;
+    drawX = (size - drawW) / 2;
+  }
+  ctx.drawImage(img, drawX, drawY, drawW, drawH);
+  return canvas.toDataURL("image/png");
 }
 
 /** Modal-style cropping UI built on react-easy-crop. The user drags
@@ -28,16 +74,39 @@ export default function CropEditor({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // For SVG sources, rasterize to a known-size PNG before handing to
+  // the cropper. Non-SVG sources pass through unchanged.
+  const [rasterSrc, setRasterSrc] = useState<string | null>(
+    src.endsWith(".svg") ? null : src,
+  );
+  useEffect(() => {
+    if (!src.endsWith(".svg")) {
+      setRasterSrc(src);
+      return;
+    }
+    let cancelled = false;
+    rasterize(src)
+      .then((url) => {
+        if (!cancelled) setRasterSrc(url);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Couldn't load image for cropping.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [src]);
+
   const onCropComplete = useCallback((_: Area, areaPixels: Area) => {
     setPixels(areaPixels);
   }, []);
 
   const handleSave = async () => {
-    if (!pixels) return;
+    if (!pixels || !rasterSrc) return;
     setBusy(true);
     setError(null);
     try {
-      const blob = await cropToBlob(src, pixels);
+      const blob = await cropToBlob(rasterSrc, pixels);
       await onSave(blob);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save crop.");
@@ -63,8 +132,9 @@ export default function CropEditor({
           className="relative rounded-md overflow-hidden"
           style={{ height: 380, background: "#fff" }}
         >
+          {rasterSrc ? (
           <Cropper
-            image={src}
+            image={rasterSrc}
             crop={crop}
             zoom={zoom}
             aspect={aspect}
@@ -91,6 +161,11 @@ export default function CropEditor({
               cropAreaStyle: {},
             }}
           />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-[12px] text-[color:var(--muted)]">
+              Loading image…
+            </div>
+          )}
         </div>
         <label className="block mt-4">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
