@@ -201,7 +201,12 @@ export default function LoginExperience({
         </div>
       </header>
 
-      <main className="relative z-[2] min-h-screen flex items-center justify-center px-5 py-20">
+      {/* min-h-[100dvh] uses dynamic viewport height — on mobile,
+          that's the actual visible area (excludes the collapsing
+          browser URL bar), so the pill genuinely sits at viewport
+          center. py is light (no need for big breathing room since
+          the form is short and the pill is tiny). */}
+      <main className="relative z-[2] min-h-[100dvh] flex items-center justify-center px-5 py-8">
         <LoginGateCard
           next={next}
           showForm={showForm}

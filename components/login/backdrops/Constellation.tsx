@@ -7,9 +7,9 @@ import type { LoginTile } from "../faces-shared";
 
 interface Props {
   pool: LoginTile[];
-  /** Multiplies the node count. Default 1.6 fills the field more
-   * generously than the original 1.0 (which left visible empty
-   * patches on wide viewports). */
+  /** Multiplies the node count. Default 1.15 lands at ~30 nodes on
+   * a 1440x900 viewport — enough to feel populated without the
+   * field reading as packed. */
   density?: number;
   /** Multiplies linear & angular speeds. */
   speed?: number;
@@ -51,7 +51,7 @@ type Node = {
  */
 export default function Constellation({
   pool,
-  density = 1.45,
+  density = 1.15,
   speed = 1,
   active = true,
 }: Props) {
@@ -94,11 +94,11 @@ export default function Constellation({
     };
     size();
 
-    // Density tuned to ~45 nodes on a 1440x900 viewport — denser
-    // than the original ~22, but a touch lighter than the first
-    // pass at ~50 which felt slightly crowded.
-    const base = Math.round((W * H) / 38000);
-    const COUNT = Math.max(12, Math.min(65, Math.round(base * density)));
+    // Density tuned for ~70% empty space (~30 nodes on a 1440x900
+    // viewport). The previous 1 / 38000 + cap 65 produced ~49 nodes
+    // which Manolo flagged as visually packed.
+    const base = Math.round((W * H) / 50000);
+    const COUNT = Math.max(12, Math.min(45, Math.round(base * density)));
 
     // Scale tile sizes by viewport width so mobile (≤640px) gets
     // smaller bubbles with room to drift and collide; desktop keeps
