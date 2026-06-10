@@ -92,6 +92,44 @@ export async function createLoginAsset(formData: FormData): Promise<void> {
   revalidatePath("/admin/tools/login-assets");
 }
 
+/** Replace an existing entry's image with a (presumably cropped)
+ * new file. Used by the Crop / zoom modal in the admin UI. */
+export async function replaceLoginAssetImage(
+  formData: FormData,
+): Promise<void> {
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id) || id <= 0) failTo("Bad asset id.");
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) failTo("No file provided.");
+
+  // Look up the asset so we can pick a stable-ish key off its label.
+  const existing = (await sql`
+    SELECT kind, label FROM login_assets WHERE id = ${id}
+  `) as Array<{ kind: AssetKind; label: string }>;
+  if (existing.length === 0) failTo("Asset not found.");
+  const { kind, label } = existing[0];
+
+  const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) || "asset";
+  const hash = crypto.randomBytes(6).toString("hex");
+  const ext = (file.name.match(/\.([a-zA-Z0-9]+)$/)?.[1] ?? "jpg").toLowerCase();
+  const key = `login-library/${kind}/${slug}-${hash}.${ext}`;
+  let uploaded: { url: string };
+  try {
+    uploaded = await put(key, file, {
+      access: "public",
+      allowOverwrite: true,
+    });
+  } catch (err) {
+    failTo(err instanceof Error ? err.message : "Upload to storage failed.");
+  }
+  await sql`
+    UPDATE login_assets
+    SET image_url = ${uploaded.url}, updated_at = NOW()
+    WHERE id = ${id}
+  `;
+  revalidatePath(PAGE);
+}
+
 export async function deleteLoginAsset(formData: FormData): Promise<void> {
   const id = Number(formData.get("id"));
   if (!Number.isInteger(id) || id <= 0) throw new Error("bad id");

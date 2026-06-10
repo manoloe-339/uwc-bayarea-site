@@ -1,6 +1,7 @@
 import { sql } from "@/lib/db";
 import { COLLEGES } from "@/lib/uwc-colleges";
-import { clearUwcAsset, uploadUwcAsset, type UwcSlot } from "./actions";
+import { type UwcSlot } from "./actions";
+import UwcSlotCard from "./UwcSlotCard";
 
 export const dynamic = "force-dynamic";
 
@@ -37,8 +38,8 @@ export default async function UwcAssetsPage({
       <p className="text-[color:var(--muted)] mt-2 text-sm leading-relaxed max-w-prose">
         Curated logo + campus + extra-photo slots for each of the 19 UWC schools.
         These feed the animated <code>/directory/login</code> backdrop. Upload
-        replaces the previous file. Vercel auto-generates resized versions; the
-        login page requests them at the right width per backdrop.
+        replaces the previous file. Each filled slot has a Crop / zoom button
+        for adjusting framing per photo.
       </p>
 
       {errorMessage && (
@@ -75,7 +76,7 @@ export default async function UwcAssetsPage({
                         ? row?.campus_url
                         : row?.other_url;
                   return (
-                    <SlotCard
+                    <UwcSlotCard
                       key={slot.key}
                       canonical={c.canonical}
                       slot={slot.key}
@@ -90,77 +91,6 @@ export default async function UwcAssetsPage({
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function SlotCard({
-  canonical,
-  slot,
-  label,
-  help,
-  url,
-}: {
-  canonical: string;
-  slot: UwcSlot;
-  label: string;
-  help: string;
-  url: string | null;
-}) {
-  return (
-    <div className="border border-[color:var(--rule)] rounded-md p-3 flex flex-col">
-      <div className="text-[11px] tracking-[.16em] uppercase font-bold text-[color:var(--muted)] mb-2">
-        {label}
-      </div>
-      <div className="aspect-square bg-[color:var(--ivory-2)] rounded flex items-center justify-center mb-2 overflow-hidden">
-        {url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={url}
-            alt={`${canonical} ${label}`}
-            className="w-full h-full object-contain"
-          />
-        ) : (
-          <span className="text-xs text-[color:var(--muted)]">— empty —</span>
-        )}
-      </div>
-      <p className="text-[11px] text-[color:var(--muted)] mb-2 leading-snug">
-        {help}
-      </p>
-      <form action={uploadUwcAsset} className="flex flex-col gap-2">
-        <input type="hidden" name="canonical" value={canonical} />
-        <input type="hidden" name="slot" value={slot} />
-        <input
-          type="file"
-          name="file"
-          accept="image/*"
-          className="text-xs"
-        />
-        <input
-          type="url"
-          name="url"
-          placeholder="…or paste an image URL"
-          className="text-xs border border-[color:var(--rule)] rounded px-2 py-1 bg-white"
-        />
-        <button
-          type="submit"
-          className="bg-navy text-white text-xs font-bold px-3 py-1.5 rounded"
-        >
-          Upload
-        </button>
-      </form>
-      {url && (
-        <form action={clearUwcAsset} className="mt-2">
-          <input type="hidden" name="canonical" value={canonical} />
-          <input type="hidden" name="slot" value={slot} />
-          <button
-            type="submit"
-            className="text-[11px] text-red-700 hover:underline"
-          >
-            Remove
-          </button>
-        </form>
-      )}
     </div>
   );
 }

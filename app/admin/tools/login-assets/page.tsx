@@ -1,5 +1,6 @@
 import { sql } from "@/lib/db";
-import { createLoginAsset, deleteLoginAsset } from "./actions";
+import { createLoginAsset } from "./actions";
+import LoginAssetCard from "./LoginAssetCard";
 
 export const dynamic = "force-dynamic";
 
@@ -146,31 +147,13 @@ export default async function LoginAssetsPage({
               ) : (
                 <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {groups[kind].map((r) => (
-                    <li
+                    <LoginAssetCard
                       key={r.id}
-                      className="bg-white border border-[color:var(--rule)] rounded-md p-3"
-                    >
-                      <div className="aspect-square bg-[color:var(--ivory-2)] rounded mb-2 overflow-hidden flex items-center justify-center">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={r.image_url}
-                          alt={r.label}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <div className="text-xs font-bold text-[color:var(--navy-ink)] truncate">
-                        {r.label}
-                      </div>
-                      <form action={deleteLoginAsset} className="mt-2">
-                        <input type="hidden" name="id" value={r.id} />
-                        <button
-                          type="submit"
-                          className="text-[11px] text-red-700 hover:underline"
-                        >
-                          Delete
-                        </button>
-                      </form>
-                    </li>
+                      id={r.id}
+                      label={r.label}
+                      imageUrl={r.image_url}
+                      kind={r.kind}
+                    />
                   ))}
                 </ul>
               )}
