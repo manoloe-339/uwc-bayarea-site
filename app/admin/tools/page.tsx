@@ -274,6 +274,35 @@ export default async function ToolsIndex() {
           </p>
         </Link>
       </div>
+
+      <SectionHeading>Directory login backdrop</SectionHeading>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <Link
+          href="/admin/tools/uwc-assets"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🎓 UWC assets</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">Logo + campus + extra photo per UWC</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Curated per-school visuals that feed the animated{" "}
+            <code>/directory/login</code> backdrop. Three upload slots per UWC.
+            Logos appear on Mosaic tiles; campus + other photos mix into the
+            photo pool alongside alumni headshots.
+          </p>
+        </Link>
+        <Link
+          href="/admin/tools/login-assets"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">🖼️ Login asset library</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">University / company / flag assets</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Free-form library of non-UWC visuals for the login backdrop. Pick a
+            kind (university logo, company logo, or flag) per upload. Empty
+            categories simply don&rsquo;t appear on the login screen.
+          </p>
+        </Link>
+      </div>
     </div>
   );
 }
