@@ -117,11 +117,10 @@ export default function Tile({
     );
   }
 
-  // ----- UWC tile: logo on white. Uses object-fit: CONTAIN with a
-  // small inset (92%) — UWC logos vary in shape (some are square
-  // icon marks, some are wide wordmarks like "UWC USA") so we can't
-  // safely cover-crop. Contain shows the logo cleanly at the cost of
-  // a small white margin.
+  // ----- UWC tile: logo on white. Renders the curated asset at
+  // 100% — the admin uses the CropEditor to set whatever padding
+  // they want, so adding a CSS inset here would fight that choice.
+  // object-fit: contain still handles non-square assets safely.
   if (tile.kind === "uwc") {
     return (
       <div
@@ -134,8 +133,8 @@ export default function Tile({
           alt={tile.label}
           onError={() => setImgFailed(true)}
           style={{
-            width: "92%",
-            height: "92%",
+            width: "100%",
+            height: "100%",
             objectFit: "contain",
             objectPosition: "center",
             opacity: imgFailed ? 0 : 1,
@@ -145,9 +144,9 @@ export default function Tile({
     );
   }
 
-  // ----- Org tile: company / non-UWC university logo, contained
-  // with a small inset (same logic as UWC — wordmark vs square-mark
-  // shapes vary).
+  // ----- Org tile: curated company / university logo. Renders at
+  // 100% so a full-bleed crop fills the tile edge to edge; padding
+  // is the admin's job via the CropEditor.
   if (tile.kind === "org") {
     const hasImage = !!tile.imgUrl && !imgFailed;
     return (
@@ -167,8 +166,8 @@ export default function Tile({
             alt={tile.label}
             onError={() => setImgFailed(true)}
             style={{
-              width: "92%",
-              height: "92%",
+              width: "100%",
+              height: "100%",
               objectFit: "contain",
               objectPosition: "center",
             }}
