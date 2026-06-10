@@ -305,10 +305,17 @@ export function buildTilePool(opts: {
   const place = (pool: LoginTile[], salt: number) => {
     if (pool.length === 0) return;
     const slotSize = target / pool.length;
+    // Global per-category offset: rotates ALL items in the category
+    // by the same amount each visit. Without this, slot boundaries
+    // were fixed across visits (UWC slot 0 was always [0, slotSize),
+    // etc.), so UWCs landed in the same cells every load. The
+    // offset shifts the entire category to a fresh starting
+    // position per request.
+    const globalOffset = rand01((seed ^ salt) >>> 0 ^ 0xbeef) * target;
     for (let i = 0; i < pool.length; i++) {
       const jitter = rand01(seed ^ salt ^ (i * 2654435761)) * slotSize;
       placed.push({
-        pos: i * slotSize + jitter,
+        pos: (globalOffset + i * slotSize + jitter) % target,
         tile: pool[i],
       });
     }
