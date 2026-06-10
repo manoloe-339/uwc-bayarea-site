@@ -1,6 +1,7 @@
 import { sql } from "@/lib/db";
 import { sendCampaignNow } from "@/lib/campaign-send";
 import { sendRemindersForEvent } from "@/lib/attendee-reminder";
+import { isAnyDueNow, refreshNextDueAt } from "@/lib/scheduled-work";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes — enough headroom for a ~500-recipient send
@@ -24,6 +25,12 @@ export async function GET(req: Request): Promise<Response> {
   const auth = req.headers.get("authorization");
   if (auth !== `Bearer ${secret}`) {
     return new Response("unauthorized", { status: 401 });
+  }
+
+  // Redis gate: skip the DB entirely when nothing is due. This is what keeps
+  // Neon auto-suspended — most ticks never touch the database.
+  if (!(await isAnyDueNow())) {
+    return Response.json({ ok: true, skipped: true });
   }
 
   const due = (await sql`
@@ -124,6 +131,12 @@ export async function GET(req: Request): Promise<Response> {
       console.error(`[cron/send-scheduled] event=${ev.id} threw:`, err);
     }
   }
+
+  // Recompute the next-due timestamp now that some items have been processed.
+  // If nothing is left pending the key gets deleted and subsequent ticks bail
+  // out at the gate above — i.e. the cron self-disables until you schedule
+  // something else.
+  await refreshNextDueAt();
 
   return Response.json({
     ok: true,

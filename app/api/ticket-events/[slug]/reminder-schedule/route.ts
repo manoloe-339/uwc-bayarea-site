@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import { getEventBySlug } from "@/lib/events-db";
+import { refreshNextDueAt } from "@/lib/scheduled-work";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,7 @@ export async function POST(
         updated_at = NOW()
     WHERE id = ${event.id}
   `;
+  await refreshNextDueAt();
   revalidatePath(`/admin/events/${slug}/communications`);
   return NextResponse.json({ ok: true, scheduled_at: sendAt });
 }

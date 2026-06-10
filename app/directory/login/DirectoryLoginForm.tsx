@@ -7,6 +7,18 @@ interface Props {
   next: string;
 }
 
+const INPUT_CLASS =
+  "w-full bg-white border-[1.5px] border-[color:var(--rule)] rounded-[11px] " +
+  "px-4 py-[15px] text-[16px] text-[color:var(--navy-ink)] placeholder:text-[color:var(--muted-2)] " +
+  "transition focus:outline-none focus:border-[color:var(--navy)] " +
+  "focus:[box-shadow:0_0_0_4px_rgba(2,101,168,.14)]";
+
+const PASSWORD_CLASS = INPUT_CLASS + " pr-[78px]";
+
+const LABEL_CLASS =
+  "block text-[12px] tracking-[.18em] uppercase font-bold " +
+  "text-[color:var(--muted)] mb-[9px] mt-[14px]";
+
 export default function DirectoryLoginForm({ next }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,18 +41,15 @@ export default function DirectoryLoginForm({ next }: Props) {
       }
       const data = (await res.json()) as { next?: string };
       // Full reload so middleware sees the freshly-set Set-Cookie
-      // header — router.push() can race with cookie propagation and
-      // bounce the user back to /directory/login on the next render.
+      // header — router.push() can race with cookie propagation.
       window.location.href = data.next ?? "/directory";
     });
   };
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className="flex flex-col gap-2">
       <label className="block">
-        <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-          Email
-        </span>
+        <span className={LABEL_CLASS}>Email</span>
         <input
           type="email"
           value={email}
@@ -48,32 +57,34 @@ export default function DirectoryLoginForm({ next }: Props) {
           autoFocus
           autoComplete="email"
           placeholder="your@email.com"
-          className="w-full border border-[color:var(--rule)] rounded px-3 py-2.5 text-sm bg-white"
+          className={INPUT_CLASS}
         />
-        <span className="block mt-1 text-xs text-[color:var(--muted)]">
+        <span className="block mt-2 text-[14px] text-[color:var(--muted)] leading-snug">
           Leave blank if you were given a shared admin password.
         </span>
       </label>
+
       <label className="block">
-        <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-          Password
-        </span>
+        <span className={LABEL_CLASS}>Password</span>
         <PasswordInput
           value={password}
           onChange={setPassword}
           autoComplete="current-password"
           required
+          inputClassName={PASSWORD_CLASS}
         />
       </label>
+
       {error && (
-        <div role="alert" className="text-sm text-red-700">
+        <div role="alert" className="text-sm text-red-700 mt-1">
           {error}
         </div>
       )}
+
       <button
         type="submit"
         disabled={pending || !password}
-        className="w-full bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+        className="mt-[26px] w-full bg-navy text-white rounded-[11px] py-[17px] text-[17px] font-bold transition hover:brightness-110 active:scale-[.985] disabled:opacity-50"
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>

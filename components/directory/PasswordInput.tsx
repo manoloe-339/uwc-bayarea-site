@@ -17,6 +17,9 @@ interface Props {
   /** Optional aria-label override. The eye-button gets its own
    * aria-label automatically. */
   ariaLabel?: string;
+  /** Override the <input> classes. Sign-in passes a larger style;
+   * admin / setup screens keep the default. */
+  inputClassName?: string;
 }
 
 export default function PasswordInput({
@@ -29,6 +32,7 @@ export default function PasswordInput({
   placeholder,
   errored,
   ariaLabel,
+  inputClassName,
 }: Props) {
   const [shown, setShown] = useState(false);
   const id = useId();
@@ -45,9 +49,12 @@ export default function PasswordInput({
         minLength={minLength}
         placeholder={placeholder}
         aria-label={ariaLabel}
-        className={`w-full border rounded px-3 py-2.5 pr-[68px] text-sm bg-white ${
-          errored ? "border-red-500" : "border-[color:var(--rule)]"
-        }`}
+        className={
+          inputClassName ??
+          `w-full border rounded px-3 py-2.5 pr-[68px] text-sm bg-white ${
+            errored ? "border-red-500" : "border-[color:var(--rule)]"
+          }`
+        }
       />
       <button
         type="button"

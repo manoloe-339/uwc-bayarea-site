@@ -6,6 +6,7 @@ import { sql } from "@/lib/db";
 import type { CampaignDraft } from "@/lib/campaign-content";
 import { sendCampaignNow, sendCampaignTest, retryFailedSends, MAX_RECIPIENTS_PER_CAMPAIGN } from "@/lib/campaign-send";
 import { countFilteredRecipients, getFilteredRecipients } from "@/lib/recipients";
+import { refreshNextDueAt } from "@/lib/scheduled-work";
 import type { AlumniFilters } from "@/lib/alumni-query";
 
 type Row = { id: string };
@@ -32,6 +33,7 @@ export async function saveDraft(draft: CampaignDraft): Promise<string> {
         status          = ${status}
       WHERE id = ${id}
     `;
+    await refreshNextDueAt();
     revalidatePath(`/admin/email/campaigns/${id}/edit`);
     revalidatePath(`/admin/email/campaigns/${id}`);
     revalidatePath(`/admin/email/campaigns`);
@@ -55,6 +57,7 @@ export async function saveDraft(draft: CampaignDraft): Promise<string> {
     RETURNING id
   `) as Row[];
   const newId = rows[0].id;
+  await refreshNextDueAt();
   revalidatePath(`/admin/email/campaigns`);
   return newId;
 }
@@ -83,6 +86,7 @@ export async function cancelScheduled(id: string): Promise<void> {
     SET status = 'cancelled', scheduled_for = NULL
     WHERE id = ${id} AND status = 'scheduled'
   `;
+  await refreshNextDueAt();
   revalidatePath("/admin/email/campaigns");
   revalidatePath(`/admin/email/campaigns/${id}`);
 }
