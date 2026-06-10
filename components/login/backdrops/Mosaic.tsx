@@ -6,6 +6,13 @@ import type { LoginTile } from "../faces-shared";
 
 interface Props {
   pool: LoginTile[];
+  /** Visibility flag from the parent rotator. Mosaic tile updates
+   * are DEFERRED until this flips to false — pool changes only land
+   * during off-screen periods, so the user never sees a mid-cycle
+   * grid-wide swap. (LivingWall + Constellation update immediately
+   * because their motion masks the swap; Mosaic is static and
+   * doesn't.) */
+  active?: boolean;
 }
 
 const MAX_CELLS = 120;
@@ -26,21 +33,42 @@ const CELLS_PER_TICK = 8;
  * If the pool is smaller than 2 × MAX_CELLS we just render fewer
  * cells — the grid auto-fills available space anyway.
  */
-export default function Mosaic({ pool }: Props) {
+export default function Mosaic({ pool, active = true }: Props) {
+  // Pool we actually render with. Initialized from the first non-
+  // empty prop, then only updated from props during invisible
+  // periods (active=false). This is the whole point of the deferred
+  // swap: a fresh pool arriving while the user is watching the
+  // Mosaic would otherwise re-render 120 cells simultaneously,
+  // which reads as the whole grid jumping. By holding the swap
+  // until Mosaic rotates off screen, the user always sees a stable
+  // grid; the next time Mosaic rotates back in, it's already on
+  // the new pool — no visible swap.
+  const [displayPool, setDisplayPool] = useState<LoginTile[]>(pool);
+  useEffect(() => {
+    if (!active) setDisplayPool(pool);
+  }, [active, pool]);
+  // Initial-mount safety: if the parent's first non-empty pool
+  // arrives after Mosaic mounts (e.g. async server data), pick it
+  // up the first time even if Mosaic happens to be active.
+  useEffect(() => {
+    if (displayPool.length === 0 && pool.length > 0) setDisplayPool(pool);
+  }, [pool, displayPool.length]);
+
   const cells = useMemo(() => {
-    if (pool.length === 0) return [] as Array<{ front: LoginTile; back: LoginTile }>;
+    if (displayPool.length === 0)
+      return [] as Array<{ front: LoginTile; back: LoginTile }>;
     const out: Array<{ front: LoginTile; back: LoginTile }> = [];
     // Hard cap so front+back assignment never wraps. Each tile from
     // the pool is consumed at most once.
-    const cellCount = Math.min(MAX_CELLS, Math.floor(pool.length / 2));
+    const cellCount = Math.min(MAX_CELLS, Math.floor(displayPool.length / 2));
     for (let i = 0; i < cellCount; i++) {
       out.push({
-        front: pool[i],
-        back: pool[i + cellCount],
+        front: displayPool[i],
+        back: displayPool[i + cellCount],
       });
     }
     return out;
-  }, [pool]);
+  }, [displayPool]);
 
   const [flipped, setFlipped] = useState<Set<number>>(() => {
     const s = new Set<number>();
