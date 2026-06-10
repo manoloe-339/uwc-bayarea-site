@@ -48,53 +48,72 @@ export default async function LoginAssetsPage() {
         <h2 className="font-bold text-[color:var(--navy-ink)] mb-3">
           Add asset
         </h2>
-        <form
-          action={createLoginAsset}
-          className="grid grid-cols-1 sm:grid-cols-[160px_1fr_auto] gap-3 items-end"
-        >
-          <label className="block">
-            <span className="block text-[11px] tracking-[.16em] uppercase font-bold text-[color:var(--muted)] mb-1">
-              Kind
-            </span>
-            <select
-              name="kind"
-              required
-              defaultValue="university_logo"
-              className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
-            >
-              <option value="university_logo">University logo</option>
-              <option value="company_logo">Company logo</option>
-              <option value="flag">Flag</option>
-            </select>
-          </label>
-          <label className="block">
-            <span className="block text-[11px] tracking-[.16em] uppercase font-bold text-[color:var(--muted)] mb-1">
-              Label
-            </span>
-            <input
-              type="text"
-              name="label"
-              required
-              maxLength={80}
-              placeholder='e.g. "Stanford GSB" / "Google" / "Brazil"'
-              className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
-            />
-          </label>
-          <div className="flex items-end gap-2">
-            <input
-              type="file"
-              name="file"
-              accept="image/*"
-              required
-              className="text-xs"
-            />
+        <form action={createLoginAsset} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-3">
+            <label className="block">
+              <span className="block text-[11px] tracking-[.16em] uppercase font-bold text-[color:var(--muted)] mb-1">
+                Kind
+              </span>
+              <select
+                name="kind"
+                required
+                defaultValue="university_logo"
+                className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
+              >
+                <option value="university_logo">University logo</option>
+                <option value="company_logo">Company logo</option>
+                <option value="flag">Flag</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="block text-[11px] tracking-[.16em] uppercase font-bold text-[color:var(--muted)] mb-1">
+                Label
+              </span>
+              <input
+                type="text"
+                name="label"
+                required
+                maxLength={80}
+                placeholder='e.g. "Stanford GSB" / "Google" / "Brazil"'
+                className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
+            <label className="block">
+              <span className="block text-[11px] tracking-[.16em] uppercase font-bold text-[color:var(--muted)] mb-1">
+                File
+              </span>
+              <input
+                type="file"
+                name="file"
+                accept="image/*"
+                className="text-xs"
+              />
+            </label>
+            <label className="block">
+              <span className="block text-[11px] tracking-[.16em] uppercase font-bold text-[color:var(--muted)] mb-1">
+                …or image URL
+              </span>
+              <input
+                type="url"
+                name="url"
+                placeholder="https://…"
+                className="w-full border border-[color:var(--rule)] rounded px-2 py-1.5 text-sm bg-white"
+              />
+            </label>
             <button
               type="submit"
-              className="bg-navy text-white text-sm font-bold px-4 py-1.5 rounded"
+              className="bg-navy text-white text-sm font-bold px-4 py-2 rounded"
             >
               Add
             </button>
           </div>
+          <p className="text-[11px] text-[color:var(--muted)]">
+            Provide either a file or a URL. URLs are fetched server-side and
+            re-hosted on Vercel Blob, so the source can go away without
+            breaking the login page.
+          </p>
         </form>
       </section>
 

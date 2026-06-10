@@ -119,8 +119,13 @@ function SlotCard({
           type="file"
           name="file"
           accept="image/*"
-          required
           className="text-xs"
+        />
+        <input
+          type="url"
+          name="url"
+          placeholder="…or paste an image URL"
+          className="text-xs border border-[color:var(--rule)] rounded px-2 py-1 bg-white"
         />
         <button
           type="submit"

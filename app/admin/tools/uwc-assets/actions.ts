@@ -12,22 +12,64 @@ function isValidCanonical(c: string): boolean {
   return COLLEGES.some((x) => x.canonical === c);
 }
 
-/** Upload (or replace) one of the three asset slots for a UWC. */
+/** Returns the upload payload + filename extension for either a
+ * file-input upload or a remote URL fetched server-side. Throws when
+ * neither input is usable. */
+async function loadImageInput(
+  file: File | null,
+  url: string,
+): Promise<{ data: Blob; ext: string }> {
+  if (file && file.size > 0) {
+    const ext = file.name.match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase() ?? "jpg";
+    return { data: file, ext };
+  }
+  const trimmed = url.trim();
+  if (!trimmed) throw new Error("Provide either a file or a URL.");
+  if (!/^https?:\/\//i.test(trimmed)) {
+    throw new Error("URL must start with http:// or https://");
+  }
+  const res = await fetch(trimmed, {
+    headers: {
+      "user-agent":
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    },
+  });
+  if (!res.ok) throw new Error(`Fetch failed (HTTP ${res.status})`);
+  const data = await res.blob();
+  if (data.size === 0) throw new Error("Remote URL returned an empty body.");
+  // Derive extension from the path (or content-type as fallback).
+  let ext =
+    trimmed.split("?")[0].match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase() ?? "";
+  if (!ext || ext.length > 5) {
+    const mime = res.headers.get("content-type") ?? "";
+    if (mime.includes("png")) ext = "png";
+    else if (mime.includes("svg")) ext = "svg";
+    else if (mime.includes("webp")) ext = "webp";
+    else if (mime.includes("gif")) ext = "gif";
+    else ext = "jpg";
+  }
+  return { data, ext };
+}
+
+/** Upload (or replace) one of the three asset slots for a UWC.
+ * Accepts either a file (form-upload) or a remote URL (server-side
+ * fetched + re-hosted). One or the other — file wins if both are
+ * present. */
 export async function uploadUwcAsset(formData: FormData): Promise<void> {
   const canonical = String(formData.get("canonical") ?? "");
   const slot = String(formData.get("slot") ?? "") as UwcSlot;
   const file = formData.get("file") as File | null;
+  const url = String(formData.get("url") ?? "");
   if (!isValidCanonical(canonical)) throw new Error("invalid canonical");
   if (slot !== "logo" && slot !== "campus" && slot !== "other") {
     throw new Error("invalid slot");
   }
-  if (!file || file.size === 0) throw new Error("no file");
 
+  const { data, ext } = await loadImageInput(file, url);
   const slug = canonical.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  const ext = (file.name.match(/\.([a-zA-Z0-9]+)$/)?.[1] ?? "jpg").toLowerCase();
   const hash = crypto.randomBytes(6).toString("hex");
   const key = `uwc/${slug}/${slot}-${hash}.${ext}`;
-  const uploaded = await put(key, file, {
+  const uploaded = await put(key, data, {
     access: "public",
     allowOverwrite: true,
   });

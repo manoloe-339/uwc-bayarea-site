@@ -13,20 +13,57 @@ function isValidKind(k: string): k is AssetKind {
   return (VALID_KINDS as string[]).includes(k);
 }
 
+/** Resolve image bytes from either a form-uploaded file or a
+ * server-fetched URL. File wins if both are present. */
+async function loadImageInput(
+  file: File | null,
+  url: string,
+): Promise<{ data: Blob; ext: string }> {
+  if (file && file.size > 0) {
+    const ext = file.name.match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase() ?? "jpg";
+    return { data: file, ext };
+  }
+  const trimmed = url.trim();
+  if (!trimmed) throw new Error("Provide either a file or a URL.");
+  if (!/^https?:\/\//i.test(trimmed)) {
+    throw new Error("URL must start with http:// or https://");
+  }
+  const res = await fetch(trimmed, {
+    headers: {
+      "user-agent":
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    },
+  });
+  if (!res.ok) throw new Error(`Fetch failed (HTTP ${res.status})`);
+  const data = await res.blob();
+  if (data.size === 0) throw new Error("Remote URL returned an empty body.");
+  let ext =
+    trimmed.split("?")[0].match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase() ?? "";
+  if (!ext || ext.length > 5) {
+    const mime = res.headers.get("content-type") ?? "";
+    if (mime.includes("png")) ext = "png";
+    else if (mime.includes("svg")) ext = "svg";
+    else if (mime.includes("webp")) ext = "webp";
+    else if (mime.includes("gif")) ext = "gif";
+    else ext = "jpg";
+  }
+  return { data, ext };
+}
+
 export async function createLoginAsset(formData: FormData): Promise<void> {
   const kind = String(formData.get("kind") ?? "");
   const label = String(formData.get("label") ?? "").trim();
   const file = formData.get("file") as File | null;
+  const url = String(formData.get("url") ?? "");
   if (!isValidKind(kind)) throw new Error("invalid kind");
   if (!label) throw new Error("label required");
-  if (!file || file.size === 0) throw new Error("no file");
 
+  const { data, ext } = await loadImageInput(file, url);
   const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) || "asset";
-  const ext = (file.name.match(/\.([a-zA-Z0-9]+)$/)?.[1] ?? "jpg").toLowerCase();
   const hash = crypto.randomBytes(6).toString("hex");
   const key = `login-library/${kind}/${slug}-${hash}.${ext}`;
 
-  const uploaded = await put(key, file, {
+  const uploaded = await put(key, data, {
     access: "public",
     allowOverwrite: true,
   });
