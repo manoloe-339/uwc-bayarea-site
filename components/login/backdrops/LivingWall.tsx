@@ -115,7 +115,7 @@ export default function LivingWall({ pool }: Props) {
                     width: `${tilePx}px`,
                     height: `${tilePx}px`,
                     boxShadow:
-                      "0 0 0 4px #fff, 0 10px 22px -10px rgba(11,37,69,.5)",
+                      "0 0 0 1.5px #fff, 0 10px 22px -10px rgba(11,37,69,.5)",
                     opacity: 0.85 + ((i * 7) % 15) / 100,
                   }}
                 />
