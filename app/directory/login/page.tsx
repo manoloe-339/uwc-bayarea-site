@@ -9,6 +9,7 @@ import {
   buildOrgTiles,
   buildPhotoTiles,
   buildTilePool,
+  buildUwcPhotoTiles,
   buildUwcTiles,
 } from "@/components/login/faces-shared";
 import DirectoryLoginForm from "./DirectoryLoginForm";
@@ -61,9 +62,11 @@ export default async function DirectoryLoginPage({
       ? sp.next
       : "/directory";
 
-  // UWC logos come from a frozen hardcoded list in faces-shared
-  // (`UWC_LOGOS`) — exactly 18, no DB lookup, no name-variant noise.
-  const [photoRows, orgRows, originRows] = await Promise.all([
+  // UWC logos + campus / "other" photos come from the curated
+  // uwc_assets table (admin tool at /admin/tools/uwc-assets).
+  // Non-UWC orgs + flags come from login_assets (the free-form
+  // library at /admin/tools/login-assets).
+  const [photoRows, uwcAssetRows, orgAssetRows, flagAssetRows] = await Promise.all([
     sql`
       -- Exclude alumni whose "profile photo" is actually a school or
       -- company logo (some folks set their LinkedIn picture to the
@@ -94,41 +97,20 @@ export default async function DirectoryLoginPage({
       ORDER BY RANDOM()
       LIMIT ${PHOTO_QUERY_SIZE}
     `,
+    sql`SELECT canonical, logo_url, campus_url, other_url FROM uwc_assets`,
     sql`
-      -- Same idea: dedup by logo URL, not by name. Two companies in
-      -- the DB with slightly different names but the same LinkedIn
-      -- logo (e.g. "Google" vs "Google LLC") become one tile.
-      SELECT MIN(name) AS name, logo, SUM(n)::int AS total FROM (
-        SELECT current_company AS name,
-               current_company_logo_url AS logo,
-               COUNT(*)::int AS n
-        FROM alumni
-        WHERE current_company IS NOT NULL
-          AND current_company_logo_url IS NOT NULL
-          AND affiliation ILIKE '%alum%'
-          AND deceased IS NOT TRUE
-        GROUP BY current_company, current_company_logo_url
-        UNION ALL
-        SELECT school AS name, school_logo_url AS logo, COUNT(*)::int AS n
-        FROM alumni_education
-        WHERE is_uwc IS NOT TRUE
-          AND school_logo_url IS NOT NULL
-        GROUP BY school, school_logo_url
-      ) u
-      GROUP BY logo
-      ORDER BY total DESC
-      LIMIT 80
+      SELECT id, label, image_url FROM login_assets
+      WHERE kind IN ('university_logo','company_logo')
+      ORDER BY display_order ASC, id ASC
     `,
     sql`
-      SELECT DISTINCT origin
-      FROM alumni
-      WHERE origin IS NOT NULL AND TRIM(origin) <> ''
-        AND affiliation ILIKE '%alum%'
-        AND deceased IS NOT TRUE
+      SELECT id, label, image_url FROM login_assets
+      WHERE kind = 'flag'
+      ORDER BY display_order ASC, id ASC
     `,
   ]);
 
-  const photos = buildPhotoTiles(
+  const alumniPhotos = buildPhotoTiles(
     photoRows as Array<{
       id: number;
       first_name: string | null;
@@ -136,11 +118,23 @@ export default async function DirectoryLoginPage({
       photo_url: string | null;
     }>,
   );
-  const uwcs = buildUwcTiles();
+  const uwcAssets = uwcAssetRows as Array<{
+    canonical: string;
+    logo_url: string | null;
+    campus_url: string | null;
+    other_url: string | null;
+  }>;
+  const uwcs = buildUwcTiles(uwcAssets);
+  // Campus + "other" UWC photos mix into the same photo pool as the
+  // alumni headshots — they'll appear in the Living Wall and
+  // Constellation alongside faces.
+  const photos = [...alumniPhotos, ...buildUwcPhotoTiles(uwcAssets)];
   const orgs = buildOrgTiles(
-    orgRows as Array<{ name: string; logo: string | null }>,
+    orgAssetRows as Array<{ id: number; label: string; image_url: string }>,
   );
-  const flags = buildFlagTiles(originRows as Array<{ origin: string }>);
+  const flags = buildFlagTiles(
+    flagAssetRows as Array<{ id: number; label: string; image_url: string }>,
+  );
   // Fisher-Yates shuffle the full photo list per request so every
   // backdrop sees a different ordering. The Living Wall slices
   // contiguously from the start, the buildTilePool re-shuffles
@@ -186,10 +180,8 @@ export default async function DirectoryLoginPage({
   // anything else returns 400 from /_next/image, which fires the
   // <img onError> fallback in Tile.
   for (const t of mixedPool) {
-    if (t.kind === "uwc" || t.kind === "org") {
+    if (t.kind === "uwc" || t.kind === "org" || t.kind === "flag") {
       if (t.imgUrl) preloadUrls.push(opt(t.imgUrl, 256));
-    } else if (t.kind === "flag") {
-      preloadUrls.push(t.svgUrl);
     }
   }
 

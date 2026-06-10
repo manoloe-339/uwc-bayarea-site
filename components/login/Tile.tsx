@@ -62,15 +62,10 @@ export default function Tile({
   };
   const wrapClass = (className ?? "") + " select-none";
 
-  // ----- Flag tile. Round tiles (Living Wall, Constellation) use the
-  // circle-flag SVG from /flags/{iso}.svg. Square tiles (Mosaic) use
-  // the rectangular 4x3 SVG from /flags/sq/{iso}.svg with object-fit
-  // cover so it fills the square edge to edge — a round flag inside a
-  // square tile looked wrong (donut of navy around the disc).
+  // ----- Flag tile: curated image (Vercel Blob) cover-cropped into
+  // the tile shape. Background is the deep-blue gradient so partial
+  // coverage on round tiles still reads as flag-on-navy.
   if (tile.kind === "flag") {
-    const flagUrl = square
-      ? `/flags/sq/${tile.iso.toLowerCase()}.svg`
-      : tile.svgUrl;
     return (
       <div
         className={wrapClass}
@@ -83,7 +78,7 @@ export default function Tile({
       >
         {!imgFailed ? (
           <img
-            src={flagUrl}
+            src={optimized(tile.imgUrl, imgWidth)}
             alt={tile.label}
             onError={() => setImgFailed(true)}
             style={{
@@ -100,13 +95,15 @@ export default function Tile({
             style={{
               fontFamily: "Inter, system-ui, sans-serif",
               fontWeight: 800,
-              fontSize: "44cqmin",
+              fontSize: "30cqmin",
               color: "#fff",
               lineHeight: 1,
-              letterSpacing: ".06em",
+              letterSpacing: ".04em",
+              padding: "0 8%",
+              textAlign: "center",
             }}
           >
-            {tile.iso}
+            {tile.label}
           </span>
         )}
       </div>

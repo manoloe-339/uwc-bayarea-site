@@ -13,39 +13,6 @@
 
 import { extractCountryCodes } from "@/lib/country-flag";
 
-/**
- * Canonical list of UWC logos for the login backdrop. Frozen by hand
- * (no DB lookup) so name-variant noise in alumni_education
- * ("UWC USA" vs "UWC-USA" vs "UWC USA Armand Hammer United World
- * College of the American West") can never duplicate a tile. Each
- * URL is the Vercel-Blob asset we backfilled from LinkedIn.
- *
- * 18 entries — all currently-operating UWCs. (UWC Simón Bolívar
- * closed in 2012; no logo on file.) Edit this list — and only this
- * list — if a UWC's official mark changes or we want a different
- * image for one of them.
- */
-const UWC_LOGOS: Array<{ name: string; url: string }> = [
-  { name: "UWC Atlantic", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/6b3cd189bab61b317c7e6aba.jpg" },
-  { name: "UWC Pearson", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/f9a5c7159703e6a3068a5999.jpg" },
-  { name: "UWC USA", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/db9ec0624929ebc519c29e04.jpg" },
-  { name: "UWC Adriatic", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/6dafe4f483023b19277a7c5e.jpg" },
-  { name: "UWC Red Cross Nordic", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/b56648ffabea7d1d0446dd2a.jpg" },
-  { name: "UWC Mahindra", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/a75ec6c3fca5080bb1b8b4fa.jpg" },
-  { name: "UWC Costa Rica", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/445b0c0de0340c671e7dd26b.jpg" },
-  { name: "UWC Waterford Kamhlaba", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/87ab45f3da11473dc8febf48.jpg" },
-  { name: "UWC Mostar", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/9338f94c5b8c99da0087622a.jpg" },
-  { name: "UWC Li Po Chun", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/00995ff3317fbad58dd78fd2.jpg" },
-  { name: "UWC Robert Bosch College", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/f4bced753e49ea2af9cea165.jpg" },
-  { name: "UWC Dilijan", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/ac8df365daaa8aa7d801b695.jpg" },
-  { name: "UWC Maastricht", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/a504264cd4e735f5438e533e.jpg" },
-  { name: "UWC Changshu China", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/9449bd9b4bed3f7d7d897adf.jpg" },
-  { name: "UWC Thailand", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/92a260ec58266a951ee427e9.jpg" },
-  { name: "UWC ISAK Japan", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/ebcf4f8721a49b331ecefe4e.jpg" },
-  { name: "UWC South East Asia", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/1a07b264c0f6b2a17179c71a.jpg" },
-  { name: "UWC East Africa", url: "https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/logos/1b3112dbe9fc890e6c9d0632.jpg" },
-];
-
 export type LoginTile =
   | {
       kind: "photo";
@@ -79,9 +46,11 @@ export type LoginTile =
   | {
       kind: "flag";
       id: string;
-      /** Path to the self-hosted SVG (under /public/flags). */
-      svgUrl: string;
-      iso: string;
+      /** Curated flag image URL (Vercel Blob). Used for both round
+       * (Constellation, Living Wall) and square (Mosaic) tiles —
+       * the admin uploads whichever shape looks best, and we cover-
+       * crop to the tile. */
+      imgUrl: string;
       label: string;
     };
 
@@ -150,70 +119,111 @@ export function buildPhotoTiles(
   return out;
 }
 
-/** Build the UWC tile list from the frozen UWC_LOGOS constant — no
- * DB lookup. Exactly one tile per canonical UWC, never duplicates,
- * never affected by alumni-entered name variants. */
-export function buildUwcTiles(): LoginTile[] {
-  return UWC_LOGOS.map((u) => ({
-    kind: "uwc" as const,
-    id: `uwc-${u.name}`,
-    imgUrl: u.url,
-    label: u.name,
-  }));
-}
-
-export function buildOrgTiles(
-  rows: Array<{ name: string; logo: string | null }>,
+/** Build UWC tiles from the curated uwc_assets table — admin-managed
+ * via /admin/tools/uwc-assets. Only emits a tile for UWCs that have
+ * a logo on file. */
+export function buildUwcTiles(
+  rows: Array<{ canonical: string; logo_url: string | null }>,
 ): LoginTile[] {
-  // Dedup by logo URL (defensive — the SQL also dedups).
   const seen = new Set<string>();
   const out: LoginTile[] = [];
   for (const r of rows) {
-    if (!r.name || !r.logo) continue;
-    if (seen.has(r.logo)) continue;
-    seen.add(r.logo);
+    if (!r.logo_url || seen.has(r.canonical)) continue;
+    seen.add(r.canonical);
     out.push({
-      kind: "org",
-      id: `org-${r.logo}`,
-      imgUrl: r.logo,
-      initials: initialsOf(r.name),
-      label: r.name,
+      kind: "uwc",
+      id: `uwc-${r.canonical}`,
+      imgUrl: r.logo_url,
+      label: r.canonical,
     });
   }
   return out;
 }
 
-function regionName(iso2: string): string {
-  try {
-    return new Intl.DisplayNames(["en"], { type: "region" }).of(iso2) ?? iso2;
-  } catch {
-    return iso2;
-  }
-}
-
-/** Flag tiles. The SVG asset paths point at /public/flags/{iso}.svg,
- * vendored from HatScripts/circle-flags (MIT). Any country we don't
- * have an SVG for is silently dropped — better no flag than a broken
- * link in the backdrop. */
-export function buildFlagTiles(rows: Array<{ origin: string }>): LoginTile[] {
-  const seen = new Set<string>();
+/** Build photo tiles from UWC campus / other slots — these go into
+ * the photo pool alongside alumni headshots and feed Living Wall,
+ * Constellation, and Mosaic photo slots. */
+export function buildUwcPhotoTiles(
+  rows: Array<{
+    canonical: string;
+    campus_url: string | null;
+    other_url: string | null;
+  }>,
+): LoginTile[] {
   const out: LoginTile[] = [];
   for (const r of rows) {
-    for (const iso of extractCountryCodes(r.origin, 3)) {
-      const lower = iso.toLowerCase();
-      if (seen.has(lower)) continue;
-      seen.add(lower);
+    if (r.campus_url) {
       out.push({
-        kind: "flag",
-        id: `flag-${lower}`,
-        svgUrl: `/flags/${lower}.svg`,
-        iso: iso.toUpperCase(),
-        label: regionName(iso),
+        kind: "photo",
+        id: `uwc-campus-${r.canonical}`,
+        imgUrl: r.campus_url,
+        initials: r.canonical.replace(/^UWC\s+/, "").slice(0, 2).toUpperCase(),
+        tone: PHOTO_TONES[hash(r.canonical) % PHOTO_TONES.length],
+        label: r.canonical,
+      });
+    }
+    if (r.other_url) {
+      out.push({
+        kind: "photo",
+        id: `uwc-other-${r.canonical}`,
+        imgUrl: r.other_url,
+        initials: r.canonical.replace(/^UWC\s+/, "").slice(0, 2).toUpperCase(),
+        tone: PHOTO_TONES[hash(r.canonical + "x") % PHOTO_TONES.length],
+        label: r.canonical,
       });
     }
   }
   return out;
 }
+
+/** Build org-logo tiles from curated login_assets rows (kind =
+ * university_logo OR company_logo). Both kinds render the same way
+ * in the backdrop — the dropdown is a curation hint for the admin. */
+export function buildOrgTiles(
+  rows: Array<{ id: number; label: string; image_url: string }>,
+): LoginTile[] {
+  const seen = new Set<string>();
+  const out: LoginTile[] = [];
+  for (const r of rows) {
+    if (!r.image_url || seen.has(r.image_url)) continue;
+    seen.add(r.image_url);
+    out.push({
+      kind: "org",
+      id: `org-${r.id}`,
+      imgUrl: r.image_url,
+      initials: initialsOf(r.label),
+      label: r.label,
+    });
+  }
+  return out;
+}
+
+/** Build flag tiles from curated login_assets rows (kind = flag).
+ * The admin uploads whichever flag image looks best for each
+ * country — no vendored SVG fallback. If the library has no flag
+ * entries, no flag tiles appear in the login backdrop. */
+export function buildFlagTiles(
+  rows: Array<{ id: number; label: string; image_url: string }>,
+): LoginTile[] {
+  const seen = new Set<string>();
+  const out: LoginTile[] = [];
+  for (const r of rows) {
+    if (!r.image_url || seen.has(r.image_url)) continue;
+    seen.add(r.image_url);
+    out.push({
+      kind: "flag",
+      id: `flag-${r.id}`,
+      imgUrl: r.image_url,
+      label: r.label,
+    });
+  }
+  return out;
+}
+
+// Re-export so external callers can stop importing it from here once
+// we've fully migrated. extractCountryCodes is still used by the
+// directory profile pages (country flag emoji next to alum names).
+export { extractCountryCodes };
 
 /* ------------------------------------------------------------------ */
 /* Pool builder                                                        */
