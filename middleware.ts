@@ -41,6 +41,7 @@ export async function middleware(req: NextRequest) {
     if (
       path === "/directory/login" ||
       path === "/api/directory/login" ||
+      path === "/api/directory/login-pool" ||
       path === "/directory/setup" ||
       path === "/api/directory/setup"
     ) {

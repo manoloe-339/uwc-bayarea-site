@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import Tile from "../Tile";
 import type { LoginTile } from "../faces-shared";
@@ -52,12 +52,19 @@ export default function Constellation({
 }: Props) {
   const fieldRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const tiles = useMemo(() => pool, [pool]);
+  // Nodes survive pool changes — we re-render each node's <Tile>
+  // with the new pool data instead of tearing the whole field down.
+  const nodesRef = useRef<Node[] | null>(null);
+  // Latest pool, accessible from the init effect (which only runs
+  // once) and from the swap effect.
+  const poolRef = useRef(pool);
+  poolRef.current = pool;
 
   useEffect(() => {
     const field = fieldRef.current;
     const canvas = canvasRef.current;
-    if (!field || !canvas || tiles.length === 0) return;
+    if (!field || !canvas || poolRef.current.length === 0) return;
+    const tiles = poolRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -316,6 +323,8 @@ export default function Constellation({
     const onResize = () => size();
     window.addEventListener("resize", onResize);
 
+    nodesRef.current = nodes;
+
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
@@ -323,8 +332,39 @@ export default function Constellation({
         n.root.unmount();
         n.el.remove();
       }
+      nodesRef.current = null;
     };
-  }, [tiles, density, speed]);
+    // density / speed changes still require a full re-init; pool
+    // changes are handled by the swap effect below.
+  }, [density, speed]);
+
+  // Pool swap: when fresh tiles arrive (the parent polled
+  // /api/directory/login-pool and got a new batch), re-render each
+  // node's <Tile> with a new tile from the pool. Node positions,
+  // velocities, and rotations are preserved — only the image
+  // changes. Browser keeps the old <img> visible until the new src
+  // loads, so the transition reads as a smooth swap rather than a
+  // pop.
+  useEffect(() => {
+    const nodes = nodesRef.current;
+    if (!nodes || pool.length === 0) return;
+    for (let i = 0; i < nodes.length; i++) {
+      const tile = pool[(i * 5) % pool.length];
+      nodes[i].root.render(
+        <Tile
+          tile={tile}
+          imgWidth={384}
+          style={{
+            width: "100%",
+            height: "100%",
+            boxShadow:
+              "0 0 0 2px rgba(255,255,255,.85), 0 14px 30px -10px rgba(0,0,0,.55)",
+          }}
+          noTitle
+        />,
+      );
+    }
+  }, [pool]);
 
   return (
     <>

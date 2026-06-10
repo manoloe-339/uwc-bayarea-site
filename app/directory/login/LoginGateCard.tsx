@@ -5,31 +5,33 @@ import DirectoryLoginForm from "./DirectoryLoginForm";
 
 interface Props {
   next: string;
+  /** Lifted state — LoginExperience owns the showForm flag because
+   * it also drives whether to poll for fresh pool data. */
+  showForm: boolean;
+  onShowFormChange: (next: boolean) => void;
 }
-
-/** Default reload interval while the user is idly watching the
- * backdrops cycle. Aligns with one full rotation through Living
- * Wall → Mosaic → Constellation (3 × 10s = 30s). Each reload pulls
- * a fresh photo subset + new tile positions so a viewer sees a
- * different layout every cycle. */
-const IDLE_RELOAD_MS = 30_000;
 
 /**
  * Two-state sign-in surface:
  *
  *   Idle  — a polished, breathing "Log in" pill centered over the
- *           backdrop. An auto-reload timer fires every 30 s so a
- *           watching viewer sees a fresh layout each cycle.
+ *           backdrop. While idle, the parent (LoginExperience) is
+ *           polling for fresh pool data every 30 s and swapping it
+ *           into the running backdrops, so the viewer sees a fresh
+ *           layout each cycle WITHOUT a page reload.
  *   Form  — the user clicked Log in; full sign-in card crossfades
- *           into place. The reload timer stops so we don't interrupt
- *           typing.
+ *           into place. The parent stops polling so we don't yank
+ *           tiles around while they're typing.
  *
- * Both states share the same wrapper element so React preserves
- * position during the crossfade — the form expands out of the
- * pill's centerpoint rather than popping in from elsewhere.
+ * Both states are mounted in the DOM so the crossfade is clean —
+ * the form expands out of the pill's centerpoint rather than
+ * popping in from elsewhere.
  */
-export default function LoginGateCard({ next }: Props) {
-  const [showForm, setShowForm] = useState(false);
+export default function LoginGateCard({
+  next,
+  showForm,
+  onShowFormChange,
+}: Props) {
   // Slight delay before the pill becomes interactable, so the
   // entrance animation gets a chance to play unmolested.
   const [entered, setEntered] = useState(false);
@@ -39,20 +41,12 @@ export default function LoginGateCard({ next }: Props) {
     return () => clearTimeout(t);
   }, []);
 
-  useEffect(() => {
-    if (showForm) return;
-    const t = setTimeout(() => {
-      window.location.reload();
-    }, IDLE_RELOAD_MS);
-    return () => clearTimeout(t);
-  }, [showForm]);
-
   return (
     <>
       {/* Idle pill */}
       <button
         type="button"
-        onClick={() => setShowForm(true)}
+        onClick={() => onShowFormChange(true)}
         aria-label="Open sign-in form"
         tabIndex={showForm ? -1 : 0}
         className="lg-pill"
