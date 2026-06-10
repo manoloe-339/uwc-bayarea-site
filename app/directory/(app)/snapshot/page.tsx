@@ -112,13 +112,20 @@ async function fetchAll() {
       LIMIT 60
     `,
     sql`
-      SELECT uwc_college AS name, COUNT(*)::int AS n
-      FROM alumni
-      WHERE uwc_college IS NOT NULL
-        AND affiliation ILIKE '%alum%'
-        AND deceased IS NOT TRUE AND moved_out IS NOT TRUE
-      GROUP BY uwc_college
-      ORDER BY n DESC, uwc_college ASC
+      -- LEFT JOIN against uwc_assets to pull each school's curated
+      -- logo URL alongside the count. alumni.uwc_college is already
+      -- normalized to match uwc_assets.canonical so a direct join
+      -- works without going through normalizeCollege().
+      SELECT a.uwc_college AS name,
+             COUNT(*)::int AS n,
+             MAX(u.logo_url) AS logo
+      FROM alumni a
+      LEFT JOIN uwc_assets u ON u.canonical = a.uwc_college
+      WHERE a.uwc_college IS NOT NULL
+        AND a.affiliation ILIKE '%alum%'
+        AND a.deceased IS NOT TRUE AND a.moved_out IS NOT TRUE
+      GROUP BY a.uwc_college
+      ORDER BY n DESC, a.uwc_college ASC
     `,
     sql`
       SELECT e.school AS name, COUNT(DISTINCT a.id)::int AS n
@@ -282,7 +289,7 @@ async function fetchAll() {
       logo: string | null;
       n: number;
     }>,
-    uwcs: uwcs as Array<{ name: string; n: number }>,
+    uwcs: uwcs as Array<{ name: string; n: number; logo: string | null }>,
     universities: universities as Array<{ name: string; n: number }>,
     industries: industries as Array<{ name: string; n: number }>,
     sizeRows: sizeRows as Array<{ raw: string; n: number }>,
@@ -430,6 +437,41 @@ function CountRow({
   );
 }
 
+/** Small 20px UWC logo or fallback monogram square. Mirrors the
+ * size + shape of CompanyLogo so UWC rows align with the company
+ * rows visually. */
+function UwcLogo({ url, name }: { url: string | null; name: string }) {
+  const initials = name
+    .replace(/^UWC\s+/, "")
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+  return (
+    <span
+      className="inline-flex items-center justify-center w-5 h-5 rounded shrink-0 overflow-hidden"
+      style={{
+        background: url ? "#fff" : "linear-gradient(135deg, #2f7fce, #004A97)",
+        border: url ? "1px solid var(--rule)" : "none",
+      }}
+    >
+      {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={url}
+          alt=""
+          className="w-full h-full object-contain"
+        />
+      ) : (
+        <span className="text-[9px] font-bold text-white tracking-tight">
+          {initials}
+        </span>
+      )}
+    </span>
+  );
+}
+
 /* ------------------------------ Page ------------------------------- */
 
 export default async function SnapshotPage() {
@@ -495,17 +537,25 @@ export default async function SnapshotPage() {
           </ul>
         </SectionCard>
 
-        {/* 2. UWC schools */}
+        {/* 2. UWC schools — logos curated via /admin/tools/uwc-assets */}
         <SectionCard title="UWC" emoji="🌐" total={data.uwcs.length}>
           <ul className="space-y-0.5">
             {data.uwcs.map((u) => (
               <li key={u.name}>
-                <CountRow
+                <Link
                   href={`/directory?college=${encodeURIComponent(u.name)}`}
-                  count={u.n}
+                  className="flex items-center justify-between gap-3 py-1.5 px-1 rounded hover:bg-[color:var(--ivory-2)] text-sm"
                 >
-                  {u.name}
-                </CountRow>
+                  <span className="flex items-center gap-2 min-w-0">
+                    <UwcLogo url={u.logo} name={u.name} />
+                    <span className="truncate text-[color:var(--navy-ink)] font-medium">
+                      {u.name}
+                    </span>
+                  </span>
+                  <span className="shrink-0 inline-flex items-center justify-center min-w-[28px] h-[20px] rounded bg-ivory-2 border border-[color:var(--rule)] text-xs font-semibold text-navy tabular-nums px-1.5">
+                    {u.n}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
