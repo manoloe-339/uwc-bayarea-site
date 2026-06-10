@@ -9,7 +9,12 @@ interface Props {
 }
 
 const MAX_CELLS = 120;
-const FLIP_INTERVAL_MS = 810;
+const FLIP_INTERVAL_MS = 600;
+/** How many cells toggle per tick. At 8 cells / 600ms = ~13/sec, the
+ * backdrop crossfade window (~10s) sees ~130 toggles — enough that
+ * most of the 120 cells flip at least once before the backdrop
+ * rotates away. */
+const CELLS_PER_TICK = 8;
 
 /**
  * "Mosaic" backdrop — square-tile grid. Each cell holds a front and
@@ -54,7 +59,7 @@ export default function Mosaic({ pool }: Props) {
     const t = setInterval(() => {
       setFlipped((prev) => {
         const next = new Set(prev);
-        for (let k = 0; k < 3; k++) {
+        for (let k = 0; k < CELLS_PER_TICK; k++) {
           const idx = Math.floor(Math.random() * cells.length);
           if (next.has(idx)) next.delete(idx);
           else next.add(idx);
