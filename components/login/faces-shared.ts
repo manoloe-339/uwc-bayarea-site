@@ -322,8 +322,17 @@ export function buildTilePool(opts: {
     // offset shifts the entire category to a fresh starting
     // position per request.
     const globalOffset = rand01((seed ^ salt) >>> 0 ^ 0xbeef) * target;
+    // Jitter is clamped to the MIDDLE 50% of each slot (0.25 →
+    // 0.75 of slot). That guarantees adjacent items in the same
+    // category are at least slotSize × 0.5 apart in the pool —
+    // for UWCs (slotSize ≈ 13.3) that's a minimum 6.7-cell gap,
+    // enough to avoid orthogonal adjacency on any grid ≥ 8
+    // columns. Mobile grids (4-6 columns) may still produce
+    // occasional diagonal neighbors; addressing that would
+    // require client-side 2-D placement.
     for (let i = 0; i < pool.length; i++) {
-      const jitter = rand01(seed ^ salt ^ (i * 2654435761)) * slotSize;
+      const jitter =
+        (0.25 + rand01(seed ^ salt ^ (i * 2654435761)) * 0.5) * slotSize;
       placed.push({
         pos: (globalOffset + i * slotSize + jitter) % target,
         tile: pool[i],
