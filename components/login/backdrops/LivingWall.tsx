@@ -128,13 +128,14 @@ export default function LivingWall({ pool }: Props) {
           );
         })}
       </div>
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "linear-gradient(90deg, var(--rich-deep) 1%, rgba(6,32,63,.4) 16%, rgba(6,32,63,0) 34%)",
-        }}
-      />
+      {/* Side scrim removed — used to dim the left third of the wall
+          so the sign-in card (which lived there in the original
+          two-column design) had contrast. With the small-pill design
+          there's nothing to make legible behind, and the user
+          prefers the columns visible at full intensity edge to edge. */}
+      {/* Top/bottom vertical fade — still useful so the tiles fade
+          into the navy background where the columns clip beyond the
+          viewport, instead of cutting off abruptly. */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{

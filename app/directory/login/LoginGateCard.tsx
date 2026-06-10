@@ -126,6 +126,7 @@ export default function LoginGateCard({ next }: Props) {
           font-weight: 700;
           font-size: 14px;
           letter-spacing: 0.16em;
+        }
           text-transform: uppercase;
           color: var(--navy-ink);
           background: rgba(255, 255, 255, 0.97);
@@ -208,6 +209,19 @@ export default function LoginGateCard({ next }: Props) {
         @media (prefers-reduced-motion: reduce) {
           .lg-pill[data-entered="1"] {
             animation: none;
+          }
+        }
+
+        /* Mobile: pill ~10% smaller. */
+        @media (max-width: 640px) {
+          .lg-pill {
+            padding: 14px 23px 14px 20px;
+            font-size: 12.5px;
+            gap: 10px;
+          }
+          .lg-pill__dot {
+            width: 6px;
+            height: 6px;
           }
         }
 

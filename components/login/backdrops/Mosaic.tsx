@@ -119,13 +119,10 @@ export default function Mosaic({ pool }: Props) {
           );
         })}
       </div>
-      <div
-        className="absolute inset-0 z-[1] pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(46% 54% at 50% 50%, rgba(6,32,63,.94) 22%, rgba(6,32,63,.72) 46%, rgba(6,32,63,.34) 68%, rgba(6,32,63,.05) 100%)",
-        }}
-      />
+      {/* Radial darkening veil was here when the sign-in card needed
+          contrast over the center of the Mosaic. With the new
+          small-pill design, the dark center reads as visual junk
+          and the user wants the whole Mosaic visible. */}
     </>
   );
 }

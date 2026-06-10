@@ -331,14 +331,9 @@ export default function Constellation({
       <div ref={fieldRef} className="absolute inset-0 z-0 overflow-hidden">
         <canvas ref={canvasRef} className="absolute inset-0 z-0" />
       </div>
-      {/* Radial veil so the center card stays legible */}
-      <div
-        className="absolute inset-0 z-[1] pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(46% 52% at 50% 50%, rgba(6,32,63,.84) 24%, rgba(6,32,63,.5) 52%, rgba(6,32,63,0) 78%)",
-        }}
-      />
+      {/* Radial veil removed — the small-pill design doesn't need
+          a dim center, and the user wants the whole drift field
+          visible. */}
       <style jsx global>{`
         .cn-emoji {
           position: absolute;
