@@ -126,7 +126,6 @@ export default function LoginGateCard({ next }: Props) {
           font-weight: 700;
           font-size: 14px;
           letter-spacing: 0.16em;
-        }
           text-transform: uppercase;
           color: var(--navy-ink);
           background: rgba(255, 255, 255, 0.97);
