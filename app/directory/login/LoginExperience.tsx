@@ -18,9 +18,14 @@ interface Props {
 const REFRESH_MS = 30_000;
 
 /** Collect every URL the new pool's tiles will render. Mirrors the
- * widths the backdrops actually request (384 for photos in Living
- * Wall + Constellation, 256 for everything in Mosaic) so the
- * preload hits the same cache entries the live <img>s will. */
+ * widths the backdrops actually request, including BOTH widths for
+ * any photo URL that appears in both pools:
+ *   - Living Wall + Constellation render photoPool at w=384
+ *   - Mosaic renders mixedPool (which includes photo tiles, plus
+ *     UWC / org / flag) at w=256
+ * Missing the w=256 variant for mixed-pool photos caused a flicker
+ * when Mosaic re-rendered: those <img>s had to fetch a cold
+ * /_next/image variant after pool state already changed. */
 function collectPoolUrls(pools: {
   photoPool: LoginTile[];
   mixedPool: LoginTile[];
@@ -30,11 +35,14 @@ function collectPoolUrls(pools: {
       ? u
       : `/_next/image?url=${encodeURIComponent(u)}&w=${w}&q=70`;
   const out = new Set<string>();
+  // Living Wall + Constellation: photoPool at w=384.
   for (const t of pools.photoPool) {
     if (t.kind === "photo") out.add(opt(t.imgUrl, 384));
   }
+  // Mosaic: every tile in mixedPool at w=256 — photos included.
   for (const t of pools.mixedPool) {
-    if (t.kind === "uwc" || t.kind === "org" || t.kind === "flag") {
+    if (t.kind === "photo") out.add(opt(t.imgUrl, 256));
+    else if (t.kind === "uwc" || t.kind === "org" || t.kind === "flag") {
       if (t.imgUrl) out.add(opt(t.imgUrl, 256));
     }
   }
