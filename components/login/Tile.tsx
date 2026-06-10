@@ -45,9 +45,15 @@ export default function Tile({
   };
   const wrapClass = (className ?? "") + " select-none";
 
-  // ----- Flag tile: full-bleed circle-flag SVG (or rectangular SVG
-  // cover-cropped in Mosaic).
+  // ----- Flag tile. Round tiles (Living Wall, Constellation) use the
+  // circle-flag SVG from /flags/{iso}.svg. Square tiles (Mosaic) use
+  // the rectangular 4x3 SVG from /flags/sq/{iso}.svg with object-fit
+  // cover so it fills the square edge to edge — a round flag inside a
+  // square tile looked wrong (donut of navy around the disc).
   if (tile.kind === "flag") {
+    const flagUrl = square
+      ? `/flags/sq/${tile.iso.toLowerCase()}.svg`
+      : tile.svgUrl;
     return (
       <div
         className={wrapClass}
@@ -60,7 +66,7 @@ export default function Tile({
       >
         {!imgFailed ? (
           <img
-            src={tile.svgUrl}
+            src={flagUrl}
             alt={tile.label}
             onError={() => setImgFailed(true)}
             style={{
@@ -90,8 +96,11 @@ export default function Tile({
     );
   }
 
-  // ----- UWC tile: logo full-bleed on white. Always has imgUrl —
-  // buildUwcTiles only emits rows with a logo.
+  // ----- UWC tile: logo on white. Uses object-fit: CONTAIN with a
+  // small inset (92%) — UWC logos vary in shape (some are square
+  // icon marks, some are wide wordmarks like "UWC USA") so we can't
+  // safely cover-crop. Contain shows the logo cleanly at the cost of
+  // a small white margin.
   if (tile.kind === "uwc") {
     return (
       <div
@@ -104,11 +113,9 @@ export default function Tile({
           alt={tile.label}
           onError={() => setImgFailed(true)}
           style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
+            width: "92%",
+            height: "92%",
+            objectFit: "contain",
             objectPosition: "center",
             opacity: imgFailed ? 0 : 1,
           }}
@@ -117,7 +124,9 @@ export default function Tile({
     );
   }
 
-  // ----- Org tile: company / non-UWC university logo, full-bleed.
+  // ----- Org tile: company / non-UWC university logo, contained
+  // with a small inset (same logic as UWC — wordmark vs square-mark
+  // shapes vary).
   if (tile.kind === "org") {
     const hasImage = !!tile.imgUrl && !imgFailed;
     return (
@@ -137,11 +146,9 @@ export default function Tile({
             alt={tile.label}
             onError={() => setImgFailed(true)}
             style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
+              width: "92%",
+              height: "92%",
+              objectFit: "contain",
               objectPosition: "center",
             }}
           />

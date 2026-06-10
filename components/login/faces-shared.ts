@@ -202,7 +202,16 @@ function shuffleSeeded<T>(arr: T[], seed: number): T[] {
   return out;
 }
 
-/** Combine the four pools at the 60 / 25 / 10 / 5 mix. */
+/** Combine the four pools at the 60 / 25 / 10 / 5 mix — but with a
+ * hard "no duplicates" guarantee within the returned pool. When a
+ * category is short of unique tiles to hit its target (e.g. we only
+ * have ~18 distinct UWC logos but the 25% ratio asks for 60), we
+ * take what we have and refill the shortfall with extra photos
+ * (which we have plenty of). Net effect: every tile in the returned
+ * pool is distinct by id, photos can run above 60% when other
+ * categories under-supply, and the user never sees the same face /
+ * logo / flag twice in a single mosaic.
+ */
 export function buildTilePool(opts: {
   target: number;
   photos: LoginTile[];
@@ -212,26 +221,36 @@ export function buildTilePool(opts: {
   seed: number;
 }): LoginTile[] {
   const { target, photos, uwcs, orgs, flags, seed } = opts;
-  const photoN = Math.round(target * 0.6);
-  const uwcN = Math.round(target * 0.25);
-  const orgN = Math.round(target * 0.1);
-  const flagN = target - photoN - uwcN - orgN;
+  const wantPhoto = Math.round(target * 0.6);
+  const wantUwc = Math.round(target * 0.25);
+  const wantOrg = Math.round(target * 0.1);
+  const wantFlag = target - wantPhoto - wantUwc - wantOrg;
 
   const take = (pool: LoginTile[], n: number, salt: number): LoginTile[] => {
     if (pool.length === 0 || n <= 0) return [];
     const shuffled = shuffleSeeded(pool, seed ^ salt);
-    const out: LoginTile[] = [];
-    for (let i = 0; i < n; i++) out.push(shuffled[i % shuffled.length]);
-    return out;
+    return shuffled.slice(0, Math.min(n, shuffled.length));
   };
 
-  return shuffleSeeded(
-    [
-      ...take(photos, photoN, 1),
-      ...take(uwcs, uwcN, 2),
-      ...take(orgs, orgN, 3),
-      ...take(flags, flagN, 4),
-    ],
-    seed,
-  );
+  const picked = [
+    ...take(uwcs, wantUwc, 2),
+    ...take(orgs, wantOrg, 3),
+    ...take(flags, wantFlag, 4),
+  ];
+  const usedPhotoIds = new Set<string>();
+  const photoExtras = take(photos, wantPhoto, 1);
+  for (const p of photoExtras) usedPhotoIds.add(p.id);
+
+  // Top up to `target` from any remaining unused photos when the
+  // logo/flag pools came up short.
+  const remaining = target - picked.length - photoExtras.length;
+  let topUp: LoginTile[] = [];
+  if (remaining > 0) {
+    const leftover = shuffleSeeded(photos, seed ^ 5).filter(
+      (p) => !usedPhotoIds.has(p.id),
+    );
+    topUp = leftover.slice(0, remaining);
+  }
+
+  return shuffleSeeded([...photoExtras, ...topUp, ...picked], seed);
 }

@@ -8,28 +8,30 @@ interface Props {
   pool: LoginTile[];
 }
 
-const CELL_COUNT = 120;
+const MAX_CELLS = 120;
 const FLIP_INTERVAL_MS = 900;
 
 /**
  * "Mosaic" backdrop — square-tile grid. Each cell holds a front and
- * a back tile (two different images from the pool). The flip
- * crossfades between them. No name reveal — per user feedback the
- * first-name back-side looked bad and added no information, so we
- * cycle image-to-image instead.
+ * a back tile, both drawn from the pool such that NO TWO CELLS share
+ * a tile on either side. (Per user feedback: the user should never
+ * see the same face or logo twice on the screen.) The flip crossfades
+ * front → back without ever revealing the same image elsewhere.
+ *
+ * If the pool is smaller than 2 × MAX_CELLS we just render fewer
+ * cells — the grid auto-fills available space anyway.
  */
 export default function Mosaic({ pool }: Props) {
-  // Each cell gets a stable PAIR of tiles: front + back. Different
-  // offsets through the pool so the front and back are unrelated.
   const cells = useMemo(() => {
     if (pool.length === 0) return [] as Array<{ front: LoginTile; back: LoginTile }>;
     const out: Array<{ front: LoginTile; back: LoginTile }> = [];
-    for (let i = 0; i < CELL_COUNT; i++) {
+    // Hard cap so front+back assignment never wraps. Each tile from
+    // the pool is consumed at most once.
+    const cellCount = Math.min(MAX_CELLS, Math.floor(pool.length / 2));
+    for (let i = 0; i < cellCount; i++) {
       out.push({
-        front: pool[(i * 7) % pool.length],
-        // +37 is coprime with most pool sizes — ensures front and
-        // back lift different tiles even when the pool is small.
-        back: pool[(i * 7 + 37) % pool.length],
+        front: pool[i],
+        back: pool[i + cellCount],
       });
     }
     return out;
@@ -37,7 +39,7 @@ export default function Mosaic({ pool }: Props) {
 
   const [flipped, setFlipped] = useState<Set<number>>(() => {
     const s = new Set<number>();
-    for (let i = 0; i < CELL_COUNT; i++) if (i % 9 === 4) s.add(i);
+    for (let i = 0; i < MAX_CELLS; i++) if (i % 9 === 4) s.add(i);
     return s;
   });
 
@@ -53,7 +55,7 @@ export default function Mosaic({ pool }: Props) {
       setFlipped((prev) => {
         const next = new Set(prev);
         for (let k = 0; k < 3; k++) {
-          const idx = Math.floor(Math.random() * CELL_COUNT);
+          const idx = Math.floor(Math.random() * cells.length);
           if (next.has(idx)) next.delete(idx);
           else next.add(idx);
         }

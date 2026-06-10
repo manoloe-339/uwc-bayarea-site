@@ -9,7 +9,11 @@ import type { LoginTile } from "./faces-shared";
 export type BackdropId = "living" | "mosaic" | "constellation";
 
 interface Props {
-  pool: LoginTile[];
+  /** 60/25/10/5 mixed pool for Mosaic + Constellation. Deduplicated:
+   * no two tiles share an id. */
+  mixedPool: LoginTile[];
+  /** Photos only — for Living Wall. */
+  photoPool: LoginTile[];
   /** Server-chosen starting backdrop, so SSR + first client render
    * agree and the user doesn't see a one-frame flash from the default
    * before the random pick lands. */
@@ -30,7 +34,11 @@ const FADE_MS = 700;
  * an opacity transition on the backdrop layers above it; the user
  * never sees a flash of unstyled background.
  */
-export default function LoginBackdrop({ pool, initial }: Props) {
+export default function LoginBackdrop({
+  mixedPool,
+  photoPool,
+  initial,
+}: Props) {
   const [current, setCurrent] = useState<BackdropId>(initial);
   const [previous, setPrevious] = useState<BackdropId | null>(null);
   const previousTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,7 +88,7 @@ export default function LoginBackdrop({ pool, initial }: Props) {
               transitionDuration: `${FADE_MS}ms`,
             }}
           >
-            <BackdropFor id={id} pool={pool} />
+            <BackdropFor id={id} mixedPool={mixedPool} photoPool={photoPool} />
           </div>
         );
       })}
@@ -88,8 +96,16 @@ export default function LoginBackdrop({ pool, initial }: Props) {
   );
 }
 
-function BackdropFor({ id, pool }: { id: BackdropId; pool: LoginTile[] }) {
-  if (id === "living") return <LivingWall pool={pool} />;
-  if (id === "mosaic") return <Mosaic pool={pool} />;
-  return <Constellation pool={pool} />;
+function BackdropFor({
+  id,
+  mixedPool,
+  photoPool,
+}: {
+  id: BackdropId;
+  mixedPool: LoginTile[];
+  photoPool: LoginTile[];
+}) {
+  if (id === "living") return <LivingWall pool={photoPool} />;
+  if (id === "mosaic") return <Mosaic pool={mixedPool} />;
+  return <Constellation pool={mixedPool} />;
 }

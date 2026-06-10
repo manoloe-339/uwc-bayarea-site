@@ -20,7 +20,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const TARGET_POOL_SIZE = 100;
+/** Target unique-tile count for Mosaic + Constellation. Mosaic has
+ * ~120 cells × 2 sides (front + back), so the pool needs to be big
+ * enough for unique assignments. 240 covers it comfortably. */
+const MIXED_POOL_SIZE = 240;
+/** Living Wall has 7 columns × 10 unique tiles = 70 minimum. We query
+ * extra so the seed-shuffle picks different photos on every visit. */
+const PHOTO_QUERY_SIZE = 240;
 
 /**
  * Sign-in surface. Server-fetches the alumni photo / UWC logo / org
@@ -49,7 +55,7 @@ export default async function DirectoryLoginPage({
         AND deceased IS NOT TRUE
         AND moved_out IS NOT TRUE
       ORDER BY RANDOM()
-      LIMIT 80
+      LIMIT ${PHOTO_QUERY_SIZE}
     `,
     sql`
       SELECT school, MAX(school_logo_url) AS logo
@@ -103,14 +109,18 @@ export default async function DirectoryLoginPage({
     orgRows as Array<{ name: string; logo: string | null }>,
   );
   const flags = buildFlagTiles(originRows as Array<{ origin: string }>);
-  const pool = buildTilePool({
-    target: TARGET_POOL_SIZE,
+  // Mixed pool (60/25/10/5 mix, deduplicated, photos fill any gaps)
+  // — used by Mosaic + Constellation.
+  const mixedPool = buildTilePool({
+    target: MIXED_POOL_SIZE,
     photos,
     uwcs,
     orgs,
     flags,
     seed: Math.floor(Math.random() * 0xffffffff),
   });
+  // Living Wall is photos-only per design — no UWC / org / flag tiles.
+  const photoPool = photos;
 
   const initialBackdrop: BackdropId = (
     ["living", "mosaic", "constellation"] as BackdropId[]
@@ -121,7 +131,11 @@ export default async function DirectoryLoginPage({
       className="min-h-screen relative isolate"
       style={{ background: "var(--rich-deep)" }}
     >
-      <LoginBackdrop pool={pool} initial={initialBackdrop} />
+      <LoginBackdrop
+        mixedPool={mixedPool}
+        photoPool={photoPool}
+        initial={initialBackdrop}
+      />
 
       {/* Transparent header on the dark backdrop */}
       <header className="fixed top-0 left-0 right-0 z-[60] h-16 flex items-center">
