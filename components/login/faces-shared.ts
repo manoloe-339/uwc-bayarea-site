@@ -6,39 +6,34 @@
  *   - 60% alumni headshot  (kind: 'photo')
  *   - 25% UWC school logo  (kind: 'uwc')
  *   - 10% company / non-UWC university logo (kind: 'org')
- *   -  5% origin-country flag emoji (kind: 'flag')
+ *   -  5% origin-country flag SVG (kind: 'flag')
  *
- * Each backdrop samples from a combined, shuffled pool. The pool
- * cycles through whatever's available in each category so all 18
- * UWCs, every known origin flag, and every directory company logo
- * have a chance to appear.
+ * Each backdrop samples from one combined, shuffled pool.
  */
 
-import { COLLEGES } from "@/lib/uwc-colleges";
-import { UWC_SCHOOL_VISUALS } from "@/lib/uwc-school-visuals";
+import { extractCountryCodes } from "@/lib/country-flag";
 
 export type LoginTile =
   | {
       kind: "photo";
       id: string;
       imgUrl: string;
-      initials: string;
-      /** Two-color gradient used as the background while the image
-       * loads AND as the fallback if it fails. */
+      /** Two-color background gradient — shown while the image loads
+       * and as the fallback if it fails. */
       tone: [string, string];
-      /** First name only — what the Mosaic flips to. */
+      initials: string;
+      /** First name only, used as the title attribute. */
       label: string;
     }
   | {
       kind: "uwc";
       id: string;
-      /** LinkedIn-served logo URL or null when none is on file. */
-      imgUrl: string | null;
-      /** Emoji icon from uwc-school-visuals (always present). */
-      icon: string;
-      /** Short school name ("UWCSEA", "Atlantic"). */
-      short: string;
-      /** Full canonical name, used as the back-side label. */
+      /** Logo URL — these are all self-hosted on Vercel Blob after
+       * the backfill, so we always have one (no fallback needed). */
+      imgUrl: string;
+      /** School name as stored in alumni_education ("UWC Atlantic
+       * College", "Li Po Chun United World College of Hong Kong",
+       * etc.). Used as the tooltip. */
       label: string;
     }
   | {
@@ -51,7 +46,9 @@ export type LoginTile =
   | {
       kind: "flag";
       id: string;
-      emoji: string;
+      /** Path to the self-hosted SVG (under /public/flags). */
+      svgUrl: string;
+      iso: string;
       label: string;
     };
 
@@ -81,7 +78,7 @@ function initialsOf(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/** Tinted gradient background CSS. Used by photo-fallback and org
+/** Tinted gradient background — used by photo-fallback and org
  * monogram tiles. */
 export function tileBackground([a, b]: [string, string]): string {
   return (
@@ -120,29 +117,25 @@ export function buildPhotoTiles(
   return out;
 }
 
-/** Build the full set of UWC tiles — one per college in the canonical
- * list, regardless of whether the DB has a logo for it. Pairs each
- * college with the LinkedIn-served logo when available (lookup is by
- * exact canonical match), and otherwise relies on the icon emoji from
- * uwc-school-visuals as the visual. The college's `short` name is the
- * monogram fallback. */
+/** Build UWC tiles directly from the alumni_education rows that have
+ * is_uwc=true and a logo. Each (school, logo) the LinkedIn scrape
+ * stored becomes one tile — no canonical-name mapping needed, since
+ * the logo itself is what we're showing. Dedups by school name so a
+ * UWC with 60 alumni records only generates one tile. */
 export function buildUwcTiles(
   dbLogos: Array<{ school: string; logo: string | null }>,
 ): LoginTile[] {
-  const logoByName: Map<string, string> = new Map();
-  for (const r of dbLogos) {
-    if (r.school && r.logo) logoByName.set(r.school, r.logo);
-  }
+  const seen = new Set<string>();
   const out: LoginTile[] = [];
-  for (const c of COLLEGES) {
-    const visual = UWC_SCHOOL_VISUALS[c.canonical];
+  for (const r of dbLogos) {
+    if (!r.school || !r.logo) continue;
+    if (seen.has(r.school)) continue;
+    seen.add(r.school);
     out.push({
       kind: "uwc",
-      id: `uwc-${c.canonical}`,
-      imgUrl: logoByName.get(c.canonical) ?? null,
-      icon: visual?.icon ?? "🎓",
-      short: c.short,
-      label: c.canonical,
+      id: `uwc-${r.school}`,
+      imgUrl: r.logo,
+      label: r.school,
     });
   }
   return out;
@@ -152,7 +145,7 @@ export function buildOrgTiles(
   rows: Array<{ name: string; logo: string | null }>,
 ): LoginTile[] {
   return rows
-    .filter((r) => r.name)
+    .filter((r) => r.name && r.logo)
     .map((r) => ({
       kind: "org" as const,
       id: `org-${r.name}`,
@@ -160,19 +153,6 @@ export function buildOrgTiles(
       initials: initialsOf(r.name),
       label: r.name,
     }));
-}
-
-/* ------------------------------------------------------------------ */
-/* Flags                                                               */
-/* ------------------------------------------------------------------ */
-
-import { extractCountryCodes } from "@/lib/country-flag";
-
-function flagEmoji(iso2: string): string {
-  const A = 127397;
-  return String.fromCodePoint(
-    ...iso2.toUpperCase().split("").map((c) => A + c.charCodeAt(0)),
-  );
 }
 
 function regionName(iso2: string): string {
@@ -183,20 +163,23 @@ function regionName(iso2: string): string {
   }
 }
 
-/** Build flag tiles from a list of alumni `origin` strings. Re-uses
- * the directory's extractCountryCodes() so the same set of countries
- * that show as flags on profile cards show here too. */
+/** Flag tiles. The SVG asset paths point at /public/flags/{iso}.svg,
+ * vendored from HatScripts/circle-flags (MIT). Any country we don't
+ * have an SVG for is silently dropped — better no flag than a broken
+ * link in the backdrop. */
 export function buildFlagTiles(rows: Array<{ origin: string }>): LoginTile[] {
   const seen = new Set<string>();
   const out: LoginTile[] = [];
   for (const r of rows) {
     for (const iso of extractCountryCodes(r.origin, 3)) {
-      if (seen.has(iso)) continue;
-      seen.add(iso);
+      const lower = iso.toLowerCase();
+      if (seen.has(lower)) continue;
+      seen.add(lower);
       out.push({
         kind: "flag",
-        id: `flag-${iso}`,
-        emoji: flagEmoji(iso),
+        id: `flag-${lower}`,
+        svgUrl: `/flags/${lower}.svg`,
+        iso: iso.toUpperCase(),
         label: regionName(iso),
       });
     }
@@ -219,11 +202,7 @@ function shuffleSeeded<T>(arr: T[], seed: number): T[] {
   return out;
 }
 
-/** Combine the four pools into one shuffled list at the 60/25/10/5
- * mix. `target` is the desired total tile count; each pool cycles
- * (with shuffling) to fill its quota, so all 18 UWCs / all flags /
- * all company logos appear at least once when the pool exceeds the
- * total. */
+/** Combine the four pools at the 60 / 25 / 10 / 5 mix. */
 export function buildTilePool(opts: {
   target: number;
   photos: LoginTile[];

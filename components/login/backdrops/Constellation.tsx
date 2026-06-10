@@ -7,7 +7,9 @@ import type { LoginTile } from "../faces-shared";
 
 interface Props {
   pool: LoginTile[];
-  /** Multiplies the node count. 1.0 ≈ 7..48 nodes scaled to viewport. */
+  /** Multiplies the node count. Default 1.6 fills the field more
+   * generously than the original 1.0 (which left visible empty
+   * patches on wide viewports). */
   density?: number;
   /** Multiplies linear & angular speeds. */
   speed?: number;
@@ -45,7 +47,7 @@ type Node = {
  */
 export default function Constellation({
   pool,
-  density = 1,
+  density = 1.6,
   speed = 1,
 }: Props) {
   const fieldRef = useRef<HTMLDivElement | null>(null);
@@ -74,8 +76,11 @@ export default function Constellation({
     };
     size();
 
-    const base = Math.round((W * H) / 60000);
-    const COUNT = Math.max(7, Math.min(48, Math.round(base * density)));
+    // Lower divisor + higher cap = denser field. Original spec
+    // hit ~22 nodes on a 1440x900 viewport; new defaults land at
+    // ~50, which the user wanted (less empty space).
+    const base = Math.round((W * H) / 38000);
+    const COUNT = Math.max(12, Math.min(72, Math.round(base * density)));
 
     const nodes: Node[] = [];
     for (let i = 0; i < COUNT; i++) {
@@ -143,21 +148,24 @@ export default function Constellation({
         e.textContent = HAPPY[(Math.random() * HAPPY.length) | 0];
         e.style.left = x + "px";
         e.style.top = y + "px";
-        e.style.fontSize = (19 + Math.random() * 15).toFixed(0) + "px";
+        // Larger sizes + bigger travel distances + longer hang time
+        // so the burst reads as deliberate celebration rather than a
+        // flicker. Per user feedback after the first deploy.
+        e.style.fontSize = (26 + Math.random() * 18).toFixed(0) + "px";
         const a = Math.random() * Math.PI * 2;
-        const dist = 55 + Math.random() * 145;
+        const dist = 95 + Math.random() * 200;
         e.style.setProperty("--tx", (Math.cos(a) * dist).toFixed(0) + "px");
         e.style.setProperty(
           "--ty",
-          (Math.sin(a) * dist - (26 + Math.random() * 60)).toFixed(0) + "px",
+          (Math.sin(a) * dist - (38 + Math.random() * 90)).toFixed(0) + "px",
         );
         e.style.setProperty(
           "--rot",
           ((Math.random() - 0.5) * 90).toFixed(0) + "deg",
         );
-        e.style.animationDelay = (k * 20 + Math.random() * 26).toFixed(0) + "ms";
+        e.style.animationDelay = (k * 60 + Math.random() * 50).toFixed(0) + "ms";
         field.appendChild(e);
-        setTimeout(() => e.remove(), 1800 + k * 50);
+        setTimeout(() => e.remove(), 3600 + k * 80);
       }
     };
 
@@ -286,13 +294,14 @@ export default function Constellation({
           line-height: 1;
           transform: translate(-50%, -50%);
           will-change: transform, opacity;
-          animation: cn-pop 1.5s cubic-bezier(.15,.75,.3,1) both;
+          animation: cn-pop 2.8s cubic-bezier(.15,.75,.3,1) both;
           text-shadow: 0 4px 10px rgba(0,0,0,.35);
         }
         @keyframes cn-pop {
           0%   { opacity: 0; transform: translate(-50%, -50%) scale(.2) rotate(0deg); }
-          18%  { opacity: 1; transform: translate(calc(-50% + var(--tx, 0px) * 0.42), calc(-50% + var(--ty, 0px) * 0.42)) scale(1.16) rotate(var(--rot, 0deg)); }
-          100% { opacity: 0; transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, 0px) - 28px)) scale(.92) rotate(var(--rot, 0deg)); }
+          14%  { opacity: 1; transform: translate(calc(-50% + var(--tx, 0px) * 0.28), calc(-50% + var(--ty, 0px) * 0.28)) scale(1.18) rotate(var(--rot, 0deg)); }
+          70%  { opacity: 1; transform: translate(calc(-50% + var(--tx, 0px) * .85), calc(-50% + var(--ty, 0px) * .85 - 14px)) scale(1) rotate(var(--rot, 0deg)); }
+          100% { opacity: 0; transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, 0px) - 38px)) scale(.88) rotate(var(--rot, 0deg)); }
         }
         @media (prefers-reduced-motion: reduce) {
           .cn-emoji { display: none; }

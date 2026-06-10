@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Tile from "../Tile";
 import type { LoginTile } from "../faces-shared";
 
@@ -12,47 +12,34 @@ const CELL_COUNT = 120;
 const FLIP_INTERVAL_MS = 900;
 
 /**
- * "Mosaic" backdrop — a tight grid of square tiles. Random cells
- * crossfade between the front (face / logo / flag) and the back
- * (the tile's label on a deep-blue square). 3 cells flip every
- * 900ms. A radial-blue veil dims the center for sign-in legibility.
+ * "Mosaic" backdrop — square-tile grid. Each cell holds a front and
+ * a back tile (two different images from the pool). The flip
+ * crossfades between them. No name reveal — per user feedback the
+ * first-name back-side looked bad and added no information, so we
+ * cycle image-to-image instead.
  */
 export default function Mosaic({ pool }: Props) {
+  // Each cell gets a stable PAIR of tiles: front + back. Different
+  // offsets through the pool so the front and back are unrelated.
   const cells = useMemo(() => {
-    if (pool.length === 0) return [] as LoginTile[];
-    const out: LoginTile[] = [];
+    if (pool.length === 0) return [] as Array<{ front: LoginTile; back: LoginTile }>;
+    const out: Array<{ front: LoginTile; back: LoginTile }> = [];
     for (let i = 0; i < CELL_COUNT; i++) {
-      out.push(pool[(i * 7) % pool.length]);
+      out.push({
+        front: pool[(i * 7) % pool.length],
+        // +37 is coprime with most pool sizes — ensures front and
+        // back lift different tiles even when the pool is small.
+        back: pool[(i * 7 + 37) % pool.length],
+      });
     }
     return out;
   }, [pool]);
 
-  // Random initial flipped-state — a few logos / names at rest.
   const [flipped, setFlipped] = useState<Set<number>>(() => {
     const s = new Set<number>();
     for (let i = 0; i < CELL_COUNT; i++) if (i % 9 === 4) s.add(i);
     return s;
   });
-  const flippedRef = useRef(flipped);
-  flippedRef.current = flipped;
-
-  // Per-cell sized name labels — measured once after mount.
-  const gridRef = useRef<HTMLDivElement | null>(null);
-  const [nameFontPx, setNameFontPx] = useState(14);
-  useEffect(() => {
-    const measure = () => {
-      const g = gridRef.current;
-      if (!g) return;
-      const cell = g.querySelector("[data-mz-cell]") as HTMLElement | null;
-      if (!cell) return;
-      const w = cell.clientWidth || 96;
-      setNameFontPx(Math.max(11, Math.min(w * 0.42, w * 0.22)));
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    if (gridRef.current) ro.observe(gridRef.current);
-    return () => ro.disconnect();
-  }, [cells.length]);
 
   useEffect(() => {
     if (cells.length === 0) return;
@@ -81,7 +68,6 @@ export default function Mosaic({ pool }: Props) {
   return (
     <>
       <div
-        ref={gridRef}
         className="absolute -inset-2.5 z-0 grid gap-3 p-3"
         style={{
           gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
@@ -89,12 +75,11 @@ export default function Mosaic({ pool }: Props) {
           gridAutoFlow: "dense",
         }}
       >
-        {cells.map((tile, i) => {
+        {cells.map((cell, i) => {
           const isFlipped = flipped.has(i);
           return (
             <div
               key={i}
-              data-mz-cell
               className="relative"
               style={{ aspectRatio: "1" }}
             >
@@ -102,19 +87,28 @@ export default function Mosaic({ pool }: Props) {
                 className="absolute inset-0 transition-opacity duration-[600ms] ease-out"
                 style={{ opacity: isFlipped ? 0 : 1 }}
               >
-                <Tile tile={tile} square className="w-full h-full" noTitle />
+                <Tile
+                  tile={cell.front}
+                  square
+                  style={{ width: "100%", height: "100%" }}
+                  noTitle
+                />
               </div>
               <div
                 className="absolute inset-0 transition-opacity duration-[600ms] ease-out"
                 style={{ opacity: isFlipped ? 1 : 0 }}
               >
-                <NameTile label={tile.label} fontSize={nameFontPx} />
+                <Tile
+                  tile={cell.back}
+                  square
+                  style={{ width: "100%", height: "100%" }}
+                  noTitle
+                />
               </div>
             </div>
           );
         })}
       </div>
-      {/* Radial deep-blue veil keeps the center card legible */}
       <div
         className="absolute inset-0 z-[1] pointer-events-none"
         style={{
@@ -123,35 +117,5 @@ export default function Mosaic({ pool }: Props) {
         }}
       />
     </>
-  );
-}
-
-function NameTile({ label, fontSize }: { label: string; fontSize: number }) {
-  return (
-    <div
-      className="w-full h-full flex items-center justify-center text-center overflow-hidden"
-      style={{
-        borderRadius: "18%",
-        padding: "9%",
-        background: "linear-gradient(155deg, #0d5099, #06223f)",
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "var(--font-display, Fraunces), serif",
-          fontWeight: 700,
-          color: "#fff",
-          fontSize: `${fontSize}px`,
-          lineHeight: 1,
-          letterSpacing: "-.015em",
-          whiteSpace: "nowrap",
-          maxWidth: "100%",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
-      >
-        {label}
-      </span>
-    </div>
   );
 }
