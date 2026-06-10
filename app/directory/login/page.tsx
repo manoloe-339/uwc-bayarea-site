@@ -12,7 +12,7 @@ import {
   buildUwcPhotoTiles,
   buildUwcTiles,
 } from "@/components/login/faces-shared";
-import DirectoryLoginForm from "./DirectoryLoginForm";
+import LoginGateCard from "./LoginGateCard";
 
 export const dynamic = "force-dynamic";
 // Belt and suspenders: never cache this page or any of its data
@@ -240,35 +240,13 @@ export default async function DirectoryLoginPage({
         </div>
       </header>
 
-      {/* Centered sign-in card — tightened for desktop + mobile */}
+      {/* Two-state sign-in surface. Default: a small Log in pill that
+          leaves the backdrop fully visible AND triggers a hard reload
+          every 30 s so a passive viewer sees a fresh layout each
+          cycle. Clicking the pill swaps in the full sign-in card and
+          cancels the reload so we don't interrupt typing. */}
       <main className="relative z-[2] min-h-screen flex items-center justify-center px-5 py-20">
-        <div
-          className="w-full max-w-[320px] rounded-[12px] p-5 sm:p-6"
-          style={{
-            background: "rgba(255,255,255,.97)",
-            border: "1px solid rgba(11,37,69,.08)",
-            boxShadow:
-              "0 2px 0 var(--ivory-3), 0 30px 60px -30px rgba(11,37,69,.5)",
-          }}
-        >
-          <div className="flex items-center gap-2 text-navy font-bold text-[10px] tracking-[.22em] uppercase">
-            <span className="inline-block w-5 h-0.5 bg-navy" aria-hidden />
-            Directory access
-          </div>
-          <h1
-            className="text-[color:var(--navy-ink)] mt-2 font-extrabold leading-[1.04]"
-            style={{
-              fontFamily: "Inter, system-ui, sans-serif",
-              fontSize: "clamp(22px, 5vw, 28px)",
-              letterSpacing: "-.025em",
-            }}
-          >
-            Sign in
-          </h1>
-          <div className="mt-3">
-            <DirectoryLoginForm next={next} />
-          </div>
-        </div>
+        <LoginGateCard next={next} />
       </main>
       </LoadingGate>
     </div>
