@@ -43,6 +43,43 @@ export default function LoginBackdrop({
   const [previous, setPrevious] = useState<BackdropId | null>(null);
   const previousTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Image preload: kick off background fetches for every URL the
+  // three backdrops will eventually render. By the time the
+  // rotation crossfades to a backdrop, its <img>s pull from cache
+  // — no visible "still loading" pop-in. Runs once on mount, after
+  // first paint, so it never delays LCP.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const urls = new Set<string>();
+    const add = (u: string | null | undefined) => {
+      if (u) urls.add(u);
+    };
+    for (const t of mixedPool) {
+      if (t.kind === "photo") add(t.imgUrl);
+      else if (t.kind === "uwc" || t.kind === "org") add(t.imgUrl);
+      else if (t.kind === "flag") {
+        add(t.svgUrl);
+        add(`/flags/sq/${t.iso.toLowerCase()}.svg`);
+      }
+    }
+    for (const t of photoPool) {
+      if (t.kind === "photo") add(t.imgUrl);
+    }
+    // Stagger to avoid stalling the network on a 200+ image burst.
+    let idx = 0;
+    const list = Array.from(urls);
+    const tick = () => {
+      const slice = list.slice(idx, idx + 12);
+      for (const u of slice) {
+        const img = new window.Image();
+        img.src = u;
+      }
+      idx += 12;
+      if (idx < list.length) setTimeout(tick, 80);
+    };
+    tick();
+  }, [mixedPool, photoPool]);
+
   // Cycle setup. Skipped under reduce-motion — the user simply gets
   // whichever backdrop was chosen on the server.
   useEffect(() => {

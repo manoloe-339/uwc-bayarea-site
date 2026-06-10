@@ -57,6 +57,11 @@ export default async function DirectoryLoginPage({
   // (`UWC_LOGOS`) — exactly 18, no DB lookup, no name-variant noise.
   const [photoRows, orgRows, originRows] = await Promise.all([
     sql`
+      -- Exclude alumni whose "profile photo" is actually a school or
+      -- company logo (some folks set their LinkedIn picture to the
+      -- UWC USA crest, NYU Abu Dhabi mark, etc.). Without this they
+      -- showed up rotating in the Constellation as "the only logo
+      -- that appears, every time."
       SELECT id, first_name, last_name, photo_url
       FROM alumni
       WHERE photo_url IS NOT NULL
@@ -64,6 +69,19 @@ export default async function DirectoryLoginPage({
         AND affiliation ILIKE '%alum%'
         AND deceased IS NOT TRUE
         AND moved_out IS NOT TRUE
+        AND photo_url NOT IN (
+          SELECT school_logo_url
+          FROM alumni_education
+          WHERE school_logo_url IS NOT NULL
+          UNION
+          SELECT current_company_logo_url
+          FROM alumni
+          WHERE current_company_logo_url IS NOT NULL
+          UNION
+          SELECT company_logo_url
+          FROM alumni_career
+          WHERE company_logo_url IS NOT NULL
+        )
       ORDER BY RANDOM()
       LIMIT ${PHOTO_QUERY_SIZE}
     `,
