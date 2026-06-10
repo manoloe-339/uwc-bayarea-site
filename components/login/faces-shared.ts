@@ -286,29 +286,29 @@ export function buildTilePool(opts: {
       : [];
   const allPhotos = [...pickedPhotos, ...photoExtras];
 
-  // Per-visit jitter: each category's start offset rotates based on
-  // the seed so the same logo doesn't always land in the same cell
-  // across loads. Without this the stride distribution is fully
-  // deterministic and the Mosaic feels static on refresh.
-  const jit = (salt: number) => {
-    const s = (seed ^ salt) >>> 0;
-    return ((s % 1000) / 1000) % 1; // [0, 1)
-  };
+  // Slot-based jitter. Each category divides the pool into N equal
+  // slots (one per item), and each item lands at a RANDOM position
+  // WITHIN its slot. This guarantees:
+  //   - each item gets a unique region (no clumping into one third)
+  //   - adjacent positions are random, not fixed-stride — so when
+  //     the 1-D pool gets mapped to a 2-D Mosaic grid, the items
+  //     don't cycle through the same N columns over and over
+  //
+  // A fixed stride (target / N) modulo grid_columns produced
+  // exactly-3-columns-of-UWCs on a 10-column grid (Manolo's "cluster
+  // on left, nothing on right" report). Slot-jitter breaks that
+  // cycle.
+  const rand01 = (s: number) => ((s >>> 0) % 1_000_003) / 1_000_003;
 
   type Placed = { pos: number; tile: LoginTile };
   const placed: Placed[] = [];
   const place = (pool: LoginTile[], salt: number) => {
     if (pool.length === 0) return;
-    const stride = target / pool.length;
-    // Jitter across the FULL pool length (not just one stride) —
-    // small offsets only nudged positions by ~13 cells, which felt
-    // like nothing moved between loads. Now the start can land
-    // anywhere in [0, target) and the stride still spreads the
-    // category evenly across the pool after the modulo + sort.
-    const startOffset = jit(salt) * target;
+    const slotSize = target / pool.length;
     for (let i = 0; i < pool.length; i++) {
+      const jitter = rand01(seed ^ salt ^ (i * 2654435761)) * slotSize;
       placed.push({
-        pos: (startOffset + i * stride) % target,
+        pos: i * slotSize + jitter,
         tile: pool[i],
       });
     }
