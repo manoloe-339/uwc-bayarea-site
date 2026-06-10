@@ -91,7 +91,10 @@ export default function LivingWall({ pool }: Props) {
         }}
       >
         {columns.map((col, ci) => {
-          const dur = 38 + (ci % 4) * 9;
+          // Per-column scroll duration in seconds. +10% over the
+          // original 38/47/56/65 → 42/52/62/72 — same staggered
+          // feel, slightly calmer pace.
+          const dur = 42 + (ci % 4) * 10;
           return (
             <div
               key={ci}
