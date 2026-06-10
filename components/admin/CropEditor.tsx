@@ -60,28 +60,45 @@ export default function CropEditor({
           Crop image
         </div>
         <div
-          className="relative bg-black rounded-md overflow-hidden"
-          style={{ height: 380 }}
+          className="relative rounded-md overflow-hidden"
+          style={{ height: 380, background: "#fff" }}
         >
           <Cropper
             image={src}
             crop={crop}
             zoom={zoom}
             aspect={aspect}
+            // minZoom < 1 lets you zoom OUT past the image's natural
+            // size, giving the asset more letterboxing inside the
+            // square crop. Used when the source already has the
+            // content tightly framed and you want some padding.
+            minZoom={0.5}
+            maxZoom={4}
+            // restrictPosition=false is required to let the image
+            // sit anywhere (including showing background) when
+            // zoomed out below 1.
+            restrictPosition={false}
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={onCropComplete}
-            restrictPosition
             showGrid
+            // White preview background so the user sees exactly what
+            // the saved JPEG will look like — including any
+            // letterboxing introduced by zooming below 1×.
+            style={{
+              containerStyle: { background: "#fff" },
+              mediaStyle: {},
+              cropAreaStyle: {},
+            }}
           />
         </div>
         <label className="block mt-4">
           <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-            Zoom
+            Zoom — drag below 1× to shrink the image inside the square
           </span>
           <input
             type="range"
-            min={1}
+            min={0.5}
             max={4}
             step={0.05}
             value={zoom}
@@ -129,6 +146,12 @@ async function cropToBlob(src: string, pixels: Area): Promise<Blob> {
   canvas.height = pixels.height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas not supported");
+  // Fill with white first — pixels outside the image bounds (which
+  // happens when the user zooms below 1×) would otherwise become
+  // black in the JPEG output. White matches the login backdrop's
+  // logo-tile background.
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(
     img,
     pixels.x,
