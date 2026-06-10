@@ -44,7 +44,22 @@ export async function middleware(req: NextRequest) {
       path === "/directory/setup" ||
       path === "/api/directory/setup"
     ) {
-      return NextResponse.next();
+      const res = NextResponse.next();
+      // Extra-strong cache-busting for the login page. Each visit
+      // randomizes the backdrop tile pool; the dynamic-page default
+      // already says no-store, but some browsers still serve from
+      // bfcache or memory across quick reloads. Vary: * forces
+      // revalidation on every request even when the URL is identical.
+      if (path === "/directory/login") {
+        res.headers.set(
+          "Cache-Control",
+          "private, no-store, no-cache, max-age=0, must-revalidate",
+        );
+        res.headers.set("Vary", "*");
+        res.headers.set("Pragma", "no-cache");
+        res.headers.set("Expires", "0");
+      }
+      return res;
     }
     const dirSecret = process.env.DIRECTORY_PASSWORD;
     if (!dirSecret) {
