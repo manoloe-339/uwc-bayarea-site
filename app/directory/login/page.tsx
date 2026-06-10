@@ -181,10 +181,13 @@ export default async function DirectoryLoginPage({
   for (const t of photoPool) {
     if (t.kind === "photo") preloadUrls.push(opt(t.imgUrl, 384));
   }
-  // Mosaic: logos + flags at 192px.
+  // Mosaic: logos + flags. Width must be one of Next.js's allowed
+  // imageSizes ([16, 32, 48, 64, 96, 128, 256, 384] by default) —
+  // anything else returns 400 from /_next/image, which fires the
+  // <img onError> fallback in Tile.
   for (const t of mixedPool) {
     if (t.kind === "uwc" || t.kind === "org") {
-      if (t.imgUrl) preloadUrls.push(opt(t.imgUrl, 192));
+      if (t.imgUrl) preloadUrls.push(opt(t.imgUrl, 256));
     } else if (t.kind === "flag") {
       preloadUrls.push(t.svgUrl);
     }
