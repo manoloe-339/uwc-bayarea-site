@@ -197,7 +197,7 @@ export default async function DirectoryLoginPage({
       {/* Centered sign-in card — tightened for desktop + mobile */}
       <main className="relative z-[2] min-h-screen flex items-center justify-center px-5 py-20">
         <div
-          className="w-full max-w-[360px] rounded-[14px] p-6 sm:p-7"
+          className="w-full max-w-[320px] rounded-[12px] p-5 sm:p-6"
           style={{
             background: "rgba(255,255,255,.97)",
             border: "1px solid rgba(11,37,69,.08)",
@@ -205,25 +205,21 @@ export default async function DirectoryLoginPage({
               "0 2px 0 var(--ivory-3), 0 30px 60px -30px rgba(11,37,69,.5)",
           }}
         >
-          <div className="flex items-center gap-2.5 text-navy font-bold text-[11px] tracking-[.22em] uppercase">
-            <span className="inline-block w-6 h-0.5 bg-navy" aria-hidden />
+          <div className="flex items-center gap-2 text-navy font-bold text-[10px] tracking-[.22em] uppercase">
+            <span className="inline-block w-5 h-0.5 bg-navy" aria-hidden />
             Directory access
           </div>
           <h1
-            className="text-[color:var(--navy-ink)] mt-3 font-extrabold leading-[1.04]"
+            className="text-[color:var(--navy-ink)] mt-2 font-extrabold leading-[1.04]"
             style={{
               fontFamily: "Inter, system-ui, sans-serif",
-              fontSize: "clamp(26px, 5.5vw, 34px)",
+              fontSize: "clamp(22px, 5vw, 28px)",
               letterSpacing: "-.025em",
             }}
           >
             Sign in
           </h1>
-          <p className="text-[color:var(--muted)] text-[13px] leading-[1.5] mt-2.5 max-w-[40ch]">
-            Read-only directory for trusted organizers. Lookup &amp; LinkedIn
-            links only — no email or phone exposed.
-          </p>
-          <div className="mt-4">
+          <div className="mt-3">
             <DirectoryLoginForm next={next} />
           </div>
         </div>

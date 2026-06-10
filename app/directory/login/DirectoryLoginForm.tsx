@@ -59,9 +59,6 @@ export default function DirectoryLoginForm({ next }: Props) {
           placeholder="your@email.com"
           className={INPUT_CLASS}
         />
-        <span className="block mt-1.5 text-[12px] text-[color:var(--muted)] leading-snug">
-          Leave blank if you were given a shared admin password.
-        </span>
       </label>
 
       <label className="block">
