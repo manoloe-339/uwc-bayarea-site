@@ -3,6 +3,7 @@ import Link from "next/link";
 import { sql } from "@/lib/db";
 import { FeedbackButton } from "@/components/directory/FeedbackButton";
 import LoginBackdrop, { type BackdropId } from "@/components/login/LoginBackdrop";
+import LoadingGate from "@/components/login/LoadingGate";
 import {
   buildFlagTiles,
   buildOrgTiles,
@@ -166,11 +167,29 @@ export default async function DirectoryLoginPage({
     ["living", "mosaic", "constellation"] as BackdropId[]
   )[Math.floor(Math.random() * 3)];
 
+  // Image URLs the LoadingGate uses to gauge "enough loaded to show
+  // the page". We pass photo URLs from the photoPool (Living Wall +
+  // Constellation backdrop, both photo-only) plus the logo URLs from
+  // the mixed pool (Mosaic). Half of these have to settle before the
+  // sign-in card is revealed.
+  const preloadUrls: string[] = [];
+  for (const t of photoPool) {
+    if (t.kind === "photo") preloadUrls.push(t.imgUrl);
+  }
+  for (const t of mixedPool) {
+    if (t.kind === "uwc" || t.kind === "org") {
+      if (t.imgUrl) preloadUrls.push(t.imgUrl);
+    } else if (t.kind === "flag") {
+      preloadUrls.push(t.svgUrl);
+    }
+  }
+
   return (
     <div
       className="min-h-screen relative isolate"
       style={{ background: "var(--rich-deep)" }}
     >
+      <LoadingGate urls={preloadUrls} threshold={0.5}>
       <LoginBackdrop
         mixedPool={mixedPool}
         photoPool={photoPool}
@@ -250,6 +269,7 @@ export default async function DirectoryLoginPage({
           </div>
         </div>
       </main>
+      </LoadingGate>
     </div>
   );
 }
