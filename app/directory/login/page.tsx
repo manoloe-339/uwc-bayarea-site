@@ -31,9 +31,11 @@ export default async function DirectoryLoginPage({
       : "/directory";
 
   const initialPools = await buildLoginData();
-  const initialBackdrop: BackdropId = (
-    ["living", "mosaic", "constellation"] as BackdropId[]
-  )[Math.floor(Math.random() * 3)];
+  // First backdrop is pinned to "living" so every arrival opens
+  // with the scrolling wall — the most immediately recognizable
+  // visual identity. Rotation still cycles through all three
+  // every 10s afterward.
+  const initialBackdrop: BackdropId = "living";
 
   // Image URLs that the LoadingGate uses on the first page render to
   // gauge "enough loaded to show the page". After that the polling

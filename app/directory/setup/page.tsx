@@ -90,9 +90,10 @@ export default async function DirectorySetupPage({
 
   // Backdrop data, same as the login page uses.
   const initialPools = await buildLoginData();
-  const initialBackdrop: BackdropId = (
-    ["living", "mosaic", "constellation"] as BackdropId[]
-  )[Math.floor(Math.random() * 3)];
+  // Pinned to "living" so first-time invitees and returning users
+  // both open on the scrolling wall. Rotation still cycles all
+  // three every 10s.
+  const initialBackdrop: BackdropId = "living";
   const opt = (u: string, w: number) =>
     u.endsWith(".svg") ? u : `/_next/image?url=${encodeURIComponent(u)}&w=${w}&q=70`;
   const initialPreloadUrls: string[] = [];
