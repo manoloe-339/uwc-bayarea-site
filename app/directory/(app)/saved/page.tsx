@@ -11,10 +11,13 @@ export default async function SavedShortlistPage() {
   if (session.kind !== "user") {
     return (
       <section className="max-w-[800px] mx-auto px-5 sm:px-7 py-10">
-        <h1 className="font-sans text-2xl font-bold text-[color:var(--navy-ink)] mb-2">
+        <h1
+          className="display text-white font-extrabold mb-2"
+          style={{ fontSize: "clamp(28px, 5vw, 38px)" }}
+        >
           Sign in with a personal account
         </h1>
-        <p className="text-[color:var(--muted)] text-sm">
+        <p className="text-white/75 text-sm">
           The saved-shortlist feature requires a personal directory account.
           Ask the admin to invite you, or sign out and back in with your
           personal credentials.
@@ -27,7 +30,10 @@ export default async function SavedShortlistPage() {
 
   return (
     <section className="max-w-[900px] mx-auto px-5 sm:px-7 py-8">
-      <h1 className="font-sans text-[28px] sm:text-[34px] font-bold text-[color:var(--navy-ink)] tracking-[-0.01em]">
+      <h1
+        className="display text-white font-extrabold leading-[1.02] tracking-[-0.02em]"
+        style={{ fontSize: "clamp(34px, 6vw, 54px)" }}
+      >
         Your shortlist
       </h1>
       <SavedList allSaves={allSaves} />

@@ -492,11 +492,14 @@ export default async function SnapshotPage() {
   return (
     <section className="max-w-[1180px] mx-auto px-5 sm:px-7 py-8">
       <div className="mb-6">
-        <h1 className="font-sans text-[28px] sm:text-[34px] font-bold text-[color:var(--navy-ink)] tracking-[-0.01em]">
+        <h1
+          className="display text-white font-extrabold leading-[1.02] tracking-[-0.02em]"
+          style={{ fontSize: "clamp(34px, 6vw, 54px)" }}
+        >
           Snapshot
         </h1>
-        <p className="text-sm text-[color:var(--muted)] mt-1.5 max-w-[68ch]">
-          A bird's-eye view of where the {data.totalAlumni} alumni in the
+        <p className="mt-2 text-[15px] sm:text-[17px] text-white/75 max-w-[68ch]">
+          A bird&rsquo;s-eye view of where the {data.totalAlumni} alumni in the
           directory cluster — by company, school, industry, location, and
           more. Click any row to drill into a filtered directory view.
         </p>

@@ -131,10 +131,10 @@ export default function SavedList({ allSaves }: Props) {
   if (visibleSaves.length === 0) {
     return (
       <>
-        <p className="text-sm text-[color:var(--muted)] mt-1 mb-5">
+        <p className="text-sm text-white/75 mt-2 mb-5">
           0 saved · personal to your account
         </p>
-        <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)] text-sm">
+        <div className="fp-panel p-10 text-center text-white/70 text-sm">
           Nothing saved yet. Click ★ Save on any profile to start.
         </div>
       </>
@@ -143,7 +143,7 @@ export default function SavedList({ allSaves }: Props) {
 
   return (
     <>
-      <p className="text-sm text-[color:var(--muted)] mt-1 mb-6">
+      <p className="text-sm text-white/75 mt-2 mb-6">
         {visibleSaves.length} saved · personal to your account
       </p>
 
@@ -153,9 +153,9 @@ export default function SavedList({ allSaves }: Props) {
           if (rows.length === 0) return null;
           return (
             <section key={status}>
-              <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-2 flex items-center gap-2">
+              <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-white mb-2 flex items-center gap-2">
                 {STATUS_LABELS[status]}
-                <span className="text-[color:var(--muted)] font-normal tracking-normal lowercase">
+                <span className="text-white/65 font-normal tracking-normal lowercase">
                   · {rows.length}
                 </span>
               </h2>
