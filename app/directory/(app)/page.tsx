@@ -41,16 +41,15 @@ function pickNum(sp: SP, key: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-/** Filter-field classname. When `active`, swap the white/grey
- * baseline for a navy-bordered, lightly-tinted "on" look so a glance
- * at the form tells you which filters are constraining the result
- * set. */
-function fieldClass(active: boolean): string {
-  return `w-full border rounded px-3 py-2 text-sm ${
-    active
-      ? "border-navy bg-[color:var(--ivory-2)] font-medium"
-      : "border-[color:var(--rule)] bg-white"
-  }`;
+/** Filter-field classname. Frosted-glass baseline; when `active`
+ * the border and tint brighten so a glance at the form tells you
+ * which filters are constraining the result set. */
+function fieldClass(active: boolean, kind: "input" | "select" = "input"): string {
+  const base = kind === "select" ? "fp-select" : "fp-input";
+  return active ? `${base} ${base}--active` : base;
+}
+function fieldClassLg(active: boolean): string {
+  return active ? "fp-input fp-input--lg fp-input--active" : "fp-input fp-input--lg";
 }
 
 /** Build a list of human-readable chips for every filter currently
@@ -247,241 +246,267 @@ export default async function DirectoryPage({
   return (
     <section className="max-w-[1180px] mx-auto px-5 sm:px-7 py-8">
       <div className="mb-6">
-        <h1 className="font-sans text-[28px] sm:text-[34px] font-bold text-[color:var(--navy-ink)] tracking-[-0.01em]">
+        <h1
+          className="display text-white font-extrabold leading-[1.02] tracking-[-0.02em]"
+          style={{ fontSize: "clamp(34px, 6vw, 54px)" }}
+        >
           {me?.first_name?.trim()
             ? `Welcome, ${me.first_name.trim()}`
             : "Directory"}
         </h1>
-        <p className="text-sm text-[color:var(--muted)] mt-1.5">
+        <p className="mt-2 text-[15px] sm:text-[17px] text-white/75">
           Search, and connect on LinkedIn.
         </p>
+        <ul className="mt-2 space-y-0.5 text-[14px] sm:text-[15px] text-white/70">
+          <li>
+            Explore via{" "}
+            <Link
+              href="/directory/snapshot"
+              className="underline decoration-white/40 underline-offset-2 hover:text-white hover:decoration-white"
+            >
+              snapshot
+            </Link>
+            .
+          </li>
+          <li>
+            Save alumni to your{" "}
+            <Link
+              href="/directory/saved"
+              className="underline decoration-white/40 underline-offset-2 hover:text-white hover:decoration-white"
+            >
+              shortlist
+            </Link>
+            .
+          </li>
+        </ul>
       </div>
 
       <form
         method="get"
-        className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 sm:p-5 mb-6 grid grid-cols-1 sm:grid-cols-4 gap-3"
+        className="fp-panel p-5 sm:p-7 mb-6"
       >
         {nl && <input type="hidden" name="nl" value="1" />}
-        <label className="block sm:col-span-2 lg:col-span-4">
-          <span className="flex items-center justify-between mb-1">
-            <span className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
-              {nl
-                ? "🪄 Describe"
-                : "🔎 Search"}
-            </span>
-            <DirectoryNLToggle on={nl} />
+
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <span className="fp-label">
+            <span aria-hidden>{nl ? "🪄" : "🔎"}</span>
+            {nl ? "Describe" : "Search"}
           </span>
-          <input
-            name="q"
-            type="text"
-            defaultValue={pickStr(sp, "q") ?? ""}
-            placeholder={
-              nl
-                ? "e.g. designers in SF who used to work at Stripe"
-                : "e.g. fintech, Stripe, designer"
-            }
-            className={fieldClass(!!filters.q)}
-          />
-        </label>
+          <DirectoryNLToggle on={nl} />
+        </div>
+        <input
+          name="q"
+          type="text"
+          defaultValue={pickStr(sp, "q") ?? ""}
+          placeholder={
+            nl
+              ? "e.g. designers in SF who used to work at Stripe"
+              : "e.g. fintech, Stripe, designer"
+          }
+          className={fieldClassLg(!!filters.q)}
+        />
 
         {!nl && (
-          <label className="block sm:col-span-2 lg:col-span-4">
-            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-              👤 Name
-            </span>
+          <>
+            <div className="mt-5 mb-2">
+              <span className="fp-label">
+                <span aria-hidden>👤</span> Name
+              </span>
+            </div>
             <input
               name="name"
               type="text"
               defaultValue={pickStr(sp, "name") ?? ""}
               placeholder={namePlaceholder}
-              className={fieldClass(!!filters.name)}
+              className={fieldClassLg(!!filters.name)}
             />
-          </label>
+          </>
         )}
 
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🌐 UWC
-          </span>
-          <select
-            name="college"
-            defaultValue={filters.college ?? ""}
-            className={fieldClass(!!filters.college)}
-          >
-            <option value="">Any</option>
-            {COLLEGES.map((c) => (
-              <option key={c.canonical} value={c.canonical}>
-                {c.short}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {/* Row: most-used contextual filters next to UWC */}
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🏙️ City
-          </span>
-          <input
-            name="city"
-            defaultValue={filters.city ?? ""}
-            placeholder="e.g. San Francisco"
-            className={fieldClass(!!filters.city)}
-          />
-        </label>
-
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🏷️ Company
-          </span>
-          <input
-            name="company"
-            defaultValue={filters.company ?? ""}
-            placeholder="e.g. Stripe"
-            className={fieldClass(!!filters.company)}
-          />
-        </label>
-
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🏛️ University
-          </span>
-          <input
-            name="university"
-            defaultValue={filters.university ?? ""}
-            placeholder="e.g. Stanford"
-            className={fieldClass(!!filters.university)}
-          />
-        </label>
-
-        {/* Row: origin + work-related filters */}
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🌍 Origin
-          </span>
-          <input
-            name="origin"
-            defaultValue={filters.origin ?? ""}
-            placeholder="e.g. Brazil"
-            className={fieldClass(!!filters.origin)}
-          />
-        </label>
-
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            💼 Industry
-          </span>
-          <select
-            name="industry"
-            defaultValue={filters.industry ?? ""}
-            className={fieldClass(!!filters.industry)}
-          >
-            <option value="">Any</option>
-            {(industries as Array<{ value: string; count: number }>).map(
-              (ind) => (
-                <option key={ind.value} value={ind.value}>
-                  {ind.value} ({ind.count})
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-5 mt-6">
+          <label className="flex flex-col min-w-0">
+            <span className="fp-label mb-2">
+              <span aria-hidden>🌐</span> UWC
+            </span>
+            <select
+              name="college"
+              defaultValue={filters.college ?? ""}
+              className={fieldClass(!!filters.college, "select")}
+            >
+              <option value="">Any</option>
+              {COLLEGES.map((c) => (
+                <option key={c.canonical} value={c.canonical}>
+                  {c.short}
                 </option>
-              ),
-            )}
-          </select>
-        </label>
+              ))}
+            </select>
+          </label>
 
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🏢 Company size
-          </span>
-          <select
-            name="companySizeBand"
-            defaultValue={filters.companySizeBand ?? ""}
-            className={fieldClass(!!filters.companySizeBand)}
-          >
-            <option value="">Any</option>
-            <option value="startup">Startup (1–50)</option>
-            <option value="small">Small (51–500)</option>
-            <option value="mid">Mid (501–5K)</option>
-            <option value="large">Large (5K–50K)</option>
-            <option value="enterprise">Enterprise (50K+)</option>
-          </select>
-        </label>
+          <label className="flex flex-col min-w-0">
+            <span className="fp-label mb-2">
+              <span aria-hidden>🏙️</span> City
+            </span>
+            <input
+              name="city"
+              defaultValue={filters.city ?? ""}
+              placeholder="e.g. San Francisco"
+              className={fieldClass(!!filters.city)}
+            />
+          </label>
 
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            ⏱️ Experience
-          </span>
-          <select
-            name="expBand"
-            defaultValue={filters.expBand ?? ""}
-            className={fieldClass(!!filters.expBand)}
-          >
-            <option value="">Any</option>
-            <option value="0-3">0–3 yrs (early)</option>
-            <option value="3-7">3–7 yrs</option>
-            <option value="7-15">7–15 yrs</option>
-            <option value="15+">15+ yrs (senior)</option>
-          </select>
-        </label>
+          <label className="flex flex-col min-w-0">
+            <span className="fp-label mb-2">
+              <span aria-hidden>🏷️</span> Company
+            </span>
+            <input
+              name="company"
+              defaultValue={filters.company ?? ""}
+              placeholder="e.g. Stripe"
+              className={fieldClass(!!filters.company)}
+            />
+          </label>
 
-        {/* Row: region + grad year — least frequently changed */}
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🌉 Region
-          </span>
-          <select
-            name="region"
-            defaultValue={filters.region ?? ""}
-            className={fieldClass(!!filters.region)}
-          >
-            <option value="">Any</option>
-            {REGIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className="flex flex-col min-w-0">
+            <span className="fp-label mb-2">
+              <span aria-hidden>🏛️</span> University
+            </span>
+            <input
+              name="university"
+              defaultValue={filters.university ?? ""}
+              placeholder="e.g. Stanford"
+              className={fieldClass(!!filters.university)}
+            />
+          </label>
 
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🎓 UWC grad year (from)
-          </span>
-          <input
-            name="yearFrom"
-            type="number"
-            defaultValue={filters.yearFrom ?? ""}
-            placeholder="e.g. 2010"
-            className={fieldClass(filters.yearFrom != null)}
-          />
-        </label>
+          <label className="flex flex-col min-w-0">
+            <span className="fp-label mb-2">
+              <span aria-hidden>🌍</span> Origin
+            </span>
+            <input
+              name="origin"
+              defaultValue={filters.origin ?? ""}
+              placeholder="e.g. Brazil"
+              className={fieldClass(!!filters.origin)}
+            />
+          </label>
 
-        <label className="block">
-          <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
-            🎓 UWC grad year (to)
-          </span>
-          <input
-            name="yearTo"
-            type="number"
-            defaultValue={filters.yearTo ?? ""}
-            placeholder="e.g. 2020"
-            className={fieldClass(filters.yearTo != null)}
-          />
-        </label>
+          <label className="flex flex-col min-w-0">
+            <span className="fp-label mb-2">
+              <span aria-hidden>💼</span> Industry
+            </span>
+            <select
+              name="industry"
+              defaultValue={filters.industry ?? ""}
+              className={fieldClass(!!filters.industry, "select")}
+            >
+              <option value="">Any</option>
+              {(industries as Array<{ value: string; count: number }>).map(
+                (ind) => (
+                  <option key={ind.value} value={ind.value}>
+                    {ind.value} ({ind.count})
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
 
-        <div className="sm:col-span-2 lg:col-span-4 flex items-center justify-between">
-          <span className="text-xs text-[color:var(--muted)]">
+          <label className="flex flex-col min-w-0">
+            <span className="fp-label mb-2">
+              <span aria-hidden>🏢</span> Company size
+            </span>
+            <select
+              name="companySizeBand"
+              defaultValue={filters.companySizeBand ?? ""}
+              className={fieldClass(!!filters.companySizeBand, "select")}
+            >
+              <option value="">Any</option>
+              <option value="startup">Startup (1–50)</option>
+              <option value="small">Small (51–500)</option>
+              <option value="mid">Mid (501–5K)</option>
+              <option value="large">Large (5K–50K)</option>
+              <option value="enterprise">Enterprise (50K+)</option>
+            </select>
+          </label>
+
+          <label className="flex flex-col min-w-0">
+            <span className="fp-label mb-2">
+              <span aria-hidden>⏱️</span> Experience
+            </span>
+            <select
+              name="expBand"
+              defaultValue={filters.expBand ?? ""}
+              className={fieldClass(!!filters.expBand, "select")}
+            >
+              <option value="">Any</option>
+              <option value="0-3">0–3 yrs (early)</option>
+              <option value="3-7">3–7 yrs</option>
+              <option value="7-15">7–15 yrs</option>
+              <option value="15+">15+ yrs (senior)</option>
+            </select>
+          </label>
+
+          <label className="flex flex-col min-w-0">
+            <span className="fp-label mb-2">
+              <span aria-hidden>🌉</span> Region
+            </span>
+            <select
+              name="region"
+              defaultValue={filters.region ?? ""}
+              className={fieldClass(!!filters.region, "select")}
+            >
+              <option value="">Any</option>
+              {REGIONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col min-w-0">
+            <span className="fp-label mb-2">
+              <span aria-hidden>🎓</span> Grad year (from)
+            </span>
+            <input
+              name="yearFrom"
+              type="number"
+              inputMode="numeric"
+              defaultValue={filters.yearFrom ?? ""}
+              placeholder="e.g. 2010"
+              className={fieldClass(filters.yearFrom != null)}
+            />
+          </label>
+
+          <label className="flex flex-col min-w-0">
+            <span className="fp-label mb-2">
+              <span aria-hidden>🎓</span> Grad year (to)
+            </span>
+            <input
+              name="yearTo"
+              type="number"
+              inputMode="numeric"
+              defaultValue={filters.yearTo ?? ""}
+              placeholder="e.g. 2020"
+              className={fieldClass(filters.yearTo != null)}
+            />
+          </label>
+        </div>
+
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <span className="text-[14px] text-white/70">
             {total} {total === 1 ? "alum" : "alumni"}
             {total > 500 && " (showing first 500)"}
           </span>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Link
               href="/directory"
-              className="text-xs text-[color:var(--muted)] hover:text-navy"
+              className="text-[14px] text-white/70 hover:text-white"
             >
               Reset
             </Link>
             <button
               type="submit"
-              className="bg-navy text-white px-5 py-2 rounded text-sm font-semibold hover:opacity-90"
+              className="bg-navy text-white px-6 py-[10px] rounded-[8px] text-[14px] font-bold hover:brightness-110 active:scale-[.97] transition"
             >
               Apply
             </button>
@@ -493,14 +518,14 @@ export default async function DirectoryPage({
         const chips = activeFilterChips(filters);
         if (chips.length === 0) return null;
         return (
-          <div className="mb-4 flex items-center flex-wrap gap-2 text-sm text-[color:var(--navy-ink)]">
+          <div className="mb-4 flex items-center flex-wrap gap-2 text-sm text-white">
             <span className="font-semibold">
               {total} {total === 1 ? "alum" : "alumni"} matching
             </span>
             {chips.map((c) => (
               <span
                 key={c.key}
-                className="inline-flex items-center bg-[color:var(--ivory-2)] border border-navy text-navy rounded-full px-2.5 py-0.5 text-xs font-medium"
+                className="inline-flex items-center bg-white/10 border border-white/40 text-white rounded-full px-2.5 py-0.5 text-xs font-medium backdrop-blur-sm"
               >
                 {c.label}
               </span>
@@ -521,7 +546,7 @@ export default async function DirectoryPage({
       </ul>
 
       {rows.length === 0 && (
-        <div className="bg-white border border-dashed border-[color:var(--rule)] rounded-[10px] p-10 text-center text-[color:var(--muted)] text-sm">
+        <div className="fp-panel p-10 text-center text-white/70 text-sm">
           No alumni match those filters.
         </div>
       )}

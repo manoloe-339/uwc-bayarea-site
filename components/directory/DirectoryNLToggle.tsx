@@ -20,26 +20,16 @@ export function DirectoryNLToggle({ on }: Props) {
     window.location.href = "/directory" + (qs ? "?" + qs : "");
   };
   return (
-    <label className="inline-flex items-center gap-2 text-[11px] tracking-[.14em] uppercase font-semibold text-navy cursor-pointer select-none">
+    <span className="fp-nl">
       <button
         type="button"
         role="switch"
         aria-checked={on}
         aria-label="Natural language"
         onClick={() => handleChange(!on)}
-        className={`relative inline-flex h-[18px] w-[32px] shrink-0 items-center rounded-full border transition-colors ${
-          on ? "bg-navy border-navy" : "bg-white border-[color:var(--rule)]"
-        }`}
-      >
-        <span
-          className={`inline-block h-[12px] w-[12px] rounded-full shadow-sm transition-transform ${
-            on
-              ? "translate-x-[16px] bg-white"
-              : "translate-x-[3px] bg-[color:var(--muted)]"
-          }`}
-        />
-      </button>
-      <span>Natural language</span>
-    </label>
+        className="fp-nl__switch"
+      />
+      <span className="fp-nl__label">Natural language</span>
+    </span>
   );
 }
