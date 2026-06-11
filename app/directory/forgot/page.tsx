@@ -41,10 +41,6 @@ export default function ForgotPasswordPage() {
         >
           Forgot your password?
         </h1>
-        <p className="text-[color:var(--muted)] text-[12px] leading-snug mt-2">
-          Enter the email your invite came to and we&rsquo;ll send a fresh
-          link to set a new password.
-        </p>
         <div className="mt-4">
           <ForgotPasswordForm />
         </div>
