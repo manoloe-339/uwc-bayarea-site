@@ -243,6 +243,18 @@ export default async function DirectoryPage({
   }
   const canSave = session?.kind === "user";
 
+  // Build a "from" URL that recreates the current /directory view so
+  // the detail page's ← Back link can return the user to exactly the
+  // filtered result list they were just browsing. Only stringy +
+  // non-empty params are forwarded — bare /directory hits stay clean.
+  const fromParams = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    const s = Array.isArray(v) ? v[0] : v;
+    if (s && s.trim()) fromParams.set(k, s.trim());
+  }
+  const fromQs = fromParams.toString();
+  const directoryFrom = "/directory" + (fromQs ? `?${fromQs}` : "");
+
   return (
     <section className="max-w-[1180px] mx-auto px-5 sm:px-7 py-8">
       <div className="mb-6">
@@ -541,6 +553,7 @@ export default async function DirectoryPage({
             row={r}
             canSave={canSave}
             initialSave={savedByAlumni.get(r.id) ?? null}
+            backFrom={directoryFrom}
           />
         ))}
       </ul>
@@ -558,6 +571,7 @@ function DirectoryCard({
   row,
   canSave,
   initialSave,
+  backFrom,
 }: {
   row: DirectoryAlumnusRow;
   canSave: boolean;
@@ -566,7 +580,9 @@ function DirectoryCard({
     reason: SaveReason | null;
     note: string | null;
   } | null;
+  backFrom: string;
 }) {
+  const detailHref = `/directory/${row.id}?from=${encodeURIComponent(backFrom)}`;
   const name =
     [row.first_name, row.last_name].filter(Boolean).join(" ") || "(no name)";
   const uwcLine = [row.uwc_college, row.grad_year]
@@ -593,7 +609,7 @@ function DirectoryCard({
       <div className="flex gap-3 pr-8">
         <div className="shrink-0 flex flex-col items-center gap-1">
           <Link
-            href={`/directory/${row.id}`}
+            href={detailHref}
             className="block w-[64px] h-[64px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] ring-2 ring-navy"
           >
             {row.photo_url ? (
@@ -634,7 +650,7 @@ function DirectoryCard({
               into the star's territory. */}
           <div className="flex items-center gap-2 min-w-0">
             <Link
-              href={`/directory/${row.id}`}
+              href={detailHref}
               title={displayedName}
               className="font-semibold text-[color:var(--navy-ink)] hover:underline truncate min-w-0"
             >

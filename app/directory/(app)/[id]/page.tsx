@@ -85,12 +85,36 @@ function careerRange(
 }
 
 
+type SP = { [k: string]: string | string[] | undefined };
+
+/** Decide where "← Back" should go. The list pages stamp a `from`
+ * search param on every detail link they emit; that param is the
+ * full path (with its own search string) to go back to. Anything
+ * else — direct hits, bookmarks — falls back to the bare directory. */
+function pickBack(sp: SP): { href: string; label: string } {
+  const rawFrom = Array.isArray(sp.from) ? sp.from[0] : sp.from;
+  const from = rawFrom?.trim();
+  // Only allow same-app, /directory-rooted paths to avoid open-redirect-y
+  // surprises and not link out anywhere unexpected.
+  if (from && from.startsWith("/directory")) {
+    if (from.startsWith("/directory/saved")) {
+      return { href: from, label: "← Back to shortlist" };
+    }
+    return { href: from, label: "← Back to directory" };
+  }
+  return { href: "/directory", label: "← Back to directory" };
+}
+
 export default async function DirectoryProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<SP>;
 }) {
   const { id: idStr } = await params;
+  const sp = await searchParams;
+  const back = pickBack(sp);
   const id = Number(idStr);
   if (!Number.isFinite(id) || id <= 0) notFound();
 
@@ -142,10 +166,10 @@ export default async function DirectoryProfilePage({
     <section className="max-w-[800px] mx-auto px-5 sm:px-7 py-8">
       <div className="mb-5 text-sm">
         <Link
-          href="/directory"
-          className="text-[color:var(--muted)] hover:text-navy"
+          href={back.href}
+          className="text-white/80 hover:text-white"
         >
-          ← Back to directory
+          {back.label}
         </Link>
       </div>
 

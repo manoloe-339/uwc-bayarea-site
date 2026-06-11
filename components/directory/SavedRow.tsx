@@ -112,7 +112,7 @@ export default function SavedRow({
       <div className="flex items-start gap-5 pr-10">
         <div className="shrink-0 flex flex-col items-center gap-2">
           <Link
-            href={`/directory/${row.alumni_id}`}
+            href={`/directory/${row.alumni_id}?from=${encodeURIComponent("/directory/saved")}`}
             className="block w-[110px] h-[110px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] ring-[3px] ring-navy"
           >
             {row.alum_photo_url ? (
@@ -155,7 +155,7 @@ export default function SavedRow({
         <div className="min-w-0 flex-1">
           <h3 className="font-sans text-[24px] sm:text-[26px] font-bold text-[color:var(--navy-ink)] leading-[1.1]">
             <Link
-              href={`/directory/${row.alumni_id}`}
+              href={`/directory/${row.alumni_id}?from=${encodeURIComponent("/directory/saved")}`}
               title={name}
               className="hover:underline"
             >
