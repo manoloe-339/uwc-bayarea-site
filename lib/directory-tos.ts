@@ -5,9 +5,9 @@
  * Edit this list to change what the setup checkbox commits to.
  */
 export const DIRECTORY_TOS_LINES = [
-  "Reach out one alum at a time, where there's a real reason — not bulk LinkedIn outreach.",
-  "Keep this login to myself. Sharing or transferring access ends it.",
-  "Treat what I see here with discretion.",
+  "Reach out responsibly.",
+  "No bulk outreach.",
+  "Don't share my account info.",
 ];
 
 export const DIRECTORY_TOS_HEADING = "By signing in I agree to:";

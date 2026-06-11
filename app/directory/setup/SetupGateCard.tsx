@@ -135,13 +135,6 @@ export default function SetupGateCard({
           >
             Set your password
           </h1>
-          <p className="text-[color:var(--muted)] text-[12px] leading-snug mt-2">
-            You&rsquo;ll use this with your email (
-            <span className="text-[color:var(--navy-ink)] font-semibold">
-              {email}
-            </span>
-            ) to sign in. Minimum 8 characters.
-          </p>
           <div className="mt-4">
             <DirectorySetupForm token={token} email={email} />
           </div>

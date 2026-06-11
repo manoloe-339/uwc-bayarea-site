@@ -60,8 +60,13 @@ export default function DirectorySetupForm({ token, email }: Props) {
       </label>
 
       <label className="block">
-        <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-          New password
+        <span className="flex items-baseline justify-between mb-1">
+          <span className="text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)]">
+            New password
+          </span>
+          <span className="text-[10px] text-[color:var(--muted)] normal-case tracking-normal">
+            min 8 chars
+          </span>
         </span>
         <PasswordInput
           value={password}
