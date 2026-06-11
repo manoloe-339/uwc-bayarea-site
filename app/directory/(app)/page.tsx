@@ -227,10 +227,10 @@ export default async function DirectoryPage({
   const namePlaceholder = (() => {
     const first = me?.first_name?.trim();
     const last = me?.last_name?.trim();
-    if (first && last) return `e.g. ${first} ${last} — or just ${last}`;
-    if (last) return `e.g. ${last}`;
-    if (first) return `e.g. ${first}`;
-    return "e.g. Jane Doe — or just Doe";
+    if (first && last) return `${first} ${last} — or just ${last}`;
+    if (last) return last;
+    if (first) return first;
+    return "Jane Doe — or just Doe";
   })();
   // Build a quick lookup: alumni_id -> existing save (for the ★ button state).
   const savedByAlumni = new Map<number, { status: typeof mySaves[number]["status"]; reason: typeof mySaves[number]["reason"]; note: string | null }>();
@@ -300,8 +300,8 @@ export default async function DirectoryPage({
           defaultValue={pickStr(sp, "q") ?? ""}
           placeholder={
             nl
-              ? "e.g. designers in SF who used to work at Stripe"
-              : "e.g. fintech, Stripe, designer"
+              ? "designers in SF who used to work at Stripe"
+              : "fintech, Stripe, designer"
           }
           className={fieldClassLg(!!filters.q)}
         />
@@ -349,7 +349,7 @@ export default async function DirectoryPage({
             <input
               name="city"
               defaultValue={filters.city ?? ""}
-              placeholder="e.g. San Francisco"
+              placeholder="San Francisco"
               className={fieldClass(!!filters.city)}
             />
           </label>
@@ -361,7 +361,7 @@ export default async function DirectoryPage({
             <input
               name="company"
               defaultValue={filters.company ?? ""}
-              placeholder="e.g. Stripe"
+              placeholder="Stripe"
               className={fieldClass(!!filters.company)}
             />
           </label>
@@ -373,7 +373,7 @@ export default async function DirectoryPage({
             <input
               name="university"
               defaultValue={filters.university ?? ""}
-              placeholder="e.g. Stanford"
+              placeholder="Stanford"
               className={fieldClass(!!filters.university)}
             />
           </label>
@@ -385,7 +385,7 @@ export default async function DirectoryPage({
             <input
               name="origin"
               defaultValue={filters.origin ?? ""}
-              placeholder="e.g. Brazil"
+              placeholder="Brazil"
               className={fieldClass(!!filters.origin)}
             />
           </label>
@@ -472,7 +472,7 @@ export default async function DirectoryPage({
               type="number"
               inputMode="numeric"
               defaultValue={filters.yearFrom ?? ""}
-              placeholder="e.g. 2010"
+              placeholder="2010"
               className={fieldClass(filters.yearFrom != null)}
             />
           </label>
@@ -486,7 +486,7 @@ export default async function DirectoryPage({
               type="number"
               inputMode="numeric"
               defaultValue={filters.yearTo ?? ""}
-              placeholder="e.g. 2020"
+              placeholder="2020"
               className={fieldClass(filters.yearTo != null)}
             />
           </label>
