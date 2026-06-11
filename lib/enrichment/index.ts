@@ -129,10 +129,19 @@ async function applyProfile(
   profile: ApifyProfile
 ): Promise<FinalStatus> {
   // Re-host photo before we touch anything else — the LinkedIn CDN URL
-  // is a JWT-signed link that expires within minutes.
+  // is a JWT-signed link that expires within minutes. SKIP the photo
+  // download entirely when the row is marked photo_locked = TRUE
+  // (admin uploaded a curated photo via /admin/alumni/[id] and
+  // doesn't want re-enrichment overwriting it). Saves a Blob upload
+  // round-trip too.
+  const lockedRows = (await sql`
+    SELECT photo_locked FROM alumni WHERE id = ${neonId} LIMIT 1
+  `) as Array<{ photo_locked: boolean }>;
+  const photoLocked = lockedRows[0]?.photo_locked ?? false;
+
   let photoUrl: string | null = null;
   const sourcePhoto = profile.profilePicHighQuality ?? profile.profilePic ?? null;
-  if (sourcePhoto) {
+  if (sourcePhoto && !photoLocked) {
     photoUrl = await downloadAndUploadPhoto(sourcePhoto, neonId);
   }
 

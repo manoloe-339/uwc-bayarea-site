@@ -53,6 +53,7 @@ type AlumRecord = {
   imported_at: string | null;
   updated_at: string | null;
   photo_url: string | null;
+  photo_locked: boolean | null;
   // LinkedIn enrichment
   linkedin_alternate_email: string | null;
   headline: string | null;
@@ -133,9 +134,24 @@ async function uploadAlumnusPhoto(id: number, formData: FormData) {
     }
   }
 
-  await sql`UPDATE alumni SET photo_url = ${url}, updated_at = NOW() WHERE id = ${id}`;
+  // photo_locked = TRUE so the next LinkedIn re-enrich pass doesn't
+  // overwrite this curated photo. Admin can clear the lock via the
+  // "Unlock photo" button below if they want enrichment to refresh
+  // it again later.
+  await sql`
+    UPDATE alumni
+    SET photo_url = ${url}, photo_locked = TRUE, updated_at = NOW()
+    WHERE id = ${id}
+  `;
   revalidatePath(`/admin/alumni/${id}`);
   revalidatePath("/admin/alumni");
+  redirect(`/admin/alumni/${id}?saved=1`);
+}
+
+async function unlockPhoto(id: number) {
+  "use server";
+  await sql`UPDATE alumni SET photo_locked = FALSE, updated_at = NOW() WHERE id = ${id}`;
+  revalidatePath(`/admin/alumni/${id}`);
   redirect(`/admin/alumni/${id}?saved=1`);
 }
 
@@ -322,6 +338,7 @@ export default async function AlumnusPage({
 
   const update = updateAlumnus.bind(null, numericId);
   const uploadPhoto = uploadAlumnusPhoto.bind(null, numericId);
+  const unlockPhotoAction = unlockPhoto.bind(null, numericId);
 
   async function doResubscribe() {
     "use server";
@@ -339,12 +356,34 @@ export default async function AlumnusPage({
         </Link>
       </div>
       <div className="flex items-start gap-4 mb-6">
-        <PhotoUploadModal
-          photoUrl={r.photo_url}
-          name={name}
-          fallbackInitial={(r.first_name?.[0] ?? r.email[0] ?? "?").toUpperCase()}
-          uploadAction={uploadPhoto}
-        />
+        <div className="flex flex-col items-center gap-2">
+          <PhotoUploadModal
+            photoUrl={r.photo_url}
+            name={name}
+            fallbackInitial={(r.first_name?.[0] ?? r.email[0] ?? "?").toUpperCase()}
+            uploadAction={uploadPhoto}
+          />
+          {/* photo_locked indicator. TRUE means an admin uploaded
+              this photo manually and LinkedIn re-enrichment will
+              NOT overwrite it. "Unlock" clears the flag so the next
+              enrich pass refreshes the picture from LinkedIn again. */}
+          {r.photo_locked ? (
+            <form action={unlockPhotoAction} className="flex flex-col items-center gap-1">
+              <span
+                title="Re-enrichment will not overwrite this photo."
+                className="inline-flex items-center gap-1 text-[10px] tracking-[.16em] uppercase font-bold text-navy bg-navy/5 border border-navy/20 rounded-full px-2 py-0.5"
+              >
+                🔒 Locked
+              </span>
+              <button
+                type="submit"
+                className="text-[10px] text-[color:var(--muted)] hover:text-navy underline decoration-dotted"
+              >
+                Unlock photo
+              </button>
+            </form>
+          ) : null}
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center flex-wrap gap-2 mb-1">
             <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">{name}</h1>
