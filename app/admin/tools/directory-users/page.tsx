@@ -6,14 +6,16 @@ import {
   ABUSE_FLAG_LABELS,
 } from "@/lib/directory-users";
 import {
-  DIRECTORY_INVITE_BASE_URL,
-  DIRECTORY_INVITE_SUBJECT,
-  buildDirectoryInviteBody,
   inviteDirectoryUserAction,
   resendInviteAction,
   revokeDirectoryUserAction,
   unrevokeDirectoryUserAction,
 } from "./actions";
+import {
+  DIRECTORY_INVITE_BASE_URL,
+  DIRECTORY_INVITE_SUBJECT,
+  buildDirectoryInviteBody,
+} from "./invite-template";
 import InvitePicker from "./InvitePicker";
 
 export const dynamic = "force-dynamic";
