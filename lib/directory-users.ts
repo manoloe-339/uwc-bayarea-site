@@ -311,3 +311,34 @@ export async function getRecentActivity(
   `) as RecentActivityRow[];
   return rows;
 }
+
+export type GlobalActivityRow = RecentActivityRow & {
+  user_id: number;
+  user_email: string;
+  user_first_name: string | null;
+};
+
+/** All-users feed of directory activity. Used by the global usage
+ * log page (/admin/tools/directory-users/activity) so an admin can
+ * see who's doing what across the whole directory at a glance. */
+export async function getGlobalRecentActivity(
+  limit = 200,
+): Promise<GlobalActivityRow[]> {
+  const rows = (await sql`
+    SELECT v.at, v.action, v.target_id, v.query_json,
+           u.id AS user_id, u.email AS user_email,
+           ua.first_name AS user_first_name,
+           CASE
+             WHEN v.target_id IS NOT NULL
+               THEN COALESCE(NULLIF(TRIM(CONCAT(a.first_name, ' ', a.last_name)), ''), '(no name)')
+             ELSE NULL
+           END AS target_name
+    FROM directory_views v
+    JOIN directory_users u ON u.id = v.directory_user_id
+    LEFT JOIN alumni ua ON ua.id = u.alumni_id
+    LEFT JOIN alumni a ON a.id = v.target_id
+    ORDER BY v.at DESC
+    LIMIT ${limit}
+  `) as GlobalActivityRow[];
+  return rows;
+}

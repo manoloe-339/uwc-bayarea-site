@@ -12,15 +12,15 @@ import { sendTestEmail } from "@/lib/email-send";
 
 const TOOL_PATH = "/admin/tools/directory-users";
 
-async function sendInviteEmail(args: {
-  email: string;
-  firstName: string | null;
-  inviteUrl: string;
-}): Promise<void> {
-  // Each paragraph is one continuous line so the email renderer wraps
-  // naturally instead of hard-breaking mid-sentence. Blank lines
-  // between paragraphs become spacers in the rendered HTML.
-  const body = [
+/** Subject line + body the directory-invite email uses. Exported so
+ * the admin page can preview exactly what's about to go out. */
+export const DIRECTORY_INVITE_SUBJECT = "Your UWC Bay Area Directory invite";
+
+/** Builds the plaintext body of the invite email. Each paragraph is
+ * a single line — the email renderer wraps naturally so we don't
+ * break mid-sentence; blank lines become spacers. */
+export function buildDirectoryInviteBody(inviteUrl: string): string {
+  return [
     `You've been invited to the UWC Bay Area Directory beta — a read-only lookup of registered alumni for finding connections on LinkedIn. The directory is contact-info-free by design: you see names, photos, roles, and LinkedIn links, but never email or phone numbers.`,
     ``,
     `A few things to know before you sign in:`,
@@ -33,17 +33,27 @@ async function sendInviteEmail(args: {
     ``,
     `Click the link below to set your password and start using it:`,
     ``,
-    args.inviteUrl,
+    inviteUrl,
     ``,
     `The link is single-use and expires in 7 days. If it doesn't work or expires, just reply to this email and I'll resend.`,
     ``,
     `— Manolo`,
   ].join("\n");
+}
 
+/** Canonical invite URL pattern. Token gets appended at send time. */
+export const DIRECTORY_INVITE_BASE_URL =
+  "https://uwcbayarea.org/directory/setup";
+
+async function sendInviteEmail(args: {
+  email: string;
+  firstName: string | null;
+  inviteUrl: string;
+}): Promise<void> {
   await sendTestEmail({
     to: args.email,
-    subject: "Your UWC Bay Area Directory invite",
-    body,
+    subject: DIRECTORY_INVITE_SUBJECT,
+    body: buildDirectoryInviteBody(args.inviteUrl),
     salutation: "Hi",
     includeFirstName: !!args.firstName,
     firstName: args.firstName ?? undefined,

@@ -6,6 +6,9 @@ import {
   ABUSE_FLAG_LABELS,
 } from "@/lib/directory-users";
 import {
+  DIRECTORY_INVITE_BASE_URL,
+  DIRECTORY_INVITE_SUBJECT,
+  buildDirectoryInviteBody,
   inviteDirectoryUserAction,
   resendInviteAction,
   revokeDirectoryUserAction,
@@ -55,9 +58,17 @@ export default async function DirectoryUsersPage({
           ← Tools
         </Link>
       </div>
-      <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)] mb-1">
-        Directory users
-      </h1>
+      <div className="flex items-baseline justify-between gap-4 mb-1">
+        <h1 className="font-sans text-4xl font-bold text-[color:var(--navy-ink)]">
+          Directory users
+        </h1>
+        <Link
+          href="/admin/tools/directory-users/activity"
+          className="text-sm text-navy hover:underline whitespace-nowrap"
+        >
+          📜 Activity log →
+        </Link>
+      </div>
       <p className="text-[color:var(--muted)] text-sm mb-6">
         Invite-only access to /directory. Each user gets their own
         password; you can revoke any of them. The shared{" "}
@@ -96,6 +107,42 @@ export default async function DirectoryUsersPage({
             Send invite
           </button>
         </form>
+
+        {/* Preview of the actual email body. Token shown as a
+            placeholder; the real send fills it in. */}
+        <details className="mt-4 border-t border-[color:var(--rule)] pt-4">
+          <summary className="cursor-pointer text-xs text-[color:var(--muted)] hover:text-navy">
+            Preview the email body
+          </summary>
+          <div className="mt-3 text-xs">
+            <div className="mb-2">
+              <span className="font-bold text-navy uppercase tracking-[.18em] text-[10px]">
+                Subject
+              </span>
+              <div className="font-mono mt-1 text-[color:var(--navy-ink)]">
+                {DIRECTORY_INVITE_SUBJECT}
+              </div>
+            </div>
+            <div className="mb-2">
+              <span className="font-bold text-navy uppercase tracking-[.18em] text-[10px]">
+                Salutation
+              </span>
+              <div className="font-mono mt-1 text-[color:var(--navy-ink)]">
+                Hi [first name],
+              </div>
+            </div>
+            <div>
+              <span className="font-bold text-navy uppercase tracking-[.18em] text-[10px]">
+                Body
+              </span>
+              <pre className="font-mono mt-1 text-[color:var(--navy-ink)] whitespace-pre-wrap leading-relaxed">
+                {buildDirectoryInviteBody(
+                  `${DIRECTORY_INVITE_BASE_URL}?token=<UNIQUE_TOKEN_PER_USER>`,
+                )}
+              </pre>
+            </div>
+          </div>
+        </details>
       </details>
 
       {users.length === 0 ? (
