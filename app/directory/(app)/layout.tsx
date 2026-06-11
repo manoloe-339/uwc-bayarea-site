@@ -35,7 +35,13 @@ export default async function DirectoryLayout({
     session?.kind === "user" ? await getSavedCount(session.user.id) : 0;
 
   return (
-    <div className="min-h-screen bg-[color:var(--ivory)]">
+    // Matches the /directory/login + /directory/setup pages so the
+    // whole directory lives on the same rich-blue ground. Inner
+    // content cards stay white for legibility.
+    <div
+      className="min-h-screen"
+      style={{ background: "var(--rich-blue)" }}
+    >
       <header className="bg-white border-b border-[color:var(--rule)]">
         <div className="max-w-[1180px] mx-auto px-5 sm:px-7 py-3 flex items-center justify-between gap-3">
           <Link
