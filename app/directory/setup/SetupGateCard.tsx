@@ -89,7 +89,6 @@ export default function SetupGateCard({
             </>
           )}
         </svg>
-        <span aria-hidden className="lg-pill__dot" />
         <span className="lg-pill__label">{pillLabel}</span>
         <svg
           aria-hidden
@@ -123,7 +122,7 @@ export default function SetupGateCard({
         >
           <div className="flex items-center gap-2 text-navy font-bold text-[10px] tracking-[.22em] uppercase">
             <span className="inline-block w-5 h-0.5 bg-navy" aria-hidden />
-            Welcome{firstName ? `, ${firstName}` : ""}
+            Welcome
           </div>
           <h1
             className="text-[color:var(--navy-ink)] mt-2 font-extrabold leading-[1.04]"
