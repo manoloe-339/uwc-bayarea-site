@@ -5,9 +5,9 @@
  * Edit this list to change what the setup checkbox commits to.
  */
 export const DIRECTORY_TOS_LINES = [
-  "Reach out responsibly.",
-  "No bulk outreach.",
-  "Don't share my account info.",
+  "Engage responsibly.",
+  "Avoid mass outreach.",
+  "Not share my account login.",
 ];
 
 export const DIRECTORY_TOS_HEADING = "By signing in I agree to:";
