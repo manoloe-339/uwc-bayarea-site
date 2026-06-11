@@ -3,6 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import PasswordInput from "@/components/directory/PasswordInput";
+import {
+  DIRECTORY_TOS_HEADING,
+  DIRECTORY_TOS_LINES,
+} from "@/lib/directory-tos";
 
 interface Props {
   token: string;
@@ -13,6 +17,7 @@ export default function DirectorySetupForm({ token, email }: Props) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -21,13 +26,13 @@ export default function DirectorySetupForm({ token, email }: Props) {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (tooShort || mismatch) return;
+    if (tooShort || mismatch || !agreed) return;
     setError(null);
     startTransition(async () => {
       const res = await fetch("/api/directory/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ token, password, tos_accepted: true }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -92,6 +97,28 @@ export default function DirectorySetupForm({ token, email }: Props) {
         )}
       </label>
 
+      <label className="block bg-[color:var(--ivory-2)] rounded px-3 py-2.5 cursor-pointer">
+        <span className="flex items-start gap-2 text-[12px] leading-snug text-[color:var(--navy-ink)]">
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            className="mt-0.5 accent-navy"
+            required
+          />
+          <span className="flex-1">
+            <span className="block font-bold text-[11px] tracking-[.18em] uppercase text-navy mb-1">
+              {DIRECTORY_TOS_HEADING}
+            </span>
+            <ul className="list-disc pl-4 space-y-0.5 text-[12px]">
+              {DIRECTORY_TOS_LINES.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </span>
+        </span>
+      </label>
+
       {error && (
         <div role="alert" className="text-sm text-red-700">
           {error}
@@ -100,7 +127,9 @@ export default function DirectorySetupForm({ token, email }: Props) {
 
       <button
         type="submit"
-        disabled={pending || tooShort || mismatch || !password || !confirm}
+        disabled={
+          pending || tooShort || mismatch || !password || !confirm || !agreed
+        }
         className="w-full bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold hover:opacity-90 disabled:opacity-50"
       >
         {pending ? "Setting up…" : "Set password & sign in"}

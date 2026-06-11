@@ -3,6 +3,7 @@ import Link from "next/link";
 import { consumeInviteToken } from "@/lib/directory-users";
 import { buildLoginData } from "@/lib/login-data";
 import { type BackdropId } from "@/components/login/LoginBackdrop";
+import { sql } from "@/lib/db";
 import SetupExperience from "./SetupExperience";
 
 export const metadata: Metadata = {
@@ -74,6 +75,19 @@ export default async function DirectorySetupPage({
     );
   }
 
+  // First name for the welcome pill — lookup against alumni via the
+  // directory_users.alumni_id join. Falls back to null when the
+  // invite isn't linked to an alumni record.
+  const fnRows = (await sql`
+    SELECT a.first_name
+    FROM directory_users u
+    LEFT JOIN alumni a ON a.id = u.alumni_id
+    WHERE u.id = ${lookup.user.id}
+    LIMIT 1
+  `) as Array<{ first_name: string | null }>;
+  const firstName =
+    fnRows[0]?.first_name?.trim().split(/\s+/)[0] ?? null;
+
   // Backdrop data, same as the login page uses.
   const initialPools = await buildLoginData();
   const initialBackdrop: BackdropId = (
@@ -102,6 +116,7 @@ export default async function DirectorySetupPage({
         initialPreloadUrls={initialPreloadUrls}
         token={token}
         email={lookup.user.email}
+        firstName={firstName}
       />
     </div>
   );

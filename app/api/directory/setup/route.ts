@@ -17,7 +17,7 @@ const MIN_PASSWORD_LENGTH = 8;
  * a password. On success: row → 'active', cookie issued, token marked
  * used so it can't be replayed. */
 export async function POST(req: Request): Promise<NextResponse> {
-  let body: { token?: string; password?: string };
+  let body: { token?: string; password?: string; tos_accepted?: boolean };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -60,6 +60,18 @@ export async function POST(req: Request): Promise<NextResponse> {
       { error: "Could not set password — try the invite link again." },
       { status: 400 },
     );
+  }
+
+  // Record TOS acceptance if the client confirmed it. The setup form
+  // ships true; older callers without the field fall through with no
+  // recorded acceptance — admin can spot those by querying
+  // `directory_users WHERE tos_accepted_at IS NULL`.
+  if (body.tos_accepted === true) {
+    const { sql } = await import("@/lib/db");
+    await sql`
+      UPDATE directory_users SET tos_accepted_at = NOW()
+      WHERE id = ${user.id} AND tos_accepted_at IS NULL
+    `;
   }
 
   const cookieValue = await signNewUserCookie(user);

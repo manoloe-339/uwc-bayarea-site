@@ -85,6 +85,14 @@ export default function DirectoryLoginForm({ next }: Props) {
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>
+      <div className="text-center mt-3">
+        <a
+          href="/directory/forgot"
+          className="text-[11px] text-[color:var(--muted)] hover:text-navy underline decoration-dotted"
+        >
+          Forgot password?
+        </a>
+      </div>
     </form>
   );
 }

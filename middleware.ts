@@ -43,7 +43,9 @@ export async function middleware(req: NextRequest) {
       path === "/api/directory/login" ||
       path === "/api/directory/login-pool" ||
       path === "/directory/setup" ||
-      path === "/api/directory/setup"
+      path === "/api/directory/setup" ||
+      path === "/directory/forgot" ||
+      path === "/api/directory/forgot"
     ) {
       const res = NextResponse.next();
       // Extra-strong cache-busting for the login page. Each visit

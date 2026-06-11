@@ -8,22 +8,19 @@ import LoginBackdrop, {
 import type { LoginTile } from "@/components/login/faces-shared";
 import LoadingGate from "@/components/login/LoadingGate";
 import { FeedbackButton } from "@/components/directory/FeedbackButton";
-import DirectorySetupForm from "./DirectorySetupForm";
+import SetupGateCard from "./SetupGateCard";
 
 interface Props {
-  /** Pre-fetched pools so initial paint matches what the login page
-   * shows when the invitee follows the link. */
   initialPools: { photoPool: LoginTile[]; mixedPool: LoginTile[] };
   initialBackdrop: BackdropId;
   initialPreloadUrls: string[];
-  /** Invite token from the URL. Passed through to the form so it can
-   * be submitted with the new password. */
   token: string;
-  /** The invitee's email — displayed read-only as a confirmation. */
   email: string;
+  firstName: string | null;
 }
 
 const REFRESH_MS = 30_000;
+const CYCLE_MS = 10_000;
 
 function collectPoolUrls(pools: {
   photoPool: LoginTile[];
@@ -77,11 +74,11 @@ function warmImageCache(
 }
 
 /**
- * Wraps the directory setup form (invite-token password setup) with
- * the same animated backdrop the /directory/login page uses. The
- * invitee gets the full visual context — they're sitting in front
- * of the directory they're about to access — while the centered
- * white card prompts them for a new password.
+ * Mirrors LoginExperience but for the /directory/setup page. The
+ * invitee gets the same arrival ritual: dark backdrop running its
+ * A→B→C rotation, transparent header, centered pill that says
+ * "Welcome, [firstName] →" instead of "Log in", and clicking the
+ * pill crossfades into the password-setup card.
  */
 export default function SetupExperience({
   initialPools,
@@ -89,12 +86,14 @@ export default function SetupExperience({
   initialPreloadUrls,
   token,
   email,
+  firstName,
 }: Props) {
   const [pools, setPools] = useState(initialPools);
+  const [showForm, setShowForm] = useState(false);
+  const [cycleStartedAt, setCycleStartedAt] = useState<number>(() => Date.now());
 
-  // Same poll-and-swap as LoginExperience so the backdrop keeps
-  // refreshing while the invitee thinks about their password.
   useEffect(() => {
+    if (showForm) return;
     const tick = async () => {
       try {
         const res = await fetch("/api/directory/login-pool", {
@@ -113,7 +112,7 @@ export default function SetupExperience({
     };
     const t = setInterval(tick, REFRESH_MS);
     return () => clearInterval(t);
-  }, []);
+  }, [showForm]);
 
   return (
     <LoadingGate urls={initialPreloadUrls} threshold={0.5}>
@@ -121,6 +120,7 @@ export default function SetupExperience({
         mixedPool={pools.mixedPool}
         photoPool={pools.photoPool}
         initial={initialBackdrop}
+        onCycleStart={() => setCycleStartedAt(Date.now())}
       />
 
       <header className="fixed top-0 left-0 right-0 z-[60] h-16 flex items-center">
@@ -161,41 +161,15 @@ export default function SetupExperience({
       </header>
 
       <main className="relative z-[2] min-h-[100dvh] flex items-center justify-center px-5 py-8">
-        <div
-          className="w-full max-w-[360px] rounded-[12px] p-5 sm:p-6"
-          style={{
-            background: "rgba(255,255,255,.97)",
-            border: "1px solid rgba(11,37,69,.08)",
-            boxShadow:
-              "0 2px 0 var(--ivory-3), 0 30px 60px -30px rgba(11,37,69,.5)",
-          }}
-        >
-          <div className="flex items-center gap-2 text-navy font-bold text-[10px] tracking-[.22em] uppercase">
-            <span className="inline-block w-5 h-0.5 bg-navy" aria-hidden />
-            Welcome
-          </div>
-          <h1
-            className="text-[color:var(--navy-ink)] mt-2 font-extrabold leading-[1.04]"
-            style={{
-              fontFamily: "Inter, system-ui, sans-serif",
-              fontSize: "clamp(22px, 5vw, 28px)",
-              letterSpacing: "-.025em",
-            }}
-          >
-            Set your password
-          </h1>
-          <p className="text-[color:var(--muted)] text-[12px] leading-snug mt-2">
-            You&rsquo;ll use this with your email (
-            <span className="text-[color:var(--navy-ink)] font-semibold">
-              {email}
-            </span>
-            ) to sign into the UWC Bay Area Directory beta. Minimum 8
-            characters.
-          </p>
-          <div className="mt-4">
-            <DirectorySetupForm token={token} email={email} />
-          </div>
-        </div>
+        <SetupGateCard
+          token={token}
+          email={email}
+          firstName={firstName}
+          showForm={showForm}
+          onShowFormChange={setShowForm}
+          cycleStartedAt={cycleStartedAt}
+          cycleMs={CYCLE_MS}
+        />
       </main>
     </LoadingGate>
   );
