@@ -109,23 +109,23 @@ export default function SavedRow({
         onUnsave={onUnsave}
       />
 
-      <div className="flex items-start gap-3 pr-8">
-        <div className="shrink-0 flex flex-col items-center gap-1">
+      <div className="flex items-start gap-5 pr-10">
+        <div className="shrink-0 flex flex-col items-center gap-2">
           <Link
             href={`/directory/${row.alumni_id}`}
-            className="block w-[56px] h-[56px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] ring-2 ring-navy"
+            className="block w-[110px] h-[110px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] ring-[3px] ring-navy"
           >
             {row.alum_photo_url ? (
               <Image
                 src={row.alum_photo_url}
                 alt=""
-                width={56}
-                height={56}
+                width={110}
+                height={110}
                 className="object-cover w-full h-full"
                 unoptimized
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-xs">
+              <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-2xl font-bold">
                 {name
                   .split(" ")
                   .map((p) => p[0])
@@ -137,85 +137,97 @@ export default function SavedRow({
             )}
           </Link>
           {flag && (
-            <span
-              className="text-[18px] leading-none text-black"
-              style={{ fontVariantEmoji: "emoji" }}
-              title={countryLabel}
-              aria-label={`From ${countryLabel}`}
-            >
-              {flag}
-            </span>
+            <div className="flex flex-col items-center gap-0.5">
+              <span
+                className="text-[28px] leading-none text-black"
+                style={{ fontVariantEmoji: "emoji" }}
+                aria-label={`From ${countryLabel}`}
+              >
+                {flag}
+              </span>
+              <span className="text-[11px] text-[color:var(--muted)] text-center max-w-[120px]">
+                {countryLabel}
+              </span>
+            </div>
           )}
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 min-w-0">
+          <h3 className="font-sans text-[24px] sm:text-[26px] font-bold text-[color:var(--navy-ink)] leading-[1.1]">
             <Link
               href={`/directory/${row.alumni_id}`}
               title={name}
-              className="font-semibold text-[color:var(--navy-ink)] hover:underline truncate min-w-0"
+              className="hover:underline"
             >
               {name}
             </Link>
+            {" "}
             {linkedin ? (
               <LinkedinIconLink
                 href={linkedin}
                 alumniId={row.alumni_id}
-                className="shrink-0 inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[#0A66C2] text-white text-[9px] font-bold hover:brightness-110 leading-none"
+                className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[#0A66C2] text-white text-[11px] font-bold hover:brightness-110 leading-none align-middle"
               />
             ) : (
               <span
-                className="shrink-0 inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[9px] font-bold leading-none"
+                className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[11px] font-bold leading-none align-middle"
                 title="No LinkedIn on file"
               >
                 in
               </span>
             )}
-          </div>
-          {sub && (
-            <div className="text-xs text-[color:var(--muted)] mt-0.5">
-              {sub}
-            </div>
-          )}
-          {cityDisplay && (
-            <div className="text-xs text-[color:var(--muted)] mt-0.5">
-              {cityDisplay}
-            </div>
-          )}
-          {(row.alum_current_title || row.alum_current_company) && (
-            <div className="mt-1 text-xs text-[color:var(--navy-ink)]">
-              {row.alum_current_title && (
-                <div className="line-clamp-1" title={row.alum_current_title}>
-                  {row.alum_current_title}
-                </div>
-              )}
-              {row.alum_current_company && (
-                <div className="flex items-center gap-2 mt-0.5">
+          </h3>
+          <div className="mt-2 space-y-1 text-[color:var(--navy-ink)]">
+            {sub && (
+              <div className="text-[15px] font-semibold leading-tight">
+                {sub}
+              </div>
+            )}
+            {cityDisplay && (
+              <div className="text-sm text-[color:var(--muted)]">
+                {cityDisplay}
+              </div>
+            )}
+            {(row.alum_current_title || row.alum_current_company) && (
+              <div className="flex items-center gap-3 pt-1.5">
+                {row.alum_current_company && (
                   <CompanyLogo
                     storedLogoUrl={row.alum_current_company_logo_url}
                     website={row.alum_current_company_website}
                     linkedinUrl={row.alum_current_company_linkedin}
                     companyName={row.alum_current_company}
-                    size={18}
+                    size={36}
                   />
-                  {companyHref ? (
-                    <a
-                      href={companyHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium hover:underline line-clamp-1"
+                )}
+                <div className="min-w-0 flex-1">
+                  {row.alum_current_title && (
+                    <div
+                      className="text-sm font-semibold line-clamp-1"
+                      title={row.alum_current_title}
                     >
-                      {row.alum_current_company}
-                    </a>
-                  ) : (
-                    <span className="font-medium line-clamp-1">
-                      {row.alum_current_company}
-                    </span>
+                      {row.alum_current_title}
+                    </div>
+                  )}
+                  {row.alum_current_company && (
+                    <div className="text-sm text-[color:var(--muted)] line-clamp-1">
+                      {companyHref ? (
+                        <a
+                          href={companyHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline hover:text-[color:var(--navy-ink)]"
+                        >
+                          {row.alum_current_company}
+                        </a>
+                      ) : (
+                        row.alum_current_company
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
           <div className="mt-3">
             <SavedStatusSelect
