@@ -1,10 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import PasswordInput from "@/components/directory/PasswordInput";
 
 interface Props {
   next: string;
+  /** True when the surrounding card is visible. We delay focus on
+   * the email field until this flips true — otherwise iOS Safari
+   * sees the autofocused input inside the off-screen card on page
+   * load and pops up the keyboard + autofill chip over the
+   * backdrop, ruining the first impression. */
+  shouldFocus?: boolean;
 }
 
 const INPUT_CLASS =
@@ -19,11 +25,20 @@ const LABEL_CLASS =
   "block text-[10px] tracking-[.18em] uppercase font-bold " +
   "text-[color:var(--muted)] mb-[6px] mt-[10px]";
 
-export default function DirectoryLoginForm({ next }: Props) {
+export default function DirectoryLoginForm({ next, shouldFocus }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  // Focus the email field only after the card actually becomes
+  // visible. Page load doesn't trigger keyboard / autofill UI.
+  useEffect(() => {
+    if (!shouldFocus) return;
+    const t = setTimeout(() => emailRef.current?.focus(), 360);
+    return () => clearTimeout(t);
+  }, [shouldFocus]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,10 +66,10 @@ export default function DirectoryLoginForm({ next }: Props) {
       <label className="block">
         <span className={LABEL_CLASS}>Email</span>
         <input
+          ref={emailRef}
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          autoFocus
           autoComplete="email"
           placeholder="your@email.com"
           className={INPUT_CLASS}

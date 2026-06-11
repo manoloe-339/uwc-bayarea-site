@@ -11,11 +11,19 @@ import {
 interface Props {
   token: string;
   email: string;
+  /** Same shouldFocus pattern as DirectoryLoginForm — focus the
+   * password field only once the surrounding card is visible, so
+   * iOS doesn't pop the keyboard over the welcome backdrop. */
+  shouldFocus?: boolean;
 }
 
-export default function DirectorySetupForm({ token, email }: Props) {
+export default function DirectorySetupForm({ token, email, shouldFocus }: Props) {
   const router = useRouter();
   const [password, setPassword] = useState("");
+  // Reference to the password input's hidden focus method via the
+  // input's autoFocus prop, gated on shouldFocus so iOS doesn't pop
+  // the keyboard on page load while the card is still hidden.
+  const passwordAutoFocus = !!shouldFocus;
   const [confirm, setConfirm] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +79,7 @@ export default function DirectorySetupForm({ token, email }: Props) {
         <PasswordInput
           value={password}
           onChange={setPassword}
-          autoFocus
+          autoFocus={passwordAutoFocus}
           autoComplete="new-password"
           required
           minLength={8}

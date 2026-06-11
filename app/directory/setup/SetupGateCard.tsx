@@ -135,7 +135,11 @@ export default function SetupGateCard({
             Set your password
           </h1>
           <div className="mt-4">
-            <DirectorySetupForm token={token} email={email} />
+            <DirectorySetupForm
+              token={token}
+              email={email}
+              shouldFocus={showForm}
+            />
           </div>
         </div>
       </div>

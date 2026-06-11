@@ -165,7 +165,7 @@ export default function LoginGateCard({
             Sign in
           </h1>
           <div className="mt-3">
-            <DirectoryLoginForm next={next} />
+            <DirectoryLoginForm next={next} shouldFocus={showForm} />
           </div>
         </div>
       </div>
