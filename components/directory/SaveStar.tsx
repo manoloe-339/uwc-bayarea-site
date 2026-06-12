@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import {
   MAX_NOTE_CHARS,
   REASON_LABELS,
@@ -57,9 +57,12 @@ export default function SaveStar({
   gallery = true,
   variant = "star",
 }: Props) {
-  const router = useRouter();
   const [saved, setSaved] = useState<Initial>(initial);
   const [open, setOpen] = useState(false);
+  // Portals must mount only after hydration, otherwise SSR pulls in
+  // window/document and crashes.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [busy, setBusy] = useState(false);
   const [reasons, setReasons] = useState<SaveReason[]>(initial?.reasons ?? []);
   const [note, setNote] = useState<string>(initial?.note ?? "");
@@ -116,7 +119,6 @@ export default function SaveStar({
       });
       if (!wasSaved) {
         onSavedChange?.(true);
-        router.refresh();
       }
       setFlash(true);
       setTimeout(() => setFlash(false), 1200);
@@ -148,7 +150,10 @@ export default function SaveStar({
       await fetch(`/api/directory/save?alumni_id=${alumniId}`, {
         method: "DELETE",
       }).catch(() => undefined);
-      router.refresh();
+      // Intentionally no router.refresh() — that would reshuffle the
+      // RANDOM()-ordered card grid on /directory. The layout's
+      // saved-count badge picks up the new value on the next
+      // navigation.
     }, 5000);
   };
 
@@ -170,7 +175,6 @@ export default function SaveStar({
       if (res.ok) {
         setSaved(undoFor);
         onSavedChange?.(true);
-        router.refresh();
       }
     } finally {
       setUndoFor(null);
@@ -230,43 +234,48 @@ export default function SaveStar({
         </button>
       )}
 
-      {savedToast && (
-        <div
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-navy text-white px-4 py-2 rounded-full shadow-lg text-sm whitespace-nowrap flex items-center gap-2"
-          role="status"
-        >
-          <span aria-hidden>⭐</span>
-          Saved to your shortlist
-        </div>
-      )}
-
-      {undoFor && (
-        <div
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-navy text-white px-4 py-2 rounded-full shadow-lg text-sm whitespace-nowrap flex items-center gap-3"
-          role="status"
-        >
-          Removed from your shortlist
-          <button
-            type="button"
-            onClick={undo}
-            disabled={busy}
-            className="font-bold uppercase tracking-[.18em] text-xs hover:underline disabled:opacity-50"
+      {mounted && savedToast &&
+        createPortal(
+          <div
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] bg-navy text-white px-4 py-2 rounded-full shadow-lg text-sm whitespace-nowrap flex items-center gap-2"
+            role="status"
           >
-            Undo
-          </button>
-        </div>
-      )}
+            <span aria-hidden>⭐</span>
+            Saved to your shortlist
+          </div>,
+          document.body,
+        )}
 
-      {open && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Save to shortlist"
-          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
-          }}
-        >
+      {mounted && undoFor &&
+        createPortal(
+          <div
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] bg-navy text-white px-4 py-2 rounded-full shadow-lg text-sm whitespace-nowrap flex items-center gap-3"
+            role="status"
+          >
+            Removed from your shortlist
+            <button
+              type="button"
+              onClick={undo}
+              disabled={busy}
+              className="font-bold uppercase tracking-[.18em] text-xs hover:underline disabled:opacity-50"
+            >
+              Undo
+            </button>
+          </div>,
+          document.body,
+        )}
+
+      {mounted && open &&
+        createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Save to shortlist"
+            className="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setOpen(false);
+            }}
+          >
           <div
             className="bg-white rounded-[14px] max-w-[480px] w-full p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -380,8 +389,9 @@ export default function SaveStar({
               </div>
             </div>
           </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

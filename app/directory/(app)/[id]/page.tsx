@@ -215,6 +215,15 @@ export default async function DirectoryProfilePage({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-9 gap-y-[18px] mt-6">
               {row.uwc_college && (
                 <div>
+                  {/* Eyebrow above the logo — same baseline as the
+                      "From" / "Lives" / "Currently" labels in the
+                      next column, so the row reads as a single fact
+                      grid. */}
+                  {row.grad_year != null && (
+                    <div className="text-[10px] font-bold tracking-[.18em] uppercase text-[color:var(--muted-2)] mb-[6px]">
+                      Class of {row.grad_year}
+                    </div>
+                  )}
                   {uwcLogoUrl ? (
                     <Link
                       href={campusHref ?? "#"}
@@ -235,11 +244,6 @@ export default async function DirectoryProfilePage({
                     >
                       {campusDisplay || row.uwc_college}
                     </Link>
-                  )}
-                  {row.grad_year != null && (
-                    <div className="mt-[9px] text-[10.5px] font-bold tracking-[.16em] uppercase text-[color:var(--muted-2)]">
-                      Class of {row.grad_year}
-                    </div>
                   )}
                 </div>
               )}
