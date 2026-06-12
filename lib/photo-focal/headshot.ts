@@ -17,35 +17,33 @@ import type { FaceBox } from "./detect";
 const HEADSHOT_PREFIX = "alumni-headshots/";
 // Mirror the shortlist photo band's aspect (~360x220).
 const TARGET_ASPECT = 360 / 220;
-// What fraction of the crop's height the face should occupy. Lower
-// values pull more shoulder/background into frame; higher values
-// hug the face tighter.
-const FACE_HEIGHT_FRACTION = 0.6;
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
 
-/** Compute and upload a head-focused JPEG derivative. Returns the
- *  Blob URL. Idempotent on the alumni id — overwrites the prior
- *  headshot for the same alum. */
+/** Compute and upload a head-focused JPEG derivative. NO PIXEL ZOOM —
+ *  we take the largest 1.64:1 slice that fits in the source image at
+ *  its natural scale, then slide it so the detected face center
+ *  lands in the middle, clamped to bounds. Photos with a small face
+ *  surrounded by background stay small (don't get pixel-zoomed); the
+ *  only intent is to guarantee the face is in the visible band. */
 export async function bakeHeadshot(
   buf: Buffer,
   face: FaceBox,
   alumniId: number,
 ): Promise<string> {
-  // Choose a crop height such that the face occupies ~60% of it.
-  // If the source image is too short to give us that much room, fall
-  // back to the source height.
-  let cropH = Math.round(face.pixelH / FACE_HEIGHT_FRACTION);
-  cropH = Math.min(cropH, face.imgH);
-  let cropW = Math.round(cropH * TARGET_ASPECT);
-  // If our target width overflows the source, scale both axes down
-  // so the crop fits.
-  if (cropW > face.imgW) {
-    const scale = face.imgW / cropW;
+  // Largest letterbox at the target aspect that fits inside the
+  // source. If the source is more landscape than the target, height
+  // is the limit; otherwise width is the limit.
+  let cropW: number;
+  let cropH: number;
+  if (face.imgW / face.imgH <= TARGET_ASPECT) {
     cropW = face.imgW;
-    cropH = Math.round(cropH * scale);
+    cropH = Math.round(cropW / TARGET_ASPECT);
+  } else {
+    cropH = face.imgH;
+    cropW = Math.round(cropH * TARGET_ASPECT);
   }
 
   // Center the crop on the focal point (face center + slight upward
@@ -58,8 +56,8 @@ export async function bakeHeadshot(
   const out = await sharp(buf)
     .rotate() // honour EXIF
     .extract({ left, top, width: cropW, height: cropH })
-    // Cap the longest edge at 720 — the band displays at ~360 px
-    // wide, so 2x retina is plenty. Keeps blob sizes small.
+    // Cap longest edge at 720 so retina has 2x at the ~360 px band
+    // without bloating Blob storage.
     .resize({ width: 720, withoutEnlargement: true })
     .jpeg({ quality: 82, mozjpeg: true })
     .toBuffer();

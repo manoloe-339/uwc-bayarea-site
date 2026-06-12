@@ -93,15 +93,24 @@ export async function detectFace(buf: Buffer): Promise<FaceBox | null> {
       options,
     );
     if (!detections || detections.length === 0) return null;
-    let best = detections[0];
-    let bestArea = best.box.width * best.box.height;
-    for (const d of detections.slice(1)) {
-      const a = d.box.width * d.box.height;
-      if (a > bestArea) {
-        best = d;
-        bestArea = a;
-      }
-    }
+    // Pick by confidence first; size only as a tiebreaker for
+    // similarly-confident detections (group photos with multiple
+    // legit faces — usually the subject is the largest).
+    //
+    // The plain "largest area wins" rule had a failure mode where a
+    // low-confidence false positive in jewelry/background scored
+    // ~0.5 but happened to have a larger bounding box than the
+    // real face at 1.0 — and the bake centered on the phantom.
+    // 0.05 is tight enough that two real faces in a group photo will
+    // still both be considered (typical inter-face confidence delta
+    // is well under 0.05), but tight enough that an obvious phantom
+    // (~0.10+ below the real face's score) loses to confidence.
+    const SCORE_TIE = 0.05;
+    const sorted = [...detections].sort((a, b) => {
+      if (Math.abs(a.score - b.score) > SCORE_TIE) return b.score - a.score;
+      return b.box.width * b.box.height - a.box.width * a.box.height;
+    });
+    const best = sorted[0];
     const cx = best.box.x + best.box.width / 2;
     const cy = best.box.y + best.box.height * 0.45;
     return {
