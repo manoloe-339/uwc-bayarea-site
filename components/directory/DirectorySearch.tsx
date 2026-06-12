@@ -375,7 +375,7 @@ export default function DirectorySearch({
         {workActive && (
           <span className="inline-flex items-center gap-[7px] text-[13px] text-white/65">
             <Icon
-              name={working.scope === "ever" ? "globe" : "clock"}
+              name={working.scope === "ever" ? "history" : "clock"}
               size={13}
             />
             {working.scope === "ever"
@@ -475,7 +475,7 @@ function ScopeToggle({
                 : "text-white/75 hover:text-white"
             }`}
           >
-            <Icon name={v === "ever" ? "globe" : "clock"} size={14} />
+            <Icon name={v === "ever" ? "history" : "clock"} size={14} />
             {v === "ever" ? "Ever" : "Current"}
           </button>
         );
