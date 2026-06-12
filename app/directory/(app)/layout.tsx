@@ -68,6 +68,12 @@ export default async function DirectoryLayout({
 
           <div className="flex items-center gap-5">
             <Link
+              href="/directory"
+              className="text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"
+            >
+              Search
+            </Link>
+            <Link
               href="/directory/snapshot"
               className="text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"
             >
