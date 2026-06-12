@@ -12,14 +12,20 @@ import { getSaveForAlumnus } from "@/lib/directory-saves";
 import { linkedinHref } from "@/lib/linkedin-url";
 import SaveStar from "@/components/directory/SaveStar";
 import { CompanyLogo } from "@/components/directory/CompanyLogo";
-import LinkedinIconLink from "@/components/directory/LinkedinIconLink";
-import { originCountryNames, originFlagString } from "@/lib/country-flag";
+import { Icon } from "@/components/directory/Icon";
+import { FlagCoins } from "@/components/directory/Coins";
+import { extractCountryCodes } from "@/lib/country-flag";
 import {
   detectMovedFromBayArea,
   formatLocationForDisplay,
   pickCurrentLocation,
 } from "@/lib/location-moved";
 import { displayName, titleCase } from "@/lib/text-format";
+import {
+  getFlagMap,
+  getUwcLogoMap,
+  stripUwcPrefix,
+} from "@/lib/directory-lookups";
 
 export const dynamic = "force-dynamic";
 
@@ -121,8 +127,12 @@ export default async function DirectoryProfilePage({
   const row = await getDirectoryAlumnus(id);
   if (!row) notFound();
 
-  const careers = await getDirectoryCareers(id);
-  const education = await getDirectoryEducation(id);
+  const [careers, education, uwcLogos, flags] = await Promise.all([
+    getDirectoryCareers(id),
+    getDirectoryEducation(id),
+    getUwcLogoMap(),
+    getFlagMap(),
+  ]);
 
   // Identity + audit
   const session = await getCurrentDirectorySession();
@@ -162,128 +172,244 @@ export default async function DirectoryProfilePage({
   const fellBackToLinkedin = !signupCity && !!formattedLinkedin;
   const linkedin = linkedinHref(row.linkedin_url);
 
+  // Editorial-header derivations.
+  const originIsos = extractCountryCodes(row.origin);
+  const movedFrom = detectMovedFromBayArea(linkedinLoc);
+  const showMovedPill = !!movedFrom && !fellBackToLinkedin;
+  const movedLabel = movedFrom ? formatLocationForDisplay(movedFrom) : null;
+  const campusDisplay = stripUwcPrefix(row.uwc_college);
+  const uwcLogoUrl = row.uwc_college ? uwcLogos[row.uwc_college] : undefined;
+  const cityHref = row.current_city
+    ? `/directory?city=${encodeURIComponent(titleCase(row.current_city))}`
+    : null;
+  const campusHref = row.uwc_college
+    ? `/directory?college=${encodeURIComponent(row.uwc_college)}`
+    : null;
+  const headerCompanyHref = linkedinHref(row.current_company_linkedin);
+
   return (
-    <section className="max-w-[800px] mx-auto px-5 sm:px-7 py-8">
-      <div className="mb-5 text-sm">
+    <section className="max-w-[720px] mx-auto px-5 sm:px-7 py-7">
+      <div className="mb-4 text-[15px]">
         <Link
           href={back.href}
-          className="text-white/80 hover:text-white"
+          className="inline-flex items-center gap-[9px] text-white/80 hover:text-white"
         >
-          {back.label}
+          <Icon name="arrow-left" size={18} strokeWidth={2} />
+          {back.label.replace(/^←\s*/, "")}
         </Link>
       </div>
 
-      <div className="relative bg-white border border-[color:var(--rule)] rounded-[10px] p-6 sm:p-8">
-        <SaveStar
-          alumniId={id}
-          alumName={name}
-          initial={existingSave}
-          canSave={canSave}
-          size={28}
-          className="absolute top-3 right-3"
-        />
-        <div className="flex items-start gap-5 mb-6 pr-10">
-          <div className="shrink-0 flex flex-col items-center gap-2">
-            <div className="w-[110px] h-[110px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] ring-[3px] ring-navy">
+      <article className="bg-white rounded-[18px] overflow-hidden shadow-[0_2px_0_rgba(2,28,56,.4),0_40px_80px_-36px_rgba(0,0,0,.6)]">
+        <header className="flex flex-col-reverse sm:flex-row gap-5 sm:gap-8 p-7 sm:p-9 pb-0">
+          <div className="flex-1 min-w-0">
+            <h1
+              className="text-[color:var(--navy-ink)] font-bold leading-[1] tracking-[-0.015em] m-0"
+              style={{
+                fontFamily: "Fraunces, Georgia, serif",
+                fontSize: "clamp(34px, 6vw, 46px)",
+              }}
+            >
+              {name}
+            </h1>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-9 gap-y-[18px] mt-6">
+              {row.uwc_college && (
+                <div>
+                  {uwcLogoUrl ? (
+                    <Link
+                      href={campusHref ?? "#"}
+                      title={row.uwc_college}
+                      className="inline-flex hover:opacity-80"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={uwcLogoUrl}
+                        alt={row.uwc_college}
+                        className="h-[38px] w-auto block"
+                      />
+                    </Link>
+                  ) : (
+                    <Link
+                      href={campusHref ?? "#"}
+                      className="text-navy font-bold text-[18px] hover:underline"
+                    >
+                      {campusDisplay || row.uwc_college}
+                    </Link>
+                  )}
+                  {row.grad_year != null && (
+                    <div className="mt-[9px] text-[10.5px] font-bold tracking-[.16em] uppercase text-[color:var(--muted-2)]">
+                      Class of {row.grad_year}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {originIsos.length > 0 && (
+                <div>
+                  <div className="text-[10px] font-bold tracking-[.18em] uppercase text-[color:var(--muted-2)] mb-[6px]">
+                    From
+                  </div>
+                  <div className="flex items-center gap-[7px] text-[15px] text-[color:var(--navy-ink)] font-semibold">
+                    <FlagCoins isos={originIsos} flags={flags} size={21} />
+                    <span>
+                      {originIsos
+                        .map(
+                          (iso) =>
+                            flags[iso.toLowerCase()]?.name ?? iso.toUpperCase(),
+                        )
+                        .join(" · ")}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {(location || showMovedPill) && (
+                <div>
+                  <div className="text-[10px] font-bold tracking-[.18em] uppercase text-[color:var(--muted-2)] mb-[6px]">
+                    Lives
+                  </div>
+                  <div className="flex items-center flex-wrap gap-[7px] text-[15px] text-[color:var(--navy-ink)] font-semibold">
+                    {location &&
+                      (cityHref ? (
+                        <Link
+                          href={cityHref}
+                          className="text-navy hover:underline underline-offset-2"
+                        >
+                          {location}
+                        </Link>
+                      ) : (
+                        <span>{location}</span>
+                      ))}
+                    {showMovedPill && (
+                      <span
+                        className="inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-semibold text-[color:var(--muted-2)] border border-[color:var(--rule)] rounded-full px-2 py-[2px]"
+                        title={`LinkedIn says they're now in ${movedLabel}`}
+                      >
+                        <Icon name="plane-takeoff" size={12} />
+                        may have moved
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {(row.current_title || row.current_company) && (
+                <div>
+                  <div className="text-[10px] font-bold tracking-[.18em] uppercase text-[color:var(--muted-2)] mb-[6px]">
+                    Currently
+                  </div>
+                  <div className="text-[15px] text-[color:var(--navy-ink)]">
+                    {row.current_title && (
+                      <div className="text-[color:var(--muted)] font-medium">
+                        {row.current_title}
+                      </div>
+                    )}
+                    {row.current_company && (
+                      <div className="font-semibold">
+                        {headerCompanyHref ? (
+                          <a
+                            href={headerCompanyHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-navy hover:underline underline-offset-2"
+                          >
+                            {row.current_company}
+                          </a>
+                        ) : (
+                          row.current_company
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-[10px] mt-[26px]">
+              {linkedin && (
+                <a
+                  href={linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-[7px] rounded-[9px] bg-[#0A66C2] text-white font-semibold text-[13.5px] px-[15px] py-[10px] hover:brightness-[1.08]"
+                >
+                  <Icon name="linkedin" size={15} filled />
+                  LinkedIn
+                </a>
+              )}
+              <SaveStar
+                alumniId={id}
+                alumName={name}
+                initial={existingSave}
+                canSave={canSave}
+                variant="button"
+              />
+            </div>
+          </div>
+
+          <div className="shrink-0 sm:w-[210px] w-full">
+            <div
+              className="w-full sm:h-[262px] h-[300px] rounded-[14px] overflow-hidden bg-[color:var(--ivory-2)]"
+              style={{
+                boxShadow:
+                  "0 2px 0 var(--ivory-3), 0 18px 36px -18px rgba(11,37,69,.45)",
+              }}
+            >
               {row.photo_url ? (
                 <Image
                   src={row.photo_url}
                   alt=""
-                  width={110}
-                  height={110}
-                  className="object-cover w-full h-full"
+                  width={420}
+                  height={524}
+                  className="w-full h-full object-cover"
+                  style={{ objectPosition: "50% 24%" }}
                   unoptimized
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-2xl font-bold">
+                <div
+                  className="w-full h-full flex items-center justify-center text-white"
+                  style={{
+                    background:
+                      "radial-gradient(circle at 36% 28%, #3a86d0, #134a82 62%, #0b2545)",
+                    fontFamily: "Fraunces, Georgia, serif",
+                    fontSize: 72,
+                    fontWeight: 600,
+                  }}
+                >
                   {name
-                    .split(" ")
-                    .map((p) => p[0])
+                    .split(/\s+/)
                     .filter(Boolean)
                     .slice(0, 2)
+                    .map((p) => p[0])
                     .join("")
                     .toUpperCase()}
                 </div>
               )}
             </div>
-            {row.origin && originFlagString(row.origin) && (
-              <div className="flex flex-col items-center gap-0.5">
-                <span
-                  className="text-[28px] leading-none text-black"
-                  style={{ fontVariantEmoji: "emoji" }}
-                  aria-label={`From ${originCountryNames(row.origin) ?? row.origin}`}
-                >
-                  {originFlagString(row.origin)}
-                </span>
-                <span className="text-[11px] text-[color:var(--muted)] text-center max-w-[120px]">
-                  {originCountryNames(row.origin) ?? row.origin}
-                </span>
-              </div>
-            )}
           </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="font-sans text-[28px] font-bold text-[color:var(--navy-ink)] leading-[1.1]">
-              <span className="block">{titleCase(row.first_name) || "—"}</span>
-              <span className="block">
-                {titleCase(row.last_name)}
-                {" "}
-                {linkedin ? (
-                  <LinkedinIconLink
-                    href={linkedin}
-                    alumniId={id}
-                    className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[#0A66C2] text-white text-[11px] font-bold hover:brightness-110 leading-none align-middle"
-                  />
-                ) : (
-                  <span
-                    className="inline-flex items-center justify-center w-[22px] h-[22px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[11px] font-bold leading-none align-middle"
-                    title="No LinkedIn on file"
-                  >
-                    in
-                  </span>
-                )}
-              </span>
-            </h1>
-            <div className="mt-2.5 space-y-1 text-[color:var(--navy-ink)]">
-              {sub && (
-                <div className="text-[15px] font-semibold leading-tight">
-                  {sub}
-                </div>
-              )}
-              {location && (
-                <div className="text-sm text-[color:var(--muted)]">
-                  {location}
-                </div>
-              )}
-              {(() => {
-                const moved = detectMovedFromBayArea(linkedinLoc);
-                // Don't double-show: if LinkedIn IS the primary
-                // location, the 🧳 badge would just repeat it.
-                if (!moved || fellBackToLinkedin) return null;
-                return (
-                  <div
-                    className="text-sm text-[color:var(--muted)]"
-                    title="LinkedIn says they're now somewhere else"
-                  >
-                    🧳 {formatLocationForDisplay(moved)}
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
+        </header>
+
+        <div className="px-7 sm:px-9 pt-7 pb-9 mt-7 border-t border-[color:var(--rule)]">
 
         {row.headline && (
-          <p className="text-sm text-[color:var(--navy-ink)] italic mb-3 leading-[1.4]">
+          <p
+            className="italic text-[color:var(--navy-ink)] mb-6 mt-0 leading-[1.5]"
+            style={{
+              fontFamily: "Fraunces, Georgia, serif",
+              fontWeight: 500,
+              fontSize: 18,
+            }}
+          >
             {row.headline}
           </p>
         )}
 
         {row.linkedin_about && (
-          <div className="mb-5">
-            <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+          <div className="mb-7">
+            <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-3">
               Bio
             </div>
-            <p className="text-sm text-[color:var(--navy-ink)] leading-[1.55] whitespace-pre-wrap">
+            <p className="text-[16px] text-[color:var(--navy-ink)] leading-[1.6] whitespace-pre-wrap m-0">
               {row.linkedin_about}
             </p>
           </div>
@@ -429,7 +555,8 @@ export default async function DirectoryProfilePage({
             </ul>
           </div>
         )}
-      </div>
+        </div>
+      </article>
     </section>
   );
 }

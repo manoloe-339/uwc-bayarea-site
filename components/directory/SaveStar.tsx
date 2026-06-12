@@ -31,6 +31,10 @@ interface Props {
    * treatment. When false, the legacy navy-ink star is used.
    * Defaults to true (the new gallery card is the common case). */
   gallery?: boolean;
+  /** "star" → just the icon (default; gallery card overlay).
+   *  "button" → outlined pill with gold star + "Save" / "Saved" label,
+   *             used on the detail page action row. */
+  variant?: "star" | "button";
 }
 
 const GOLD = "#E89A1C";
@@ -51,6 +55,7 @@ export default function SaveStar({
   onSavedChange,
   onUnsave,
   gallery = true,
+  variant = "star",
 }: Props) {
   const router = useRouter();
   const [saved, setSaved] = useState<Initial>(initial);
@@ -194,21 +199,36 @@ export default function SaveStar({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleStarClick}
-        aria-label={isSaved ? "Remove from shortlist" : "Add to shortlist"}
-        aria-pressed={isSaved}
-        title={isSaved ? "Saved — click to remove" : "Save to shortlist"}
-        className={`inline-flex items-center justify-center rounded transition-transform hover:scale-[1.12] ${className}`}
-        style={{
-          width: size + 8,
-          height: size + 8,
-          color: starColor,
-        }}
-      >
-        <Icon name="star" size={size} strokeWidth={1.8} filled={isSaved} />
-      </button>
+      {variant === "button" ? (
+        <button
+          type="button"
+          onClick={handleStarClick}
+          aria-pressed={isSaved}
+          title={isSaved ? "Saved — click to remove" : "Save to shortlist"}
+          className={`inline-flex items-center gap-[7px] rounded-[9px] border border-[color:var(--rule)] bg-white px-[15px] py-[10px] text-[13.5px] font-semibold text-[color:var(--navy-ink)] hover:border-[color:rgba(11,37,69,.42)] ${className}`}
+        >
+          <span style={{ color: GOLD, display: "inline-flex" }}>
+            <Icon name="star" size={15} filled={isSaved} strokeWidth={1.8} />
+          </span>
+          {isSaved ? "Saved" : "Save"}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={handleStarClick}
+          aria-label={isSaved ? "Remove from shortlist" : "Add to shortlist"}
+          aria-pressed={isSaved}
+          title={isSaved ? "Saved — click to remove" : "Save to shortlist"}
+          className={`inline-flex items-center justify-center rounded transition-transform hover:scale-[1.12] ${className}`}
+          style={{
+            width: size + 8,
+            height: size + 8,
+            color: starColor,
+          }}
+        >
+          <Icon name="star" size={size} strokeWidth={1.8} filled={isSaved} />
+        </button>
+      )}
 
       {savedToast && (
         <div
