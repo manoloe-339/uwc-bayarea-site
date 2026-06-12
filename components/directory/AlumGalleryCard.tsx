@@ -61,10 +61,12 @@ interface Props {
   star: React.ReactNode;
   /** Optional outreach footer for the shortlist. */
   footer?: React.ReactNode;
-  /** Photo treatment:
-   *   "square" → 1:1 aspect (the gallery card on /directory)
-   *   number   → fixed pixel height (the shortlist card, ~220) */
-  photoHeight?: "square" | number;
+  /** Pixel height of the photo band. Omit to use the responsive
+   * default (220px on ≤560px, 230px above). Photo always crops
+   * with object-cover + object-position: 50% 20% so faces land
+   * cleanly inside the band — the source image's aspect never
+   * drives the card's own height. */
+  photoHeight?: number;
 }
 
 export function AlumGalleryCard({
@@ -74,7 +76,7 @@ export function AlumGalleryCard({
   backFrom,
   star,
   footer,
-  photoHeight = "square",
+  photoHeight,
 }: Props) {
   const detailHref = `/directory/${alum.id}?from=${encodeURIComponent(backFrom)}`;
   const campusHref = alum.uwcCanonical
@@ -91,20 +93,18 @@ export function AlumGalleryCard({
   return (
     <article className="relative bg-white rounded-[18px] overflow-hidden flex flex-col shadow-[0_2px_0_rgba(2,28,56,.4),0_30px_56px_-30px_rgba(0,0,0,.6)] transition-transform transition-shadow duration-200 hover:-translate-y-[3px] hover:shadow-[0_2px_0_rgba(2,28,56,.4),0_40px_70px_-30px_rgba(0,0,0,.66)]">
       <div className="relative">
-        {/* Photo is itself the click target → detail page. */}
+        {/* Photo is a fixed-height band — the alum photo's natural
+            height never drives the card's height. Faces are cropped
+            top-favoured via object-position: 50% 20%. */}
         <Link
           href={detailHref}
           aria-label={alum.displayName}
           className={
-            photoHeight === "square"
-              ? "block aspect-square bg-[color:var(--ivory-2)]"
-              : "block bg-[color:var(--ivory-2)]"
+            photoHeight != null
+              ? "block bg-[color:var(--ivory-2)] overflow-hidden"
+              : "block bg-[color:var(--ivory-2)] overflow-hidden h-[220px] [@media(min-width:561px)]:h-[230px]"
           }
-          style={
-            photoHeight === "square"
-              ? undefined
-              : { height: `${photoHeight}px` }
-          }
+          style={photoHeight != null ? { height: `${photoHeight}px` } : undefined}
         >
           {alum.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -112,6 +112,7 @@ export function AlumGalleryCard({
               src={alum.photoUrl}
               alt=""
               className="w-full h-full object-cover block"
+              style={{ objectPosition: "50% 20%" }}
               loading="lazy"
             />
           ) : (
