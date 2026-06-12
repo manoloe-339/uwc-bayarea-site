@@ -184,7 +184,6 @@ export default function SavedList({ allSaves, uwcLogos, flags }: Props) {
               uwcLogos={uwcLogos}
               flags={flags}
               backFrom="/directory/saved"
-              photoHeight={220}
               star={
                 <SaveStar
                   alumniId={row.alumni_id}
