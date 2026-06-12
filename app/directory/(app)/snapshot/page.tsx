@@ -588,20 +588,20 @@ export default async function SnapshotPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <SnapshotFacetCard
           icon="globe"
-          title="Which UWC"
+          title="Top five UWC"
           total={data.uwcs.length}
           rows={uwcRows}
         />
         <SnapshotFacetCard
           icon="building"
-          title="Where they work"
+          title="Top five employers"
           total={data.companies.length}
           rows={companyRows}
         />
         <SnapshotFacetCard
           id="origin"
           icon="users"
-          title="Origin"
+          title="Top five countries"
           total={origins.length}
           rows={originRows}
         />
