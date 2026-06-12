@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { COLLEGES } from "@/lib/uwc-colleges";
 import { REGIONS } from "@/lib/region";
 import {
@@ -15,14 +14,19 @@ import { parseSearchQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser"
 import { listSavesForUser } from "@/lib/directory-saves";
 import type { SaveReason, SaveStatus } from "@/lib/directory-saves-shared";
 import SaveStar from "@/components/directory/SaveStar";
-import LinkedinIconLink from "@/components/directory/LinkedinIconLink";
+import { AlumGalleryCard, type AlumCardData } from "@/components/directory/AlumGalleryCard";
 import { DirectoryNLToggle } from "@/components/directory/DirectoryNLToggle";
-import { originCountryNames, originFlagString } from "@/lib/country-flag";
+import { extractCountryCodes } from "@/lib/country-flag";
 import {
   detectMovedFromBayArea,
   pickCurrentLocation,
 } from "@/lib/location-moved";
 import { displayName, titleCase } from "@/lib/text-format";
+import {
+  getFlagMap,
+  getUwcLogoMap,
+  stripUwcPrefix,
+} from "@/lib/directory-lookups";
 import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -233,15 +237,19 @@ export default async function DirectoryPage({
     return "Jane Doe — or just Doe";
   })();
   // Build a quick lookup: alumni_id -> existing save (for the ★ button state).
-  const savedByAlumni = new Map<number, { status: typeof mySaves[number]["status"]; reason: typeof mySaves[number]["reason"]; note: string | null }>();
+  const savedByAlumni = new Map<number, { status: typeof mySaves[number]["status"]; reasons: typeof mySaves[number]["reasons"]; note: string | null }>();
   for (const s of mySaves) {
     savedByAlumni.set(s.alumni_id, {
       status: s.status,
-      reason: s.reason,
+      reasons: s.reasons,
       note: s.note,
     });
   }
   const canSave = session?.kind === "user";
+  const [uwcLogos, flags] = await Promise.all([
+    getUwcLogoMap(),
+    getFlagMap(),
+  ]);
 
   // Build a "from" URL that recreates the current /directory view so
   // the detail page's ← Back link can return the user to exactly the
@@ -546,17 +554,28 @@ export default async function DirectoryPage({
         );
       })()}
 
-      <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {rows.map((r) => (
-          <DirectoryCard
-            key={r.id}
-            row={r}
-            canSave={canSave}
-            initialSave={savedByAlumni.get(r.id) ?? null}
-            backFrom={directoryFrom}
-          />
-        ))}
-      </ul>
+      <div className="grid gap-[22px] grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {rows.map((r) => {
+          const alum = rowToAlumCard(r);
+          return (
+            <AlumGalleryCard
+              key={r.id}
+              alum={alum}
+              uwcLogos={uwcLogos}
+              flags={flags}
+              backFrom={directoryFrom}
+              star={
+                <SaveStar
+                  alumniId={r.id}
+                  alumName={alum.displayName}
+                  initial={savedByAlumni.get(r.id) ?? null}
+                  canSave={canSave}
+                />
+              }
+            />
+          );
+        })}
+      </div>
 
       {rows.length === 0 && (
         <div className="fp-panel p-10 text-center text-white/70 text-sm">
@@ -567,179 +586,34 @@ export default async function DirectoryPage({
   );
 }
 
-function DirectoryCard({
-  row,
-  canSave,
-  initialSave,
-  backFrom,
-}: {
-  row: DirectoryAlumnusRow;
-  canSave: boolean;
-  initialSave: {
-    status: SaveStatus;
-    reason: SaveReason | null;
-    note: string | null;
-  } | null;
-  backFrom: string;
-}) {
-  const detailHref = `/directory/${row.id}?from=${encodeURIComponent(backFrom)}`;
-  const name =
-    [row.first_name, row.last_name].filter(Boolean).join(" ") || "(no name)";
-  const uwcLine = [row.uwc_college, row.grad_year]
+/** Map a DirectoryAlumnusRow to the shared AlumGalleryCard shape. */
+function rowToAlumCard(row: DirectoryAlumnusRow): AlumCardData {
+  const name = displayName(row.first_name, row.last_name);
+  const initials = name
+    .split(/\s+/)
     .filter(Boolean)
-    .join(" · ");
-  const flag = row.origin ? originFlagString(row.origin) : "";
-  const countryLabel = row.origin
-    ? originCountryNames(row.origin) ?? row.origin
-    : "";
-  const linkedin = linkedinHref(row.linkedin_url);
-  const companyHref = linkedinHref(row.current_company_linkedin);
-
-  const displayedName = displayName(row.first_name, row.last_name);
-
-  return (
-    <li className="relative bg-white border border-[color:var(--rule)] rounded-[10px] p-4 hover:border-navy">
-      <SaveStar
-        alumniId={row.id}
-        alumName={displayedName}
-        initial={initialSave ? { ...initialSave } : null}
-        canSave={canSave}
-        className="absolute top-1 right-1"
-      />
-      <div className="flex gap-3 pr-8">
-        <div className="shrink-0 flex flex-col items-center gap-1">
-          <Link
-            href={detailHref}
-            className="block w-[64px] h-[64px] rounded-full overflow-hidden bg-[color:var(--ivory-2)] ring-2 ring-navy"
-          >
-            {row.photo_url ? (
-              <Image
-                src={row.photo_url}
-                alt=""
-                width={64}
-                height={64}
-                className="object-cover w-full h-full"
-                unoptimized
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-[color:var(--muted)] text-xs">
-                {displayedName
-                  .split(" ")
-                  .map((p) => p[0])
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .join("")
-                  .toUpperCase()}
-              </div>
-            )}
-          </Link>
-          {flag && (
-            <span
-              className="text-[20px] leading-none text-black"
-              style={{ fontVariantEmoji: "emoji" }}
-              title={countryLabel}
-              aria-label={`From ${countryLabel}`}
-            >
-              {flag}
-            </span>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          {/* Line 1: name + LinkedIn icon. Truncate long names so the
-              LinkedIn icon stays on the same line and never wraps
-              into the star's territory. */}
-          <div className="flex items-center gap-2 min-w-0">
-            <Link
-              href={detailHref}
-              title={displayedName}
-              className="font-semibold text-[color:var(--navy-ink)] hover:underline truncate min-w-0"
-            >
-              {displayedName}
-            </Link>
-            {linkedin ? (
-              <LinkedinIconLink
-                href={linkedin}
-                alumniId={row.id}
-                className="shrink-0 inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[#0A66C2] text-white text-[9px] font-bold hover:brightness-110 leading-none"
-              />
-            ) : (
-              <span
-                className="shrink-0 inline-flex items-center justify-center w-[16px] h-[16px] rounded-[3px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[9px] font-bold leading-none"
-                title="No LinkedIn on file"
-                aria-label="No LinkedIn on file"
-              >
-                in
-              </span>
-            )}
-          </div>
-
-          {/* Line 2: UWC + year */}
-          {uwcLine && (
-            <div className="text-xs text-[color:var(--muted)] mt-0.5">
-              {uwcLine}
-            </div>
-          )}
-
-          {/* Line 3: current city, plus a 🧳 indicator (no text) when
-              LinkedIn says they're outside the Bay Area now. Click
-              through to the profile to see the new location. */}
-          {(() => {
-            const liveLoc = pickCurrentLocation({
-              current_location: row.current_location,
-              location_full: row.location_full,
-            });
-            const moved = detectMovedFromBayArea(liveLoc);
-            if (!row.current_city && !moved) return null;
-            return (
-              <div className="text-xs text-[color:var(--muted)] mt-0.5">
-                {row.current_city ? titleCase(row.current_city) : null}
-                {moved && (
-                  <span
-                    className="ml-1.5"
-                    title={`LinkedIn says they're now in ${moved} — open profile for details`}
-                    aria-label={`Now in ${moved}`}
-                  >
-                    🧳
-                  </span>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Lines 4 & 5: current role on one line, company on the next */}
-          {(row.current_title || row.current_company) && (
-            <div className="mt-1 text-xs text-[color:var(--navy-ink)]">
-              {row.current_title && (
-                <div
-                  className="line-clamp-1"
-                  title={row.current_title}
-                >
-                  {row.current_title}
-                </div>
-              )}
-              {row.current_company && (
-                <div
-                  className="line-clamp-1 font-medium"
-                  title={row.current_company}
-                >
-                  {companyHref ? (
-                    <a
-                      href={companyHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline"
-                    >
-                      {row.current_company}
-                    </a>
-                  ) : (
-                    row.current_company
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </li>
-  );
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+  const liveLoc = pickCurrentLocation({
+    current_location: row.current_location,
+    location_full: row.location_full,
+  });
+  return {
+    id: row.id,
+    displayName: name,
+    photoUrl: row.photo_url,
+    initials,
+    uwcCanonical: row.uwc_college,
+    campus: stripUwcPrefix(row.uwc_college),
+    gradYear: row.grad_year,
+    originIsos: extractCountryCodes(row.origin),
+    city: row.current_city ? titleCase(row.current_city) : null,
+    moved: !!detectMovedFromBayArea(liveLoc),
+    role: row.current_title,
+    company: row.current_company,
+    companyHref: linkedinHref(row.current_company_linkedin),
+    linkedinHref: linkedinHref(row.linkedin_url),
+  };
 }

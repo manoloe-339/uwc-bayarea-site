@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentDirectorySession } from "@/lib/directory-session";
 import { listSavesForUser } from "@/lib/directory-saves";
+import { getFlagMap, getUwcLogoMap } from "@/lib/directory-lookups";
 import SavedList from "@/components/directory/SavedList";
 
 export const dynamic = "force-dynamic";
@@ -26,17 +27,24 @@ export default async function SavedShortlistPage() {
     );
   }
 
-  const allSaves = await listSavesForUser(session.user.id);
+  const [allSaves, uwcLogos, flags] = await Promise.all([
+    listSavesForUser(session.user.id),
+    getUwcLogoMap(),
+    getFlagMap(),
+  ]);
 
   return (
-    <section className="max-w-[900px] mx-auto px-5 sm:px-7 py-8">
+    <section className="max-w-[1100px] mx-auto px-5 sm:px-7 py-10">
       <h1
-        className="display text-white font-extrabold leading-[1.02] tracking-[-0.02em]"
-        style={{ fontSize: "clamp(34px, 6vw, 54px)" }}
+        className="text-white font-bold leading-[1] tracking-[-0.02em]"
+        style={{
+          fontFamily: "Fraunces, Georgia, serif",
+          fontSize: "clamp(38px, 6vw, 48px)",
+        }}
       >
         Your shortlist
       </h1>
-      <SavedList allSaves={allSaves} />
+      <SavedList allSaves={allSaves} uwcLogos={uwcLogos} flags={flags} />
     </section>
   );
 }

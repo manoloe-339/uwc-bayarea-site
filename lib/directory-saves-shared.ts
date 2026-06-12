@@ -45,3 +45,19 @@ export function isSaveStatus(v: string): v is SaveStatus {
 export function isSaveReason(v: string): v is SaveReason {
   return (SAVE_REASONS as readonly string[]).includes(v);
 }
+
+/** Coerce an arbitrary `reasons` field from a request body into a
+ * deduped, validated array. Drops anything that isn't a known reason
+ * so we can't get garbage in the DB. */
+export function parseReasons(v: unknown): SaveReason[] {
+  if (!Array.isArray(v)) return [];
+  const out: SaveReason[] = [];
+  const seen = new Set<string>();
+  for (const r of v) {
+    if (typeof r === "string" && isSaveReason(r) && !seen.has(r)) {
+      out.push(r);
+      seen.add(r);
+    }
+  }
+  return out;
+}

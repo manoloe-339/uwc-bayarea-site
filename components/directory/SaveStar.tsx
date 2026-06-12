@@ -9,42 +9,37 @@ import {
   type SaveReason,
   type SaveStatus,
 } from "@/lib/directory-saves-shared";
+import { Icon } from "./Icon";
 
 type Initial = {
   status: SaveStatus;
-  reason: SaveReason | null;
+  reasons: SaveReason[];
   note: string | null;
 } | null;
 
 interface Props {
   alumniId: number;
-  /** Alum's display name, used in the modal heading. */
   alumName: string;
   initial: Initial;
-  /** When false, render nothing — shared-password sessions can't save. */
   canSave: boolean;
-  /** Extra classes for positioning. The star itself is icon-only. */
   className?: string;
-  /** Pixel size of the star glyph. Defaults to 22. */
   size?: number;
-  /** Fired when the saved state flips. Lets a parent row hide itself
-   * during the optimistic unsave window (and reshow on undo). */
   onSavedChange?: (saved: boolean) => void;
-  /** Fired the instant the user toggles a save off. Parent receives
-   * the previous state so it can offer undo. When set, the SaveStar
-   * does NOT render its own toast or schedule its own DELETE — that
-   * becomes the parent's responsibility. Useful when the row hosting
-   * the SaveStar unmounts on unsave (e.g. /directory/saved), which
-   * would otherwise take the internal toast with it. */
   onUnsave?: (prev: NonNullable<Initial>) => void;
+  /** When true, render the gold gallery-card star (filled gold on
+   * save, white outline when not saved) — matches the photo-overlay
+   * treatment. When false, the legacy navy-ink star is used.
+   * Defaults to true (the new gallery card is the common case). */
+  gallery?: boolean;
 }
 
+const GOLD = "#E89A1C";
+
 /**
- * Icon-only "Save to shortlist" star. Renders in the top-right of a
- * card or wherever the parent positions it. Clicking opens a modal
- * with Reason + Note inputs only — status and removal live on
- * /directory/saved, not here. After the first successful save the
- * star fills in.
+ * Save-to-shortlist star. Click to save → opens a small modal where
+ * the user can add reasons (multi-select pills) + a private note;
+ * those autosave as they're edited. Click again on a saved card →
+ * 5-second undo window before the DELETE fires.
  */
 export default function SaveStar({
   alumniId,
@@ -55,18 +50,16 @@ export default function SaveStar({
   size = 22,
   onSavedChange,
   onUnsave,
+  gallery = true,
 }: Props) {
   const router = useRouter();
   const [saved, setSaved] = useState<Initial>(initial);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [reason, setReason] = useState<SaveReason | "">(initial?.reason ?? "");
+  const [reasons, setReasons] = useState<SaveReason[]>(initial?.reasons ?? []);
   const [note, setNote] = useState<string>(initial?.note ?? "");
   const [flash, setFlash] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
-  /** True when the modal was opened on an empty star (i.e. this is a
-   * fresh save, not an edit). Determines whether the "Saved to your
-   * shortlist" toast fires when the user clicks Done. */
   const [wasFreshSave, setWasFreshSave] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [undoFor, setUndoFor] = useState<Initial>(null);
@@ -77,10 +70,7 @@ export default function SaveStar({
 
   useEffect(() => {
     if (open) {
-      // Reset form to whatever's saved (or empty for first-time) each
-      // time the modal opens — so a previously-typed but cancelled
-      // edit doesn't leak into the next session.
-      setReason(saved?.reason ?? "");
+      setReasons(saved?.reasons ?? []);
       setNote(saved?.note ?? "");
       setError(null);
       requestAnimationFrame(() => textareaRef.current?.focus());
@@ -89,10 +79,11 @@ export default function SaveStar({
 
   if (!canSave) return null;
 
-  /** Persist whatever's currently in the modal (status + reason +
-   * note). Used by autosave on reason change and on note blur. */
-  const autosave = async (patch?: { reason?: SaveReason | ""; note?: string }) => {
-    const r = patch?.reason !== undefined ? patch.reason : reason;
+  const autosave = async (patch?: {
+    reasons?: SaveReason[];
+    note?: string;
+  }) => {
+    const r = patch?.reasons !== undefined ? patch.reasons : reasons;
     const n = patch?.note !== undefined ? patch.note : note;
     const wasSaved = !!saved;
     setBusy(true);
@@ -104,7 +95,7 @@ export default function SaveStar({
         body: JSON.stringify({
           alumni_id: alumniId,
           status: saved?.status ?? "follow_up_later",
-          reason: r || null,
+          reasons: r,
           note: (n ?? "").trim() || null,
         }),
       });
@@ -115,15 +106,11 @@ export default function SaveStar({
       }
       setSaved({
         status: saved?.status ?? "follow_up_later",
-        reason: r || null,
+        reasons: r,
         note: (n ?? "").trim() || null,
       });
       if (!wasSaved) {
         onSavedChange?.(true);
-        // Don't fire the "Saved to your shortlist" toast yet — it
-        // shows when the user clicks Done so it isn't covered by the
-        // open modal. wasFreshSave was set in handleStarClick.
-        // Refresh the route so the layout's savedCount badge updates.
         router.refresh();
       }
       setFlash(true);
@@ -133,15 +120,10 @@ export default function SaveStar({
     }
   };
 
-  /** Star click. If not saved → create the save immediately (with
-   * whatever's in initial / "follow_up_later") AND open the modal so
-   * the user can optionally add reason + note (which then autosave).
-   * If already saved → toggle off with a 5s undo window. */
-  const handleStarClick = () => {
+  const handleStarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     if (!saved) {
-      // Create the save right away so the star fills without waiting
-      // for the modal to be submitted. Modal opens for optional
-      // reason/note collection — those autosave as the user fills them.
       setWasFreshSave(true);
       void autosave();
       setOpen(true);
@@ -150,9 +132,6 @@ export default function SaveStar({
     const prev = saved;
     setSaved(null);
     onSavedChange?.(false);
-    // When parent provides onUnsave, defer the toast + DELETE timer
-    // to them — the row hosting this SaveStar is about to unmount,
-    // which would otherwise nuke our internal undo state.
     if (onUnsave) {
       onUnsave(prev);
       return;
@@ -179,7 +158,7 @@ export default function SaveStar({
         body: JSON.stringify({
           alumni_id: alumniId,
           status: undoFor.status,
-          reason: undoFor.reason,
+          reasons: undoFor.reasons,
           note: undoFor.note,
         }),
       });
@@ -195,6 +174,23 @@ export default function SaveStar({
   };
 
   const isSaved = !!saved;
+  // Gallery star: gold filled when on; white outline when off (so it
+  // reads over the photo). Legacy star (used in a few spots): navy.
+  const starColor = gallery
+    ? isSaved
+      ? GOLD
+      : "#fff"
+    : isSaved
+      ? GOLD
+      : "var(--muted)";
+
+  const toggleReason = (r: SaveReason) => {
+    const next = reasons.includes(r)
+      ? reasons.filter((x) => x !== r)
+      : [...reasons, r];
+    setReasons(next);
+    void autosave({ reasons: next });
+  };
 
   return (
     <>
@@ -204,25 +200,14 @@ export default function SaveStar({
         aria-label={isSaved ? "Remove from shortlist" : "Add to shortlist"}
         aria-pressed={isSaved}
         title={isSaved ? "Saved — click to remove" : "Save to shortlist"}
-        className={`inline-flex items-center justify-center rounded transition-colors ${className}`}
+        className={`inline-flex items-center justify-center rounded transition-transform hover:scale-[1.12] ${className}`}
         style={{
           width: size + 8,
           height: size + 8,
-          color: isSaved ? "#D97706" : "var(--muted)",
+          color: starColor,
         }}
       >
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill={isSaved ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinejoin="round"
-          aria-hidden
-        >
-          <path d="M12 2.5l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.6l-5.9 3.07 1.13-6.57L2.45 9.44l6.6-.96L12 2.5z" />
-        </svg>
+        <Icon name="star" size={size} strokeWidth={1.8} filled={isSaved} />
       </button>
 
       {savedToast && (
@@ -262,7 +247,10 @@ export default function SaveStar({
             if (e.target === e.currentTarget) setOpen(false);
           }}
         >
-          <div className="bg-white rounded-[10px] max-w-[480px] w-full p-6 shadow-2xl">
+          <div
+            className="bg-white rounded-[14px] max-w-[480px] w-full p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
@@ -282,33 +270,38 @@ export default function SaveStar({
               </button>
             </div>
 
-            <div className="space-y-3">
-              <label className="block">
-                <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-                  Reason (optional)
-                </span>
-                <select
-                  value={reason}
-                  disabled={busy}
-                  onChange={(e) => {
-                    const next = e.target.value as SaveReason | "";
-                    setReason(next);
-                    void autosave({ reason: next });
-                  }}
-                  className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
-                >
-                  <option value="">—</option>
-                  {SAVE_REASONS.map((r) => (
-                    <option key={r} value={r}>
-                      {REASON_LABELS[r]}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <div className="space-y-4">
+              <div>
+                <div className="text-[10.5px] font-bold tracking-[.16em] uppercase text-[color:var(--muted-2)] mb-2">
+                  Reason for saving{" "}
+                  <span className="font-semibold">· pick any</span>
+                </div>
+                <div className="flex flex-wrap gap-[7px]">
+                  {SAVE_REASONS.map((r) => {
+                    const on = reasons.includes(r);
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        disabled={busy}
+                        aria-pressed={on}
+                        onClick={() => toggleReason(r)}
+                        className={`rounded-full border px-3 py-[6px] text-[12.5px] font-semibold whitespace-nowrap transition ${
+                          on
+                            ? "bg-navy border-navy text-white"
+                            : "bg-white border-[color:var(--rule)] text-[color:var(--navy-ink)] hover:border-[color:rgba(11,37,69,.42)]"
+                        }`}
+                      >
+                        {REASON_LABELS[r]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
               <label className="block">
-                <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-                  Note (optional, max {MAX_NOTE_CHARS} chars)
+                <span className="block text-[10.5px] font-bold tracking-[.16em] uppercase text-[color:var(--muted-2)] mb-2">
+                  Private note
                 </span>
                 <textarea
                   ref={textareaRef}
@@ -322,8 +315,8 @@ export default function SaveStar({
                   }}
                   maxLength={MAX_NOTE_CHARS}
                   rows={3}
-                  placeholder="Why are you saving them?"
-                  className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+                  placeholder="What do you want to remember?"
+                  className="w-full min-h-[72px] rounded-[10px] bg-white border border-[color:var(--rule)] px-3 py-[10px] text-[14px] text-[color:var(--navy-ink)] leading-[1.5] focus:outline-none focus:border-navy focus:[box-shadow:0_0_0_3px_rgba(2,101,168,.12)]"
                 />
               </label>
 
@@ -349,8 +342,6 @@ export default function SaveStar({
                   type="button"
                   onClick={() => {
                     setOpen(false);
-                    // Fire the toast AFTER the modal closes — so it
-                    // isn't covered by the dialog overlay.
                     if (wasFreshSave) {
                       setSavedToast(true);
                       if (savedToastTimer.current)

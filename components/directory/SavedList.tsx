@@ -2,24 +2,30 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import SavedRow from "./SavedRow";
+import { extractCountryCodes } from "@/lib/country-flag";
+import { stripUwcPrefix } from "@/lib/directory-lookups";
+import type { FlagMap, UwcLogoMap } from "@/lib/directory-lookups";
+import { linkedinHref } from "@/lib/linkedin-url";
+import { displayName, titleCase } from "@/lib/text-format";
 import {
-  SAVE_STATUSES,
-  STATUS_LABELS,
-  type SaveReason,
-  type SaveStatus,
-} from "@/lib/directory-saves-shared";
+  detectMovedFromBayArea,
+  pickCurrentLocation,
+} from "@/lib/location-moved";
+import type { SaveReason, SaveStatus } from "@/lib/directory-saves-shared";
+import { AlumGalleryCard, type AlumCardData } from "./AlumGalleryCard";
+import SavedOutreachFooter from "./SavedOutreachFooter";
+import SaveStar from "./SaveStar";
 
 type PendingUndo = {
   alumniId: number;
-  prev: { status: SaveStatus; reason: SaveReason | null; note: string | null };
+  prev: { status: SaveStatus; reasons: SaveReason[]; note: string | null };
 } | null;
 
 interface RowData {
   id: number;
   alumni_id: number;
   status: SaveStatus;
-  reason: SaveReason | null;
+  reasons: SaveReason[];
   note: string | null;
   created_at: Date | string;
   updated_at: Date | string;
@@ -30,26 +36,61 @@ interface RowData {
   alum_current_title: string | null;
   alum_current_company: string | null;
   alum_current_company_linkedin: string | null;
-  alum_current_company_website: string | null;
-  alum_current_company_logo_url: string | null;
   alum_current_city: string | null;
   alum_photo_url: string | null;
   alum_linkedin_url: string | null;
   alum_origin: string | null;
+  /** LinkedIn-served "current_location" + "location_full" come back as
+   * separate optional columns for the moved-from-Bay-Area pill check.
+   * Some installs of listSavesForUser don't select them; they're
+   * optional here. */
+  current_location?: string | null;
+  location_full?: string | null;
 }
 
 interface Props {
   allSaves: RowData[];
+  uwcLogos: UwcLogoMap;
+  flags: FlagMap;
+}
+
+function rowToAlumCard(row: RowData): AlumCardData {
+  const name = displayName(row.alum_first_name, row.alum_last_name);
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+  const liveLoc = pickCurrentLocation({
+    current_location: row.current_location ?? null,
+    location_full: row.location_full ?? null,
+  });
+  return {
+    id: row.alumni_id,
+    displayName: name,
+    photoUrl: row.alum_photo_url,
+    initials,
+    uwcCanonical: row.alum_uwc_college,
+    campus: stripUwcPrefix(row.alum_uwc_college),
+    gradYear: row.alum_grad_year,
+    originIsos: extractCountryCodes(row.alum_origin),
+    city: row.alum_current_city ? titleCase(row.alum_current_city) : null,
+    moved: !!detectMovedFromBayArea(liveLoc),
+    role: row.alum_current_title,
+    company: row.alum_current_company,
+    companyHref: linkedinHref(row.alum_current_company_linkedin),
+    linkedinHref: linkedinHref(row.alum_linkedin_url),
+  };
 }
 
 /**
- * Renders the saved shortlist grouped into sections by status. No
- * filter chip bar — every non-empty status group is visible at once,
- * so users scan the whole list in priority order without clicking.
- * Owns hidden-row state (optimistic unsave) and the centralized undo
- * toast.
+ * Saved-shortlist grid. Each row renders the shared gallery card with
+ * an outreach footer (status / reasons / note + saved date). Hidden
+ * state + centralized undo toast survive optimistic unsaves.
  */
-export default function SavedList({ allSaves }: Props) {
+export default function SavedList({ allSaves, uwcLogos, flags }: Props) {
   const router = useRouter();
   const [hidden, setHidden] = useState<Set<number>>(new Set());
   const [pending, setPending] = useState<PendingUndo>(null);
@@ -74,7 +115,7 @@ export default function SavedList({ allSaves }: Props) {
 
   const onUnsave = (
     alumniId: number,
-    prev: { status: SaveStatus; reason: SaveReason | null; note: string | null },
+    prev: { status: SaveStatus; reasons: SaveReason[]; note: string | null },
   ) => {
     if (undoTimer.current) {
       clearTimeout(undoTimer.current);
@@ -105,7 +146,7 @@ export default function SavedList({ allSaves }: Props) {
         body: JSON.stringify({
           alumni_id: entry.alumniId,
           status: entry.prev.status,
-          reason: entry.prev.reason,
+          reasons: entry.prev.reasons,
           note: entry.prev.note,
         }),
       });
@@ -117,22 +158,14 @@ export default function SavedList({ allSaves }: Props) {
 
   const visibleSaves = allSaves.filter((s) => !hidden.has(s.alumni_id));
 
-  // Group by status. Order: declared SAVE_STATUSES order.
-  const groups: Record<SaveStatus, RowData[]> = {
-    invite_sent: [],
-    connected: [],
-    follow_up_later: [],
-  };
-  for (const r of visibleSaves) groups[r.status].push(r);
-
   if (visibleSaves.length === 0) {
     return (
       <>
-        <p className="text-sm text-white/75 mt-2 mb-5">
+        <p className="text-[17px] text-white/75 mt-3 mb-6">
           0 saved · personal to your account
         </p>
-        <div className="fp-panel p-10 text-center text-white/70 text-sm">
-          Nothing saved yet. Click ★ Save on any profile to start.
+        <div className="bg-white/[.06] backdrop-blur-md border border-white/15 rounded-[18px] p-10 text-center text-white/70 text-sm">
+          Nothing saved yet. Click the ★ on any profile to start.
         </div>
       </>
     );
@@ -140,33 +173,45 @@ export default function SavedList({ allSaves }: Props) {
 
   return (
     <>
-      <p className="text-sm text-white/75 mt-2 mb-6">
+      <p className="text-[17px] text-white/75 mt-3 mb-7">
         {visibleSaves.length} saved · personal to your account
       </p>
 
-      <div className="space-y-7">
-        {SAVE_STATUSES.map((status) => {
-          const rows = groups[status];
-          if (rows.length === 0) return null;
+      <div className="grid gap-[22px] [grid-template-columns:repeat(auto-fill,minmax(360px,1fr))]">
+        {visibleSaves.map((row) => {
+          const alum = rowToAlumCard(row);
           return (
-            <section key={status}>
-              <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-white mb-2 flex items-center gap-2">
-                {STATUS_LABELS[status]}
-                <span className="text-white/65 font-normal tracking-normal lowercase">
-                  · {rows.length}
-                </span>
-              </h2>
-              <ul className="space-y-3">
-                {rows.map((row) => (
-                  <SavedRow
-                    key={row.id}
-                    row={row}
-                    onSavedChange={(saved) => setVisible(row.alumni_id, saved)}
-                    onUnsave={(prev) => onUnsave(row.alumni_id, prev)}
-                  />
-                ))}
-              </ul>
-            </section>
+            <AlumGalleryCard
+              key={row.id}
+              alum={alum}
+              uwcLogos={uwcLogos}
+              flags={flags}
+              backFrom="/directory/saved"
+              star={
+                <SaveStar
+                  alumniId={row.alumni_id}
+                  alumName={alum.displayName}
+                  initial={{
+                    status: row.status,
+                    reasons: row.reasons,
+                    note: row.note,
+                  }}
+                  canSave
+                  onSavedChange={(saved) => setVisible(row.alumni_id, saved)}
+                  onUnsave={(prev) => onUnsave(row.alumni_id, prev)}
+                />
+              }
+              footer={
+                <SavedOutreachFooter
+                  alumniId={row.alumni_id}
+                  initialStatus={row.status}
+                  initialReasons={row.reasons}
+                  initialNote={row.note}
+                  createdAt={row.created_at}
+                  updatedAt={row.updated_at}
+                />
+              }
+            />
           );
         })}
       </div>

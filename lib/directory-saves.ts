@@ -11,6 +11,7 @@ export {
   MAX_NOTE_CHARS,
   isSaveStatus,
   isSaveReason,
+  parseReasons,
   type SaveStatus,
   type SaveReason,
 } from "./directory-saves-shared";
@@ -19,7 +20,7 @@ export type DirectorySaveRow = {
   id: number;
   directory_user_id: number;
   alumni_id: number;
-  reason: SaveReason | null;
+  reasons: SaveReason[];
   status: SaveStatus;
   note: string | null;
   created_at: Date;
@@ -38,6 +39,10 @@ export type DirectorySaveRow = {
   alum_photo_url: string | null;
   alum_linkedin_url: string | null;
   alum_origin: string | null;
+  /** Live-location columns (LinkedIn-derived). Used by the
+   * "may have moved" detector in the gallery card. */
+  current_location: string | null;
+  location_full: string | null;
 };
 
 export async function listSavesForUser(
@@ -57,7 +62,9 @@ export async function listSavesForUser(
            a.current_city    AS alum_current_city,
            a.photo_url       AS alum_photo_url,
            a.linkedin_url    AS alum_linkedin_url,
-           a.origin          AS alum_origin
+           a.origin          AS alum_origin,
+           a.current_location,
+           a.location_full
     FROM directory_saves s
     LEFT JOIN alumni a ON a.id = s.alumni_id
     WHERE s.directory_user_id = ${directoryUserId}
@@ -71,18 +78,18 @@ export async function getSaveForAlumnus(
   alumniId: number,
 ): Promise<{
   id: number;
-  reason: SaveReason | null;
+  reasons: SaveReason[];
   status: SaveStatus;
   note: string | null;
 } | null> {
   const rows = (await sql`
-    SELECT id, reason, status, note
+    SELECT id, reasons, status, note
     FROM directory_saves
     WHERE directory_user_id = ${directoryUserId} AND alumni_id = ${alumniId}
     LIMIT 1
   `) as Array<{
     id: number;
-    reason: SaveReason | null;
+    reasons: SaveReason[];
     status: SaveStatus;
     note: string | null;
   }>;
@@ -93,25 +100,25 @@ export async function upsertSave(args: {
   directoryUserId: number;
   alumniId: number;
   status?: SaveStatus;
-  reason?: SaveReason | null;
+  reasons?: SaveReason[];
   note?: string | null;
 }): Promise<DirectorySaveRow> {
   const status = args.status ?? "follow_up_later";
-  const reason = args.reason ?? null;
+  const reasons = args.reasons ?? [];
   const note =
     args.note != null ? args.note.slice(0, MAX_NOTE_CHARS) : null;
-  // Note: ON CONFLICT only writes the fields that the caller actually
-  // supplied. We can't easily express "ignore null inputs" in a single
-  // INSERT, so the caller is responsible for passing the values they
-  // want persisted. (The route handler does this from the request body.)
+  // ON CONFLICT writes the values the caller passed verbatim — caller
+  // is responsible for sending a complete picture (the route handler
+  // pulls the existing row's other fields along when only one field
+  // is being patched).
   const rows = (await sql`
     INSERT INTO directory_saves
-      (directory_user_id, alumni_id, status, reason, note)
+      (directory_user_id, alumni_id, status, reasons, note)
     VALUES
-      (${args.directoryUserId}, ${args.alumniId}, ${status}, ${reason}, ${note})
+      (${args.directoryUserId}, ${args.alumniId}, ${status}, ${reasons as unknown as string[]}, ${note})
     ON CONFLICT (directory_user_id, alumni_id) DO UPDATE SET
       status     = EXCLUDED.status,
-      reason     = EXCLUDED.reason,
+      reasons    = EXCLUDED.reasons,
       note       = EXCLUDED.note,
       updated_at = NOW()
     RETURNING *

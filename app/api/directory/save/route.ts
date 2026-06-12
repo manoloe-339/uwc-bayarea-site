@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { getCurrentDirectorySession } from "@/lib/directory-session";
 import {
   deleteSave,
-  isSaveReason,
   isSaveStatus,
   MAX_NOTE_CHARS,
+  parseReasons,
   upsertSave,
 } from "@/lib/directory-saves";
 
@@ -25,7 +25,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   let body: {
     alumni_id?: unknown;
     status?: unknown;
-    reason?: unknown;
+    reasons?: unknown;
     note?: unknown;
   };
   try {
@@ -45,13 +45,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     else return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
-  let parsedReason: string | null | undefined;
-  if (typeof body.reason === "string" && body.reason) {
-    if (isSaveReason(body.reason)) parsedReason = body.reason;
-    else return NextResponse.json({ error: "Invalid reason" }, { status: 400 });
-  } else if (body.reason === null) {
-    parsedReason = null;
-  }
+  const parsedReasons = parseReasons(body.reasons);
 
   let parsedNote: string | null = null;
   if (typeof body.note === "string") {
@@ -62,7 +56,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     directoryUserId: session.user.id,
     alumniId,
     status: parsedStatus as never,
-    reason: parsedReason as never,
+    reasons: parsedReasons,
     note: parsedNote,
   });
 
@@ -71,7 +65,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     save: {
       id: row.id,
       status: row.status,
-      reason: row.reason,
+      reasons: row.reasons,
       note: row.note,
       updated_at: row.updated_at,
     },
