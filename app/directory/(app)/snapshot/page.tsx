@@ -570,7 +570,7 @@ export default async function SnapshotPage() {
             eyebrow="Where most live"
             headline={topCity.display}
             label={`${topCity.n} alumni here`}
-            imageUrl={null}
+            imageUrl="https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/events/34/photos/1777478401653-nr08mr.jpg"
             fallbackIcon="map-pin"
           />
           <SnapshotTile
