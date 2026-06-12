@@ -61,6 +61,7 @@ export default async function DirectoryActivityPage({
               <tr>
                 <th className="text-left px-3 py-2 font-bold">When</th>
                 <th className="text-left px-3 py-2 font-bold">User</th>
+                <th className="text-left px-3 py-2 font-bold">Where</th>
                 <th className="text-left px-3 py-2 font-bold">Action</th>
                 <th className="text-left px-3 py-2 font-bold">Detail</th>
               </tr>
@@ -82,6 +83,12 @@ export default async function DirectoryActivityPage({
                     >
                       {r.user_first_name ?? r.user_email}
                     </Link>
+                  </td>
+                  <td
+                    className="px-3 py-2 whitespace-nowrap text-[color:var(--muted)]"
+                    title={r.user_agent ?? undefined}
+                  >
+                    {[r.city, r.region, r.country].filter(Boolean).join(", ") || "—"}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     {ACTION_LABEL[r.action] ?? r.action}

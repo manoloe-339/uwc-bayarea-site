@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { readGeoFields } from "@/lib/geo";
 import {
   getDirectoryAlumnus,
   getDirectoryCareers,
@@ -139,7 +141,7 @@ export default async function DirectoryProfilePage({
   const userId = session?.kind === "user" ? session.user.id : null;
   const sessionId = session?.auditSessionId ?? "";
   if (sessionId) {
-    void logDirectoryProfileView(sessionId, id, userId);
+    void logDirectoryProfileView(sessionId, id, userId, readGeoFields(await headers()));
   }
 
   // Existing save state (if any) so the ★ Save button shows current values.

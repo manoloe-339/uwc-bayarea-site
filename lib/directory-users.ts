@@ -290,6 +290,10 @@ export type RecentActivityRow = {
   target_id: number | null;
   target_name: string | null;
   query_json: unknown;
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  user_agent: string | null;
 };
 
 export async function getRecentActivity(
@@ -298,6 +302,7 @@ export async function getRecentActivity(
 ): Promise<RecentActivityRow[]> {
   const rows = (await sql`
     SELECT v.at, v.action, v.target_id, v.query_json,
+           v.country, v.region, v.city, v.user_agent,
            CASE
              WHEN v.target_id IS NOT NULL
                THEN COALESCE(NULLIF(TRIM(CONCAT(a.first_name, ' ', a.last_name)), ''), '(no name)')
@@ -326,6 +331,7 @@ export async function getGlobalRecentActivity(
 ): Promise<GlobalActivityRow[]> {
   const rows = (await sql`
     SELECT v.at, v.action, v.target_id, v.query_json,
+           v.country, v.region, v.city, v.user_agent,
            u.id AS user_id, u.email AS user_email,
            ua.first_name AS user_first_name,
            CASE

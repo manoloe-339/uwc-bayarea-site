@@ -58,10 +58,18 @@ export default async function DirectoryUserActivityPage({
         </div>
       ) : (
         <ul className="bg-white border border-[color:var(--rule)] rounded-[10px] divide-y divide-[color:var(--rule)]">
-          {activity.map((row, i) => (
+          {activity.map((row, i) => {
+            const where = [row.city, row.region, row.country].filter(Boolean).join(", ");
+            return (
             <li key={i} className="p-3 text-sm flex items-start gap-3">
               <span className="text-[11px] text-[color:var(--muted)] font-mono shrink-0 w-[110px]">
                 {fmtTs(row.at)}
+              </span>
+              <span
+                className="text-[11px] text-[color:var(--muted)] shrink-0 w-[140px] truncate"
+                title={row.user_agent ?? undefined}
+              >
+                {where || "—"}
               </span>
               <span className="flex-1 min-w-0">
                 {row.action === "profile_view" ? (
@@ -100,7 +108,8 @@ export default async function DirectoryUserActivityPage({
                 )}
               </span>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { readGeoFields } from "@/lib/geo";
 import {
   searchDirectoryAlumni,
   countDirectoryAlumni,
@@ -192,7 +194,7 @@ export default async function DirectoryPage({
   const sessionId = session?.auditSessionId ?? "";
 
   if (hasAnyFilter && sessionId) {
-    void logDirectorySearch(sessionId, filters, userId);
+    void logDirectorySearch(sessionId, filters, userId, readGeoFields(await headers()));
   }
 
   // Fetch the logged-in user's own name for personalizing the Name

@@ -410,14 +410,23 @@ export async function getDirectoryEducation(
 
 /* ---------------------- Audit logging ---------------------- */
 
+import { NULL_GEO, type GeoFields } from "./geo";
+
 export async function logDirectorySearch(
   session_id: string,
   filters: DirectoryFilters,
   directory_user_id: number | null = null,
+  geo: GeoFields = NULL_GEO,
 ): Promise<void> {
   await sql`
-    INSERT INTO directory_views (session_id, action, query_json, directory_user_id)
-    VALUES (${session_id}, 'search', ${JSON.stringify(filters)}::jsonb, ${directory_user_id})
+    INSERT INTO directory_views (
+      session_id, action, query_json, directory_user_id,
+      country, region, city, user_agent
+    )
+    VALUES (
+      ${session_id}, 'search', ${JSON.stringify(filters)}::jsonb, ${directory_user_id},
+      ${geo.country}, ${geo.region}, ${geo.city}, ${geo.userAgent}
+    )
   `;
 }
 
@@ -425,10 +434,17 @@ export async function logDirectoryProfileView(
   session_id: string,
   alumni_id: number,
   directory_user_id: number | null = null,
+  geo: GeoFields = NULL_GEO,
 ): Promise<void> {
   await sql`
-    INSERT INTO directory_views (session_id, action, target_id, directory_user_id)
-    VALUES (${session_id}, 'profile_view', ${alumni_id}, ${directory_user_id})
+    INSERT INTO directory_views (
+      session_id, action, target_id, directory_user_id,
+      country, region, city, user_agent
+    )
+    VALUES (
+      ${session_id}, 'profile_view', ${alumni_id}, ${directory_user_id},
+      ${geo.country}, ${geo.region}, ${geo.city}, ${geo.userAgent}
+    )
   `;
 }
 
@@ -440,9 +456,16 @@ export async function logDirectoryLinkedinClick(
   session_id: string,
   alumni_id: number,
   directory_user_id: number | null = null,
+  geo: GeoFields = NULL_GEO,
 ): Promise<void> {
   await sql`
-    INSERT INTO directory_views (session_id, action, target_id, directory_user_id)
-    VALUES (${session_id}, 'linkedin_click', ${alumni_id}, ${directory_user_id})
+    INSERT INTO directory_views (
+      session_id, action, target_id, directory_user_id,
+      country, region, city, user_agent
+    )
+    VALUES (
+      ${session_id}, 'linkedin_click', ${alumni_id}, ${directory_user_id},
+      ${geo.country}, ${geo.region}, ${geo.city}, ${geo.userAgent}
+    )
   `;
 }
