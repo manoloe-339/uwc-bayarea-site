@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { COLLEGES } from "@/lib/uwc-colleges";
-import { REGIONS } from "@/lib/region";
 import {
   searchDirectoryAlumni,
   countDirectoryAlumni,
@@ -12,10 +10,10 @@ import { getCurrentDirectorySession } from "@/lib/directory-session";
 import { linkedinHref } from "@/lib/linkedin-url";
 import { parseSearchQuery, type ParsedSearchQuery } from "@/lib/event-nl-parser";
 import { listSavesForUser } from "@/lib/directory-saves";
-import type { SaveReason, SaveStatus } from "@/lib/directory-saves-shared";
 import SaveStar from "@/components/directory/SaveStar";
 import { AlumGalleryCard, type AlumCardData } from "@/components/directory/AlumGalleryCard";
-import { DirectoryNLToggle } from "@/components/directory/DirectoryNLToggle";
+import DirectorySearch from "@/components/directory/DirectorySearch";
+import { StatsCluster } from "@/components/directory/StatsCluster";
 import { extractCountryCodes } from "@/lib/country-flag";
 import {
   detectMovedFromBayArea,
@@ -23,7 +21,10 @@ import {
 } from "@/lib/location-moved";
 import { displayName, titleCase } from "@/lib/text-format";
 import { getFlagMap, getUwcLogoMap } from "@/lib/directory-lookups";
-import { sql } from "@/lib/db";
+import {
+  getDirectoryStats,
+  getDirectorySuggestData,
+} from "@/lib/directory-suggest";
 
 export const dynamic = "force-dynamic";
 
@@ -147,6 +148,7 @@ export default async function DirectoryPage({
   const sp = await searchParams;
   const nl = pickStr(sp, "nl") === "1";
 
+  const scopeParam = pickStr(sp, "scope");
   const baseFilters: DirectoryFilters = {
     q: pickStr(sp, "q"),
     name: pickStr(sp, "name"),
@@ -163,6 +165,7 @@ export default async function DirectoryPage({
     expBand: pickStr(sp, "expBand") as DirectoryFilters["expBand"],
     companySizeBand: pickStr(sp, "companySizeBand") as DirectoryFilters["companySizeBand"],
     industriesIncludePast: pickStr(sp, "industriesIncludePast") === "1",
+    scope: scopeParam === "ever" ? "ever" : "current",
   };
 
   const filters = nl ? await applyNaturalLanguage(baseFilters) : baseFilters;
@@ -200,38 +203,23 @@ export default async function DirectoryPage({
   const currentUserAlumniId =
     session?.kind === "user" ? session.user.alumni_id : null;
 
-  const [rows, total, mySaves, industries, currentUserName] = await Promise.all([
-    searchDirectoryAlumni(filters, 500),
-    countDirectoryAlumni(filters),
-    userId ? listSavesForUser(userId) : Promise.resolve([]),
-    sql`
-      SELECT current_company_industry AS value, COUNT(*)::int AS count
-      FROM alumni
-      WHERE current_company_industry IS NOT NULL
-        AND affiliation ILIKE '%alum%'
-        AND deceased IS NOT TRUE
-        AND moved_out IS NOT TRUE
-      GROUP BY current_company_industry
-      ORDER BY count DESC, current_company_industry ASC
-      LIMIT 60
-    ` as unknown as Promise<Array<{ value: string; count: number }>>,
-    currentUserAlumniId
-      ? (sql`SELECT first_name, last_name FROM alumni WHERE id = ${currentUserAlumniId} LIMIT 1` as unknown as Promise<
-          Array<{ first_name: string | null; last_name: string | null }>
-        >)
-      : Promise.resolve([] as Array<{ first_name: string | null; last_name: string | null }>),
-  ]);
+  const { sql } = await import("@/lib/db");
+  const [rows, total, mySaves, suggest, stats, currentUserName, grandTotal] =
+    await Promise.all([
+      searchDirectoryAlumni(filters, 500),
+      countDirectoryAlumni(filters),
+      userId ? listSavesForUser(userId) : Promise.resolve([]),
+      getDirectorySuggestData(),
+      getDirectoryStats(),
+      currentUserAlumniId
+        ? (sql`SELECT first_name, last_name FROM alumni WHERE id = ${currentUserAlumniId} LIMIT 1` as unknown as Promise<
+            Array<{ first_name: string | null; last_name: string | null }>
+          >)
+        : Promise.resolve([] as Array<{ first_name: string | null; last_name: string | null }>),
+      countDirectoryAlumni({}),
+    ]);
 
-  // Build a placeholder using the user's own name when available.
   const me = currentUserName[0];
-  const namePlaceholder = (() => {
-    const first = me?.first_name?.trim();
-    const last = me?.last_name?.trim();
-    if (first && last) return `${first} ${last} — or just ${last}`;
-    if (last) return last;
-    if (first) return first;
-    return "Jane Doe — or just Doe";
-  })();
   // Build a quick lookup: alumni_id -> existing save (for the ★ button state).
   const savedByAlumni = new Map<number, { status: typeof mySaves[number]["status"]; reasons: typeof mySaves[number]["reasons"]; note: string | null }>();
   for (const s of mySaves) {
@@ -260,295 +248,49 @@ export default async function DirectoryPage({
   const directoryFrom = "/directory" + (fromQs ? `?${fromQs}` : "");
 
   return (
-    <section className="max-w-[1180px] mx-auto px-5 sm:px-7 py-8">
-      <div className="mb-6">
-        <h1
-          className="display text-white font-extrabold leading-[1.02] tracking-[-0.02em]"
-          style={{ fontSize: "clamp(34px, 6vw, 54px)" }}
-        >
-          {me?.first_name?.trim()
-            ? `Welcome, ${me.first_name.trim()}`
-            : "Directory"}
-        </h1>
-        <p className="mt-2 text-[15px] sm:text-[17px] text-white/75">
-          Search, and connect on LinkedIn.
-        </p>
-        <ul className="mt-2 space-y-0.5 text-[14px] sm:text-[15px] text-white/70">
-          <li>
-            Explore via{" "}
+    <section className="max-w-[1200px] mx-auto px-5 sm:px-7 py-8">
+      <div className="mb-6 flex items-end sm:items-center justify-between gap-5 flex-wrap">
+        <div className="flex-1 min-w-0">
+          <h1
+            className="display text-white font-extrabold leading-[1] tracking-[-0.02em] whitespace-nowrap"
+            style={{ fontSize: "clamp(34px, 5.5vw, 54px)" }}
+          >
+            {me?.first_name?.trim()
+              ? `Welcome, ${me.first_name.trim()}`
+              : "Directory"}
+          </h1>
+          <p className="mt-[14px] text-[15px] sm:text-[17px] text-white/75">
+            Search, and connect on LinkedIn.{" "}
             <Link
               href="/directory/snapshot"
               className="underline decoration-white/40 underline-offset-2 hover:text-white hover:decoration-white"
             >
-              snapshot
+              Snapshot
             </Link>
-            .
-          </li>
-          <li>
-            Save alumni to your{" "}
+            {" · "}
             <Link
               href="/directory/saved"
               className="underline decoration-white/40 underline-offset-2 hover:text-white hover:decoration-white"
             >
-              shortlist
+              Shortlist
             </Link>
-            .
-          </li>
-        </ul>
+          </p>
+        </div>
+        <StatsCluster
+          alumni={stats.alumni}
+          countries={stats.countries}
+          colleges={stats.colleges}
+        />
       </div>
 
-      <form
-        method="get"
-        className="fp-panel p-5 sm:p-7 mb-6"
-      >
-        {nl && <input type="hidden" name="nl" value="1" />}
+      <DirectorySearch
+        filters={filters}
+        initialNl={nl}
+        total={total}
+        grandTotal={grandTotal}
+        suggest={suggest}
+      />
 
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <span className="fp-label">
-            <span aria-hidden>{nl ? "🪄" : "🔎"}</span>
-            {nl ? "Describe" : "Search"}
-          </span>
-          <DirectoryNLToggle on={nl} />
-        </div>
-        <input
-          name="q"
-          type="text"
-          defaultValue={pickStr(sp, "q") ?? ""}
-          placeholder={
-            nl
-              ? "designers in SF who used to work at Stripe"
-              : "fintech, Stripe, designer"
-          }
-          className={fieldClassLg(!!filters.q)}
-        />
-
-        {!nl && (
-          <>
-            <div className="mt-5 mb-2">
-              <span className="fp-label">
-                <span aria-hidden>👤</span> Name
-              </span>
-            </div>
-            <input
-              name="name"
-              type="text"
-              defaultValue={pickStr(sp, "name") ?? ""}
-              placeholder={namePlaceholder}
-              className={fieldClassLg(!!filters.name)}
-            />
-          </>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-5 mt-6">
-          <label className="flex flex-col min-w-0">
-            <span className="fp-label mb-2">
-              <span aria-hidden>🌐</span> UWC
-            </span>
-            <select
-              name="college"
-              defaultValue={filters.college ?? ""}
-              className={fieldClass(!!filters.college, "select")}
-            >
-              <option value="">Any</option>
-              {COLLEGES.map((c) => (
-                <option key={c.canonical} value={c.canonical}>
-                  {c.short}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex flex-col min-w-0">
-            <span className="fp-label mb-2">
-              <span aria-hidden>🏙️</span> City
-            </span>
-            <input
-              name="city"
-              defaultValue={filters.city ?? ""}
-              placeholder="San Francisco"
-              className={fieldClass(!!filters.city)}
-            />
-          </label>
-
-          <label className="flex flex-col min-w-0">
-            <span className="fp-label mb-2">
-              <span aria-hidden>🏷️</span> Company
-            </span>
-            <input
-              name="company"
-              defaultValue={filters.company ?? ""}
-              placeholder="Stripe"
-              className={fieldClass(!!filters.company)}
-            />
-          </label>
-
-          <label className="flex flex-col min-w-0">
-            <span className="fp-label mb-2">
-              <span aria-hidden>🏛️</span> University
-            </span>
-            <input
-              name="university"
-              defaultValue={filters.university ?? ""}
-              placeholder="Stanford"
-              className={fieldClass(!!filters.university)}
-            />
-          </label>
-
-          <label className="flex flex-col min-w-0">
-            <span className="fp-label mb-2">
-              <span aria-hidden>🌍</span> Origin
-            </span>
-            <input
-              name="origin"
-              defaultValue={filters.origin ?? ""}
-              placeholder="Brazil"
-              className={fieldClass(!!filters.origin)}
-            />
-          </label>
-
-          <label className="flex flex-col min-w-0">
-            <span className="fp-label mb-2">
-              <span aria-hidden>💼</span> Industry
-            </span>
-            <select
-              name="industry"
-              defaultValue={filters.industry ?? ""}
-              className={fieldClass(!!filters.industry, "select")}
-            >
-              <option value="">Any</option>
-              {(industries as Array<{ value: string; count: number }>).map(
-                (ind) => (
-                  <option key={ind.value} value={ind.value}>
-                    {ind.value} ({ind.count})
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-
-          <label className="flex flex-col min-w-0">
-            <span className="fp-label mb-2">
-              <span aria-hidden>🏢</span> Company size
-            </span>
-            <select
-              name="companySizeBand"
-              defaultValue={filters.companySizeBand ?? ""}
-              className={fieldClass(!!filters.companySizeBand, "select")}
-            >
-              <option value="">Any</option>
-              <option value="startup">Startup (1–50)</option>
-              <option value="small">Small (51–500)</option>
-              <option value="mid">Mid (501–5K)</option>
-              <option value="large">Large (5K–50K)</option>
-              <option value="enterprise">Enterprise (50K+)</option>
-            </select>
-          </label>
-
-          <label className="flex flex-col min-w-0">
-            <span className="fp-label mb-2">
-              <span aria-hidden>⏱️</span> Experience
-            </span>
-            <select
-              name="expBand"
-              defaultValue={filters.expBand ?? ""}
-              className={fieldClass(!!filters.expBand, "select")}
-            >
-              <option value="">Any</option>
-              <option value="0-3">0–3 yrs (early)</option>
-              <option value="3-7">3–7 yrs</option>
-              <option value="7-15">7–15 yrs</option>
-              <option value="15+">15+ yrs (senior)</option>
-            </select>
-          </label>
-
-          <label className="flex flex-col min-w-0">
-            <span className="fp-label mb-2">
-              <span aria-hidden>🌉</span> Region
-            </span>
-            <select
-              name="region"
-              defaultValue={filters.region ?? ""}
-              className={fieldClass(!!filters.region, "select")}
-            >
-              <option value="">Any</option>
-              {REGIONS.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="flex flex-col min-w-0">
-            <span className="fp-label mb-2">
-              <span aria-hidden>🎓</span> Grad year (from)
-            </span>
-            <input
-              name="yearFrom"
-              type="number"
-              inputMode="numeric"
-              defaultValue={filters.yearFrom ?? ""}
-              placeholder="2010"
-              className={fieldClass(filters.yearFrom != null)}
-            />
-          </label>
-
-          <label className="flex flex-col min-w-0">
-            <span className="fp-label mb-2">
-              <span aria-hidden>🎓</span> Grad year (to)
-            </span>
-            <input
-              name="yearTo"
-              type="number"
-              inputMode="numeric"
-              defaultValue={filters.yearTo ?? ""}
-              placeholder="2020"
-              className={fieldClass(filters.yearTo != null)}
-            />
-          </label>
-        </div>
-
-        <div className="mt-6 flex items-center justify-between gap-3">
-          <span className="text-[14px] text-white/70">
-            {total} {total === 1 ? "alum" : "alumni"}
-            {total > 500 && " (showing first 500)"}
-          </span>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/directory"
-              className="text-[14px] text-white/70 hover:text-white"
-            >
-              Reset
-            </Link>
-            <button
-              type="submit"
-              className="bg-navy text-white px-6 py-[10px] rounded-[8px] text-[14px] font-bold hover:brightness-110 active:scale-[.97] transition"
-            >
-              Apply
-            </button>
-          </div>
-        </div>
-      </form>
-
-      {(() => {
-        const chips = activeFilterChips(filters);
-        if (chips.length === 0) return null;
-        return (
-          <div className="mb-4 flex items-center flex-wrap gap-2 text-sm text-white">
-            <span className="font-semibold">
-              {total} {total === 1 ? "alum" : "alumni"} matching
-            </span>
-            {chips.map((c) => (
-              <span
-                key={c.key}
-                className="inline-flex items-center bg-white/10 border border-white/40 text-white rounded-full px-2.5 py-0.5 text-xs font-medium backdrop-blur-sm"
-              >
-                {c.label}
-              </span>
-            ))}
-          </div>
-        );
-      })()}
 
       <div className="grid gap-[22px] grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {rows.map((r) => {

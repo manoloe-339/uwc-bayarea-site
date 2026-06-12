@@ -39,6 +39,14 @@ const DIR_SIZE_BANDS: Record<DirectoryCompanySizeBand, string[]> = {
   enterprise: ["10001+"],
 };
 
+/** How the work-related filters (Company, Industry, Company size,
+ * Seniority) match against an alum's employment history.
+ *   "current" → only the row's current_* columns
+ *   "ever"    → current OR EXISTS in alumni_career
+ * The new chip search renders this as the `Current · Ever` segmented
+ * toggle next to the WORK group. Defaults to "current". */
+export type DirectoryWorkScope = "current" | "ever";
+
 export type DirectoryFilters = {
   /** Broad free-text search across name + role + bio + past careers + education. */
   q?: string;
@@ -57,10 +65,11 @@ export type DirectoryFilters = {
   university?: string;
   expBand?: DirectoryExpBand;
   companySizeBand?: DirectoryCompanySizeBand;
-  /** When true, the `industry` / `industries` filter also matches past
-   * roles via alumni_career.company_industry. Off by default (current
-   * company only). */
+  /** Retired in favour of `scope` — still parsed from URLs for back-
+   * compat but no longer toggles behavior. */
   industriesIncludePast?: boolean;
+  /** How work-related filters match. Default "current". */
+  scope?: DirectoryWorkScope;
 };
 
 export type DirectoryAlumnusRow = {
@@ -201,10 +210,11 @@ function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
   if (f.yearFrom != null) push((n) => `grad_year >= $${n}`, f.yearFrom);
   if (f.yearTo != null) push((n) => `grad_year <= $${n}`, f.yearTo);
 
-  // Industry filter — always matches both current AND past roles
-  // (industriesIncludePast prop still parsed for URL compatibility
-  // but no longer toggles behavior; the directory's mental model is
-  // "find me network ties to fintech", not "find me current-only").
+  // Work-scope: "current" hits only the current_company_* columns;
+  // "ever" widens via EXISTS on alumni_career. Defaults to current —
+  // matches the design's segmented toggle default.
+  const scope: DirectoryWorkScope = f.scope === "ever" ? "ever" : "current";
+
   const industryValues = f.industries && f.industries.length > 0
     ? f.industries
     : f.industry
@@ -213,12 +223,18 @@ function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
   if (industryValues.length > 0) {
     params.push(industryValues);
     const idx = params.length;
-    parts.push(`(current_company_industry = ANY($${idx})
-      OR EXISTS (SELECT 1 FROM alumni_career c
-                 WHERE c.alumni_id = alumni.id
-                   AND c.company_industry = ANY($${idx})))`);
+    if (scope === "ever") {
+      parts.push(`(current_company_industry = ANY($${idx})
+        OR EXISTS (SELECT 1 FROM alumni_career c
+                   WHERE c.alumni_id = alumni.id
+                     AND c.company_industry = ANY($${idx})))`);
+    } else {
+      parts.push(`current_company_industry = ANY($${idx})`);
+    }
   }
   if (f.companySizeBand) {
+    // Company size is only known for the current employer; the
+    // career rows don't carry historical sizes. Always current-only.
     const sizes = DIR_SIZE_BANDS[f.companySizeBand];
     push((n) => `current_company_size = ANY($${n})`, sizes);
   }
@@ -244,17 +260,21 @@ function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
     parts.push(`(total_experience_years::numeric >= 15)`);
   }
   if (f.company) {
-    // Company filter — always matches both current and past employers.
-    // Searching "Stripe" finds anyone who has ever worked there, which
-    // matches what users expect from a network-discovery tool.
-    push(
-      (n) =>
-        `(lower(coalesce(current_company,'')) LIKE $${n}
-          OR EXISTS (SELECT 1 FROM alumni_career c
-                     WHERE c.alumni_id = alumni.id
-                       AND lower(coalesce(c.company,'')) LIKE $${n}))`,
-      `%${f.company.toLowerCase()}%`,
-    );
+    if (scope === "ever") {
+      push(
+        (n) =>
+          `(lower(coalesce(current_company,'')) LIKE $${n}
+            OR EXISTS (SELECT 1 FROM alumni_career c
+                       WHERE c.alumni_id = alumni.id
+                         AND lower(coalesce(c.company,'')) LIKE $${n}))`,
+        `%${f.company.toLowerCase()}%`,
+      );
+    } else {
+      push(
+        (n) => `lower(coalesce(current_company,'')) LIKE $${n}`,
+        `%${f.company.toLowerCase()}%`,
+      );
+    }
   }
   if (f.university) {
     push(
