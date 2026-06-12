@@ -599,7 +599,6 @@ export default async function SnapshotPage() {
           rows={companyRows}
         />
         <SnapshotFacetCard
-          id="origin"
           icon="users"
           title="Top five countries"
           total={origins.length}
@@ -765,7 +764,8 @@ export default async function SnapshotPage() {
           </ul>
         </SectionCard>
 
-        {/* 8. Country of origin */}
+        {/* 8. Country of origin — anchor target for the world tile. */}
+        <div id="origin" className="contents">
         <SectionCard
           title="Origin"
           emoji="🌍"
@@ -790,6 +790,7 @@ export default async function SnapshotPage() {
             ))}
           </ul>
         </SectionCard>
+        </div>
 
         {/* 9. Graduation decade */}
         <SectionCard
