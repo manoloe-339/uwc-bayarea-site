@@ -170,10 +170,6 @@ export default function SavedList({ allSaves, uwcLogos, flags }: Props) {
 
   return (
     <>
-      <p className="hidden md:block text-[17px] text-white/75 mt-3 mb-7">
-        {visibleSaves.length} saved · personal to your account
-      </p>
-
       <div className="grid gap-[22px] [grid-template-columns:repeat(auto-fill,minmax(360px,1fr))]">
         {visibleSaves.map((row) => {
           const alum = rowToAlumCard(row);
