@@ -55,8 +55,8 @@ export function DeepDiveFacetCard({
           <Icon name={icon} size={14} strokeWidth={2} />
           {title}
         </span>
-        <span className="text-[12px] text-[color:var(--muted-2)] whitespace-nowrap">
-          {total} {total === 1 ? "value" : "values"}
+        <span className="text-[12px] text-[color:var(--muted-2)] whitespace-nowrap tabular-nums">
+          {total}
         </span>
       </div>
       <div>
