@@ -1,11 +1,10 @@
-"use client";
-
 /**
  * Photo-led "gallery" card — the same chrome used on /directory and
- * /directory/saved. Marked client because the inner LinkedIn /
- * company anchors call e.stopPropagation() so a click on them does
- * not also trigger the outer stretched-link to the detail page.
- * (Server components can't receive event handlers.)
+ * /directory/saved. Server-rendered. The photo and the name are
+ * explicit `<Link>` regions pointing at the detail page; specific
+ * inner anchors (campus, city, LinkedIn, company) navigate to their
+ * own destinations. No stretched-link overlay → no event-bubbling
+ * coordination needed.
  *
  * Layout (top to bottom):
  *  1. Square photo full-bleed (object-cover) or navy gradient initials
@@ -62,6 +61,10 @@ interface Props {
   star: React.ReactNode;
   /** Optional outreach footer for the shortlist. */
   footer?: React.ReactNode;
+  /** Photo treatment:
+   *   "square" → 1:1 aspect (the gallery card on /directory)
+   *   number   → fixed pixel height (the shortlist card, ~220) */
+  photoHeight?: "square" | number;
 }
 
 export function AlumGalleryCard({
@@ -71,6 +74,7 @@ export function AlumGalleryCard({
   backFrom,
   star,
   footer,
+  photoHeight = "square",
 }: Props) {
   const detailHref = `/directory/${alum.id}?from=${encodeURIComponent(backFrom)}`;
   const campusHref = alum.uwcCanonical
@@ -82,16 +86,22 @@ export function AlumGalleryCard({
 
   return (
     <article className="relative bg-white rounded-[18px] overflow-hidden flex flex-col shadow-[0_2px_0_rgba(2,28,56,.4),0_30px_56px_-30px_rgba(0,0,0,.6)] transition-transform transition-shadow duration-200 hover:-translate-y-[3px] hover:shadow-[0_2px_0_rgba(2,28,56,.4),0_40px_70px_-30px_rgba(0,0,0,.66)]">
-      {/* Stretched-link overlay covers the whole card; inner <a>s sit
-          above it via z-10 so they intercept their own clicks. */}
-      <Link
-        href={detailHref}
-        aria-label={alum.displayName}
-        className="absolute inset-0 z-0"
-      />
-
       <div className="relative">
-        <div className="aspect-square bg-[color:var(--ivory-2)]">
+        {/* Photo is itself the click target → detail page. */}
+        <Link
+          href={detailHref}
+          aria-label={alum.displayName}
+          className={
+            photoHeight === "square"
+              ? "block aspect-square bg-[color:var(--ivory-2)]"
+              : "block bg-[color:var(--ivory-2)]"
+          }
+          style={
+            photoHeight === "square"
+              ? undefined
+              : { height: `${photoHeight}px` }
+          }
+        >
           {alum.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -115,19 +125,24 @@ export function AlumGalleryCard({
               {alum.initials}
             </div>
           )}
-        </div>
-        {/* Star above the stretched link so it captures its own click. */}
-        <div className="absolute top-3 right-3 z-20 drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)]">
+        </Link>
+        {/* Star sits above the photo so it captures its own click. */}
+        <div className="absolute top-3 right-3 drop-shadow-[0_1px_3px_rgba(0,0,0,0.45)]">
           {star}
         </div>
       </div>
 
-      <div className="p-[15px_20px_18px] relative z-10">
+      <div className="p-[15px_20px_18px]">
         <h3
-          className="text-[color:var(--navy-ink)] font-bold leading-[1.12] line-clamp-2"
+          className="font-bold leading-[1.12] line-clamp-2"
           style={{ fontFamily: "Fraunces, Georgia, serif", fontSize: 22 }}
         >
-          {alum.displayName}
+          <Link
+            href={detailHref}
+            className="text-[color:var(--navy-ink)] hover:underline underline-offset-[3px]"
+          >
+            {alum.displayName}
+          </Link>
         </h3>
 
         {(alum.campus || alum.gradYear != null || alum.originIsos.length > 0) && (
@@ -202,7 +217,6 @@ export function AlumGalleryCard({
                     href={alum.companyHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
                     className="text-navy font-semibold text-[13px] leading-[1.3] truncate hover:underline underline-offset-[2px]"
                     title={alum.company}
                   >
@@ -223,7 +237,6 @@ export function AlumGalleryCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="LinkedIn profile"
-                onClick={(e) => e.stopPropagation()}
                 className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-[6px] bg-[#0A66C2] text-white text-[13px] font-bold leading-none shrink-0 hover:brightness-110"
               >
                 in
