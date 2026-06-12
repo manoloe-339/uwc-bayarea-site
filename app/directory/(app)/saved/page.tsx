@@ -35,18 +35,20 @@ export default async function SavedShortlistPage() {
 
   return (
     <section className="max-w-[1180px] mx-auto px-5 sm:px-7 pt-3 pb-8 md:py-8">
-      <h1
-        className="hidden md:block text-white font-extrabold leading-[1] tracking-[-0.02em]"
-        style={{
-          fontFamily: "Fraunces, Georgia, serif",
-          fontSize: "clamp(30px, 5.5vw, 38px)",
-        }}
-      >
-        Your shortlist
-      </h1>
-      <p className="md:mt-[10px] text-[15px] text-white/75 max-w-[68ch]">
-        Keep track of outreach and connections.
-      </p>
+      <div className="mb-6">
+        <h1
+          className="hidden md:block text-white font-extrabold leading-[1] tracking-[-0.02em]"
+          style={{
+            fontFamily: "Fraunces, Georgia, serif",
+            fontSize: "clamp(30px, 5.5vw, 38px)",
+          }}
+        >
+          Your shortlist
+        </h1>
+        <p className="md:mt-[10px] text-[15px] text-white/75 max-w-[68ch]">
+          Keep track of outreach and connections.
+        </p>
+      </div>
       <SavedList allSaves={allSaves} uwcLogos={uwcLogos} flags={flags} />
     </section>
   );
