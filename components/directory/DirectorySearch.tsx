@@ -196,7 +196,10 @@ export default function DirectorySearch({
     if (next.scope === "ever") params.set("scope", "ever");
     const qs = params.toString();
     const url = qs ? `${pathname}?${qs}` : pathname;
-    startTransition(() => router.push(url));
+    // `scroll: false` keeps the user's scroll position — the chip
+    // bar lives at the top, and a chip click shouldn't jolt the page
+    // back to the title every time.
+    startTransition(() => router.push(url, { scroll: false }));
   };
 
   // Debounce URL pushes for text inputs so we don't fire on every
@@ -786,7 +789,31 @@ function OptionList({
   onSelect: (v: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-[2px] max-h-[264px] overflow-auto -m-1 p-1">
+    <div className="opt-scroll flex flex-col gap-[2px] max-h-[264px] overflow-y-scroll -m-1 p-1 pr-2">
+      <style jsx>{`
+        /* Force a visible scrollbar even on macOS (where it auto-hides
+         * until the user scrolls), so the list reads as scrollable on
+         * first glance instead of looking truncated. */
+        .opt-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(11, 37, 69, 0.32) transparent;
+        }
+        .opt-scroll::-webkit-scrollbar {
+          width: 8px;
+          display: block;
+          -webkit-appearance: none;
+        }
+        .opt-scroll::-webkit-scrollbar-thumb {
+          background: rgba(11, 37, 69, 0.32);
+          border-radius: 4px;
+        }
+        .opt-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(11, 37, 69, 0.5);
+        }
+        .opt-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+      `}</style>
       {options.map((o) => {
         const sel = o.value === selected;
         return (
