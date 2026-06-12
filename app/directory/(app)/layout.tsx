@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FeedbackButton } from "@/components/directory/FeedbackButton";
 import LogoutButton from "@/components/directory/LogoutButton";
 import DirectoryHamburger from "@/components/directory/DirectoryHamburger";
+import { Icon } from "@/components/directory/Icon";
 import { getCurrentDirectorySession } from "@/lib/directory-session";
 import { sql } from "@/lib/db";
 
@@ -71,7 +72,7 @@ export default async function DirectoryLayout({
               triggerClassName="inline-flex items-center gap-1.5 text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"
               triggerLabel={
                 <>
-                  <span aria-hidden role="img">💬</span>
+                  <Icon name="message-square" size={14} strokeWidth={2} />
                   Feedback
                 </>
               }
@@ -91,10 +92,8 @@ export default async function DirectoryLayout({
               first-timers find their shortlist without hunting. */}
           <div className="md:hidden flex items-center gap-1">
             <FeedbackButton
-              triggerClassName="inline-flex items-center justify-center w-9 h-9 rounded text-navy hover:bg-[color:var(--ivory-2)] text-[18px] leading-none"
-              triggerLabel={
-                <span aria-hidden role="img">💬</span>
-              }
+              triggerClassName="inline-flex items-center justify-center w-9 h-9 rounded text-navy hover:bg-[color:var(--ivory-2)]"
+              triggerLabel={<Icon name="message-square" size={18} strokeWidth={2} />}
             />
             {savedCount > 0 && (
               <Link

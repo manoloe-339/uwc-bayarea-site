@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import LogoutButton from "./LogoutButton";
+import { Icon, type IconName } from "./Icon";
 
 interface Props {
   isUserAccount: boolean;
@@ -44,7 +45,12 @@ export default function DirectoryHamburger({
   // the FeedbackButton trigger, and the LogoutButton trigger so every
   // row looks identical.
   const ROW =
-    "block w-full text-left px-4 py-2 text-sm text-[color:var(--navy-ink)] hover:bg-[color:var(--ivory-2)] disabled:opacity-50";
+    "flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-[color:var(--navy-ink)] hover:bg-[color:var(--ivory-2)] disabled:opacity-50";
+  const RowIcon = ({ name }: { name: IconName }) => (
+    <span className="text-[color:var(--muted)] inline-flex shrink-0">
+      <Icon name={name} size={16} strokeWidth={2} />
+    </span>
+  );
 
   return (
     <div className="relative" ref={panelRef}>
@@ -85,7 +91,7 @@ export default function DirectoryHamburger({
           className="absolute right-0 top-full mt-2 w-[240px] bg-white border border-[color:var(--rule)] rounded-[10px] shadow-lg py-1.5 z-50"
         >
           <Link href="/directory" onClick={() => setOpen(false)} className={ROW}>
-            <span className="mr-2" aria-hidden>🔍</span>
+            <RowIcon name="search" />
             Directory
           </Link>
           <Link
@@ -93,7 +99,7 @@ export default function DirectoryHamburger({
             onClick={() => setOpen(false)}
             className={ROW}
           >
-            <span className="mr-2" aria-hidden>📊</span>
+            <RowIcon name="bar-chart" />
             Snapshot
           </Link>
           {isUserAccount && (
@@ -102,7 +108,9 @@ export default function DirectoryHamburger({
               onClick={() => setOpen(false)}
               className={ROW}
             >
-              <span className="mr-2" aria-hidden>⭐</span>
+              <span className="text-[#E89A1C] inline-flex shrink-0">
+                <Icon name="star" size={16} filled />
+              </span>
               Saved
             </Link>
           )}
@@ -111,7 +119,7 @@ export default function DirectoryHamburger({
               className={ROW}
               label={
                 <>
-                  <span className="mr-2" aria-hidden>🚪</span>
+                  <RowIcon name="log-out" />
                   Log out
                 </>
               }
@@ -119,7 +127,7 @@ export default function DirectoryHamburger({
           )}
           <div className="border-t border-[color:var(--rule)] my-1.5" />
           <Link href="/" onClick={() => setOpen(false)} className={ROW}>
-            <span className="mr-2" aria-hidden>🏠</span>
+            <RowIcon name="home" />
             uwcbayarea.org
           </Link>
         </div>
