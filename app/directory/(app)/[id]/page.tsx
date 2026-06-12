@@ -259,14 +259,32 @@ export default async function DirectoryProfilePage({
                     From
                   </div>
                   <div className="flex items-center gap-[7px] text-[15px] text-[color:var(--navy-ink)] font-semibold">
-                    <FlagCoins isos={originIsos} flags={flags} size={21} />
+                    <FlagCoins
+                      isos={originIsos}
+                      flags={flags}
+                      size={21}
+                      linkBuilder={(iso) => {
+                        const name =
+                          flags[iso.toLowerCase()]?.name ?? iso.toUpperCase();
+                        return `/directory?origin=${encodeURIComponent(name)}`;
+                      }}
+                    />
                     <span>
-                      {originIsos
-                        .map(
-                          (iso) =>
-                            flags[iso.toLowerCase()]?.name ?? iso.toUpperCase(),
-                        )
-                        .join(" · ")}
+                      {originIsos.map((iso, i) => {
+                        const name =
+                          flags[iso.toLowerCase()]?.name ?? iso.toUpperCase();
+                        return (
+                          <span key={iso + i}>
+                            {i > 0 && " · "}
+                            <Link
+                              href={`/directory?origin=${encodeURIComponent(name)}`}
+                              className="text-navy hover:underline underline-offset-2"
+                            >
+                              {name}
+                            </Link>
+                          </span>
+                        );
+                      })}
                     </span>
                   </div>
                 </div>

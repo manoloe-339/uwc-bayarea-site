@@ -186,7 +186,16 @@ export function AlumGalleryCard({
               </span>
             )}
             {alum.originIsos.length > 0 && (
-              <FlagCoins isos={alum.originIsos} flags={flags} size={18} />
+              <FlagCoins
+                isos={alum.originIsos}
+                flags={flags}
+                size={18}
+                linkBuilder={(iso) => {
+                  const name =
+                    flags[iso.toLowerCase()]?.name ?? iso.toUpperCase();
+                  return `/directory?origin=${encodeURIComponent(name)}`;
+                }}
+              />
             )}
           </div>
         )}

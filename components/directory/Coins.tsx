@@ -93,22 +93,45 @@ interface FlagCoinsProps {
   isos: string[];
   flags: Record<string, { name: string; url: string }>;
   size?: number;
+  /** When provided, each coin renders as a real link — used to make
+   * flags act as filter links into /directory?origin=… */
+  linkBuilder?: (iso: string) => string;
 }
 
 /** Render a row of overlapping flag coins (max 3). Use when an alum
  * lists more than one origin country. */
-export function FlagCoins({ isos, flags, size = 20 }: FlagCoinsProps) {
+export function FlagCoins({
+  isos,
+  flags,
+  size = 20,
+  linkBuilder,
+}: FlagCoinsProps) {
   return (
     <span className="inline-flex align-middle">
-      {isos.map((iso, i) => (
-        <span
-          key={iso + i}
-          style={{ marginLeft: i === 0 ? 0 : -6 }}
-          className="inline-flex"
-        >
-          <FlagCoin iso={iso} flag={flags[iso.toLowerCase()]} size={size} />
-        </span>
-      ))}
+      {isos.map((iso, i) => {
+        const flag = flags[iso.toLowerCase()];
+        const inner = <FlagCoin iso={iso} flag={flag} size={size} />;
+        const wrapClass = "inline-flex";
+        const style = { marginLeft: i === 0 ? 0 : -6 };
+        if (linkBuilder) {
+          return (
+            <a
+              key={iso + i}
+              href={linkBuilder(iso)}
+              style={style}
+              className={`${wrapClass} hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-navy rounded-full`}
+              aria-label={`Search for alumni from ${flag?.name ?? iso.toUpperCase()}`}
+            >
+              {inner}
+            </a>
+          );
+        }
+        return (
+          <span key={iso + i} style={style} className={wrapClass}>
+            {inner}
+          </span>
+        );
+      })}
     </span>
   );
 }

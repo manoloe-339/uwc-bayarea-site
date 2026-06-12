@@ -288,21 +288,46 @@ function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
   return { where, params };
 }
 
+/** Build a deterministic seed string from the filter values so the
+ * ORDER BY hash below is stable across re-renders that share the same
+ * filter set (e.g. flipping the NL toggle or Current/Ever scope with
+ * no active work filter). The order is still pseudo-random by alum,
+ * just no longer reshuffled on every URL change. */
+function filterSeed(f: DirectoryFilters): string {
+  return JSON.stringify({
+    q: f.q ?? "",
+    name: f.name ?? "",
+    college: f.college ?? "",
+    region: f.region ?? "",
+    origin: f.origin ?? "",
+    yearFrom: f.yearFrom ?? null,
+    yearTo: f.yearTo ?? null,
+    industry: f.industry ?? "",
+    city: f.city ?? "",
+    company: f.company ?? "",
+    university: f.university ?? "",
+    expBand: f.expBand ?? "",
+    companySizeBand: f.companySizeBand ?? "",
+    scope: f.scope ?? "current",
+  });
+}
+
 export async function searchDirectoryAlumni(
   f: DirectoryFilters,
   limit = 500,
 ): Promise<DirectoryAlumnusRow[]> {
   const { where, params } = buildWhere(f);
-  // Default order is RANDOM() so the directory reads as a discovery
-  // surface rather than "whoever was imported most recently". The
-  // re-randomization on each page load is intentional — users browsing
-  // the directory should see a different mix every time. To find a
-  // specific person again, use the Name or broad-search filter.
+  // Default order is a hash of the filter seed + alum id — gives a
+  // "random-looking" shuffle so the directory still reads as a
+  // discovery surface, but identical filters return the same order.
+  // Without this every chip / NL / scope toggle re-rolls the grid.
+  params.push(filterSeed(f));
+  const seedIdx = params.length;
   const rows = (await sql.query(
     `SELECT ${SELECT_DIRECTORY_FIELDS}
        FROM alumni
        ${where}
-       ORDER BY RANDOM()
+       ORDER BY md5($${seedIdx} || alumni.id::text)
        LIMIT ${limit}`,
     params,
   )) as DirectoryAlumnusRow[];
