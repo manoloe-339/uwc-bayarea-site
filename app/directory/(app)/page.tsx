@@ -203,13 +203,27 @@ export default async function DirectoryPage({
   const currentUserAlumniId =
     session?.kind === "user" ? session.user.alumni_id : null;
 
+  // Pagination — first batch is small so the page isn't lugging
+  // hundreds of card images on every load. "Show more" bumps the
+  // ?show=N param up by INITIAL each click.
+  const INITIAL = 21;
+  const BATCH = 21;
+  const HARD_CAP = 500;
+  const showParam = pickNum(sp, "show");
+  const show = Math.max(
+    INITIAL,
+    Math.min(HARD_CAP, showParam ?? INITIAL),
+  );
+
   // Re-shuffle the grid on "fresh landings" — hard reload, or
   // navigation from snapshot / saved / detail / external — but ONLY
   // when no filter is set. Intra-page chip clicks (referer pathname
   // is bare /directory) keep the existing stable filter-derived
-  // seed so the cards don't reshuffle mid-search.
-  let seedOverride: string | undefined;
-  if (!hasAnyFilter) {
+  // seed so the cards don't reshuffle mid-search. The seed travels
+  // through the URL as `_s` so 'Show more' keeps the same order.
+  const seedParam = pickStr(sp, "_s");
+  let seedOverride: string | undefined = seedParam;
+  if (!hasAnyFilter && !seedOverride) {
     const { headers } = await import("next/headers");
     const h = await headers();
     const referer = h.get("referer") ?? "";
@@ -221,9 +235,6 @@ export default async function DirectoryPage({
     }
     const cameFromBareDirectory = refPath === "/directory";
     if (!cameFromBareDirectory) {
-      // Time-based seed: changes each request, so every fresh
-      // arrival surfaces a different mix. Cards stay put while the
-      // user clicks around the same page.
       seedOverride = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     }
   }
@@ -231,7 +242,7 @@ export default async function DirectoryPage({
   const { sql } = await import("@/lib/db");
   const [rows, total, mySaves, suggest, stats, currentUserName, grandTotal] =
     await Promise.all([
-      searchDirectoryAlumni(filters, 500, seedOverride),
+      searchDirectoryAlumni(filters, show, seedOverride),
       countDirectoryAlumni(filters),
       userId ? listSavesForUser(userId) : Promise.resolve([]),
       getDirectorySuggestData(),
@@ -269,8 +280,29 @@ export default async function DirectoryPage({
     const s = Array.isArray(v) ? v[0] : v;
     if (s && s.trim()) fromParams.set(k, s.trim());
   }
+  // Persist the seed override on the back URL too, so returning
+  // from a detail page lands the user on the same shuffled view.
+  if (seedOverride && !fromParams.get("_s")) {
+    fromParams.set("_s", seedOverride);
+  }
   const fromQs = fromParams.toString();
   const directoryFrom = "/directory" + (fromQs ? `?${fromQs}` : "");
+
+  // Build the "Show more" link — same URL but with show bumped to
+  // the next batch and the seed locked in (if any).
+  const moreParams = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    const s = Array.isArray(v) ? v[0] : v;
+    if (s && s.trim() && k !== "show") moreParams.set(k, s.trim());
+  }
+  if (seedOverride && !moreParams.get("_s")) {
+    moreParams.set("_s", seedOverride);
+  }
+  const nextShow = Math.min(HARD_CAP, show + BATCH);
+  moreParams.set("show", String(nextShow));
+  const moreHref = `/directory?${moreParams.toString()}`;
+  const remaining = Math.max(0, total - rows.length);
+  const nextBatchSize = Math.min(BATCH, remaining);
 
   return (
     <section className="max-w-[1200px] mx-auto px-5 sm:px-7 pt-1 pb-8 md:py-8">
@@ -349,6 +381,21 @@ export default async function DirectoryPage({
           );
         })}
       </div>
+
+      {nextBatchSize > 0 && (
+        <div className="mt-8 flex flex-col items-center gap-3">
+          <Link
+            href={moreHref}
+            scroll={false}
+            className="inline-flex items-center gap-2 rounded-full bg-white/[.12] hover:bg-white/[.2] text-white font-semibold px-6 py-3 text-[14.5px] border border-white/30 transition"
+          >
+            Show {nextBatchSize} more
+          </Link>
+          <span className="text-[13px] text-white/60">
+            Showing {rows.length} of {total}
+          </span>
+        </div>
+      )}
 
       {rows.length === 0 && (
         <div className="fp-panel p-10 text-center text-white/70 text-sm">
