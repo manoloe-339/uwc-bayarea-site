@@ -186,6 +186,11 @@ function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
     const qIdx = params.length;
     parts.push(`(
       lower(first_name) LIKE $${qIdx} OR lower(last_name) LIKE $${qIdx}
+      -- Concatenated full-name match so multi-word queries like
+      -- "Tara Vajra" hit the row whose first_name='Tara' and
+      -- last_name='Vajra' — without this, "%tara vajra%" never
+      -- appears inside either column on its own.
+      OR lower(coalesce(first_name, '') || ' ' || coalesce(last_name, '')) LIKE $${qIdx}
       OR lower(coalesce(current_title, '')) LIKE $${qIdx}
       OR lower(coalesce(current_company, '')) LIKE $${qIdx}
       OR lower(coalesce(current_company_industry, '')) LIKE $${qIdx}
