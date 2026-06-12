@@ -36,17 +36,14 @@ export default function MobileDirectoryNav({ savedCount, showSaved }: Props) {
     },
     {
       id: "search",
-      // The directory root IS the search view, so the order in the
-      // nav follows the design (Search · Snapshot · Saved) — we
-      // re-sort below.
+      // The directory root IS the search view, so Search is active
+      // only on the bare /directory route — detail pages
+      // (/directory/[id]) leave it un-highlighted so tapping it
+      // reads as "back to the list".
       href: "/directory",
       label: "Search",
       icon: "search",
-      isActive:
-        pathname === "/directory" ||
-        (pathname.startsWith("/directory/") &&
-          !pathname.startsWith("/directory/snapshot") &&
-          !pathname.startsWith("/directory/saved")),
+      isActive: pathname === "/directory",
     },
   ];
   if (showSaved) {
