@@ -22,11 +22,23 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     type: "website",
+    // Explicit static URL — never let LinkedIn pick a random page
+    // image. Pre-baked PNG in /public so the URL is stable across
+    // deploys and resolves instantly for scrapers.
+    images: [
+      {
+        url: "/og-uwc-bridge.png",
+        width: 1200,
+        height: 630,
+        alt: "UWC Bay Area · Alumni & Friends",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
+    images: ["/og-uwc-bridge.png"],
   },
 };
 

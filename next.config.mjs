@@ -13,7 +13,6 @@ const nextConfig = {
   // so explicitly include the assets in the function bundles. Keeps
   // both the root OG and /signup OG generating reliably.
   outputFileTracingIncludes: {
-    "/opengraph-image": ["./public/uwc-bay-area-logo.png"],
     "/signup/opengraph-image": ["./public/uwc-bay-area-logo.png"],
     "/join-whatsapp/opengraph-image": ["./public/uwc-bay-area-logo.png"],
     // The focal-detection route loads SSD MobileNet weights from disk
