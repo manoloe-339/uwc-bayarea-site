@@ -6,6 +6,7 @@ import {
   SnapshotFacetCard,
   type FacetRow,
 } from "@/components/directory/SnapshotFacetCard";
+import { Icon, type IconName } from "@/components/directory/Icon";
 import {
   extractCountryCodes,
   originCountryNames,
@@ -135,7 +136,13 @@ async function fetchAll() {
       ORDER BY n DESC, a.uwc_college ASC
     `,
     sql`
-      SELECT e.school AS name, COUNT(DISTINCT a.id)::int AS n
+      SELECT e.school AS name,
+             COUNT(DISTINCT a.id)::int AS n,
+             -- MIN() rather than MAX() so we prefer the earliest-
+             -- captured non-null logo (logos rarely change but we
+             -- want a stable pick when multiple rows of the same
+             -- school carry slightly different urls).
+             MIN(e.school_logo_url) AS logo
       FROM alumni_education e
       JOIN alumni a ON a.id = e.alumni_id
       WHERE e.is_uwc IS NOT TRUE
@@ -297,7 +304,7 @@ async function fetchAll() {
       n: number;
     }>,
     uwcs: uwcs as Array<{ name: string; n: number; logo: string | null; campus: string | null }>,
-    universities: universities as Array<{ name: string; n: number }>,
+    universities: universities as Array<{ name: string; n: number; logo: string | null }>,
     industries: industries as Array<{ name: string; n: number }>,
     sizeRows: sizeRows as Array<{ raw: string; n: number }>,
     cities: cities as Array<{ name: string; n: number }>,
@@ -396,20 +403,21 @@ function rollupOrigins(rows: Array<{ raw: string; n: number }>) {
 
 function SectionCard({
   title,
-  emoji,
+  icon,
   total,
   children,
 }: {
   title: string;
-  emoji: string;
+  icon: IconName;
   total: number;
   children: React.ReactNode;
 }) {
   return (
     <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 sm:p-5">
-      <div className="flex items-baseline justify-between mb-3">
-        <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
-          {emoji} {title}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="inline-flex items-center gap-[7px] text-[11px] tracking-[.22em] uppercase font-bold text-navy">
+          <Icon name={icon} size={13} strokeWidth={2} />
+          {title}
         </h2>
         <span className="text-[11px] text-[color:var(--muted)]">
           {total} {total === 1 ? "entry" : "entries"}
@@ -600,7 +608,7 @@ export default async function SnapshotPage() {
         />
         <SnapshotFacetCard
           icon="users"
-          title="Top five countries"
+          title="Top five origins"
           total={origins.length}
           rows={originRows}
         />
@@ -617,7 +625,7 @@ export default async function SnapshotPage() {
         {/* 1. Current companies (≥2 alumni) */}
         <SectionCard
           title="Where alumni work now"
-          emoji="🏢"
+          icon="building"
           total={data.companies.length}
         >
           <ul className="space-y-0.5">
@@ -649,7 +657,7 @@ export default async function SnapshotPage() {
         </SectionCard>
 
         {/* 2. UWC schools — logos curated via /admin/tools/uwc-assets */}
-        <SectionCard title="UWC" emoji="🌐" total={data.uwcs.length}>
+        <SectionCard title="UWC" icon="globe" total={data.uwcs.length}>
           <ul className="space-y-0.5">
             {data.uwcs.map((u) => (
               <li key={u.name}>
@@ -672,103 +680,11 @@ export default async function SnapshotPage() {
           </ul>
         </SectionCard>
 
-        {/* 3. Universities */}
-        <SectionCard
-          title="University"
-          emoji="🏛️"
-          total={data.universities.length}
-        >
-          <ul className="space-y-0.5">
-            {data.universities.map((u) => (
-              <li key={u.name}>
-                <CountRow
-                  href={`/directory?university=${encodeURIComponent(u.name)}`}
-                  count={u.n}
-                >
-                  {u.name}
-                </CountRow>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* 4. Industries */}
-        <SectionCard
-          title="Industry"
-          emoji="💼"
-          total={data.industries.length}
-        >
-          <ul className="space-y-0.5">
-            {data.industries.map((i) => (
-              <li key={i.name}>
-                <CountRow
-                  href={`/directory?industry=${encodeURIComponent(i.name)}`}
-                  count={i.n}
-                >
-                  {i.name}
-                </CountRow>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* 5. Company size */}
-        <SectionCard
-          title="Company size"
-          emoji="📊"
-          total={sizeBands.length}
-        >
-          <ul className="space-y-0.5">
-            {sizeBands.map((b) => (
-              <li key={b.band}>
-                <CountRow
-                  href={`/directory?companySizeBand=${b.band}`}
-                  count={b.n}
-                >
-                  {b.label}
-                </CountRow>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* 6. Cities */}
-        <SectionCard title="City" emoji="🏙️" total={cities.length}>
-          <ul className="space-y-0.5">
-            {cities.map((c) => (
-              <li key={c.display}>
-                <CountRow
-                  href={`/directory?city=${encodeURIComponent(c.filterValue)}`}
-                  count={c.n}
-                >
-                  {c.display}
-                </CountRow>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* 7. Regions */}
-        <SectionCard title="Region" emoji="🌉" total={data.regions.length}>
-          <ul className="space-y-0.5">
-            {data.regions.map((r) => (
-              <li key={r.name}>
-                <CountRow
-                  href={`/directory?region=${encodeURIComponent(r.name)}`}
-                  count={r.n}
-                >
-                  {r.name}
-                </CountRow>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* 8. Country of origin — anchor target for the world tile. */}
+        {/* 3. Country of origin — anchor target for the world tile. */}
         <div id="origin" className="contents">
         <SectionCard
           title="Origin"
-          emoji="🌍"
+          icon="globe"
           total={origins.length}
         >
           <ul className="space-y-0.5">
@@ -792,10 +708,111 @@ export default async function SnapshotPage() {
         </SectionCard>
         </div>
 
+        {/* 4. Industries */}
+        <SectionCard
+          title="Industry"
+          icon="briefcase"
+          total={data.industries.length}
+        >
+          <ul className="space-y-0.5">
+            {data.industries.map((i) => (
+              <li key={i.name}>
+                <CountRow
+                  href={`/directory?industry=${encodeURIComponent(i.name)}`}
+                  count={i.n}
+                >
+                  {i.name}
+                </CountRow>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+
+        {/* 5. Company size */}
+        <SectionCard
+          title="Company size"
+          icon="bar-chart"
+          total={sizeBands.length}
+        >
+          <ul className="space-y-0.5">
+            {sizeBands.map((b) => (
+              <li key={b.band}>
+                <CountRow
+                  href={`/directory?companySizeBand=${b.band}`}
+                  count={b.n}
+                >
+                  {b.label}
+                </CountRow>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+
+        {/* 6. Cities */}
+        <SectionCard title="City" icon="map-pin" total={cities.length}>
+          <ul className="space-y-0.5">
+            {cities.map((c) => (
+              <li key={c.display}>
+                <CountRow
+                  href={`/directory?city=${encodeURIComponent(c.filterValue)}`}
+                  count={c.n}
+                >
+                  {c.display}
+                </CountRow>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+
+        {/* 7. Regions */}
+        <SectionCard title="Region" icon="map-pin" total={data.regions.length}>
+          <ul className="space-y-0.5">
+            {data.regions.map((r) => (
+              <li key={r.name}>
+                <CountRow
+                  href={`/directory?region=${encodeURIComponent(r.name)}`}
+                  count={r.n}
+                >
+                  {r.name}
+                </CountRow>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+
+        {/* 8. Universities */}
+        <SectionCard
+          title="University"
+          icon="graduation-cap"
+          total={data.universities.length}
+        >
+          <ul className="space-y-0.5">
+            {data.universities.map((u) => (
+              <li key={u.name}>
+                <CountRow
+                  href={`/directory?university=${encodeURIComponent(u.name)}`}
+                  count={u.n}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <CompanyLogo
+                      storedLogoUrl={u.logo}
+                      website={null}
+                      linkedinUrl={null}
+                      companyName={u.name}
+                      size={18}
+                    />
+                    {u.name}
+                  </span>
+                </CountRow>
+              </li>
+            ))}
+          </ul>
+        </SectionCard>
+
         {/* 9. Graduation decade */}
         <SectionCard
           title="UWC graduation decade"
-          emoji="🎓"
+          icon="graduation-cap"
           total={data.decadesRaw.length}
         >
           <ul className="space-y-0.5">
@@ -815,7 +832,7 @@ export default async function SnapshotPage() {
         {/* Career stage — students vs working */}
         <SectionCard
           title="Stage"
-          emoji="🎓"
+          icon="users"
           total={studentCount + workingCount}
         >
           <ul className="space-y-0.5">
@@ -838,7 +855,7 @@ export default async function SnapshotPage() {
         {/* 10. Experience */}
         <SectionCard
           title="Experience"
-          emoji="⏱️"
+          icon="clock"
           total={expBands.length}
         >
           <ul className="space-y-0.5">
@@ -858,7 +875,7 @@ export default async function SnapshotPage() {
         {/* 11. Past employers (alumni who've ever worked there) */}
         <SectionCard
           title="Past employers (≥3 alumni)"
-          emoji="🏷️"
+          icon="history"
           total={data.pastCompanies.length}
         >
           <ul className="space-y-0.5">
