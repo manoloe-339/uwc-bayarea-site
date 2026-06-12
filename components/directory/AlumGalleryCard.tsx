@@ -102,7 +102,11 @@ export function AlumGalleryCard({
           className={
             photoHeight != null
               ? "block bg-[color:var(--ivory-2)] overflow-hidden"
-              : "block bg-[color:var(--ivory-2)] overflow-hidden h-[220px] [@media(min-width:561px)]:h-[230px]"
+              : // Mobile (≤560px): a strict 220px band so the card's
+                // height isn't dictated by the source image. Desktop
+                // (>560px): back to the 1:1 aspect — desktop cards
+                // line up well as squares.
+                "block bg-[color:var(--ivory-2)] overflow-hidden h-[220px] [@media(min-width:561px)]:h-auto [@media(min-width:561px)]:aspect-square"
           }
           style={photoHeight != null ? { height: `${photoHeight}px` } : undefined}
         >

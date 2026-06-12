@@ -476,49 +476,45 @@ function MobileFilterSheet({
   anyFilter: boolean;
   onClearAll: () => void;
 }) {
-  // Render every chip as a stacked section: label + body (text input,
-  // option list, or range). Reuses ChipBody but with onCommit a no-op
-  // so picking an option doesn't close the sheet.
-  const noop = () => {};
-  const Section = ({ cfg }: { cfg: ChipCfg }) => {
-    const value = chipValue(cfg.id);
-    const isActive = !!value;
+  // Drill-down: level 1 = list of filter rows; level 2 = single chip
+  // body with a back arrow. Selecting a value in level 2 returns to
+  // level 1 (text fields stay on level 2 since the user might want to
+  // refine the typed value).
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const activeCfg: ChipCfg | null = useMemo(() => {
+    if (!activeId) return null;
     return (
-      <section className="border-t border-[color:var(--rule)] pt-4">
-        <div className="flex items-center justify-between mb-3 gap-3">
-          <span className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[.18em] uppercase text-[color:var(--navy-ink)]">
-            <Icon name={cfg.icon as IconName} size={14} />
-            {cfg.label}
+      PERSONAL_CHIPS.find((c) => c.id === activeId) ??
+      WORK_CHIPS.find((c) => c.id === activeId) ??
+      null
+    );
+  }, [activeId]);
+
+  const Row = ({ cfg }: { cfg: ChipCfg }) => {
+    const value = chipValue(cfg.id);
+    return (
+      <button
+        type="button"
+        onClick={() => setActiveId(cfg.id)}
+        className="w-full flex items-center gap-3 px-5 py-[14px] border-b border-[color:var(--rule)] text-left hover:bg-[rgba(11,37,69,.04)] active:bg-[rgba(11,37,69,.08)] transition"
+      >
+        <span className="text-[color:var(--muted)] inline-flex">
+          <Icon name={cfg.icon as IconName} size={18} />
+        </span>
+        <span className="text-[15px] font-semibold text-[color:var(--navy-ink)] flex-1 min-w-0">
+          {cfg.label}
+        </span>
+        {value ? (
+          <span className="text-[14px] text-navy font-semibold max-w-[55vw] truncate">
+            {value}
           </span>
-          {isActive && (
-            <span className="inline-flex items-center gap-2 text-[12px] text-navy font-semibold">
-              <span className="truncate max-w-[60vw]">{value}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  if (cfg.id === "gradYear") {
-                    setField("gradFrom", "");
-                    setField("gradTo", "");
-                  } else {
-                    setField(cfg.id as keyof Working, "" as never);
-                  }
-                }}
-                aria-label={`Clear ${cfg.label}`}
-                className="text-[color:var(--muted)] hover:text-navy"
-              >
-                <Icon name="x" size={13} strokeWidth={2.2} />
-              </button>
-            </span>
-          )}
-        </div>
-        <ChipBody
-          cfg={cfg}
-          working={working}
-          setField={setField}
-          suggest={suggest}
-          onCommit={noop}
-        />
-      </section>
+        ) : (
+          <span className="text-[14px] text-[color:var(--muted-2)]">Any</span>
+        )}
+        <span className="-rotate-90 text-[color:var(--muted-2)]">
+          <Icon name="chevron-down" size={16} strokeWidth={2} />
+        </span>
+      </button>
     );
   };
 
@@ -536,7 +532,7 @@ function MobileFilterSheet({
         className="absolute inset-0 bg-[rgba(8,20,38,.55)]"
       />
       <div
-        className="relative mt-auto bg-white rounded-t-[20px] max-h-[88vh] flex flex-col"
+        className="relative mt-auto bg-white rounded-t-[20px] max-h-[85vh] flex flex-col"
         style={{ animation: "msheet-in .22s ease" }}
       >
         <style jsx global>{`
@@ -545,10 +541,26 @@ function MobileFilterSheet({
             to   { transform: none; }
           }
         `}</style>
-        <div className="flex items-center justify-between border-b border-[color:var(--rule)] px-5 py-3">
-          <span className="text-[11px] font-bold tracking-[.22em] uppercase text-[color:var(--muted-2)]">
-            Filters
-          </span>
+
+        {/* Sticky header */}
+        <div className="flex items-center justify-between border-b border-[color:var(--rule)] px-5 py-3 shrink-0">
+          {activeCfg ? (
+            <button
+              type="button"
+              onClick={() => setActiveId(null)}
+              aria-label="Back to all filters"
+              className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[.22em] uppercase text-[color:var(--navy-ink)]"
+            >
+              <span className="rotate-90 inline-flex">
+                <Icon name="chevron-down" size={14} strokeWidth={2.4} />
+              </span>
+              {activeCfg.label}
+            </button>
+          ) : (
+            <span className="text-[11px] font-bold tracking-[.22em] uppercase text-[color:var(--muted-2)]">
+              Filters
+            </span>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -559,33 +571,66 @@ function MobileFilterSheet({
           </button>
         </div>
 
-        <div className="overflow-y-auto px-5 pt-2 pb-4">
-          {/* Personal */}
-          {PERSONAL_CHIPS.map((c) => (
-            <Section key={c.id} cfg={c} />
-          ))}
-
-          {/* Work eyebrow + scope segmented control */}
-          <section className="border-t border-[color:var(--rule)] mt-2 pt-4">
-            <div className="flex items-center justify-between mb-3 gap-3">
-              <span className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[.18em] uppercase text-[color:var(--navy-ink)]">
-                <Icon name="briefcase" size={14} />
-                Work
-              </span>
-              <ScopeToggle
-                value={working.scope}
-                onChange={(v) => setField("scope", v)}
+        {/* Body — drill-down */}
+        <div className="overflow-y-auto flex-1">
+          {activeCfg ? (
+            <div className="px-5 py-4">
+              <ChipBody
+                cfg={activeCfg}
+                working={working}
+                setField={setField}
+                suggest={suggest}
+                // Returning to level 1 on commit feels right for
+                // select-types and text-enter; range never fires
+                // onCommit, so the user uses the back arrow there.
+                onCommit={() => setActiveId(null)}
               />
+              {chipValue(activeCfg.id) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeCfg.id === "gradYear") {
+                      setField("gradFrom", "");
+                      setField("gradTo", "");
+                    } else {
+                      setField(activeCfg.id as keyof Working, "" as never);
+                    }
+                  }}
+                  className="mt-4 inline-flex items-center gap-2 text-[13px] font-semibold text-[color:var(--muted)] hover:text-navy"
+                >
+                  <Icon name="x" size={13} strokeWidth={2.2} />
+                  Clear {activeCfg.label.toLowerCase()}
+                </button>
+              )}
             </div>
-          </section>
+          ) : (
+            <>
+              {PERSONAL_CHIPS.map((c) => (
+                <Row key={c.id} cfg={c} />
+              ))}
 
-          {WORK_CHIPS.map((c) => (
-            <Section key={c.id} cfg={c} />
-          ))}
+              {/* Work group: small eyebrow + inline Current/Ever
+                  toggle, then the work chip rows. */}
+              <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-[color:var(--rule)] bg-[rgba(11,37,69,.03)]">
+                <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[.22em] uppercase text-[color:var(--muted-2)]">
+                  <Icon name="briefcase" size={13} />
+                  Work
+                </span>
+                <ScopeToggleLight
+                  value={working.scope}
+                  onChange={(v) => setField("scope", v)}
+                />
+              </div>
+              {WORK_CHIPS.map((c) => (
+                <Row key={c.id} cfg={c} />
+              ))}
+            </>
+          )}
         </div>
 
+        {/* Sticky footer */}
         <div
-          className="border-t border-[color:var(--rule)] px-5 py-3 flex items-center justify-between gap-3"
+          className="border-t border-[color:var(--rule)] px-5 py-3 flex items-center justify-between gap-3 shrink-0 bg-white"
           style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
         >
           <button
@@ -608,6 +653,45 @@ function MobileFilterSheet({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Light-on-white variant of the scope toggle for inside the mobile
+ * sheet. The standalone <ScopeToggle> uses white-on-blue. */
+function ScopeToggleLight({
+  value,
+  onChange,
+}: {
+  value: DirectoryWorkScope;
+  onChange: (v: DirectoryWorkScope) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Match work against"
+      className="inline-flex items-center gap-[2px] rounded-full p-[3px] bg-[rgba(11,37,69,.06)]"
+    >
+      {(["current", "ever"] as DirectoryWorkScope[]).map((v) => {
+        const on = value === v;
+        return (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={on}
+            onClick={() => onChange(v)}
+            className={`inline-flex items-center gap-[6px] rounded-full px-[11px] py-[6px] text-[12px] font-semibold transition ${
+              on
+                ? "bg-white text-navy shadow-[0_1px_3px_rgba(11,37,69,.18)]"
+                : "text-[color:var(--muted)] hover:text-[color:var(--navy-ink)]"
+            }`}
+          >
+            <Icon name={v === "ever" ? "history" : "clock"} size={12} />
+            {v === "ever" ? "Ever" : "Current"}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -663,6 +747,7 @@ function SearchHero({
           className="w-[7px] h-[7px] rounded-full bg-current"
           style={{ opacity: nl ? 1 : 0.45 }}
         />
+        <span className="sm:hidden whitespace-nowrap">NL</span>
         <span className="hidden sm:inline whitespace-nowrap">
           Natural language
         </span>
