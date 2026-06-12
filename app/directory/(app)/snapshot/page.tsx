@@ -2,12 +2,17 @@ import Link from "next/link";
 import { sql } from "@/lib/db";
 import { CompanyLogo } from "@/components/directory/CompanyLogo";
 import { SnapshotTile } from "@/components/directory/SnapshotTile";
+import { DeepDiveNavCard } from "@/components/directory/DeepDiveNavCard";
 import {
-  SnapshotFacetCard,
-  type FacetRow,
-} from "@/components/directory/SnapshotFacetCard";
+  DeepDiveFacetCard,
+  type DeepDiveRow,
+} from "@/components/directory/DeepDiveFacetCard";
+import {
+  SnapshotLensSwitcher,
+  type LensId,
+} from "@/components/directory/SnapshotLensSwitcher";
 import { Icon, type IconName } from "@/components/directory/Icon";
-import { FlagRect } from "@/components/directory/Coins";
+import { FlagRect, UwcCoin } from "@/components/directory/Coins";
 import {
   extractCountryCodes,
   originCountryNames,
@@ -400,97 +405,24 @@ function rollupOrigins(rows: Array<{ raw: string; n: number }>) {
     .sort((a, b) => b.n - a.n);
 }
 
-/* ----------------------------- UI bits ----------------------------- */
-
-function SectionCard({
-  title,
-  icon,
-  total,
-  children,
-}: {
-  title: string;
-  icon: IconName;
-  total: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-4 sm:p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="inline-flex items-center gap-[7px] text-[11px] tracking-[.22em] uppercase font-bold text-navy">
-          <Icon name={icon} size={13} strokeWidth={2} />
-          {title}
-        </h2>
-        <span className="text-[11px] text-[color:var(--muted)]">
-          {total} {total === 1 ? "entry" : "entries"}
-        </span>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function CountRow({
-  href,
-  count,
-  children,
-}: {
-  href: string;
-  count: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center justify-between gap-3 py-1.5 px-1 rounded hover:bg-[color:var(--ivory-2)] text-sm"
-    >
-      <span className="min-w-0 truncate text-[color:var(--navy-ink)]">
-        {children}
-      </span>
-      <span className="shrink-0 inline-flex items-center justify-center min-w-[28px] h-[20px] rounded bg-ivory-2 border border-[color:var(--rule)] text-xs font-semibold text-navy tabular-nums px-1.5">
-        {count}
-      </span>
-    </Link>
-  );
-}
-
-/** Small 20px UWC logo or fallback monogram square. Mirrors the
- * size + shape of CompanyLogo so UWC rows align with the company
- * rows visually. */
-function UwcLogo({ url, name }: { url: string | null; name: string }) {
-  const initials = name
-    .replace(/^UWC\s+/, "")
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-  return (
-    <span
-      className="inline-flex items-center justify-center w-5 h-5 rounded shrink-0 overflow-hidden"
-      style={{
-        background: url ? "#fff" : "linear-gradient(135deg, #2f7fce, #004A97)",
-        border: url ? "1px solid var(--rule)" : "none",
-      }}
-    >
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={url}
-          alt=""
-          className="w-full h-full object-contain"
-        />
-      ) : (
-        <span className="text-[9px] font-bold text-white tracking-tight">
-          {initials}
-        </span>
-      )}
-    </span>
-  );
-}
-
 /* ------------------------------ Page ------------------------------- */
 
-export default async function SnapshotPage() {
+const VALID_LENSES = ["background", "location", "career"] as const;
+type SP = { lens?: string | string[] };
+
+export default async function SnapshotPage({
+  searchParams,
+}: {
+  searchParams: Promise<SP>;
+}) {
+  const sp = await searchParams;
+  const lensRaw = Array.isArray(sp.lens) ? sp.lens[0] : sp.lens;
+  const lens: LensId | null = (VALID_LENSES as readonly string[]).includes(
+    lensRaw ?? "",
+  )
+    ? (lensRaw as LensId)
+    : null;
+
   const [data, flags] = await Promise.all([fetchAll(), getFlagMap()]);
   const sizeBands = rollupSizeBands(data.sizeRows);
   const origins = rollupOrigins(data.originsRaw);
@@ -505,409 +437,353 @@ export default async function SnapshotPage() {
       (a, b) => EXP_BAND_ORDER.indexOf(a.band) - EXP_BAND_ORDER.indexOf(b.band),
     );
 
-  // ---- Top-section data (new "Insights + top-5 cards") ----
+  // ---- Image-tile data (unchanged) ----
   const topUwc = data.uwcs[0];
   const topCohort = data.decadesRaw.slice().sort((a, b) => b.n - a.n)[0];
   const topCity = cities[0];
-
-  // Strip "UWC " prefix for the headline since the eyebrow already
-  // says "Most-represented school".
   const stripUwc = (s: string) => s.replace(/^UWC\s+/, "");
-
-  // Tile #4 — distinct origin countries from the rollup.
   const totalCountries = origins.length;
 
-  // Facet card data: top 5 each.
-  const uwcRows: FacetRow[] = data.uwcs.slice(0, 5).map((u) => ({
-    label: stripUwc(u.name),
+  // ---- Deep-dive facet builders. Each returns DeepDiveRow[] ----
+  const uwcRows: DeepDiveRow[] = data.uwcs.map((u) => ({
+    key: u.name,
+    label: u.name,
     count: u.n,
     href: `/directory?college=${encodeURIComponent(u.name)}`,
+    avatar: (
+      <UwcCoin logoUrl={u.logo ?? null} campusName={stripUwc(u.name)} size={22} />
+    ),
   }));
-  const companyRows: FacetRow[] = data.companies.slice(0, 5).map((c) => ({
+  const universityRows: DeepDiveRow[] = data.universities.map((u) => ({
+    key: u.name,
+    label: u.name,
+    count: u.n,
+    href: `/directory?university=${encodeURIComponent(u.name)}`,
+    avatar: (
+      <CompanyLogo
+        storedLogoUrl={u.logo}
+        website={null}
+        linkedinUrl={null}
+        companyName={u.name}
+        size={22}
+      />
+    ),
+  }));
+  const originRows: DeepDiveRow[] = origins.map((o) => {
+    const name = flags[o.iso.toLowerCase()]?.name ?? o.label;
+    return {
+      key: o.iso,
+      label: name,
+      count: o.n,
+      href: `/directory?origin=${encodeURIComponent(o.filterValue)}`,
+      avatar: (
+        <FlagRect iso={o.iso} flag={flags[o.iso.toLowerCase()]} width={26} />
+      ),
+    };
+  });
+  const decadeRows: DeepDiveRow[] = data.decadesRaw.map((d) => ({
+    key: d.decade,
+    label: d.decade,
+    count: d.n,
+    href: `/directory?yearFrom=${d.decade_start}&yearTo=${d.decade_start + 9}`,
+  }));
+  const workNowRows: DeepDiveRow[] = data.companies.map((c) => ({
+    key: c.name,
     label: c.name,
     count: c.n,
     href: `/directory?company=${encodeURIComponent(c.name)}`,
+    avatar: (
+      <CompanyLogo
+        storedLogoUrl={c.logo}
+        website={c.website}
+        linkedinUrl={c.linkedin}
+        companyName={c.name}
+        size={22}
+      />
+    ),
   }));
-  const originRows: FacetRow[] = origins.slice(0, 5).map((o) => {
-    const name = flags[o.iso.toLowerCase()]?.name ?? o.iso.toUpperCase();
-    return {
-      label: name,
-      count: o.n,
-      href: `/directory?origin=${encodeURIComponent(name)}`,
-    };
-  });
+  const industryRows: DeepDiveRow[] = data.industries.map((i) => ({
+    key: i.name,
+    label: i.name,
+    count: i.n,
+    href: `/directory?industry=${encodeURIComponent(i.name)}`,
+  }));
+  const sizeRows: DeepDiveRow[] = sizeBands.map((b) => ({
+    key: b.band,
+    label: b.label,
+    count: b.n,
+    href: `/directory?companySizeBand=${b.band}`,
+  }));
+  const experienceRows: DeepDiveRow[] = expBands.map((b) => ({
+    key: b.band,
+    label: EXP_BAND_LABELS[b.band] ?? b.band,
+    count: b.n,
+    href: `/directory?expBand=${b.band}`,
+  }));
+  const pastEmployerRows: DeepDiveRow[] = data.pastCompanies.map((c) => ({
+    key: c.name,
+    label: c.name,
+    count: c.n,
+    // Past employer → search the directory in "ever" scope so the
+    // filter actually catches people who worked there in the past.
+    href: `/directory?company=${encodeURIComponent(c.name)}&scope=ever`,
+    avatar: (
+      <CompanyLogo
+        storedLogoUrl={c.logo}
+        website={c.website}
+        linkedinUrl={c.linkedin}
+        companyName={c.name}
+        size={22}
+      />
+    ),
+  }));
+  const stageRows: DeepDiveRow[] = [
+    {
+      key: "working",
+      label: "Working professional",
+      count: workingCount,
+      href: "/directory",
+    },
+    {
+      key: "student",
+      label: "Currently in school",
+      count: studentCount,
+      href: "/directory",
+    },
+  ];
+  const cityRows: DeepDiveRow[] = cities.map((c) => ({
+    key: c.display,
+    label: c.display,
+    count: c.n,
+    href: `/directory?city=${encodeURIComponent(c.filterValue)}`,
+  }));
+  const regionRows: DeepDiveRow[] = data.regions.map((r) => ({
+    key: r.name,
+    label: r.name,
+    count: r.n,
+    href: `/directory?region=${encodeURIComponent(r.name)}`,
+  }));
+
+  // ---- Group definitions for the lens UI ----
+  const LENSES = [
+    { id: "background" as LensId, label: "Background" },
+    { id: "location" as LensId, label: "Location" },
+    { id: "career" as LensId, label: "Career" },
+  ];
+
+  const groupBackground = {
+    id: "background" as LensId,
+    eyebrow: "Background",
+    name: "Education & Origin",
+    desc: "Which UWC they attended, where they studied afterwards, where they're originally from, and when they graduated.",
+    leadStat: topUwc
+      ? `${stripUwc(topUwc.name)} leads · ${origins.length} countries of origin`
+      : `${origins.length} countries of origin`,
+    chips: [
+      `${data.uwcs.length} UWCs`,
+      `${data.universities.length} universities`,
+      `${origins.length} countries`,
+      `${data.decadesRaw.length} decades`,
+    ],
+    cols: 2,
+    facets: [
+      { icon: "globe" as IconName, title: "UWC attended", total: data.uwcs.length, rows: uwcRows },
+      { icon: "graduation-cap" as IconName, title: "University", total: data.universities.length, rows: universityRows },
+      { icon: "globe" as IconName, title: "Country of origin", total: origins.length, rows: originRows },
+      { icon: "graduation-cap" as IconName, title: "UWC graduation decade", total: data.decadesRaw.length, rows: decadeRows },
+    ],
+  };
+
+  const groupLocation = {
+    id: "location" as LensId,
+    eyebrow: "Location",
+    name: "Where they live",
+    desc: "Where Bay Area alumni are concentrated — by city and by region.",
+    leadStat: topCity
+      ? `${topCity.n} in ${topCity.display} · across the Bay & beyond`
+      : "Across the Bay & beyond",
+    chips: [
+      `${cities.length} cities`,
+      `${data.regions.length} regions`,
+    ],
+    cols: 2,
+    facets: [
+      { icon: "map-pin" as IconName, title: "City", total: cities.length, rows: cityRows },
+      { icon: "map-pin" as IconName, title: "Region", total: data.regions.length, rows: regionRows },
+    ],
+  };
+
+  const topCompanyName = data.companies[0]?.name;
+  const groupCareer = {
+    id: "career" as LensId,
+    eyebrow: "Career",
+    name: "Work",
+    desc: "Where alumni work now, in what industries, at what scale and seniority — plus where they've been.",
+    leadStat: topCompanyName
+      ? `${workingCount} working professionals · ${topCompanyName} leads`
+      : `${workingCount} working professionals`,
+    chips: ["Employers", "Industry", "Size", "Experience", "Past roles", "Stage"],
+    cols: 3,
+    facets: [
+      { icon: "building" as IconName, title: "Where alumni work now", total: data.companies.length, rows: workNowRows },
+      { icon: "briefcase" as IconName, title: "Industry", total: data.industries.length, rows: industryRows },
+      { icon: "bar-chart" as IconName, title: "Company size", total: sizeBands.length, rows: sizeRows },
+      { icon: "clock" as IconName, title: "Experience", total: expBands.length, rows: experienceRows },
+      { icon: "history" as IconName, title: "Past employers", total: data.pastCompanies.length, rows: pastEmployerRows },
+      { icon: "users" as IconName, title: "Stage", total: stageRows.length, rows: stageRows },
+    ],
+  };
+
+  const GROUPS = {
+    background: groupBackground,
+    location: groupLocation,
+    career: groupCareer,
+  } as const;
+
+  const activeGroup = lens ? GROUPS[lens] : null;
 
   return (
-    <section className="max-w-[1180px] mx-auto px-5 sm:px-7 py-8">
-      <div className="mb-6">
-        <h1
-          className="text-white font-extrabold leading-[1] tracking-[-0.02em]"
-          style={{
-            fontFamily: "Fraunces, Georgia, serif",
-            fontSize: "clamp(30px, 5.5vw, 38px)",
-          }}
-        >
-          Snapshot
-        </h1>
-        <p className="mt-[10px] text-[15px] text-white/75 max-w-[68ch]">
-          Where the {data.totalAlumni} Bay Area alumni cluster — tap anything
-          to open it in the directory.
-        </p>
-      </div>
+    <section className="max-w-[1180px] mx-auto px-5 sm:px-7 pt-3 pb-8 md:py-8">
+      {activeGroup ? (
+        <>
+          {/* Breadcrumb shown only on the drill-down view. */}
+          <div className="mb-3 text-[13px] text-white/[.62] flex items-center gap-2">
+            <Link
+              href="/directory/snapshot"
+              className="text-white/[.82] hover:text-white inline-flex items-center gap-[6px]"
+            >
+              <Icon name="arrow-left" size={14} strokeWidth={2} />
+              Snapshot
+            </Link>
+            <span className="opacity-50">/</span>
+            <span className="text-white font-semibold">{activeGroup.name}</span>
+          </div>
 
-      {/* Headline image tiles — 4 across desktop, 2 across phone. */}
-      {topUwc && topCohort && topCity && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-[14px] mb-6">
-          <SnapshotTile
-            href={`/directory?college=${encodeURIComponent(topUwc.name)}`}
-            eyebrow="Most-represented"
-            headline={stripUwc(topUwc.name)}
-            label={`UWC · ${topUwc.n} alumni`}
-            imageUrl={topUwc.campus}
-            fallbackIcon="graduation-cap"
-          />
-          <SnapshotTile
-            href={`/directory?yearFrom=${topCohort.decade_start}&yearTo=${topCohort.decade_start + 9}`}
-            eyebrow="Biggest cohort"
-            headline={topCohort.decade}
-            label={`${topCohort.n} alumni graduated`}
-            imageUrl="https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/events/uploads/7767d11e-41d0-4cd4-b77b-25ddfff9e597-rOmioX3oLBpspwH2wzJ0k6ABeMaJU5.jpg"
-            fallbackIcon="calendar"
-          />
-          <SnapshotTile
-            href={`/directory?city=${encodeURIComponent(topCity.filterValue)}`}
-            eyebrow="Where most live"
-            headline={topCity.display}
-            label={`${topCity.n} alumni here`}
-            imageUrl="https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/events/34/photos/1777478401653-nr08mr.jpg"
-            fallbackIcon="map-pin"
-          />
-          <SnapshotTile
-            href="#origin"
-            eyebrow="Origins"
-            headline={`${totalCountries} countries`}
-            label="across the globe"
-            imageUrl="/snapshot/world.png"
-            fallbackIcon="globe"
-          />
-        </div>
-      )}
-
-      {/* Top-5 facet cards — 3 across desktop, 2 across mobile. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <SnapshotFacetCard
-          icon="globe"
-          title="Top five UWC"
-          total={data.uwcs.length}
-          rows={uwcRows}
-        />
-        <SnapshotFacetCard
-          icon="building"
-          title="Top five employers"
-          total={data.companies.length}
-          rows={companyRows}
-        />
-        <SnapshotFacetCard
-          icon="users"
-          title="Top five origins"
-          total={origins.length}
-          rows={originRows}
-        />
-      </div>
-
-      <h2
-        className="text-white font-bold tracking-[.18em] uppercase text-[11px] mt-2 mb-3"
-        style={{ fontFamily: "Inter, system-ui, sans-serif" }}
-      >
-        Deeper look
-      </h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {/* 1. Current companies (≥2 alumni) */}
-        <SectionCard
-          title="Where alumni work now"
-          icon="building"
-          total={data.companies.length}
-        >
-          <ul className="space-y-0.5">
-            {data.companies.map((c) => (
-              <li key={c.name}>
-                <Link
-                  href={`/directory?company=${encodeURIComponent(c.name)}`}
-                  className="flex items-center justify-between gap-3 py-1.5 px-1 rounded hover:bg-[color:var(--ivory-2)] text-sm"
-                >
-                  <span className="flex items-center gap-2 min-w-0">
-                    <CompanyLogo
-                      storedLogoUrl={c.logo}
-                      website={c.website}
-                      linkedinUrl={c.linkedin}
-                      companyName={c.name}
-                      size={20}
-                    />
-                    <span className="truncate text-[color:var(--navy-ink)] font-medium">
-                      {c.name}
-                    </span>
-                  </span>
-                  <span className="shrink-0 inline-flex items-center justify-center min-w-[28px] h-[20px] rounded bg-ivory-2 border border-[color:var(--rule)] text-xs font-semibold text-navy tabular-nums px-1.5">
-                    {c.n}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* 2. UWC schools — logos curated via /admin/tools/uwc-assets */}
-        <SectionCard title="UWC" icon="globe" total={data.uwcs.length}>
-          <ul className="space-y-0.5">
-            {data.uwcs.map((u) => (
-              <li key={u.name}>
-                <Link
-                  href={`/directory?college=${encodeURIComponent(u.name)}`}
-                  className="flex items-center justify-between gap-3 py-1.5 px-1 rounded hover:bg-[color:var(--ivory-2)] text-sm"
-                >
-                  <span className="flex items-center gap-2 min-w-0">
-                    <UwcLogo url={u.logo} name={u.name} />
-                    <span className="truncate text-[color:var(--navy-ink)] font-medium">
-                      {u.name}
-                    </span>
-                  </span>
-                  <span className="shrink-0 inline-flex items-center justify-center min-w-[28px] h-[20px] rounded bg-ivory-2 border border-[color:var(--rule)] text-xs font-semibold text-navy tabular-nums px-1.5">
-                    {u.n}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* 3. Country of origin — anchor target for the world tile. */}
-        <div id="origin" className="contents">
-        <SectionCard
-          title="Origin"
-          icon="globe"
-          total={origins.length}
-        >
-          <ul className="space-y-0.5">
-            {origins.map((o) => (
-              <li key={o.iso}>
-                <CountRow
-                  href={`/directory?origin=${encodeURIComponent(o.filterValue)}`}
-                  count={o.n}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <FlagRect
-                      iso={o.iso}
-                      flag={flags[o.iso.toLowerCase()]}
-                      width={24}
-                    />
-                    {o.label}
-                  </span>
-                </CountRow>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-        </div>
-
-        {/* 4. Industries */}
-        <SectionCard
-          title="Industry"
-          icon="briefcase"
-          total={data.industries.length}
-        >
-          <ul className="space-y-0.5">
-            {data.industries.map((i) => (
-              <li key={i.name}>
-                <CountRow
-                  href={`/directory?industry=${encodeURIComponent(i.name)}`}
-                  count={i.n}
-                >
-                  {i.name}
-                </CountRow>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* 5. Company size */}
-        <SectionCard
-          title="Company size"
-          icon="bar-chart"
-          total={sizeBands.length}
-        >
-          <ul className="space-y-0.5">
-            {sizeBands.map((b) => (
-              <li key={b.band}>
-                <CountRow
-                  href={`/directory?companySizeBand=${b.band}`}
-                  count={b.n}
-                >
-                  {b.label}
-                </CountRow>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* 6. Cities */}
-        <SectionCard title="City" icon="map-pin" total={cities.length}>
-          <ul className="space-y-0.5">
-            {cities.map((c) => (
-              <li key={c.display}>
-                <CountRow
-                  href={`/directory?city=${encodeURIComponent(c.filterValue)}`}
-                  count={c.n}
-                >
-                  {c.display}
-                </CountRow>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* 7. Regions */}
-        <SectionCard title="Region" icon="map-pin" total={data.regions.length}>
-          <ul className="space-y-0.5">
-            {data.regions.map((r) => (
-              <li key={r.name}>
-                <CountRow
-                  href={`/directory?region=${encodeURIComponent(r.name)}`}
-                  count={r.n}
-                >
-                  {r.name}
-                </CountRow>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* 8. Universities */}
-        <SectionCard
-          title="University"
-          icon="graduation-cap"
-          total={data.universities.length}
-        >
-          <ul className="space-y-0.5">
-            {data.universities.map((u) => (
-              <li key={u.name}>
-                <CountRow
-                  href={`/directory?university=${encodeURIComponent(u.name)}`}
-                  count={u.n}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <CompanyLogo
-                      storedLogoUrl={u.logo}
-                      website={null}
-                      linkedinUrl={null}
-                      companyName={u.name}
-                      size={18}
-                    />
-                    {u.name}
-                  </span>
-                </CountRow>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* 9. Graduation decade */}
-        <SectionCard
-          title="UWC graduation decade"
-          icon="graduation-cap"
-          total={data.decadesRaw.length}
-        >
-          <ul className="space-y-0.5">
-            {data.decadesRaw.map((d) => (
-              <li key={d.decade}>
-                <CountRow
-                  href={`/directory?yearFrom=${d.decade_start}&yearTo=${d.decade_start + 9}`}
-                  count={d.n}
-                >
-                  {d.decade}
-                </CountRow>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-
-        {/* Career stage — students vs working */}
-        <SectionCard
-          title="Stage"
-          icon="users"
-          total={studentCount + workingCount}
-        >
-          <ul className="space-y-0.5">
-            <li>
-              <CountRow
-                href={`/directory?q=${encodeURIComponent("student")}`}
-                count={studentCount}
+          {/* Group header — title + desc on the left, lens switcher right. */}
+          <div className="flex items-end justify-between gap-6 mb-6 flex-wrap">
+            <div className="min-w-0">
+              <h1
+                className="text-white font-extrabold leading-[1] tracking-[-0.02em] m-0"
+                style={{
+                  fontFamily: "Fraunces, Georgia, serif",
+                  fontSize: "clamp(30px, 5.5vw, 38px)",
+                }}
               >
-                Currently in school
-              </CountRow>
-            </li>
-            <li>
-              <CountRow href={`/directory`} count={workingCount}>
-                Working professional
-              </CountRow>
-            </li>
-          </ul>
-        </SectionCard>
+                {activeGroup.name}
+              </h1>
+              <p className="mt-2 text-[15px] text-white/[.74] max-w-[560px] leading-[1.5]">
+                {activeGroup.desc}
+              </p>
+            </div>
+            <SnapshotLensSwitcher lenses={LENSES} active={activeGroup.id} />
+          </div>
 
-        {/* 10. Experience */}
-        <SectionCard
-          title="Experience"
-          icon="clock"
-          total={expBands.length}
-        >
-          <ul className="space-y-0.5">
-            {expBands.map((b) => (
-              <li key={b.band}>
-                <CountRow
-                  href={`/directory?expBand=${encodeURIComponent(b.band)}`}
-                  count={b.n}
-                >
-                  {EXP_BAND_LABELS[b.band] ?? b.band}
-                </CountRow>
-              </li>
+          <div
+            className="grid gap-[18px]"
+            style={{
+              gridTemplateColumns: `repeat(${activeGroup.cols}, minmax(0, 1fr))`,
+            }}
+          >
+            {activeGroup.facets.map((f) => (
+              <DeepDiveFacetCard
+                key={f.title}
+                icon={f.icon}
+                title={f.title}
+                total={f.total}
+                rows={f.rows}
+              />
             ))}
-          </ul>
-        </SectionCard>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="mb-6">
+            <h1
+              className="text-white font-extrabold leading-[1] tracking-[-0.02em]"
+              style={{
+                fontFamily: "Fraunces, Georgia, serif",
+                fontSize: "clamp(30px, 5.5vw, 38px)",
+              }}
+            >
+              Snapshot
+            </h1>
+            <p className="mt-[10px] text-[15px] text-white/75 max-w-[68ch]">
+              Where the {data.totalAlumni} Bay Area alumni cluster — the
+              headline numbers first, then dive deeper by area. Every tile
+              opens the directory, pre-filtered.
+            </p>
+          </div>
 
-        {/* 11. Past employers (alumni who've ever worked there) */}
-        <SectionCard
-          title="Past employers (≥3 alumni)"
-          icon="history"
-          total={data.pastCompanies.length}
-        >
-          <ul className="space-y-0.5">
-            {data.pastCompanies.map((c) => (
-              <li key={c.name}>
-                <Link
-                  href={`/directory?q=${encodeURIComponent(c.name)}`}
-                  className="flex items-center justify-between gap-3 py-1.5 px-1 rounded hover:bg-[color:var(--ivory-2)] text-sm"
-                >
-                  <span className="flex items-center gap-2 min-w-0">
-                    <CompanyLogo
-                      storedLogoUrl={c.logo}
-                      website={c.website}
-                      linkedinUrl={c.linkedin}
-                      companyName={c.name}
-                      size={20}
-                    />
-                    <span className="truncate text-[color:var(--navy-ink)]">
-                      {c.name}
-                    </span>
-                  </span>
-                  <span className="shrink-0 inline-flex items-center justify-center min-w-[28px] h-[20px] rounded bg-ivory-2 border border-[color:var(--rule)] text-xs font-semibold text-navy tabular-nums px-1.5">
-                    {c.n}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
-      </div>
+          {/* Headline image tiles — 4 across desktop, 2 across phone. */}
+          {topUwc && topCohort && topCity && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-[14px] mb-8">
+              <SnapshotTile
+                href={`/directory?college=${encodeURIComponent(topUwc.name)}`}
+                eyebrow="Most-represented"
+                headline={stripUwc(topUwc.name)}
+                label={`UWC · ${topUwc.n} alumni`}
+                imageUrl={topUwc.campus}
+                fallbackIcon="graduation-cap"
+              />
+              <SnapshotTile
+                href={`/directory?yearFrom=${topCohort.decade_start}&yearTo=${topCohort.decade_start + 9}`}
+                eyebrow="Biggest cohort"
+                headline={topCohort.decade}
+                label={`${topCohort.n} alumni graduated`}
+                imageUrl="https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/events/uploads/7767d11e-41d0-4cd4-b77b-25ddfff9e597-rOmioX3oLBpspwH2wzJ0k6ABeMaJU5.jpg"
+                fallbackIcon="calendar"
+              />
+              <SnapshotTile
+                href={`/directory?city=${encodeURIComponent(topCity.filterValue)}`}
+                eyebrow="Where most live"
+                headline={topCity.display}
+                label={`${topCity.n} alumni here`}
+                imageUrl="https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/events/34/photos/1777478401653-nr08mr.jpg"
+                fallbackIcon="map-pin"
+              />
+              <SnapshotTile
+                href="/directory/snapshot?lens=background#origin"
+                eyebrow="Origins"
+                headline={`${totalCountries} countries`}
+                label="across the globe"
+                imageUrl="/snapshot/world.png"
+                fallbackIcon="globe"
+              />
+            </div>
+          )}
+
+          {/* Deep-dive divider + 3 nav cards. */}
+          <div className="flex items-center gap-[14px] mt-[6px] mb-4">
+            <span className="text-[11px] font-extrabold tracking-[.2em] uppercase text-white/60 whitespace-nowrap">
+              Deep dive
+            </span>
+            <div className="flex-1 h-px bg-white/[.18]" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-[14px]">
+            <DeepDiveNavCard
+              href="/directory/snapshot?lens=background"
+              eyebrow={groupBackground.eyebrow}
+              name={groupBackground.name}
+              leadStat={groupBackground.leadStat}
+              chips={groupBackground.chips}
+            />
+            <DeepDiveNavCard
+              href="/directory/snapshot?lens=location"
+              eyebrow={groupLocation.eyebrow}
+              name={groupLocation.name}
+              leadStat={groupLocation.leadStat}
+              chips={groupLocation.chips}
+            />
+            <DeepDiveNavCard
+              href="/directory/snapshot?lens=career"
+              eyebrow={groupCareer.eyebrow}
+              name={groupCareer.name}
+              leadStat={groupCareer.leadStat}
+              chips={groupCareer.chips}
+            />
+          </div>
+        </>
+      )}
     </section>
   );
 }

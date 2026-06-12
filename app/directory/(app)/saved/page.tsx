@@ -34,12 +34,12 @@ export default async function SavedShortlistPage() {
   ]);
 
   return (
-    <section className="max-w-[1100px] mx-auto px-5 sm:px-7 py-10">
+    <section className="max-w-[1180px] mx-auto px-5 sm:px-7 pt-3 pb-8 md:py-8">
       <h1
-        className="text-white font-bold leading-[1] tracking-[-0.02em]"
+        className="text-white font-extrabold leading-[1] tracking-[-0.02em]"
         style={{
           fontFamily: "Fraunces, Georgia, serif",
-          fontSize: "clamp(38px, 6vw, 48px)",
+          fontSize: "clamp(30px, 5.5vw, 38px)",
         }}
       >
         Your shortlist
