@@ -23,7 +23,6 @@ export const SAVE_REASONS = [
   "meet",
   "job",
   "referral",
-  "mentor",
   "other",
 ] as const;
 export type SaveReason = (typeof SAVE_REASONS)[number];
@@ -41,7 +40,6 @@ export const REASON_LABELS: Record<SaveReason, string> = {
   meet: "Want to meet!",
   job: "Job opportunity",
   referral: "Referral / intro",
-  mentor: "Mentorship",
   other: "Other",
 };
 
