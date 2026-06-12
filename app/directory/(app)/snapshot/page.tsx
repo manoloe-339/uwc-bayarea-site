@@ -617,7 +617,7 @@ export default async function SnapshotPage({
   const groupCareer = {
     id: "career" as LensId,
     eyebrow: "Career",
-    name: "Work",
+    name: "Where we work",
     desc: "What we do now, and where we've worked.",
     leadStat: topCompanyName
       ? `${workingCount} working professionals · ${topCompanyName} leads`

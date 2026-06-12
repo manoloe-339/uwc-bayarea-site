@@ -1230,10 +1230,26 @@ function ChipBody({
     }
     return [];
   })();
-  // Filter suggestions live by what the user has typed.
+  // When the input is empty, surface a small RANDOM sample from
+  // the pool — locked in once per popover open via useMemo, so the
+  // chips don't shuffle on every keystroke. Once the user types,
+  // switch to substring-matching the full pool. Keeps "Apple /
+  // BCG / Meta" from being the eternal default while still letting
+  // anyone find them by typing a letter.
+  const randomSample = useMemo(() => {
+    if (allSugs.length <= 6) return allSugs;
+    const pool = allSugs.slice();
+    const out: string[] = [];
+    while (out.length < 6 && pool.length > 0) {
+      const idx = Math.floor(Math.random() * pool.length);
+      out.push(pool.splice(idx, 1)[0]);
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sugKey]);
   const sugs = raw.trim()
     ? allSugs.filter((s) => s.toLowerCase().includes(raw.toLowerCase()))
-    : allSugs;
+    : randomSample;
   return (
     <div>
       <input

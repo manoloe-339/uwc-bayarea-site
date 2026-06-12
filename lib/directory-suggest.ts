@@ -11,8 +11,14 @@
 import { sql } from "./db";
 import { extractCountryCodes } from "./country-flag";
 
-export async function getCompanySuggestions(limit = 30): Promise<string[]> {
-  // Top employers across both current and past roles, summed.
+export async function getCompanySuggestions(
+  limit = 100,
+  minAlumni = 4,
+): Promise<string[]> {
+  // Pool of real employers — at least N alumni connected (current
+  // + past). Client samples randomly from this pool on each
+  // popover open so the suggestions feel alive instead of always
+  // surfacing the same household names.
   const rows = (await sql`
     SELECT name, SUM(n)::int AS total FROM (
       SELECT current_company AS name, COUNT(*)::int AS n
@@ -39,6 +45,7 @@ export async function getCompanySuggestions(limit = 30): Promise<string[]> {
       AND name NOT ILIKE '%university%'
       AND name NOT ILIKE '%college%'
     GROUP BY name
+    HAVING SUM(n) >= ${minAlumni}
     ORDER BY total DESC
     LIMIT ${limit}
   `) as Array<{ name: string }>;
