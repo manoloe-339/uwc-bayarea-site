@@ -89,6 +89,46 @@ export function FlagCoin({ iso, flag, size = 20 }: FlagCoinProps) {
   );
 }
 
+/** Rectangular variant — the source SVGs are 4:3 already, so this
+ * shows the full flag instead of clipping to a circle. Use in lists
+ * where the natural shape reads better than a coin. */
+interface FlagRectProps {
+  iso: string;
+  flag?: { name: string; url: string };
+  /** Width in px. Height is computed at 3/4 (4:3 aspect). */
+  width?: number;
+}
+
+export function FlagRect({ iso, flag, width = 24 }: FlagRectProps) {
+  const height = Math.round((width * 3) / 4);
+  const style = { width, height };
+  if (!flag) {
+    return (
+      <span
+        className="inline-block rounded-[2px] bg-[color:var(--navy-ink)] shrink-0 ring-1 ring-[color:var(--rule)]"
+        style={style}
+        aria-label={iso}
+      />
+    );
+  }
+  return (
+    <span
+      className="inline-flex rounded-[2px] overflow-hidden bg-[color:var(--navy-ink)] shrink-0 ring-1 ring-[color:var(--rule)]"
+      style={style}
+      aria-label={flag.name}
+      title={flag.name}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={flag.url}
+        alt=""
+        className="w-full h-full object-cover"
+        loading="lazy"
+      />
+    </span>
+  );
+}
+
 interface FlagCoinsProps {
   isos: string[];
   flags: Record<string, { name: string; url: string }>;

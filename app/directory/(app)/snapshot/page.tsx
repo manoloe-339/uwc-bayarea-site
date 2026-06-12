@@ -7,7 +7,7 @@ import {
   type FacetRow,
 } from "@/components/directory/SnapshotFacetCard";
 import { Icon, type IconName } from "@/components/directory/Icon";
-import { FlagCoin } from "@/components/directory/Coins";
+import { FlagRect } from "@/components/directory/Coins";
 import {
   extractCountryCodes,
   originCountryNames,
@@ -696,10 +696,10 @@ export default async function SnapshotPage() {
                   count={o.n}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <FlagCoin
+                    <FlagRect
                       iso={o.iso}
                       flag={flags[o.iso.toLowerCase()]}
-                      size={18}
+                      width={24}
                     />
                     {o.label}
                   </span>
