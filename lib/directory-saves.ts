@@ -96,7 +96,7 @@ export async function upsertSave(args: {
   reason?: SaveReason | null;
   note?: string | null;
 }): Promise<DirectorySaveRow> {
-  const status = args.status ?? "not_contacted";
+  const status = args.status ?? "follow_up_later";
   const reason = args.reason ?? null;
   const note =
     args.note != null ? args.note.slice(0, MAX_NOTE_CHARS) : null;

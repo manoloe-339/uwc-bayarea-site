@@ -10,11 +10,8 @@
  */
 
 export const SAVE_STATUSES = [
-  "not_contacted",
   "invite_sent",
   "connected",
-  "replied",
-  "met",
   "follow_up_later",
 ] as const;
 export type SaveStatus = (typeof SAVE_STATUSES)[number];
@@ -28,11 +25,8 @@ export const SAVE_REASONS = [
 export type SaveReason = (typeof SAVE_REASONS)[number];
 
 export const STATUS_LABELS: Record<SaveStatus, string> = {
-  not_contacted: "📭 Not contacted",
   invite_sent: "✉️ Invite sent",
   connected: "🤝 Connected",
-  replied: "💬 Replied",
-  met: "☕ Met",
   follow_up_later: "⏰ Follow up later",
 };
 

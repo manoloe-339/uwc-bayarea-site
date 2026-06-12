@@ -46,7 +46,7 @@ export function SaveButton({ alumniId, initial, canSave, variant = "pill" }: Pro
   const upsert = async (patch: Partial<NonNullable<Initial>>) => {
     if (!canSave) return;
     const next = {
-      status: patch.status ?? saved?.status ?? "not_contacted",
+      status: patch.status ?? saved?.status ?? "follow_up_later",
       reason: patch.reason !== undefined ? patch.reason : saved?.reason ?? null,
       note: patch.note !== undefined ? patch.note : saved?.note ?? null,
     };
@@ -122,7 +122,7 @@ export function SaveButton({ alumniId, initial, canSave, variant = "pill" }: Pro
     if (saved) {
       setOpen((o) => !o);
     } else {
-      await upsert({ status: "not_contacted" });
+      await upsert({ status: "follow_up_later" });
       setOpen(true);
     }
   };

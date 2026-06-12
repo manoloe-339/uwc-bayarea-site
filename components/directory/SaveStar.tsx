@@ -103,7 +103,7 @@ export default function SaveStar({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           alumni_id: alumniId,
-          status: saved?.status ?? "not_contacted",
+          status: saved?.status ?? "follow_up_later",
           reason: r || null,
           note: (n ?? "").trim() || null,
         }),
@@ -114,7 +114,7 @@ export default function SaveStar({
         return;
       }
       setSaved({
-        status: saved?.status ?? "not_contacted",
+        status: saved?.status ?? "follow_up_later",
         reason: r || null,
         note: (n ?? "").trim() || null,
       });
@@ -134,7 +134,7 @@ export default function SaveStar({
   };
 
   /** Star click. If not saved → create the save immediately (with
-   * whatever's in initial / "not_contacted") AND open the modal so
+   * whatever's in initial / "follow_up_later") AND open the modal so
    * the user can optionally add reason + note (which then autosave).
    * If already saved → toggle off with a 5s undo window. */
   const handleStarClick = () => {

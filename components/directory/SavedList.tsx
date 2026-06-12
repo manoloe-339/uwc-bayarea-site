@@ -119,11 +119,8 @@ export default function SavedList({ allSaves }: Props) {
 
   // Group by status. Order: declared SAVE_STATUSES order.
   const groups: Record<SaveStatus, RowData[]> = {
-    not_contacted: [],
     invite_sent: [],
     connected: [],
-    replied: [],
-    met: [],
     follow_up_later: [],
   };
   for (const r of visibleSaves) groups[r.status].push(r);

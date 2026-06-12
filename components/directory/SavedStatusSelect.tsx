@@ -18,11 +18,8 @@ interface Props {
 }
 
 const STATUS_PILL: Record<SaveStatus, string> = {
-  not_contacted: "bg-slate-100 text-slate-800 border-slate-200",
   invite_sent: "bg-amber-50 text-amber-800 border-amber-200",
   connected: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  replied: "bg-sky-50 text-sky-800 border-sky-200",
-  met: "bg-violet-50 text-violet-800 border-violet-200",
   follow_up_later: "bg-orange-50 text-orange-800 border-orange-200",
 };
 
