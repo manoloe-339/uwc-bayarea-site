@@ -225,7 +225,7 @@ export default async function DirectoryProfilePage({
                       <img
                         src={uwcLogoUrl}
                         alt={row.uwc_college}
-                        className="h-[38px] w-auto block"
+                        className="h-[56px] sm:h-[72px] w-auto block"
                       />
                     </Link>
                   ) : (
