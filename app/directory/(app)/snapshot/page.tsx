@@ -597,7 +597,7 @@ export default async function SnapshotPage({
   const groupLocation = {
     id: "location" as LensId,
     eyebrow: "Location",
-    name: "Where they live",
+    name: "Where we live",
     desc: "Where Bay Area alumni are concentrated — by city and by region.",
     leadStat: topCity
       ? `${topCity.n} in ${topCity.display} · across the Bay & beyond`
