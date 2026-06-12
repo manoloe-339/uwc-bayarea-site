@@ -14,7 +14,6 @@ interface Props {
   href: string;
   eyebrow: string;
   name: string;
-  leadStat: string;
   chips: string[];
 }
 
@@ -22,7 +21,6 @@ export function DeepDiveNavCard({
   href,
   eyebrow,
   name,
-  leadStat,
   chips,
 }: Props) {
   return (
@@ -58,9 +56,6 @@ export function DeepDiveNavCard({
         }}
       >
         {name}
-      </div>
-      <div className="text-white/[.72] text-[13px] mt-[6px] leading-[1.4]">
-        {leadStat}
       </div>
       {chips.length > 0 && (
         <div className="flex flex-wrap gap-[6px] mt-[13px]">

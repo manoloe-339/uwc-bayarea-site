@@ -767,21 +767,18 @@ export default async function SnapshotPage({
               href="/directory/snapshot?lens=background"
               eyebrow={groupBackground.eyebrow}
               name={groupBackground.name}
-              leadStat={groupBackground.leadStat}
               chips={groupBackground.chips}
             />
             <DeepDiveNavCard
               href="/directory/snapshot?lens=location"
               eyebrow={groupLocation.eyebrow}
               name={groupLocation.name}
-              leadStat={groupLocation.leadStat}
               chips={groupLocation.chips}
             />
             <DeepDiveNavCard
               href="/directory/snapshot?lens=career"
               eyebrow={groupCareer.eyebrow}
               name={groupCareer.name}
-              leadStat={groupCareer.leadStat}
               chips={groupCareer.chips}
             />
           </div>
