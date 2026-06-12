@@ -1,8 +1,11 @@
+"use client";
+
 /**
  * Photo-led "gallery" card — the same chrome used on /directory and
- * /directory/saved. Server component (no client JS of its own). The
- * card's star slot accepts a client SaveStar; the shortlist passes a
- * client outreach footer in via `footer`.
+ * /directory/saved. Marked client because the inner LinkedIn /
+ * company anchors call e.stopPropagation() so a click on them does
+ * not also trigger the outer stretched-link to the detail page.
+ * (Server components can't receive event handlers.)
  *
  * Layout (top to bottom):
  *  1. Square photo full-bleed (object-cover) or navy gradient initials
