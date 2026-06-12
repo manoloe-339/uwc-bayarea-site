@@ -700,7 +700,7 @@ export default async function SnapshotPage({
         <>
           <div className="mb-6">
             <h1
-              className="text-white font-extrabold leading-[1] tracking-[-0.02em]"
+              className="hidden md:block text-white font-extrabold leading-[1] tracking-[-0.02em]"
               style={{
                 fontFamily: "Fraunces, Georgia, serif",
                 fontSize: "clamp(30px, 5.5vw, 38px)",
@@ -708,10 +708,8 @@ export default async function SnapshotPage({
             >
               Snapshot
             </h1>
-            <p className="mt-[10px] text-[15px] text-white/75 max-w-[68ch]">
-              Where the {data.totalAlumni} Bay Area alumni cluster — the
-              headline numbers first, then dive deeper by area. Every tile
-              opens the directory, pre-filtered.
+            <p className="md:mt-[10px] text-[15px] text-white/75 max-w-[68ch]">
+              Explore backgrounds and more.
             </p>
           </div>
 
