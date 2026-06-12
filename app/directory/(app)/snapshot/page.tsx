@@ -578,7 +578,7 @@ export default async function SnapshotPage() {
             eyebrow="Countries of origin"
             headline={`${totalCountries} countries`}
             label="across the globe"
-            imageUrl={null}
+            imageUrl="/snapshot/world.png"
             fallbackIcon="globe"
           />
         </div>
