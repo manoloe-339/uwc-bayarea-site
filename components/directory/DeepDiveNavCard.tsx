@@ -36,8 +36,7 @@ export function DeepDiveNavCard({
     >
       <div className="flex items-center justify-end mb-[13px]">
         <span
-          className="inline-grid place-items-center w-[30px] h-[30px] rounded-full text-white transition-all duration-150 group-hover:translate-x-[3px] group-hover:bg-white group-hover:text-navy"
-          style={{ background: "rgba(255,255,255,.14)" }}
+          className="inline-grid place-items-center w-[30px] h-[30px] rounded-full bg-white/[.14] text-white transition-all duration-150 group-hover:translate-x-[3px] group-hover:bg-white group-hover:text-navy"
         >
           <Icon
             name="arrow-left"
