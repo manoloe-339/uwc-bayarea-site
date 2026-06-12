@@ -598,7 +598,7 @@ export default async function SnapshotPage({
     id: "location" as LensId,
     eyebrow: "Location",
     name: "Where we live",
-    desc: "Where Bay Area alumni are concentrated — by city and by region.",
+    desc: "Where we live across the Bay and beyond.",
     leadStat: topCity
       ? `${topCity.n} in ${topCity.display} · across the Bay & beyond`
       : "Across the Bay & beyond",
@@ -618,7 +618,7 @@ export default async function SnapshotPage({
     id: "career" as LensId,
     eyebrow: "Career",
     name: "Work",
-    desc: "Where alumni work now, in what industries, at what scale and seniority — plus where they've been.",
+    desc: "What we do now, and where we've worked.",
     leadStat: topCompanyName
       ? `${workingCount} working professionals · ${topCompanyName} leads`
       : `${workingCount} working professionals`,
