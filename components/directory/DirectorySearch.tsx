@@ -707,6 +707,25 @@ function SearchHero({
   onQueryChange: (v: string) => void;
   onNlChange: (v: boolean) => void;
 }) {
+  // Mobile gets a shorter placeholder so it fits without truncating
+  // mid-word. We watch the viewport with matchMedia so the swap
+  // tracks live orientation changes.
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 640px)");
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  const placeholder = nl
+    ? narrow
+      ? "designers in san francisco"
+      : "Ask anything — “designers in climate who left Google”"
+    : narrow
+      ? "Name, company, school…"
+      : "Search by name, company, school, or country";
   return (
     <div
       className="relative flex items-center gap-[14px] rounded-[14px] px-[18px] pr-2 transition-colors"
@@ -726,11 +745,7 @@ function SearchHero({
         type="text"
         value={value}
         onChange={(e) => onQueryChange(e.target.value)}
-        placeholder={
-          nl
-            ? "Ask anything — “designers in climate who left Google”"
-            : "Search by name, company, school, or country"
-        }
+        placeholder={placeholder}
         className="flex-1 min-w-0 bg-transparent border-none outline-none text-white text-[17px] sm:text-[19px] py-[19px] placeholder:text-white/55"
       />
       <button
