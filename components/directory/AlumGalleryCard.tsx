@@ -79,12 +79,6 @@ export function AlumGalleryCard({
   const cityHref = alum.city
     ? `/directory?city=${encodeURIComponent(alum.city)}`
     : null;
-  const countryName = (iso: string) =>
-    flags[iso.toLowerCase()]?.name ?? iso.toUpperCase();
-  const countryHref = (iso: string) => {
-    const name = countryName(iso);
-    return `/directory?origin=${encodeURIComponent(name)}`;
-  };
 
   return (
     <article className="relative bg-white rounded-[18px] overflow-hidden flex flex-col shadow-[0_2px_0_rgba(2,28,56,.4),0_30px_56px_-30px_rgba(0,0,0,.6)] transition-transform transition-shadow duration-200 hover:-translate-y-[3px] hover:shadow-[0_2px_0_rgba(2,28,56,.4),0_40px_70px_-30px_rgba(0,0,0,.66)]">
@@ -136,7 +130,7 @@ export function AlumGalleryCard({
           {alum.displayName}
         </h3>
 
-        {(alum.campus || alum.gradYear != null) && (
+        {(alum.campus || alum.gradYear != null || alum.originIsos.length > 0) && (
           <div className="flex items-center flex-wrap gap-2 mt-[9px] text-[15px]">
             {alum.uwcCanonical && (
               <UwcCoin
@@ -162,25 +156,9 @@ export function AlumGalleryCard({
                 · {alum.gradYear}
               </span>
             )}
-          </div>
-        )}
-
-        {alum.originIsos.length > 0 && (
-          <div className="flex items-center gap-2 mt-[5px] text-[14px] text-[color:var(--muted)]">
-            <FlagCoins isos={alum.originIsos} flags={flags} />
-            <span className="min-w-0">
-              {alum.originIsos.map((iso, i) => (
-                <span key={iso + i}>
-                  {i > 0 && " · "}
-                  <Link
-                    href={countryHref(iso)}
-                    className="hover:text-navy hover:underline underline-offset-[3px]"
-                  >
-                    {countryName(iso)}
-                  </Link>
-                </span>
-              ))}
-            </span>
+            {alum.originIsos.length > 0 && (
+              <FlagCoins isos={alum.originIsos} flags={flags} size={18} />
+            )}
           </div>
         )}
 
@@ -246,13 +224,13 @@ export function AlumGalleryCard({
                 rel="noopener noreferrer"
                 aria-label="LinkedIn profile"
                 onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-[6px] bg-[#0A66C2] text-white shrink-0 hover:brightness-110"
+                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-[6px] bg-[#0A66C2] text-white text-[13px] font-bold leading-none shrink-0 hover:brightness-110"
               >
-                <Icon name="linkedin" size={14} filled />
+                in
               </a>
             ) : (
               <span
-                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-[6px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[10px] font-bold shrink-0"
+                className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-[6px] bg-[color:var(--ivory-2)] text-[color:var(--muted)] text-[13px] font-bold leading-none shrink-0"
                 title="No LinkedIn on file"
               >
                 in

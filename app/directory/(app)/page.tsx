@@ -22,11 +22,7 @@ import {
   pickCurrentLocation,
 } from "@/lib/location-moved";
 import { displayName, titleCase } from "@/lib/text-format";
-import {
-  getFlagMap,
-  getUwcLogoMap,
-  stripUwcPrefix,
-} from "@/lib/directory-lookups";
+import { getFlagMap, getUwcLogoMap } from "@/lib/directory-lookups";
 import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -606,7 +602,11 @@ function rowToAlumCard(row: DirectoryAlumnusRow): AlumCardData {
     photoUrl: row.photo_url,
     initials,
     uwcCanonical: row.uwc_college,
-    campus: stripUwcPrefix(row.uwc_college),
+    // Keep the full "UWC X" name on the cards — users prefer the
+    // explicit prefix even though the surrounding directory makes UWC
+    // implicit. The detail page still uses the wordmark logo, which
+    // makes the text prefix redundant there.
+    campus: row.uwc_college,
     gradYear: row.grad_year,
     originIsos: extractCountryCodes(row.origin),
     city: row.current_city ? titleCase(row.current_city) : null,

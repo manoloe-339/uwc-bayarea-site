@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { extractCountryCodes } from "@/lib/country-flag";
-import { stripUwcPrefix } from "@/lib/directory-lookups";
 import type { FlagMap, UwcLogoMap } from "@/lib/directory-lookups";
 import { linkedinHref } from "@/lib/linkedin-url";
 import { displayName, titleCase } from "@/lib/text-format";
@@ -73,7 +72,8 @@ function rowToAlumCard(row: RowData): AlumCardData {
     photoUrl: row.alum_photo_url,
     initials,
     uwcCanonical: row.alum_uwc_college,
-    campus: stripUwcPrefix(row.alum_uwc_college),
+    // Keep the "UWC " prefix on the card — matches /directory.
+    campus: row.alum_uwc_college,
     gradYear: row.alum_grad_year,
     originIsos: extractCountryCodes(row.alum_origin),
     city: row.alum_current_city ? titleCase(row.alum_current_city) : null,
