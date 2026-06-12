@@ -66,19 +66,23 @@ export function SnapshotTile({
             "linear-gradient(to top, rgba(7,24,46,.9), rgba(7,24,46,.1) 62%)",
         }}
       />
-      <span
-        className="absolute top-[13px] left-[16px] right-[16px] text-white/85 truncate"
-        style={{
-          fontFamily: "Inter, system-ui, sans-serif",
-          fontWeight: 800,
-          fontSize: 10,
-          letterSpacing: ".18em",
-          textTransform: "uppercase",
-        }}
-      >
-        {eyebrow}
-      </span>
+      {/* Bottom-anchored stack — eyebrow + headline + label all sit
+          on the dark portion of the scrim so the type stays readable
+          regardless of the underlying image. */}
       <div className="absolute left-[16px] right-[16px] bottom-[14px] text-white">
+        <div
+          className="text-white/85 mb-[4px]"
+          style={{
+            fontFamily: "Inter, system-ui, sans-serif",
+            fontWeight: 800,
+            fontSize: 10,
+            letterSpacing: ".18em",
+            textTransform: "uppercase",
+            lineHeight: 1.15,
+          }}
+        >
+          {eyebrow}
+        </div>
         <div
           className="leading-[1.04] tracking-[-.01em]"
           style={{

@@ -551,7 +551,7 @@ export default async function SnapshotPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-[14px] mb-6">
           <SnapshotTile
             href={`/directory?college=${encodeURIComponent(topUwc.name)}`}
-            eyebrow="Most-represented school"
+            eyebrow="Most-represented"
             headline={stripUwc(topUwc.name)}
             label={`UWC · ${topUwc.n} alumni`}
             imageUrl={topUwc.campus}
@@ -575,7 +575,7 @@ export default async function SnapshotPage() {
           />
           <SnapshotTile
             href="#origin"
-            eyebrow="Countries of origin"
+            eyebrow="Origins"
             headline={`${totalCountries} countries`}
             label="across the globe"
             imageUrl="/snapshot/world.png"
