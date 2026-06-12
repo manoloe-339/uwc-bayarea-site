@@ -59,7 +59,7 @@ export default async function HomePage() {
   const slides: HeroSlide[] = heroSlides.map((s) => ({ ...s }));
 
   return (
-    <div className="bg-[color:var(--ivory)] text-[color:var(--navy-ink)]">
+    <div className="bg-navy text-[color:var(--navy-ink)]">
       <PageviewBeacon path="/" />
       <SiteHeader active="home" />
       <HeroCarousel slides={slides} />
