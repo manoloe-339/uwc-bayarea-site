@@ -581,7 +581,8 @@ export default async function SnapshotPage({
   const groupBackground = {
     id: "background" as LensId,
     eyebrow: "Background",
-    name: "UWC, origins and universities",
+    name: "Where we're from",
+    subtitle: "UWC, Origins and Universities",
     desc: "Where we studied and where we're from.",
     leadStat: topUwc
       ? `${stripUwc(topUwc.name)} leads · ${origins.length} countries of origin`
@@ -770,6 +771,7 @@ export default async function SnapshotPage({
               href="/directory/snapshot?lens=background"
               eyebrow={groupBackground.eyebrow}
               name={groupBackground.name}
+              subtitle={groupBackground.subtitle}
               chips={groupBackground.chips}
             />
             <DeepDiveNavCard

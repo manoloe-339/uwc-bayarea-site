@@ -14,6 +14,10 @@ interface Props {
   href: string;
   eyebrow: string;
   name: string;
+  /** Optional small descriptor under the name — used when the
+   * group's title is broad (e.g. "Where we're from") and needs to
+   * spell out what's actually inside. */
+  subtitle?: string;
   chips: string[];
 }
 
@@ -21,6 +25,7 @@ export function DeepDiveNavCard({
   href,
   eyebrow,
   name,
+  subtitle,
   chips,
 }: Props) {
   return (
@@ -57,6 +62,11 @@ export function DeepDiveNavCard({
       >
         {name}
       </div>
+      {subtitle && (
+        <div className="text-white/[.72] text-[13px] mt-[6px] leading-[1.4]">
+          {subtitle}
+        </div>
+      )}
       {chips.length > 0 && (
         <div className="flex flex-wrap gap-[6px] mt-[13px]">
           {chips.map((c) => (
