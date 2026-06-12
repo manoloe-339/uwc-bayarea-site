@@ -678,11 +678,14 @@ export default async function SnapshotPage({
             <SnapshotLensSwitcher lenses={LENSES} active={activeGroup.id} />
           </div>
 
+          {/* Single column on phones — the multi-column layout is
+              unreadable with truncated labels at narrow widths. */}
           <div
-            className="grid gap-[18px]"
-            style={{
-              gridTemplateColumns: `repeat(${activeGroup.cols}, minmax(0, 1fr))`,
-            }}
+            className={`grid gap-[18px] grid-cols-1 ${
+              activeGroup.cols >= 3
+                ? "md:grid-cols-2 lg:grid-cols-3"
+                : "md:grid-cols-2"
+            }`}
           >
             {activeGroup.facets.map((f) => (
               <DeepDiveFacetCard
