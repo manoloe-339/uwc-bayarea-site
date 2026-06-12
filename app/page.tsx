@@ -63,15 +63,15 @@ export default async function HomePage() {
       <PageviewBeacon path="/" />
       <SiteHeader active="home" />
       <HeroCarousel slides={slides} />
+      <JoinInterrupt alumniCount={alumniCount} />
+      <FoodiesSection meals={foodies} recent={recentFoodies} whatsappUrl={settings.whatsapp_url} />
+      <OtherGatheringsSection gatherings={otherGatherings} />
       <WhatsAppBand
         url={settings.whatsapp_url}
         headline="Connect"
         body="We have a WhatsApp Community for UWC Bay Area. Must be registered in our SF Bay Area mailing list or a UWC alumnus visiting. All Foodie events are coordinated through WhatsApp."
         ctaLabel="Join UWC Bay Area WhatsApp →"
       />
-      <FoodiesSection meals={foodies} recent={recentFoodies} whatsappUrl={settings.whatsapp_url} />
-      <OtherGatheringsSection gatherings={otherGatherings} />
-      <JoinInterrupt alumniCount={alumniCount} />
       <AlumniNewsSection display={newsDisplay} />
       <SiteFooter />
     </div>
@@ -86,7 +86,7 @@ function WhatsAppBand({
   url: string | null; headline: string; body: string; ctaLabel: string;
 }) {
   return (
-    <section className="relative bg-navy text-white overflow-hidden px-6 py-9 sm:px-16 sm:py-[52px]">
+    <section className="relative bg-[color:var(--navy-deep)] text-white overflow-hidden px-6 py-9 sm:px-16 sm:py-[52px]">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -595,7 +595,7 @@ function JoinInterrupt({ alumniCount }: { alumniCount: number }) {
   const rounded = Math.max(50, Math.floor(alumniCount / 50) * 50);
   return (
     <section
-      className="bg-[color:var(--navy-deep)] text-white text-center relative overflow-hidden px-6 py-14 sm:px-16 sm:py-[88px]"
+      className="bg-navy text-white text-center relative overflow-hidden px-6 py-14 sm:px-16 sm:py-[88px]"
     >
       <div className="w-16 h-px bg-white/40 mx-auto mb-6" />
       <Eyebrow color="rgba(255,255,255,.7)">Member sign-up · 2026</Eyebrow>
