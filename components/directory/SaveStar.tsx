@@ -355,10 +355,6 @@ export default function SaveStar({
                 </div>
               )}
 
-              <p className="text-[11px] text-[color:var(--muted)] italic">
-                Changes save automatically. Manage status or remove on the Saved page.
-              </p>
-
               <div className="flex items-center justify-end gap-3 pt-1">
                 <span
                   className={`text-[10px] tracking-[.18em] uppercase font-bold ${
