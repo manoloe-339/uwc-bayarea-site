@@ -34,6 +34,11 @@ export interface AlumCardData {
    * a head-favouring default ("50 25") when null. */
   photoFocalX: number | null;
   photoFocalY: number | null;
+  /** Pre-baked head-focused JPEG (tight crop, ~1.64:1 aspect).
+   * Used in the 220 px wide band — the shortlist always, and the
+   * directory on ≤560px (mobile). Falls back to photoUrl + focal
+   * when null. */
+  photoHeadshotUrl: string | null;
   initials: string;
   /** Canonical (with "UWC " prefix) — used for filter links. */
   uwcCanonical: string | null;
@@ -71,6 +76,74 @@ interface Props {
    * cleanly inside the band — the source image's aspect never
    * drives the card's own height. */
   photoHeight?: number;
+}
+
+/**
+ * Picks the right photo source(s) for the card's photo band.
+ * - Shortlist (photoHeight set) → always the wide-band headshot.
+ * - Directory + mobile (≤560px) → wide band → use headshot.
+ * - Directory + desktop (≥561px) → square aspect → use full photo +
+ *   focal-point object-position.
+ *
+ * The two-image desktop/mobile split renders both <img> tags and
+ * relies on CSS media-query visibility classes to show only one.
+ * `display: none` images don't fetch in modern Chromium/Safari, so
+ * the cost is minimal.
+ */
+function PhotoLayer({
+  alum,
+  photoHeight,
+}: {
+  alum: AlumCardData;
+  photoHeight?: number;
+}) {
+  const focalStyle = {
+    objectPosition:
+      alum.photoFocalX != null && alum.photoFocalY != null
+        ? `${alum.photoFocalX}% ${alum.photoFocalY}%`
+        : "50% 25%",
+  };
+  // Wide-band source: headshot when we have one, otherwise the
+  // full photo with the focal-point fallback (still better than
+  // nothing while the bake catches up).
+  const wideSrc = alum.photoHeadshotUrl ?? alum.photoUrl!;
+  const wideStyle = alum.photoHeadshotUrl ? undefined : focalStyle;
+
+  if (photoHeight != null) {
+    // Shortlist — always wide band.
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={wideSrc}
+        alt=""
+        className="w-full h-full object-cover block"
+        style={wideStyle}
+        loading="lazy"
+      />
+    );
+  }
+
+  // Directory: mobile = wide band (headshot), desktop = square (full).
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={wideSrc}
+        alt=""
+        className="w-full h-full object-cover block [@media(min-width:561px)]:hidden"
+        style={wideStyle}
+        loading="lazy"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={alum.photoUrl!}
+        alt=""
+        className="w-full h-full object-cover hidden [@media(min-width:561px)]:block"
+        style={focalStyle}
+        loading="lazy"
+      />
+    </>
+  );
 }
 
 export function AlumGalleryCard({
@@ -115,19 +188,7 @@ export function AlumGalleryCard({
           style={photoHeight != null ? { height: `${photoHeight}px` } : undefined}
         >
           {alum.photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={alum.photoUrl}
-              alt=""
-              className="w-full h-full object-cover block"
-              style={{
-                objectPosition:
-                  alum.photoFocalX != null && alum.photoFocalY != null
-                    ? `${alum.photoFocalX}% ${alum.photoFocalY}%`
-                    : "50% 25%",
-              }}
-              loading="lazy"
-            />
+            <PhotoLayer alum={alum} photoHeight={photoHeight} />
           ) : (
             <div
               className="w-full h-full flex items-center justify-center text-white"

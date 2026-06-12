@@ -39,6 +39,7 @@ interface RowData {
   alum_photo_url: string | null;
   alum_photo_focal_x: number | null;
   alum_photo_focal_y: number | null;
+  alum_photo_headshot_url: string | null;
   alum_linkedin_url: string | null;
   alum_origin: string | null;
   /** LinkedIn-served "current_location" + "location_full" come back as
@@ -74,6 +75,7 @@ function rowToAlumCard(row: RowData): AlumCardData {
     photoUrl: row.alum_photo_url,
     photoFocalX: row.alum_photo_focal_x,
     photoFocalY: row.alum_photo_focal_y,
+    photoHeadshotUrl: row.alum_photo_headshot_url,
     initials,
     uwcCanonical: row.alum_uwc_college,
     // Keep the "UWC " prefix on the card — matches /directory.
@@ -184,6 +186,7 @@ export default function SavedList({ allSaves, uwcLogos, flags }: Props) {
               uwcLogos={uwcLogos}
               flags={flags}
               backFrom="/directory/saved"
+              photoHeight={220}
               star={
                 <SaveStar
                   alumniId={row.alumni_id}

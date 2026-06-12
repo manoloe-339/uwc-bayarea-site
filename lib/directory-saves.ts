@@ -39,6 +39,7 @@ export type DirectorySaveRow = {
   alum_photo_url: string | null;
   alum_photo_focal_x: number | null;
   alum_photo_focal_y: number | null;
+  alum_photo_headshot_url: string | null;
   alum_linkedin_url: string | null;
   alum_origin: string | null;
   /** Live-location columns (LinkedIn-derived). Used by the
@@ -65,6 +66,7 @@ export async function listSavesForUser(
            a.photo_url       AS alum_photo_url,
            a.photo_focal_x   AS alum_photo_focal_x,
            a.photo_focal_y   AS alum_photo_focal_y,
+           a.photo_headshot_url AS alum_photo_headshot_url,
            a.linkedin_url    AS alum_linkedin_url,
            a.origin          AS alum_origin,
            a.current_location,

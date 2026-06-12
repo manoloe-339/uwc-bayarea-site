@@ -426,6 +426,7 @@ function rowToAlumCard(row: DirectoryAlumnusRow): AlumCardData {
     photoUrl: row.photo_url,
     photoFocalX: row.photo_focal_x,
     photoFocalY: row.photo_focal_y,
+    photoHeadshotUrl: row.photo_headshot_url,
     initials,
     uwcCanonical: row.uwc_college,
     // Keep the full "UWC X" name on the cards — users prefer the

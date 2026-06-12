@@ -89,6 +89,7 @@ export type DirectoryAlumnusRow = {
    * face was found). Used by the UI for object-position. */
   photo_focal_x: number | null;
   photo_focal_y: number | null;
+  photo_headshot_url: string | null;
   headline: string | null;
   linkedin_about: string | null;
   linkedin_url: string | null;
@@ -134,7 +135,7 @@ export type DirectoryEducationRow = {
 const SELECT_DIRECTORY_FIELDS = `
   id, first_name, last_name, uwc_college, grad_year,
   current_city, region, origin,
-  photo_url, photo_focal_x, photo_focal_y,
+  photo_url, photo_focal_x, photo_focal_y, photo_headshot_url,
   headline, linkedin_about, linkedin_url,
   current_title, current_company, current_company_linkedin,
   current_company_industry, current_company_size,

@@ -65,12 +65,25 @@ function clampPercent(v: number) {
   return n;
 }
 
-export type Focal = { x: number; y: number };
+export type FaceBox = {
+  /** Focal point — center of face, biased slightly upward so the
+   *  composition reads as "head + sliver of shoulder". 0..100. */
+  focalX: number;
+  focalY: number;
+  /** Face bounding box in source-image pixels. Used by the batch
+   *  runner to bake a tight head-focused derivative. */
+  pixelX: number;
+  pixelY: number;
+  pixelW: number;
+  pixelH: number;
+  /** Source image dimensions in pixels. */
+  imgW: number;
+  imgH: number;
+};
 
-/** Detect the dominant face in a JPEG/PNG buffer. Returns {x,y} as
- *  0..100 ints (percentages of the source image) or null if no face
- *  cleared the 0.5 confidence threshold. */
-export async function detectFocal(buf: Buffer): Promise<Focal | null> {
+/** Detect the dominant face in a JPEG/PNG buffer. Returns box + focal
+ *  metrics, or null if no face cleared the 0.5 confidence threshold. */
+export async function detectFace(buf: Buffer): Promise<FaceBox | null> {
   await init();
   const { tensor, width, height } = await bufferToTensor(buf);
   try {
@@ -89,13 +102,17 @@ export async function detectFocal(buf: Buffer): Promise<Focal | null> {
         bestArea = a;
       }
     }
-    // Pull the focal slightly above face center — composes as
-    // "head + a sliver of neck/shoulder" rather than face-dead-centered.
     const cx = best.box.x + best.box.width / 2;
     const cy = best.box.y + best.box.height * 0.45;
     return {
-      x: clampPercent((cx / width) * 100),
-      y: clampPercent((cy / height) * 100),
+      focalX: clampPercent((cx / width) * 100),
+      focalY: clampPercent((cy / height) * 100),
+      pixelX: best.box.x,
+      pixelY: best.box.y,
+      pixelW: best.box.width,
+      pixelH: best.box.height,
+      imgW: width,
+      imgH: height,
     };
   } finally {
     tensor.dispose();
