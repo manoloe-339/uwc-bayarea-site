@@ -33,6 +33,11 @@ export async function getCompanySuggestions(limit = 30): Promise<string[]> {
       GROUP BY c.company
     ) u
     WHERE name <> ''
+      -- Skip schools that leak into the company list (Minerva
+      -- University, Stanford University, UC Berkeley, etc.).
+      -- Universities live behind the dedicated University chip.
+      AND name NOT ILIKE '%university%'
+      AND name NOT ILIKE '%college%'
     GROUP BY name
     ORDER BY total DESC
     LIMIT ${limit}
