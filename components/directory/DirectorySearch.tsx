@@ -341,7 +341,7 @@ export default function DirectorySearch({
       <SearchHero
         value={working.q}
         nl={working.nl}
-        onQueryChange={(v) => setField("q", v, "debounced")}
+        onQueryChange={(v) => setField("q", v)}
         onNlChange={(v) => setField("nl", v)}
       />
 
@@ -862,9 +862,23 @@ function SearchHero({
 }: {
   value: string;
   nl: boolean;
+  /** Called only on Enter / blur — typing is buffered locally so
+   * the result grid doesn't re-render on every keystroke. */
   onQueryChange: (v: string) => void;
   onNlChange: (v: boolean) => void;
 }) {
+  // Local draft so typing is purely client-side; commit only on
+  // Enter or blur. Stay in sync when the URL-driven `value` prop
+  // changes from elsewhere (e.g. Clear all, chip filter applied).
+  const [draft, setDraft] = useState(value);
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+  const commit = () => {
+    const next = draft.trim();
+    if (next === value) return;
+    onQueryChange(next);
+  };
   // Mobile gets a shorter placeholder so it fits without truncating
   // mid-word. We watch the viewport with matchMedia so the swap
   // tracks live orientation changes.
@@ -905,8 +919,17 @@ function SearchHero({
       </span>
       <input
         type="text"
-        value={value}
-        onChange={(e) => onQueryChange(e.target.value)}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            (e.target as HTMLInputElement).blur();
+            commit();
+          }
+        }}
+        onBlur={commit}
+        enterKeyHint="search"
         placeholder={placeholder}
         className="flex-1 min-w-0 bg-transparent border-none outline-none text-white text-[16px] sm:text-[19px] py-[10px] sm:py-[19px] placeholder:text-white/55"
       />
