@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { sql } from "@/lib/db";
+import { COLLEGES } from "@/lib/uwc-colleges";
 import { CompanyLogo } from "@/components/directory/CompanyLogo";
 import { SnapshotTile } from "@/components/directory/SnapshotTile";
 import { DeepDiveNavCard } from "@/components/directory/DeepDiveNavCard";
@@ -442,6 +443,12 @@ export default async function SnapshotPage({
   const topCohort = data.decadesRaw.slice().sort((a, b) => b.n - a.n)[0];
   const topCity = cities[0];
   const stripUwc = (s: string) => s.replace(/^UWC\s+/, "");
+  // Headline picks the curated `short` form per college from
+  // lib/uwc-colleges (e.g. "UWCSEA" instead of "South East Asia")
+  // so the tile doesn't wrap awkwardly on mobile.
+  const topUwcShort =
+    (topUwc && COLLEGES.find((c) => c.canonical === topUwc.name)?.short) ||
+    (topUwc ? stripUwc(topUwc.name) : "");
   const totalCountries = origins.length;
 
   // ---- Deep-dive facet builders. Each returns DeepDiveRow[] ----
@@ -719,7 +726,7 @@ export default async function SnapshotPage({
               <SnapshotTile
                 href={`/directory?college=${encodeURIComponent(topUwc.name)}`}
                 eyebrow="Most-represented"
-                headline={stripUwc(topUwc.name)}
+                headline={topUwcShort}
                 label={`UWC · ${topUwc.n} alumni`}
                 imageUrl={topUwc.campus}
                 fallbackIcon="graduation-cap"

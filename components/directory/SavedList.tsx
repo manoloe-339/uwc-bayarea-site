@@ -161,7 +161,7 @@ export default function SavedList({ allSaves, uwcLogos, flags }: Props) {
   if (visibleSaves.length === 0) {
     return (
       <>
-        <p className="text-[17px] text-white/75 mt-3 mb-6">
+        <p className="hidden md:block text-[17px] text-white/75 mt-3 mb-6">
           0 saved · personal to your account
         </p>
         <div className="bg-white/[.06] backdrop-blur-md border border-white/15 rounded-[18px] p-10 text-center text-white/70 text-sm">
@@ -173,7 +173,7 @@ export default function SavedList({ allSaves, uwcLogos, flags }: Props) {
 
   return (
     <>
-      <p className="text-[17px] text-white/75 mt-3 mb-7">
+      <p className="hidden md:block text-[17px] text-white/75 mt-3 mb-7">
         {visibleSaves.length} saved · personal to your account
       </p>
 
