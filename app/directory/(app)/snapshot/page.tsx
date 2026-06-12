@@ -588,9 +588,9 @@ export default async function SnapshotPage({
     cols: 2,
     facets: [
       { icon: "globe" as IconName, title: "UWC attended", total: data.uwcs.length, rows: uwcRows },
-      { icon: "graduation-cap" as IconName, title: "University", total: data.universities.length, rows: universityRows },
+      { icon: "calendar" as IconName, title: "Cohort", total: data.decadesRaw.length, rows: decadeRows },
       { icon: "globe" as IconName, title: "Country of origin", total: origins.length, rows: originRows },
-      { icon: "graduation-cap" as IconName, title: "UWC graduation decade", total: data.decadesRaw.length, rows: decadeRows },
+      { icon: "graduation-cap" as IconName, title: "University", total: data.universities.length, rows: universityRows },
     ],
   };
 
