@@ -262,22 +262,29 @@ export default async function DirectoryPage({
               ? `Welcome, ${me.first_name.trim()}`
               : "Directory"}
           </h1>
-          <p className="mt-[14px] text-[15px] sm:text-[17px] text-white/75">
-            Search, and connect on LinkedIn.{" "}
-            <Link
-              href="/directory/snapshot"
-              className="underline decoration-white/40 underline-offset-2 hover:text-white hover:decoration-white"
-            >
-              Snapshot
-            </Link>
-            {" · "}
-            <Link
-              href="/directory/saved"
-              className="underline decoration-white/40 underline-offset-2 hover:text-white hover:decoration-white"
-            >
-              Shortlist
-            </Link>
-          </p>
+          <div className="mt-[14px] space-y-[2px] text-[15px] sm:text-[17px] text-white/75">
+            <p className="m-0">Search, and connect on LinkedIn.</p>
+            <p className="m-0">
+              Explore on{" "}
+              <Link
+                href="/directory/snapshot"
+                className="underline decoration-white/40 underline-offset-2 hover:text-white hover:decoration-white"
+              >
+                Snapshot
+              </Link>
+              .
+            </p>
+            <p className="m-0">
+              Keep track of outreach on{" "}
+              <Link
+                href="/directory/saved"
+                className="underline decoration-white/40 underline-offset-2 hover:text-white hover:decoration-white"
+              >
+                Shortlist
+              </Link>
+              .
+            </p>
+          </div>
         </div>
         <StatsCluster
           alumni={stats.alumni}
