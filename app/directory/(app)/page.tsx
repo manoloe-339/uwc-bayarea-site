@@ -203,10 +203,35 @@ export default async function DirectoryPage({
   const currentUserAlumniId =
     session?.kind === "user" ? session.user.alumni_id : null;
 
+  // Re-shuffle the grid on "fresh landings" — hard reload, or
+  // navigation from snapshot / saved / detail / external — but ONLY
+  // when no filter is set. Intra-page chip clicks (referer pathname
+  // is bare /directory) keep the existing stable filter-derived
+  // seed so the cards don't reshuffle mid-search.
+  let seedOverride: string | undefined;
+  if (!hasAnyFilter) {
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    const referer = h.get("referer") ?? "";
+    let refPath = "";
+    try {
+      refPath = new URL(referer).pathname;
+    } catch {
+      // empty / malformed referer → treat as fresh
+    }
+    const cameFromBareDirectory = refPath === "/directory";
+    if (!cameFromBareDirectory) {
+      // Time-based seed: changes each request, so every fresh
+      // arrival surfaces a different mix. Cards stay put while the
+      // user clicks around the same page.
+      seedOverride = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+  }
+
   const { sql } = await import("@/lib/db");
   const [rows, total, mySaves, suggest, stats, currentUserName, grandTotal] =
     await Promise.all([
-      searchDirectoryAlumni(filters, 500),
+      searchDirectoryAlumni(filters, 500, seedOverride),
       countDirectoryAlumni(filters),
       userId ? listSavesForUser(userId) : Promise.resolve([]),
       getDirectorySuggestData(),

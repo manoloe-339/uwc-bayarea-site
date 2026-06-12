@@ -315,13 +315,19 @@ function filterSeed(f: DirectoryFilters): string {
 export async function searchDirectoryAlumni(
   f: DirectoryFilters,
   limit = 500,
+  /** When set, overrides the deterministic filter-derived order
+   * seed. Used by the page to inject a fresh seed on "landing"
+   * events (hard reload, navigation from snapshot/saved/detail),
+   * so the cards re-shuffle when the user arrives at /directory
+   * with no filters — but stay put when they click chips. */
+  seedOverride?: string,
 ): Promise<DirectoryAlumnusRow[]> {
   const { where, params } = buildWhere(f);
   // Default order is a hash of the filter seed + alum id — gives a
   // "random-looking" shuffle so the directory still reads as a
   // discovery surface, but identical filters return the same order.
   // Without this every chip / NL / scope toggle re-rolls the grid.
-  params.push(filterSeed(f));
+  params.push(seedOverride ?? filterSeed(f));
   const seedIdx = params.length;
   const rows = (await sql.query(
     `SELECT ${SELECT_DIRECTORY_FIELDS}
