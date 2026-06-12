@@ -7,6 +7,7 @@ import {
   type FacetRow,
 } from "@/components/directory/SnapshotFacetCard";
 import { Icon, type IconName } from "@/components/directory/Icon";
+import { FlagCoin } from "@/components/directory/Coins";
 import {
   extractCountryCodes,
   originCountryNames,
@@ -694,13 +695,14 @@ export default async function SnapshotPage() {
                   href={`/directory?origin=${encodeURIComponent(o.filterValue)}`}
                   count={o.n}
                 >
-                  <span
-                    className="mr-2 text-[16px] leading-none text-black"
-                    style={{ fontVariantEmoji: "emoji" }}
-                  >
-                    {o.flag}
+                  <span className="inline-flex items-center gap-2">
+                    <FlagCoin
+                      iso={o.iso}
+                      flag={flags[o.iso.toLowerCase()]}
+                      size={18}
+                    />
+                    {o.label}
                   </span>
-                  {o.label}
                 </CountRow>
               </li>
             ))}
