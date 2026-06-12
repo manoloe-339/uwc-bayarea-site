@@ -582,6 +582,32 @@ function MobileFilterSheet({
   if (activeCfg) lastCfgRef.current = activeCfg;
   const dcfg = activeCfg ?? lastCfgRef.current;
 
+  // Track the iOS visual viewport so we can keep the sheet's footer
+  // visible above the keyboard. `vh` is measured against the layout
+  // viewport which doesn't shrink for the keyboard, so without this
+  // the Apply / Clear all row falls behind the keyboard.
+  const [kbOffset, setKbOffset] = useState(0);
+  const [vvHeight, setVvHeight] = useState<number | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const sync = () => {
+      const occluded = Math.max(
+        0,
+        window.innerHeight - vv.height - vv.offsetTop,
+      );
+      setKbOffset(occluded);
+      setVvHeight(vv.height);
+    };
+    sync();
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    return () => {
+      vv.removeEventListener("resize", sync);
+      vv.removeEventListener("scroll", sync);
+    };
+  }, []);
+
   const Row = ({ cfg }: { cfg: ChipCfg }) => {
     const value = chipValue(cfg.id);
     return (
@@ -629,12 +655,20 @@ function MobileFilterSheet({
         className="absolute bg-white overflow-hidden flex flex-col"
         style={{
           // Inset on phone so the sheet floats as a card instead of
-          // a full-bleed slab — feels lighter and matches the iOS
-          // modal vocabulary. Bottom margin clears the home indicator.
+          // a full-bleed slab. Bottom shifts up by the iOS keyboard's
+          // occluded height so the Apply / Clear all footer stays
+          // above the keyboard instead of falling behind it. Height
+          // clamps against the visible viewport so the top of the
+          // sheet doesn't slide off-screen on short phones.
           left: 12,
           right: 12,
-          bottom: "calc(12px + env(safe-area-inset-bottom))",
-          height: "54vh",
+          bottom: kbOffset
+            ? `${kbOffset + 12}px`
+            : "calc(12px + env(safe-area-inset-bottom))",
+          height:
+            vvHeight != null
+              ? `min(54vh, ${Math.max(280, vvHeight - 24)}px)`
+              : "54vh",
           borderRadius: 22,
           animation: "msheet-in .32s cubic-bezier(.32,.72,0,1)",
           boxShadow:
@@ -852,7 +886,7 @@ function SearchHero({
       : "Search by name, company, school, or country";
   return (
     <div
-      className="relative flex items-center gap-[14px] rounded-[14px] px-[18px] pr-2 transition-colors"
+      className="relative flex items-center gap-[12px] sm:gap-[14px] rounded-[14px] px-[16px] sm:px-[18px] pr-[6px] sm:pr-2 transition-colors"
       style={{
         background: "rgba(255,255,255,.08)",
         border: "1px solid rgba(255,255,255,.2)",
@@ -863,14 +897,18 @@ function SearchHero({
       }}
     >
       <span className="text-white shrink-0 inline-flex">
-        <Icon name="search" size={22} strokeWidth={2} />
+        <Icon
+          name="search"
+          size={narrow ? 18 : 22}
+          strokeWidth={2}
+        />
       </span>
       <input
         type="text"
         value={value}
         onChange={(e) => onQueryChange(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 min-w-0 bg-transparent border-none outline-none text-white text-[17px] sm:text-[19px] py-[19px] placeholder:text-white/55"
+        className="flex-1 min-w-0 bg-transparent border-none outline-none text-white text-[16px] sm:text-[19px] py-[10px] sm:py-[19px] placeholder:text-white/55"
       />
       <button
         type="button"

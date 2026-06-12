@@ -248,7 +248,7 @@ export default async function DirectoryPage({
   const directoryFrom = "/directory" + (fromQs ? `?${fromQs}` : "");
 
   return (
-    <section className="max-w-[1200px] mx-auto px-5 sm:px-7 py-8">
+    <section className="max-w-[1200px] mx-auto px-5 sm:px-7 pt-1 pb-8 md:py-8">
       {/* Desktop welcome + stats. On mobile the layout's mobile
           header already shows the welcome + segmented nav, so this
           block stays out of the way (hidden md:flex). */}

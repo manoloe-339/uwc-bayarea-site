@@ -106,7 +106,7 @@ export default async function DirectoryLayout({
          identity (ALUMNI DIRECTORY eyebrow + Welcome) and primary
          nav. The desktop white bar above doesn't render here, so
          Feedback and the overflow menu live in this block instead. */}
-      <div className="md:hidden px-[18px] pt-[18px] pb-[14px] text-white relative">
+      <div className="md:hidden px-[18px] pt-[18px] pb-[10px] text-white relative">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="text-[11px] font-extrabold tracking-[.2em] uppercase text-white/60">
