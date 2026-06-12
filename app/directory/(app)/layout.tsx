@@ -110,7 +110,7 @@ export default async function DirectoryLayout({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="text-[11px] font-extrabold tracking-[.2em] uppercase text-white/60">
-              Alumni Directory
+              UWC Bay Area Alumni Directory
             </div>
             <h1
               className="m-0 leading-[1] tracking-[-0.02em] text-white"

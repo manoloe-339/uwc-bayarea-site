@@ -1,11 +1,17 @@
 import Link from "next/link";
 import { sql } from "@/lib/db";
 import { CompanyLogo } from "@/components/directory/CompanyLogo";
+import { SnapshotTile } from "@/components/directory/SnapshotTile";
+import {
+  SnapshotFacetCard,
+  type FacetRow,
+} from "@/components/directory/SnapshotFacetCard";
 import {
   extractCountryCodes,
   originCountryNames,
 } from "@/lib/country-flag";
 import { normalizeCity } from "@/lib/city-normalize";
+import { getFlagMap } from "@/lib/directory-lookups";
 
 export const dynamic = "force-dynamic";
 
@@ -113,12 +119,13 @@ async function fetchAll() {
     `,
     sql`
       -- LEFT JOIN against uwc_assets to pull each school's curated
-      -- logo URL alongside the count. alumni.uwc_college is already
-      -- normalized to match uwc_assets.canonical so a direct join
-      -- works without going through normalizeCollege().
+      -- logo + campus URL alongside the count. alumni.uwc_college is
+      -- already normalized to match uwc_assets.canonical so a direct
+      -- join works without going through normalizeCollege().
       SELECT a.uwc_college AS name,
              COUNT(*)::int AS n,
-             MAX(u.logo_url) AS logo
+             MAX(u.logo_url) AS logo,
+             MAX(u.campus_url) AS campus
       FROM alumni a
       LEFT JOIN uwc_assets u ON u.canonical = a.uwc_college
       WHERE a.uwc_college IS NOT NULL
@@ -289,7 +296,7 @@ async function fetchAll() {
       logo: string | null;
       n: number;
     }>,
-    uwcs: uwcs as Array<{ name: string; n: number; logo: string | null }>,
+    uwcs: uwcs as Array<{ name: string; n: number; logo: string | null; campus: string | null }>,
     universities: universities as Array<{ name: string; n: number }>,
     industries: industries as Array<{ name: string; n: number }>,
     sizeRows: sizeRows as Array<{ raw: string; n: number }>,
@@ -475,7 +482,7 @@ function UwcLogo({ url, name }: { url: string | null; name: string }) {
 /* ------------------------------ Page ------------------------------- */
 
 export default async function SnapshotPage() {
-  const data = await fetchAll();
+  const [data, flags] = await Promise.all([fetchAll(), getFlagMap()]);
   const sizeBands = rollupSizeBands(data.sizeRows);
   const origins = rollupOrigins(data.originsRaw);
   const cities = rollupCities(data.cities, 30);
@@ -489,21 +496,123 @@ export default async function SnapshotPage() {
       (a, b) => EXP_BAND_ORDER.indexOf(a.band) - EXP_BAND_ORDER.indexOf(b.band),
     );
 
+  // ---- Top-section data (new "Insights + top-5 cards") ----
+  const topUwc = data.uwcs[0];
+  const topCohort = data.decadesRaw.slice().sort((a, b) => b.n - a.n)[0];
+  const topCity = cities[0];
+
+  // Strip "UWC " prefix for the headline since the eyebrow already
+  // says "Most-represented school".
+  const stripUwc = (s: string) => s.replace(/^UWC\s+/, "");
+
+  // Tile #4 — distinct origin countries from the rollup.
+  const totalCountries = origins.length;
+
+  // Facet card data: top 5 each.
+  const uwcRows: FacetRow[] = data.uwcs.slice(0, 5).map((u) => ({
+    label: stripUwc(u.name),
+    count: u.n,
+    href: `/directory?college=${encodeURIComponent(u.name)}`,
+  }));
+  const companyRows: FacetRow[] = data.companies.slice(0, 5).map((c) => ({
+    label: c.name,
+    count: c.n,
+    href: `/directory?company=${encodeURIComponent(c.name)}`,
+  }));
+  const originRows: FacetRow[] = origins.slice(0, 5).map((o) => {
+    const name = flags[o.iso.toLowerCase()]?.name ?? o.iso.toUpperCase();
+    return {
+      label: name,
+      count: o.n,
+      href: `/directory?origin=${encodeURIComponent(name)}`,
+    };
+  });
+
   return (
     <section className="max-w-[1180px] mx-auto px-5 sm:px-7 py-8">
       <div className="mb-6">
         <h1
-          className="display text-white font-extrabold leading-[1.02] tracking-[-0.02em]"
-          style={{ fontSize: "clamp(34px, 6vw, 54px)" }}
+          className="text-white font-extrabold leading-[1] tracking-[-0.02em]"
+          style={{
+            fontFamily: "Fraunces, Georgia, serif",
+            fontSize: "clamp(30px, 5.5vw, 38px)",
+          }}
         >
           Snapshot
         </h1>
-        <p className="mt-2 text-[15px] sm:text-[17px] text-white/75 max-w-[68ch]">
-          A bird&rsquo;s-eye view of where the {data.totalAlumni} alumni in the
-          directory cluster — by company, school, industry, location, and
-          more. Click any row to drill into a filtered directory view.
+        <p className="mt-[10px] text-[15px] text-white/75 max-w-[68ch]">
+          Where the {data.totalAlumni} Bay Area alumni cluster — tap anything
+          to open it in the directory.
         </p>
       </div>
+
+      {/* Headline image tiles — 4 across desktop, 2 across phone. */}
+      {topUwc && topCohort && topCity && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-[14px] mb-6">
+          <SnapshotTile
+            href={`/directory?college=${encodeURIComponent(topUwc.name)}`}
+            eyebrow="Most-represented school"
+            headline={stripUwc(topUwc.name)}
+            label={`UWC · ${topUwc.n} alumni`}
+            imageUrl={topUwc.campus}
+            fallbackIcon="graduation-cap"
+          />
+          <SnapshotTile
+            href={`/directory?yearFrom=${topCohort.decade_start}&yearTo=${topCohort.decade_start + 9}`}
+            eyebrow="Biggest cohort"
+            headline={topCohort.decade}
+            label={`${topCohort.n} alumni graduated`}
+            imageUrl={null}
+            fallbackIcon="calendar"
+          />
+          <SnapshotTile
+            href={`/directory?city=${encodeURIComponent(topCity.filterValue)}`}
+            eyebrow="Where most live"
+            headline={topCity.display}
+            label={`${topCity.n} alumni here`}
+            imageUrl={null}
+            fallbackIcon="map-pin"
+          />
+          <SnapshotTile
+            href="#origin"
+            eyebrow="Countries of origin"
+            headline={`${totalCountries} countries`}
+            label="across the globe"
+            imageUrl={null}
+            fallbackIcon="globe"
+          />
+        </div>
+      )}
+
+      {/* Top-5 facet cards — 3 across desktop, 2 across mobile. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <SnapshotFacetCard
+          icon="globe"
+          title="Which UWC"
+          total={data.uwcs.length}
+          rows={uwcRows}
+        />
+        <SnapshotFacetCard
+          icon="building"
+          title="Where they work"
+          total={data.companies.length}
+          rows={companyRows}
+        />
+        <SnapshotFacetCard
+          id="origin"
+          icon="users"
+          title="Origin"
+          total={origins.length}
+          rows={originRows}
+        />
+      </div>
+
+      <h2
+        className="text-white font-bold tracking-[.18em] uppercase text-[11px] mt-2 mb-3"
+        style={{ fontFamily: "Inter, system-ui, sans-serif" }}
+      >
+        Deeper look
+      </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {/* 1. Current companies (≥2 alumni) */}
