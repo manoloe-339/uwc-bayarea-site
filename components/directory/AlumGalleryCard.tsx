@@ -30,6 +30,10 @@ export interface AlumCardData {
   /** Already URL-formatted blob path. When null we render the initials
    * gradient fallback. */
   photoUrl: string | null;
+  /** Face-detected focal point as percentages 0..100. Falls back to
+   * a head-favouring default ("50 25") when null. */
+  photoFocalX: number | null;
+  photoFocalY: number | null;
   initials: string;
   /** Canonical (with "UWC " prefix) — used for filter links. */
   uwcCanonical: string | null;
@@ -116,7 +120,12 @@ export function AlumGalleryCard({
               src={alum.photoUrl}
               alt=""
               className="w-full h-full object-cover block"
-              style={{ objectPosition: "50% 20%" }}
+              style={{
+                objectPosition:
+                  alum.photoFocalX != null && alum.photoFocalY != null
+                    ? `${alum.photoFocalX}% ${alum.photoFocalY}%`
+                    : "50% 25%",
+              }}
               loading="lazy"
             />
           ) : (

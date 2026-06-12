@@ -37,6 +37,8 @@ interface RowData {
   alum_current_company_linkedin: string | null;
   alum_current_city: string | null;
   alum_photo_url: string | null;
+  alum_photo_focal_x: number | null;
+  alum_photo_focal_y: number | null;
   alum_linkedin_url: string | null;
   alum_origin: string | null;
   /** LinkedIn-served "current_location" + "location_full" come back as
@@ -70,6 +72,8 @@ function rowToAlumCard(row: RowData): AlumCardData {
     id: row.alumni_id,
     displayName: name,
     photoUrl: row.alum_photo_url,
+    photoFocalX: row.alum_photo_focal_x,
+    photoFocalY: row.alum_photo_focal_y,
     initials,
     uwcCanonical: row.alum_uwc_college,
     // Keep the "UWC " prefix on the card — matches /directory.

@@ -389,7 +389,12 @@ export default async function DirectoryProfilePage({
                   width={420}
                   height={524}
                   className="w-full h-full object-cover"
-                  style={{ objectPosition: "50% 24%" }}
+                  style={{
+                    objectPosition:
+                      row.photo_focal_x != null && row.photo_focal_y != null
+                        ? `${row.photo_focal_x}% ${row.photo_focal_y}%`
+                        : "50% 24%",
+                  }}
                   unoptimized
                 />
               ) : (

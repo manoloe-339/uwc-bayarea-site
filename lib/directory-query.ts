@@ -84,6 +84,11 @@ export type DirectoryAlumnusRow = {
   // LinkedIn-enrichment fields are the "public" face — same data the
   // person publishes on their own LinkedIn profile.
   photo_url: string | null;
+  /** Face-detected focal point as 0..100 percent of the source
+   * image. Null until scripts/detect-photo-focal.mjs runs (or no
+   * face was found). Used by the UI for object-position. */
+  photo_focal_x: number | null;
+  photo_focal_y: number | null;
   headline: string | null;
   linkedin_about: string | null;
   linkedin_url: string | null;
@@ -129,7 +134,8 @@ export type DirectoryEducationRow = {
 const SELECT_DIRECTORY_FIELDS = `
   id, first_name, last_name, uwc_college, grad_year,
   current_city, region, origin,
-  photo_url, headline, linkedin_about, linkedin_url,
+  photo_url, photo_focal_x, photo_focal_y,
+  headline, linkedin_about, linkedin_url,
   current_title, current_company, current_company_linkedin,
   current_company_industry, current_company_size,
   current_company_website, current_company_logo_url,
