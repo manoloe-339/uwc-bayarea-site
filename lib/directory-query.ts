@@ -288,11 +288,12 @@ function buildWhere(f: DirectoryFilters): { where: string; params: unknown[] } {
   return { where, params };
 }
 
-/** Build a deterministic seed string from the filter values so the
- * ORDER BY hash below is stable across re-renders that share the same
- * filter set (e.g. flipping the NL toggle or Current/Ever scope with
- * no active work filter). The order is still pseudo-random by alum,
- * just no longer reshuffled on every URL change. */
+/** Build a deterministic seed string from the *filter value* fields
+ * only. NL toggle and the Current/Ever scope toggle are intentionally
+ * excluded — they change how results are computed but the user's
+ * expectation is "the existing rows shouldn't move when I flip those
+ * switches." Any rows the scope change adds or removes will fit
+ * into their hashed position without shuffling the rest. */
 function filterSeed(f: DirectoryFilters): string {
   return JSON.stringify({
     q: f.q ?? "",
@@ -308,7 +309,6 @@ function filterSeed(f: DirectoryFilters): string {
     university: f.university ?? "",
     expBand: f.expBand ?? "",
     companySizeBand: f.companySizeBand ?? "",
-    scope: f.scope ?? "current",
   });
 }
 
