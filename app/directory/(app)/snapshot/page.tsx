@@ -575,7 +575,7 @@ export default async function SnapshotPage({
     id: "background" as LensId,
     eyebrow: "Background",
     name: "Education & Origin",
-    desc: "Which UWC they attended, where they studied afterwards, where they're originally from, and when they graduated.",
+    desc: "Where we studied and where we're from.",
     leadStat: topUwc
       ? `${stripUwc(topUwc.name)} leads · ${origins.length} countries of origin`
       : `${origins.length} countries of origin`,
@@ -646,18 +646,16 @@ export default async function SnapshotPage({
     <section className="max-w-[1180px] mx-auto px-5 sm:px-7 pt-3 pb-8 md:py-8">
       {activeGroup ? (
         <>
-          {/* Breadcrumb shown only on the drill-down view. */}
-          <div className="mb-3 text-[13px] text-white/[.62] flex items-center gap-2">
-            <Link
-              href="/directory/snapshot"
-              className="text-white/[.82] hover:text-white inline-flex items-center gap-[6px]"
-            >
-              <Icon name="arrow-left" size={14} strokeWidth={2} />
-              Snapshot
-            </Link>
-            <span className="opacity-50">/</span>
-            <span className="text-white font-semibold">{activeGroup.name}</span>
-          </div>
+          {/* Simple back affordance on the drill-down view. The
+              current group's name lives in the H1 right below it,
+              so we don't need to repeat it in the breadcrumb. */}
+          <Link
+            href="/directory/snapshot"
+            className="inline-flex items-center gap-[6px] mb-3 text-[14px] text-white/[.82] hover:text-white"
+          >
+            <Icon name="arrow-left" size={14} strokeWidth={2} />
+            Back to Snapshot
+          </Link>
 
           {/* Group header — title + desc on the left, lens switcher right. */}
           <div className="flex items-end justify-between gap-6 mb-6 flex-wrap">
