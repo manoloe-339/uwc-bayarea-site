@@ -101,7 +101,16 @@ const TRAILING_QUAL = new RegExp(
   "i",
 );
 
-/** Returns null if the input doesn't look like a city at all. */
+/** Drop the entry from the rollup when the raw value reads as a
+ * sentence or a multi-city aside rather than a single clean city.
+ * The DB row itself is unchanged — these only fall out of grouped
+ * displays. */
+const MULTI_CITY_SEPARATORS = /\s*[/&]\s*|\s+(?:and|\+)\s+/i;
+const SENTENCE_TELLS =
+  /\b(?:but|for a couple|weeks|months|currently|moving|relocating|between|w\/|with my|now in|going to|soon)\b/i;
+const HAS_ELLIPSIS = /(?:\.\.\.|…)/;
+
+/** Returns null if the input doesn't look like a clean single city. */
 export function normalizeCity(raw: string | null | undefined): {
   /** Canonical lower-case key — use for grouping. */
   key: string;
@@ -113,6 +122,16 @@ export function normalizeCity(raw: string | null | undefined): {
   if (!s) return null;
   // Drop parentheticals like "(soon!)" or "(SF Bay Area)"
   s = s.replace(/\([^)]*\)/g, " ").trim();
+  // Reject multi-city / descriptive entries that wouldn't roll up
+  // cleanly anyway. Single canonical cities ("Berkeley", "Berkeley,
+  // CA") still pass.
+  if (
+    MULTI_CITY_SEPARATORS.test(s) ||
+    SENTENCE_TELLS.test(s) ||
+    HAS_ELLIPSIS.test(s)
+  ) {
+    return null;
+  }
   // Strip trailing ", CA" / ", California" / ", USA" etc — repeat in case
   // we have nested suffixes like "Berkeley, CA, USA".
   for (let i = 0; i < 3; i++) {
@@ -123,6 +142,12 @@ export function normalizeCity(raw: string | null | undefined): {
   // Collapse whitespace + lowercase for lookup
   const lower = s.replace(/\s+/g, " ").toLowerCase();
   if (!lower) return null;
+
+  // Anything still wordy after stripping qualifiers is probably a
+  // sentence, not a city. Real cities are ≤4 words ("New York" is 2,
+  // "Rio de Janeiro" 3, "Cambridge, MA" already stripped to 1).
+  const wordCount = lower.split(" ").filter(Boolean).length;
+  if (wordCount > 4) return null;
 
   const aliased = ALIASES[lower];
   if (aliased) return { key: aliased.toLowerCase(), display: aliased };
