@@ -56,6 +56,12 @@ interface Props {
 const PERSONAL_CHIPS = [
   { id: "college", icon: "globe", label: "UWC", type: "select" } as const,
   {
+    id: "gradYear",
+    icon: "calendar",
+    label: "UWC grad year",
+    type: "range",
+  } as const,
+  {
     id: "city",
     icon: "map-pin",
     label: "Location",
@@ -79,7 +85,6 @@ const PERSONAL_CHIPS = [
     placeholder: "e.g. Stanford",
     sugKey: "universities",
   } as const,
-  { id: "gradYear", icon: "calendar", label: "Grad year", type: "range" } as const,
 ];
 
 const WORK_CHIPS = [
@@ -679,9 +684,6 @@ function ChipBody({
             className="fp-popover-input"
           />
         </div>
-        <p className="text-[12px] text-[color:var(--muted)] mt-[10px] leading-[1.4]">
-          Year you graduated from your UWC.
-        </p>
         <style jsx>{`
           .fp-popover-input {
             width: 100%;
