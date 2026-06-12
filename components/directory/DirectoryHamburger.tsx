@@ -92,7 +92,7 @@ export default function DirectoryHamburger({
         >
           <Link href="/directory" onClick={() => setOpen(false)} className={ROW}>
             <RowIcon name="search" />
-            Directory
+            Search
           </Link>
           <Link
             href="/directory/snapshot"
