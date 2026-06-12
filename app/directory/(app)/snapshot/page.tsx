@@ -574,7 +574,7 @@ export default async function SnapshotPage({
   const groupBackground = {
     id: "background" as LensId,
     eyebrow: "Background",
-    name: "Education & Origin",
+    name: "Where we're from",
     desc: "Where we studied and where we're from.",
     leadStat: topUwc
       ? `${stripUwc(topUwc.name)} leads · ${origins.length} countries of origin`

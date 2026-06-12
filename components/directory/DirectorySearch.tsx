@@ -1259,7 +1259,14 @@ function ChipBody({
         value={raw}
         onChange={(e) => setField(fieldId, e.target.value as never, "debounced")}
         onKeyDown={(e) => {
-          if (e.key === "Enter") onCommit();
+          if (e.key === "Enter") {
+            // Company suggestions are sampled from current + past
+            // employers, so once one is picked we widen scope to
+            // "ever" so the filter actually returns results for
+            // past-employer picks.
+            if (cfg.id === "company") setField("scope", "ever");
+            onCommit();
+          }
         }}
         className="fp-popover-input"
       />
@@ -1271,6 +1278,7 @@ function ChipBody({
               type="button"
               onClick={() => {
                 setField(fieldId, s as never);
+                if (cfg.id === "company") setField("scope", "ever");
                 onCommit();
               }}
               className="border border-[color:var(--rule)] bg-white rounded-full px-3 py-[6px] text-[13px] text-[color:var(--navy-ink)] hover:border-navy hover:text-navy"
