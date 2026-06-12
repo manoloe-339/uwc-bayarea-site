@@ -83,6 +83,10 @@ export function AlumGalleryCard({
   const cityHref = alum.city
     ? `/directory?city=${encodeURIComponent(alum.city)}`
     : null;
+  const yearHref =
+    alum.gradYear != null
+      ? `/directory?yearFrom=${alum.gradYear}&yearTo=${alum.gradYear}`
+      : null;
 
   return (
     <article className="relative bg-white rounded-[18px] overflow-hidden flex flex-col shadow-[0_2px_0_rgba(2,28,56,.4),0_30px_56px_-30px_rgba(0,0,0,.6)] transition-transform transition-shadow duration-200 hover:-translate-y-[3px] hover:shadow-[0_2px_0_rgba(2,28,56,.4),0_40px_70px_-30px_rgba(0,0,0,.66)]">
@@ -168,7 +172,17 @@ export function AlumGalleryCard({
               ))}
             {alum.gradYear != null && (
               <span className="text-[color:var(--muted)] font-medium whitespace-nowrap">
-                · {alum.gradYear}
+                ·{" "}
+                {yearHref ? (
+                  <Link
+                    href={yearHref}
+                    className="hover:text-navy hover:underline underline-offset-[3px]"
+                  >
+                    {alum.gradYear}
+                  </Link>
+                ) : (
+                  alum.gradYear
+                )}
               </span>
             )}
             {alum.originIsos.length > 0 && (

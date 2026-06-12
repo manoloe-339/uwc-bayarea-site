@@ -221,7 +221,12 @@ export default async function DirectoryProfilePage({
                       grid. */}
                   {row.grad_year != null && (
                     <div className="text-[10px] font-bold tracking-[.18em] uppercase text-[color:var(--muted-2)] mb-[6px]">
-                      Class of {row.grad_year}
+                      <Link
+                        href={`/directory?yearFrom=${row.grad_year}&yearTo=${row.grad_year}`}
+                        className="hover:text-navy"
+                      >
+                        Class of {row.grad_year}
+                      </Link>
                     </div>
                   )}
                   {uwcLogoUrl ? (
