@@ -34,6 +34,7 @@ import { discoverCandidates } from "./linkedin-search";
 import { pickBestCandidate } from "./claude-matcher";
 import { downloadAndUploadPhoto } from "./photo-uploader";
 import { rehostLogos, shouldRehost } from "./logo-uploader";
+import { maybeTriggerFocalBatch } from "@/lib/photo-focal/trigger";
 
 type FinalStatus = "complete" | "failed" | "needs_review";
 
@@ -276,6 +277,12 @@ export async function triggerEnrichment(
     const msg = err instanceof Error ? err.message : "unknown";
     await markFailed(neonId, msg);
   }
+  // After every enrichment run, check the focal-detection backlog and
+  // kick off a batch run if it's accumulated past the threshold. New
+  // signups add 1 row (NULL focal on the new photo); re-enrichment
+  // adds 1 row (photo-uploader nulled the focal columns on overwrite).
+  // The trigger is fire-and-forget and swallows its own errors.
+  void maybeTriggerFocalBatch();
 }
 
 export type {

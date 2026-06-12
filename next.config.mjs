@@ -16,6 +16,10 @@ const nextConfig = {
     "/opengraph-image": ["./public/uwc-bay-area-logo.png"],
     "/signup/opengraph-image": ["./public/uwc-bay-area-logo.png"],
     "/join-whatsapp/opengraph-image": ["./public/uwc-bay-area-logo.png"],
+    // The focal-detection route loads SSD MobileNet weights from disk
+    // at runtime via faceapi.nets.ssdMobilenetv1.loadFromDisk(). Force
+    // the ~5.6 MB weight files + manifest into that route's bundle.
+    "/api/photo-focal/run": ["./face-api-models/**/*"],
   },
   images: {
     remotePatterns: [

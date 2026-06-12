@@ -7,6 +7,7 @@
 
 import { put } from "@vercel/blob";
 import { ENRICHMENT_CONFIG } from "./constants";
+import { sql } from "@/lib/db";
 
 export async function downloadAndUploadPhoto(
   photoUrl: string,
@@ -27,6 +28,18 @@ export async function downloadAndUploadPhoto(
       // UI already cache-busts on updated_at, so a stable key is fine.
       allowOverwrite: true,
     });
+    // The blob key is stable, but the IMAGE contents just changed —
+    // the previous focal coords almost certainly don't line up with
+    // the new face position. Wipe them so the UI falls back to the
+    // safe head-favouring default until the next focal-detect run
+    // picks the photo up.
+    await sql`
+      UPDATE alumni
+         SET photo_focal_x = NULL,
+             photo_focal_y = NULL,
+             photo_focal_at = NULL
+       WHERE id = ${alumniId}
+    `;
     return uploaded.url;
   } catch (err) {
     console.error(`[enrichment] photo upload ${alumniId}:`, err);

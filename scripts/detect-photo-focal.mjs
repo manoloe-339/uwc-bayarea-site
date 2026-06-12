@@ -32,11 +32,19 @@ import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 
-const env = fs.readFileSync("./.env.local", "utf8");
+// Read DATABASE_URL from process.env first (CI / GitHub Actions
+// secrets, Vercel dashboard env, etc.) and fall back to .env.local
+// for plain local invocations.
 function envVar(name) {
-  const m = env.match(new RegExp(`^${name}="([^"]+)"$`, "m"));
-  if (!m) throw new Error(`missing ${name} in .env.local`);
-  return m[1];
+  if (process.env[name]) return process.env[name];
+  try {
+    const env = fs.readFileSync("./.env.local", "utf8");
+    const m = env.match(new RegExp(`^${name}="([^"]+)"$`, "m"));
+    if (m) return m[1];
+  } catch {
+    // .env.local absent — fall through.
+  }
+  throw new Error(`missing ${name} (process.env or .env.local)`);
 }
 const sql = neon(envVar("DATABASE_URL"));
 
@@ -47,6 +55,12 @@ const ID_ARG = (() => {
   if (i < 0) return null;
   const n = Number(process.argv[i + 1]);
   return Number.isFinite(n) && n > 0 ? n : null;
+})();
+const MIN_ARG = (() => {
+  const i = process.argv.indexOf("--min");
+  if (i < 0) return null;
+  const n = Number(process.argv[i + 1]);
+  return Number.isFinite(n) && n >= 0 ? n : null;
 })();
 
 // ---- face-api model loading
@@ -168,16 +182,37 @@ async function fetchTargets() {
       ORDER BY id
     `;
   }
+  // Default: anything we've never examined. `photo_focal_at IS NULL`
+  // is the right predicate because no-face rows are also marked with
+  // a timestamp — without it the script would re-process them every
+  // run.
   return sql`
     SELECT id, photo_url
     FROM alumni
     WHERE photo_url IS NOT NULL
-      AND photo_focal_x IS NULL
+      AND photo_focal_at IS NULL
     ORDER BY id
   `;
 }
 
 async function main() {
+  // When --min is set, count first and bail BEFORE loading the
+  // ~5.6 MB models or hitting tfjs init — keeps the cron lightweight
+  // when there's nothing to do.
+  if (MIN_ARG != null && !ID_ARG && !REPROCESS) {
+    const pending = (await sql`
+      SELECT COUNT(*)::int AS n FROM alumni
+       WHERE photo_url IS NOT NULL AND photo_focal_at IS NULL
+    `)[0]?.n ?? 0;
+    if (pending < MIN_ARG) {
+      console.log(
+        `pending=${pending}, threshold=${MIN_ARG} — below threshold, skipping.`,
+      );
+      return;
+    }
+    console.log(`pending=${pending} ≥ threshold=${MIN_ARG} — running.`);
+  }
+
   await loadModels();
 
   console.log("2/3 collecting alumni to process…");
