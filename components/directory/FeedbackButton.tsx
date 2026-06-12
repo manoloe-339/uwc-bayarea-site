@@ -13,6 +13,11 @@ interface Props {
    * hamburger menu to render this with the same look as sibling
    * menu items instead of the inline header-link styling. */
   triggerClassName?: string;
+  /** Optional inline-style override for the trigger button — used for
+   * the mobile header's translucent navy backdrop, since Tailwind's
+   * arbitrary-value classes can't easily reproduce the layered
+   * background + border together. */
+  triggerStyle?: React.CSSProperties;
   /** Optional label override for the trigger button (e.g. to include
    * an emoji prefix). Defaults to "Feedback". */
   triggerLabel?: React.ReactNode;
@@ -32,6 +37,7 @@ function detectAlumniIdFromPath(): number | null {
 export function FeedbackButton({
   alumniId,
   triggerClassName,
+  triggerStyle,
   triggerLabel,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -98,6 +104,7 @@ export function FeedbackButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
+        style={triggerStyle}
         className={
           triggerClassName ??
           "text-[12px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"

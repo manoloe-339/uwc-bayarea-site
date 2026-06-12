@@ -249,7 +249,10 @@ export default async function DirectoryPage({
 
   return (
     <section className="max-w-[1200px] mx-auto px-5 sm:px-7 py-8">
-      <div className="mb-6 flex items-end sm:items-center justify-between gap-5 flex-wrap">
+      {/* Desktop welcome + stats. On mobile the layout's mobile
+          header already shows the welcome + segmented nav, so this
+          block stays out of the way (hidden md:flex). */}
+      <div className="mb-6 hidden md:flex items-end md:items-center justify-between gap-5 flex-wrap">
         <div className="flex-1 min-w-0">
           <h1
             className="display text-white font-extrabold leading-[1] tracking-[-0.02em] whitespace-nowrap"

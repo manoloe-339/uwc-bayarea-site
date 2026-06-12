@@ -117,6 +117,13 @@ const WORK_CHIPS = [
   } as const,
 ];
 
+/** Canonical render order for the inline active-filter chips on
+ * mobile — Personal first (UWC, year, location, …), then Work. */
+const ACTIVE_CHIP_ORDER = [
+  ...PERSONAL_CHIPS.map((c) => c.id),
+  ...WORK_CHIPS.map((c) => c.id),
+];
+
 const SIZE_OPTS: Array<{ value: DirectoryCompanySizeBand; label: string }> = [
   { value: "startup", label: "Startup (1–50)" },
   { value: "small", label: "Small (51–500)" },
@@ -172,6 +179,11 @@ export default function DirectorySearch({
   const [working, setWorking] = useState<Working>(initial);
   const [open, setOpen] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  // When the user opens the sheet by tapping a chip in the filter
+  // bar, the sheet drills straight into that chip's detail pane.
+  // Tapping the bare "Filters" button leaves this null so the sheet
+  // opens at the list.
+  const [mobileOpenAt, setMobileOpenAt] = useState<string | null>(null);
   // Portal-safe mount check.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -333,23 +345,95 @@ export default function DirectorySearch({
         onNlChange={(v) => setField("nl", v)}
       />
 
-      {/* Mobile (≤640px): a single Filters button with an active-count
-          badge. The chip row collapses into the bottom sheet below. */}
-      <div className="mt-4 sm:hidden">
+      {/* Mobile (≤640px): Filters pill + inline removable active-filter
+          chips + "Clear all". Tap a chip's body to open the sheet
+          directly at that chip's detail pane; the × on the chip
+          clears that one filter inline. */}
+      <div className="mt-4 sm:hidden flex flex-wrap items-center gap-[9px]">
         <button
           type="button"
-          onClick={() => setMobileOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full bg-white/[.08] border border-white/30 px-4 py-[10px] text-[14px] font-semibold text-white backdrop-blur-md"
+          onClick={() => {
+            setMobileOpenAt(null);
+            setMobileOpen(true);
+          }}
+          className="inline-flex items-center gap-2 rounded-full px-4 py-[10px] text-[14px] font-bold text-white"
+          style={{
+            background: "rgba(255,255,255,.14)",
+            border: "1px solid rgba(255,255,255,.28)",
+          }}
         >
-          <Icon name="briefcase" size={14} />
+          <Icon name="sliders" size={17} />
           Filters
           {activeChipCount > 0 && (
-            <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-[6px] rounded-full bg-white text-navy text-[12px] font-bold leading-none">
+            <span className="inline-flex items-center justify-center min-w-[19px] h-[19px] px-[5px] rounded-full bg-white text-navy text-[12px] font-extrabold leading-none">
               {activeChipCount}
             </span>
           )}
         </button>
+        {ACTIVE_CHIP_ORDER.map((id) => {
+          if (!chipActive(id)) return null;
+          const cfg =
+            PERSONAL_CHIPS.find((c) => c.id === id) ??
+            WORK_CHIPS.find((c) => c.id === id);
+          if (!cfg) return null;
+          return (
+            <span
+              key={id}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                setMobileOpenAt(id);
+                setMobileOpen(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setMobileOpenAt(id);
+                  setMobileOpen(true);
+                }
+              }}
+              className="inline-flex items-center gap-[7px] rounded-full px-[7px] py-[8px] pl-[13px] bg-white text-[color:var(--navy-ink)] text-[14px] font-semibold cursor-pointer max-w-[60vw]"
+            >
+              <span className="text-navy inline-flex shrink-0">
+                <Icon name={cfg.icon as IconName} size={15} />
+              </span>
+              <span className="truncate">{chipValue(id)}</span>
+              <button
+                type="button"
+                aria-label={`Remove ${cfg.label}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (id === "gradYear") {
+                    setField("gradFrom", "");
+                    setField("gradTo", "");
+                  } else {
+                    setField(id as keyof Working, "" as never);
+                  }
+                }}
+                className="inline-flex items-center justify-center w-[21px] h-[21px] rounded-full bg-[rgba(11,37,69,.08)] text-[color:var(--navy-ink)] shrink-0"
+              >
+                <Icon name="x" size={13} strokeWidth={2.2} />
+              </button>
+            </span>
+          );
+        })}
+        {anyFilter && (
+          <button
+            type="button"
+            onClick={clearAll}
+            className="text-white/85 text-[14px] font-semibold underline underline-offset-[3px] px-1 py-2 whitespace-nowrap"
+          >
+            Clear all
+          </button>
+        )}
       </div>
+      {/* Mobile-only N results readout. Skip when nothing's active. */}
+      {anyFilter && (
+        <div className="sm:hidden mt-[15px] text-[14.5px] text-white/80">
+          <b className="text-white font-bold">{total}</b>{" "}
+          {total === 1 ? "result" : "results"}
+        </div>
+      )}
 
       {/* Desktop chip row */}
       <div className="hidden sm:flex mt-4 flex-wrap items-center gap-[10px]">
@@ -436,6 +520,7 @@ export default function DirectorySearch({
         createPortal(
           <MobileFilterSheet
             onClose={() => setMobileOpen(false)}
+            openAt={mobileOpenAt}
             working={working}
             setField={setField}
             chipValue={chipValue}
@@ -453,6 +538,7 @@ export default function DirectorySearch({
 
 function MobileFilterSheet({
   onClose,
+  openAt,
   working,
   setField,
   chipValue,
@@ -463,6 +549,8 @@ function MobileFilterSheet({
   onClearAll,
 }: {
   onClose: () => void;
+  /** If set, the sheet opens directly into this chip's detail pane. */
+  openAt: string | null;
   working: Working;
   setField: <K extends keyof Working>(
     key: K,
@@ -476,11 +564,10 @@ function MobileFilterSheet({
   anyFilter: boolean;
   onClearAll: () => void;
 }) {
-  // Drill-down: level 1 = list of filter rows; level 2 = single chip
-  // body with a back arrow. Selecting a value in level 2 returns to
-  // level 1 (text fields stay on level 2 since the user might want to
-  // refine the typed value).
-  const [activeId, setActiveId] = useState<string | null>(null);
+  // Drill-down inside a FIXED-height container — list pane and detail
+  // pane both occupy the same vertical space and slide horizontally
+  // (iOS push). The sheet itself never resizes when you drill in.
+  const [activeId, setActiveId] = useState<string | null>(openAt);
   const activeCfg: ChipCfg | null = useMemo(() => {
     if (!activeId) return null;
     return (
@@ -489,6 +576,11 @@ function MobileFilterSheet({
       null
     );
   }, [activeId]);
+  // Remember the last-active config so the detail pane stays rendered
+  // (and slides out cleanly) during the back transition.
+  const lastCfgRef = useRef<ChipCfg | null>(null);
+  if (activeCfg) lastCfgRef.current = activeCfg;
+  const dcfg = activeCfg ?? lastCfgRef.current;
 
   const Row = ({ cfg }: { cfg: ChipCfg }) => {
     const value = chipValue(cfg.id);
@@ -496,31 +588,33 @@ function MobileFilterSheet({
       <button
         type="button"
         onClick={() => setActiveId(cfg.id)}
-        className="w-full flex items-center gap-3 px-5 py-[14px] border-b border-[color:var(--rule)] text-left hover:bg-[rgba(11,37,69,.04)] active:bg-[rgba(11,37,69,.08)] transition"
+        className="w-full flex items-center gap-3 px-[18px] py-[15px] border-b border-[color:var(--rule)] text-left active:bg-[rgba(11,37,69,.035)]"
       >
-        <span className="text-[color:var(--muted)] inline-flex">
-          <Icon name={cfg.icon as IconName} size={18} />
+        <span className="text-[color:var(--muted)] inline-flex shrink-0">
+          <Icon name={cfg.icon as IconName} size={21} />
         </span>
-        <span className="text-[15px] font-semibold text-[color:var(--navy-ink)] flex-1 min-w-0">
+        <span className="text-[16.5px] font-semibold text-[color:var(--navy-ink)] flex-1 min-w-0">
           {cfg.label}
         </span>
         {value ? (
-          <span className="text-[14px] text-navy font-semibold max-w-[55vw] truncate">
+          <span className="text-[15px] text-navy font-bold max-w-[55vw] truncate">
             {value}
           </span>
         ) : (
-          <span className="text-[14px] text-[color:var(--muted-2)]">Any</span>
+          <span className="text-[15px] text-[color:var(--muted-2)]">Any</span>
         )}
-        <span className="-rotate-90 text-[color:var(--muted-2)]">
-          <Icon name="chevron-down" size={16} strokeWidth={2} />
+        <span className="-rotate-90 text-[color:rgba(11,37,69,.35)] shrink-0">
+          <Icon name="chevron-down" size={19} strokeWidth={2} />
         </span>
       </button>
     );
   };
 
+  const drilled = !!activeCfg;
+
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col"
+      className="fixed inset-0 z-[100]"
       role="dialog"
       aria-modal="true"
       aria-label="Filters"
@@ -529,90 +623,54 @@ function MobileFilterSheet({
         type="button"
         onClick={onClose}
         aria-label="Close filters"
-        className="absolute inset-0 bg-[rgba(8,20,38,.55)]"
+        className="absolute inset-0 bg-[rgba(8,20,38,.46)]"
       />
       <div
-        className="relative mt-auto bg-white rounded-t-[20px] max-h-[85vh] flex flex-col"
-        style={{ animation: "msheet-in .22s ease" }}
+        className="absolute left-0 right-0 bottom-0 bg-white rounded-t-[22px] overflow-hidden flex flex-col"
+        style={{
+          height: "54vh",
+          animation: "msheet-in .32s cubic-bezier(.32,.72,0,1)",
+          boxShadow: "0 -18px 50px -20px rgba(0,0,0,.45)",
+        }}
       >
         <style jsx global>{`
           @keyframes msheet-in {
-            from { transform: translateY(100%); }
+            from { transform: translateY(102%); }
             to   { transform: none; }
           }
         `}</style>
 
-        {/* Sticky header */}
-        <div className="flex items-center justify-between border-b border-[color:var(--rule)] px-5 py-3 shrink-0">
-          {activeCfg ? (
-            <button
-              type="button"
-              onClick={() => setActiveId(null)}
-              aria-label="Back to all filters"
-              className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[.22em] uppercase text-[color:var(--navy-ink)]"
-            >
-              <span className="rotate-90 inline-flex">
-                <Icon name="chevron-down" size={14} strokeWidth={2.4} />
-              </span>
-              {activeCfg.label}
-            </button>
-          ) : (
-            <span className="text-[11px] font-bold tracking-[.22em] uppercase text-[color:var(--muted-2)]">
-              Filters
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="text-[color:var(--muted)] hover:text-[color:var(--navy-ink)] text-2xl leading-none px-1"
-          >
-            ×
-          </button>
-        </div>
+        {/* Grip */}
+        <div className="w-[38px] h-[5px] rounded-full bg-[rgba(11,37,69,.18)] mx-auto mt-[9px] mb-[4px] shrink-0" />
 
-        {/* Body — drill-down */}
-        <div className="overflow-y-auto flex-1">
-          {activeCfg ? (
-            <div className="px-5 py-4">
-              <ChipBody
-                cfg={activeCfg}
-                working={working}
-                setField={setField}
-                suggest={suggest}
-                // Returning to level 1 on commit feels right for
-                // select-types and text-enter; range never fires
-                // onCommit, so the user uses the back arrow there.
-                onCommit={() => setActiveId(null)}
-              />
-              {chipValue(activeCfg.id) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (activeCfg.id === "gradYear") {
-                      setField("gradFrom", "");
-                      setField("gradTo", "");
-                    } else {
-                      setField(activeCfg.id as keyof Working, "" as never);
-                    }
-                  }}
-                  className="mt-4 inline-flex items-center gap-2 text-[13px] font-semibold text-[color:var(--muted)] hover:text-navy"
-                >
-                  <Icon name="x" size={13} strokeWidth={2.2} />
-                  Clear {activeCfg.label.toLowerCase()}
-                </button>
-              )}
+        {/* Constant-height view that holds both panes — neither pane's
+            content can change the sheet's outer dimensions. */}
+        <div className="relative flex-1 min-h-0 overflow-hidden">
+          {/* List pane */}
+          <div
+            className={`absolute inset-0 flex flex-col min-h-0 bg-white transition-transform duration-[300ms] ease-[cubic-bezier(.4,0,.2,1)] ${
+              drilled ? "-translate-x-[26%]" : "translate-x-0"
+            }`}
+          >
+            <div className="flex items-center gap-1 px-[18px] py-[10px] pb-3 border-b border-[color:var(--rule)] shrink-0">
+              <span className="text-[13px] font-extrabold tracking-[.18em] uppercase text-[color:var(--navy-ink)]">
+                Filters
+              </span>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="ml-auto p-2 rounded-lg text-[color:var(--muted)] active:bg-[rgba(11,37,69,.06)]"
+              >
+                <Icon name="x" size={22} strokeWidth={2} />
+              </button>
             </div>
-          ) : (
-            <>
+            <div className="flex-1 overflow-y-auto overscroll-contain">
               {PERSONAL_CHIPS.map((c) => (
                 <Row key={c.id} cfg={c} />
               ))}
-
-              {/* Work group: small eyebrow + inline Current/Ever
-                  toggle, then the work chip rows. */}
-              <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-[color:var(--rule)] bg-[rgba(11,37,69,.03)]">
-                <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[.22em] uppercase text-[color:var(--muted-2)]">
+              <div className="flex items-center gap-3 px-[18px] py-[11px] border-b border-[color:var(--rule)] bg-[rgba(11,37,69,.045)]">
+                <span className="inline-flex items-center gap-2 text-[12px] font-extrabold tracking-[.2em] uppercase text-[color:var(--muted)] flex-1">
                   <Icon name="briefcase" size={13} />
                   Work
                 </span>
@@ -624,31 +682,90 @@ function MobileFilterSheet({
               {WORK_CHIPS.map((c) => (
                 <Row key={c.id} cfg={c} />
               ))}
-            </>
-          )}
+            </div>
+          </div>
+
+          {/* Detail pane */}
+          <div
+            className={`absolute inset-0 flex flex-col min-h-0 bg-white transition-transform duration-[300ms] ease-[cubic-bezier(.4,0,.2,1)] ${
+              drilled ? "translate-x-0" : "translate-x-full"
+            }`}
+            style={{
+              zIndex: 2,
+              boxShadow: drilled
+                ? "-12px 0 24px -16px rgba(11,37,69,.25)"
+                : undefined,
+            }}
+          >
+            <div className="flex items-center gap-1 px-[8px] py-[6px] pb-3 pl-[10px] border-b border-[color:var(--rule)] shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveId(null)}
+                aria-label="Back to filter list"
+                className="p-2 rounded-lg text-navy"
+              >
+                <span className="rotate-180 inline-flex">
+                  <Icon name="arrow-left" size={22} strokeWidth={2} />
+                </span>
+              </button>
+              <span className="text-[13px] font-extrabold tracking-[.18em] uppercase text-navy">
+                {dcfg?.label ?? ""}
+              </span>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="ml-auto p-2 rounded-lg text-[color:var(--muted)] active:bg-[rgba(11,37,69,.06)]"
+              >
+                <Icon name="x" size={22} strokeWidth={2} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto overscroll-contain">
+              {dcfg && (
+                <div className="px-[18px] py-[16px]">
+                  <ChipBody
+                    cfg={dcfg}
+                    working={working}
+                    setField={setField}
+                    suggest={suggest}
+                    onCommit={() => {
+                      // Pop back to the list after a select/text
+                      // commit so the user can browse other filters.
+                      // Use a small delay so the value's "selected"
+                      // state can flash before the slide-back.
+                      setTimeout(() => setActiveId(null), 120);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Sticky footer */}
+        {/* Footer — shared across both panes, constant. */}
         <div
-          className="border-t border-[color:var(--rule)] px-5 py-3 flex items-center justify-between gap-3 shrink-0 bg-white"
-          style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
+          className="border-t border-[color:var(--rule)] px-[18px] flex items-center justify-between gap-3 shrink-0 bg-white"
+          style={{
+            paddingTop: 12,
+            paddingBottom: "calc(14px + env(safe-area-inset-bottom))",
+          }}
         >
           <button
             type="button"
             disabled={!anyFilter}
             onClick={onClearAll}
-            className="text-[14px] font-semibold text-[color:var(--muted)] hover:text-navy disabled:opacity-40"
+            className="text-[15.5px] font-semibold text-[color:var(--muted-2)] disabled:opacity-45 px-1 py-[10px]"
           >
             Clear all
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex items-center gap-2 bg-navy text-white rounded-[10px] px-5 py-[10px] text-[14px] font-bold hover:brightness-110 active:scale-[.97] transition"
+            className="inline-flex items-center gap-[10px] bg-navy text-white rounded-[12px] px-[26px] py-[14px] text-[16px] font-bold active:scale-[.98] transition"
           >
             Apply
-            <span className="text-white/80 font-normal">
-              ({anyFilter ? `${total} of ${grandTotal}` : `${grandTotal}`})
+            <span className="text-white/80 font-semibold">
+              ({anyFilter ? `${total}` : `${grandTotal}`})
             </span>
           </button>
         </div>

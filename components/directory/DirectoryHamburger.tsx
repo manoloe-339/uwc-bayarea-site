@@ -8,17 +8,22 @@ import { Icon, type IconName } from "./Icon";
 interface Props {
   isUserAccount: boolean;
   hasSession: boolean;
+  /** When true, the menu only renders the overflow items (Log out,
+   * uwcbayarea.org). The primary nav (Search / Snapshot / Saved)
+   * lives in the segmented MobileDirectoryNav, so showing them here
+   * would just duplicate. */
+  mobileOverflowOnly?: boolean;
 }
 
 /**
- * Mobile-only collapsing menu for the directory header. Every item
- * shares the same row styling (emoji prefix, sentence-case label,
- * sm text, navy ink, ivory-2 hover) so the menu reads as one
- * coherent list rather than a mix of header-link + inline-button.
+ * Collapsing menu for the directory header. Each row uses the same
+ * styling so the menu reads as one coherent list. When
+ * `mobileOverflowOnly` is set, only Log out + the home link are shown.
  */
 export default function DirectoryHamburger({
   isUserAccount,
   hasSession,
+  mobileOverflowOnly,
 }: Props) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -59,7 +64,19 @@ export default function DirectoryHamburger({
         onClick={() => setOpen((o) => !o)}
         aria-label="Menu"
         aria-expanded={open}
-        className="inline-flex items-center justify-center w-9 h-9 -mr-2 rounded text-navy hover:bg-[color:var(--ivory-2)]"
+        className={
+          mobileOverflowOnly
+            ? "inline-flex items-center justify-center w-[42px] h-[42px] rounded-full text-white"
+            : "inline-flex items-center justify-center w-9 h-9 -mr-2 rounded text-navy hover:bg-[color:var(--ivory-2)]"
+        }
+        style={
+          mobileOverflowOnly
+            ? {
+                background: "rgba(255,255,255,.12)",
+                border: "1px solid rgba(255,255,255,.22)",
+              }
+            : undefined
+        }
       >
         <svg
           width="22"
@@ -90,29 +107,33 @@ export default function DirectoryHamburger({
           role="menu"
           className="absolute right-0 top-full mt-2 w-[240px] bg-white border border-[color:var(--rule)] rounded-[10px] shadow-lg py-1.5 z-50"
         >
-          <Link href="/directory" onClick={() => setOpen(false)} className={ROW}>
-            <RowIcon name="search" />
-            Search
-          </Link>
-          <Link
-            href="/directory/snapshot"
-            onClick={() => setOpen(false)}
-            className={ROW}
-          >
-            <RowIcon name="bar-chart" />
-            Snapshot
-          </Link>
-          {isUserAccount && (
-            <Link
-              href="/directory/saved"
-              onClick={() => setOpen(false)}
-              className={ROW}
-            >
-              <span className="text-[#E89A1C] inline-flex shrink-0">
-                <Icon name="star" size={16} filled />
-              </span>
-              Saved
-            </Link>
+          {!mobileOverflowOnly && (
+            <>
+              <Link href="/directory" onClick={() => setOpen(false)} className={ROW}>
+                <RowIcon name="search" />
+                Search
+              </Link>
+              <Link
+                href="/directory/snapshot"
+                onClick={() => setOpen(false)}
+                className={ROW}
+              >
+                <RowIcon name="bar-chart" />
+                Snapshot
+              </Link>
+              {isUserAccount && (
+                <Link
+                  href="/directory/saved"
+                  onClick={() => setOpen(false)}
+                  className={ROW}
+                >
+                  <span className="text-[#E89A1C] inline-flex shrink-0">
+                    <Icon name="star" size={16} filled />
+                  </span>
+                  Saved
+                </Link>
+              )}
+            </>
           )}
           {hasSession && (
             <LogoutButton
@@ -125,7 +146,9 @@ export default function DirectoryHamburger({
               }
             />
           )}
-          <div className="border-t border-[color:var(--rule)] my-1.5" />
+          {!mobileOverflowOnly && (
+            <div className="border-t border-[color:var(--rule)] my-1.5" />
+          )}
           <Link href="/" onClick={() => setOpen(false)} className={ROW}>
             <RowIcon name="home" />
             uwcbayarea.org
