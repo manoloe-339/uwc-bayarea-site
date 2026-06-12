@@ -626,11 +626,19 @@ function MobileFilterSheet({
         className="absolute inset-0 bg-[rgba(8,20,38,.46)]"
       />
       <div
-        className="absolute left-0 right-0 bottom-0 bg-white rounded-t-[22px] overflow-hidden flex flex-col"
+        className="absolute bg-white overflow-hidden flex flex-col"
         style={{
+          // Inset on phone so the sheet floats as a card instead of
+          // a full-bleed slab — feels lighter and matches the iOS
+          // modal vocabulary. Bottom margin clears the home indicator.
+          left: 12,
+          right: 12,
+          bottom: "calc(12px + env(safe-area-inset-bottom))",
           height: "54vh",
+          borderRadius: 22,
           animation: "msheet-in .32s cubic-bezier(.32,.72,0,1)",
-          boxShadow: "0 -18px 50px -20px rgba(0,0,0,.45)",
+          boxShadow:
+            "0 -18px 50px -20px rgba(0,0,0,.45), 0 24px 60px -16px rgba(0,0,0,.35)",
         }}
       >
         <style jsx global>{`
@@ -742,13 +750,12 @@ function MobileFilterSheet({
           </div>
         </div>
 
-        {/* Footer — shared across both panes, constant. */}
+        {/* Footer — shared across both panes, constant. The sheet
+            itself already insets by env(safe-area-inset-bottom), so
+            the footer just needs its visual padding. */}
         <div
           className="border-t border-[color:var(--rule)] px-[18px] flex items-center justify-between gap-3 shrink-0 bg-white"
-          style={{
-            paddingTop: 12,
-            paddingBottom: "calc(14px + env(safe-area-inset-bottom))",
-          }}
+          style={{ paddingTop: 12, paddingBottom: 14 }}
         >
           <button
             type="button"
