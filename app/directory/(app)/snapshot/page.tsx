@@ -562,7 +562,7 @@ export default async function SnapshotPage() {
             eyebrow="Biggest cohort"
             headline={topCohort.decade}
             label={`${topCohort.n} alumni graduated`}
-            imageUrl={null}
+            imageUrl="https://hxdqmbnanbxucbqd.public.blob.vercel-storage.com/events/uploads/7767d11e-41d0-4cd4-b77b-25ddfff9e597-rOmioX3oLBpspwH2wzJ0k6ABeMaJU5.jpg"
             fallbackIcon="calendar"
           />
           <SnapshotTile
