@@ -59,7 +59,7 @@ const PERSONAL_CHIPS = [
   {
     id: "gradYear",
     icon: "calendar",
-    label: "UWC grad year",
+    label: "UWC Grad Year",
     type: "range",
   } as const,
   {
