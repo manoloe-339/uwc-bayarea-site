@@ -438,7 +438,7 @@ function InvitePrefillView({
         id="join-whatsapp-title"
         className="font-serif font-semibold text-[color:var(--navy-ink)] text-[26px] sm:text-[30px] leading-[1.1] tracking-[-0.005em] m-0"
       >
-        {firstName ? <>Hi <em className="italic">{firstName}</em> — ready?</> : <>Ready to join?</>}
+        {firstName ? <>Hi <em className="italic">{firstName}</em></> : <>Welcome</>}
       </h2>
       <p className="mt-4 text-[15px] leading-[1.55] text-[color:var(--navy-ink)]/80">
         We&rsquo;ll send the WhatsApp join link to your registered email.
