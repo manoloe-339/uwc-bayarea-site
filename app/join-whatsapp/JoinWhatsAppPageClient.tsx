@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { JoinWhatsAppModal } from "@/app/preview-home/JoinWhatsAppModal";
 import Link from "next/link";
 
@@ -13,9 +13,19 @@ interface Props {
  * events: dismiss returns to home, successful submission goes to the
  * dedicated thanks page (so the URL reflects the new state and the
  * user can refresh / share without resubmitting).
+ *
+ * Query params:
+ *   ?registered=1  — skip the "Bay Area or visiting" gate AND the
+ *                    "are you already registered" question; open
+ *                    straight on the email-entry form. Used in the
+ *                    signup-confirmation email so people who just
+ *                    registered land on a single-step form.
  */
 export default function JoinWhatsAppPageClient({ whatsappUrl }: Props) {
   const router = useRouter();
+  const sp = useSearchParams();
+  const initialView =
+    sp.get("registered") === "1" ? "registered-form" : undefined;
 
   return (
     <div className="min-h-screen bg-[color:var(--ivory)] relative">
@@ -37,6 +47,7 @@ export default function JoinWhatsAppPageClient({ whatsappUrl }: Props) {
         controlledOpen={true}
         controlledOnClose={() => router.push("/")}
         onSent={() => router.push("/join-whatsapp/thanks")}
+        initialView={initialView}
       />
     </div>
   );

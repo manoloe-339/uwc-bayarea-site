@@ -26,6 +26,10 @@ export type SiteSettings = {
   photo_gallery_intro_subhead: string | null;
   signup_confirmation_subject: string | null;
   signup_confirmation_body_md: string | null;
+  signup_thanks_eyebrow: string | null;
+  signup_thanks_headline: string | null;
+  signup_thanks_body_md: string | null;
+  signup_thanks_button_label: string | null;
   whatsapp_invite_subject: string | null;
   whatsapp_invite_body_md: string | null;
   updated_at: string;
@@ -47,6 +51,21 @@ You can reply to this email any time (it'll reach our team directly), and every 
 
 Looking forward to connecting,
 UWC Bay Area`,
+};
+
+/** Default copy for the /signup/thanks confirmation page. Pulled in
+ * when the admin hasn't overridden any field. Body is markdown —
+ * blank line = new paragraph; only links / bold / italics supported,
+ * same renderer as the signup email. */
+export const DEFAULT_SIGNUP_THANKS = {
+  eyebrow: "You're in",
+  headline: "Thanks for signing up.",
+  bodyMd: `We've got your details. You'll hear from us when we're organizing events or have news worth sharing — usually no more than once or twice a month.
+
+Please check your email. We've sent you a confirmation. If you don't see it, check your spam folder.
+
+Reply to it any time, and it'll reach our team directly.`,
+  buttonLabel: "← Back to the homepage",
 };
 
 /** Default WhatsApp invite email — used when the admin-editable
@@ -119,6 +138,10 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     photo_gallery_intro_subhead: DEFAULT_PHOTO_GALLERY_INTRO.subhead,
     signup_confirmation_subject: null,
     signup_confirmation_body_md: null,
+    signup_thanks_eyebrow: null,
+    signup_thanks_headline: null,
+    signup_thanks_body_md: null,
+    signup_thanks_button_label: null,
     whatsapp_invite_subject: null,
     whatsapp_invite_body_md: null,
     updated_at: new Date().toISOString(),
@@ -178,6 +201,22 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
       patch.signup_confirmation_body_md !== undefined
         ? patch.signup_confirmation_body_md
         : existing.signup_confirmation_body_md,
+    signup_thanks_eyebrow:
+      patch.signup_thanks_eyebrow !== undefined
+        ? patch.signup_thanks_eyebrow
+        : existing.signup_thanks_eyebrow,
+    signup_thanks_headline:
+      patch.signup_thanks_headline !== undefined
+        ? patch.signup_thanks_headline
+        : existing.signup_thanks_headline,
+    signup_thanks_body_md:
+      patch.signup_thanks_body_md !== undefined
+        ? patch.signup_thanks_body_md
+        : existing.signup_thanks_body_md,
+    signup_thanks_button_label:
+      patch.signup_thanks_button_label !== undefined
+        ? patch.signup_thanks_button_label
+        : existing.signup_thanks_button_label,
     whatsapp_invite_subject:
       patch.whatsapp_invite_subject !== undefined
         ? patch.whatsapp_invite_subject
@@ -214,6 +253,10 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
       photo_gallery_intro_subhead           = ${next.photo_gallery_intro_subhead},
       signup_confirmation_subject           = ${next.signup_confirmation_subject},
       signup_confirmation_body_md           = ${next.signup_confirmation_body_md},
+      signup_thanks_eyebrow                 = ${next.signup_thanks_eyebrow},
+      signup_thanks_headline                = ${next.signup_thanks_headline},
+      signup_thanks_body_md                 = ${next.signup_thanks_body_md},
+      signup_thanks_button_label            = ${next.signup_thanks_button_label},
       whatsapp_invite_subject               = ${next.whatsapp_invite_subject},
       whatsapp_invite_body_md               = ${next.whatsapp_invite_body_md},
       updated_at                            = NOW()

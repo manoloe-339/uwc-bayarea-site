@@ -125,6 +125,18 @@ export default async function ToolsIndex() {
           </p>
         </Link>
         <Link
+          href="/admin/tools/signup-thanks"
+          className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
+        >
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">📝 Signup thanks page</div>
+          <div className="font-semibold text-[color:var(--navy-ink)]">The /signup/thanks landing page</div>
+          <p className="text-xs text-[color:var(--muted)] mt-2">
+            Edit the eyebrow, headline, body copy, and back-to-home button label
+            for the page someone lands on right after submitting the signup
+            form. Markdown supported for the body.
+          </p>
+        </Link>
+        <Link
           href="/admin/tools/whatsapp"
           className="block bg-white border border-[color:var(--rule)] rounded-[10px] p-5 hover:border-navy"
         >

@@ -29,6 +29,11 @@ interface Props {
    * titles where the framing is "this meal is coordinated on WhatsApp"). */
   chooseTitle?: React.ReactNode;
   chooseBody?: string;
+  /** Optional starting view — used by the standalone /join-whatsapp
+   * page with `?registered=1` to skip both the "Bay Area / visiting"
+   * gate and the "are you already registered" question and land
+   * directly on the email-entry form. Defaults to "choose". */
+  initialView?: View;
 }
 
 type View =
@@ -46,11 +51,12 @@ export function JoinWhatsAppModal({
   controlledOnClose,
   chooseTitle,
   chooseBody,
+  initialView,
 }: Props) {
   const isControlled = typeof controlledOpen === "boolean";
   const [internalOpen, setInternalOpen] = useState(false);
   const open = isControlled ? controlledOpen : internalOpen;
-  const [view, setView] = useState<View>("choose");
+  const [view, setView] = useState<View>(initialView ?? "choose");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
