@@ -63,7 +63,7 @@ function wrapEmailHtml(bodyHtml: string, alumniId: number | null): string {
         <td align="center" style="padding:32px 16px;">
           <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border:1px solid rgba(11,37,69,0.16);border-radius:10px;">
             <tr>
-              <td style="padding:20px 28px 0 28px;text-align:right;">
+              <td style="padding:24px 28px 0 28px;text-align:center;">
                 <!-- Logo PNG has the design on a navy field (#0265A8).
                      Wrap in a rounded navy box so it sits cleanly on
                      the white card and matches the website header. -->
