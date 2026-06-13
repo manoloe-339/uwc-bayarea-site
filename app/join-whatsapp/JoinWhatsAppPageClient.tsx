@@ -57,7 +57,13 @@ export default function JoinWhatsAppPageClient({
         whatsappUrl={whatsappUrl}
         controlledOpen={true}
         controlledOnClose={() => router.push("/")}
-        onSent={() => router.push("/join-whatsapp/thanks")}
+        onSent={(source) =>
+          router.push(
+            source === "invite"
+              ? "/join-whatsapp/thanks?sent=auto"
+              : "/join-whatsapp/thanks",
+          )
+        }
         initialView={initialView}
         invitePrefill={invitePrefill}
       />

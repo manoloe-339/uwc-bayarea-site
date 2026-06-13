@@ -21,10 +21,12 @@ interface Props {
    * trigger button — parent decides when to open and close. */
   controlledOpen?: boolean;
   controlledOnClose?: () => void;
-  /** Fires when a submission succeeds (entering the 'sent' view). Lets
-   * a parent navigate to a dedicated thanks page instead of showing
-   * the inline sent confirmation. */
-  onSent?: () => void;
+  /** Fires when a submission succeeds (entering the 'sent' view). The
+   * source argument lets the parent route trusted-token "invite"
+   * sends to a different thanks-page state than the public
+   * "request" / "visiting" submissions (the invite path auto-sends
+   * the email immediately, the others queue an admin review). */
+  onSent?: (source: "invite" | "request" | "visiting") => void;
   /** Optional override for the choose-view headline/body. Useful for
    * embedding the modal behind other triggers (e.g. Foodies card
    * titles where the framing is "this meal is coordinated on WhatsApp"). */
@@ -123,7 +125,7 @@ export function JoinWhatsAppModal({
         // to navigate (default homepage modal behavior), the user
         // still sees the in-modal confirmation.
         setView("sent");
-        onSent?.();
+        onSent?.("visiting");
       } else {
         setError(result.error ?? "Something went wrong. Try again?");
       }
@@ -136,7 +138,7 @@ export function JoinWhatsAppModal({
       const result = await sendRegisteredAlumRequest(formData);
       if (result.ok) {
         setView("sent");
-        onSent?.();
+        onSent?.("request");
       } else {
         setError(result.error ?? "Something went wrong. Try again?");
       }
@@ -162,7 +164,7 @@ export function JoinWhatsAppModal({
       if (result.ok) {
         // Skip the local setView("sent") that submitRegistered/
         // submitVisiting use — onSent always navigates here.
-        onSent?.();
+        onSent?.("invite");
       } else {
         setError(result.error ?? "Something went wrong. Try again?");
       }
