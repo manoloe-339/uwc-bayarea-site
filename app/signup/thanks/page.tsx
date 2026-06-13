@@ -42,12 +42,6 @@ export default function SignupThanksPage() {
               >
                 ← Back to the homepage
               </Link>
-              <Link
-                href="/"
-                className="inline-block text-navy border border-navy px-5 py-2.5 rounded text-sm font-semibold hover:bg-navy hover:text-white"
-              >
-                See the May 1 event
-              </Link>
             </div>
           </div>
         </section>
