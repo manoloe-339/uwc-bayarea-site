@@ -63,7 +63,20 @@ function wrapEmailHtml(bodyHtml: string, alumniId: number | null): string {
         <td align="center" style="padding:32px 16px;">
           <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border:1px solid rgba(11,37,69,0.16);border-radius:10px;">
             <tr>
-              <td style="padding:28px 32px;font-size:16px;line-height:1.55;color:#0B2545;">
+              <td style="padding:20px 28px 0 28px;text-align:right;">
+                <!-- Logo PNG has the design on a navy field (#0265A8).
+                     Wrap in a rounded navy box so it sits cleanly on
+                     the white card and matches the website header. -->
+                <img
+                  src="${appUrl()}/uwc-bay-area-logo.png"
+                  alt="UWC Bay Area · Alumni & Friends"
+                  width="140"
+                  style="display:inline-block;width:140px;height:auto;border:0;outline:none;border-radius:6px;background:#0265A8;"
+                />
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 32px 28px;font-size:16px;line-height:1.55;color:#0B2545;">
                 ${bodyHtml}
               </td>
             </tr>
