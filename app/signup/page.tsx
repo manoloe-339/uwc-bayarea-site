@@ -8,6 +8,28 @@ import { signup } from "@/lib/signup";
 export const metadata: Metadata = {
   title: "Sign up · UWC Bay Area",
   description: signup.lede,
+  openGraph: {
+    title: "Sign up · UWC Bay Area",
+    description: signup.lede,
+    type: "website",
+    // Static PNG in /public — same approach as the homepage OG. Avoids
+    // any chance of a scraper falling back to a body image (the
+    // homepage previously had this happen with the dynamic route).
+    images: [
+      {
+        url: "/og-signup.png",
+        width: 1200,
+        height: 630,
+        alt: "Sign up · UWC Bay Area",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sign up · UWC Bay Area",
+    description: signup.lede,
+    images: ["/og-signup.png"],
+  },
 };
 
 export default async function SignupPage() {
