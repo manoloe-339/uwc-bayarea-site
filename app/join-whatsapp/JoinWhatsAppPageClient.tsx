@@ -22,7 +22,10 @@ interface Props {
  *
  * Query params:
  *   ?registered=1  — skip the gate questions; open on the email
- *                    entry form (user still types name).
+ *                    entry form for already-registered alumni.
+ *   ?visiting=1    — skip the gate; open on the just-visiting form
+ *                    so visiting alumni land one click away from
+ *                    submitting.
  *   ?invite=<sig>  — trusted single-click; server-verified, modal
  *                    opens on "Send invite to <email>".
  */
@@ -32,8 +35,12 @@ export default function JoinWhatsAppPageClient({
 }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
-  const initialView =
-    sp.get("registered") === "1" ? "registered-form" : undefined;
+  const initialView: "registered-form" | "visiting" | undefined =
+    sp.get("visiting") === "1"
+      ? "visiting"
+      : sp.get("registered") === "1"
+        ? "registered-form"
+        : undefined;
 
   return (
     <div className="min-h-screen bg-[color:var(--ivory)] relative">
