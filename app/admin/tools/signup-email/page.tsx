@@ -11,6 +11,8 @@ import {
   EMAIL_PARAGRAPH_ATTRS,
 } from "@/lib/simple-markdown";
 import { MarkdownTextarea } from "@/components/admin/MarkdownTextarea";
+import { signWhatsappInviteToken } from "@/lib/whatsapp-invite-token";
+import { sql } from "@/lib/db";
 import { saveSignupEmailAction, sendTestSignupEmailAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -33,11 +35,31 @@ export default async function SignupEmailSettingsPage({
   // exactly what new signups will receive — including a real college
   // count so {college_blurb} substitutes the way it will in production.
   const previewMd = currentBodyMd.trim() || DEFAULT_SIGNUP_CONFIRMATION.bodyMd;
-  const previewCount = await fetchCollegeAlumniCount(PREVIEW_COLLEGE).catch(() => 0);
+  // Sign a token for the admin's own alumni row (if present) so the
+  // preview shows a clickable, working {whatsapp_link} — saves a
+  // round-trip when QA-ing the trusted-token flow.
+  const [previewCount, whatsappLink] = await Promise.all([
+    fetchCollegeAlumniCount(PREVIEW_COLLEGE).catch(() => 0),
+    (async () => {
+      const fallback = "https://uwcbayarea.org/join-whatsapp";
+      try {
+        const rows = (await sql`
+          SELECT id FROM alumni WHERE email = 'manoloe@gmail.com' LIMIT 1
+        `) as Array<{ id: number }>;
+        const id = rows[0]?.id;
+        if (!id) return fallback;
+        const token = await signWhatsappInviteToken(id);
+        return `https://uwcbayarea.org/join-whatsapp?invite=${encodeURIComponent(token)}`;
+      } catch {
+        return fallback;
+      }
+    })(),
+  ]);
   const previewResolvedMd = ensureParagraphBreaks(
     applyConfirmationPlaceholders(previewMd, {
       college: PREVIEW_COLLEGE,
       collegeCount: previewCount,
+      whatsappLink,
     }),
   );
   const previewHtml = renderSimpleMarkdown(

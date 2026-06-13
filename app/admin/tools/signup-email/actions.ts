@@ -14,9 +14,30 @@ import {
   EMAIL_LINK_ATTRS,
   EMAIL_PARAGRAPH_ATTRS,
 } from "@/lib/simple-markdown";
+import { signWhatsappInviteToken } from "@/lib/whatsapp-invite-token";
+import { sql } from "@/lib/db";
 
 const ADMIN_EMAIL = "manoloe@gmail.com";
 const PREVIEW_COLLEGE = "UWC Atlantic College";
+
+/** Sign a real {whatsapp_link} for the admin's own alumni row when
+ *  available, so the test email lands on a working trusted-token
+ *  page instead of the generic /join-whatsapp. Falls back to the
+ *  no-token URL when there's no matching alum or signing fails. */
+async function buildAdminWhatsappLink(): Promise<string> {
+  const fallback = "https://uwcbayarea.org/join-whatsapp";
+  try {
+    const rows = (await sql`
+      SELECT id FROM alumni WHERE email = ${ADMIN_EMAIL} LIMIT 1
+    `) as Array<{ id: number }>;
+    const id = rows[0]?.id;
+    if (!id) return fallback;
+    const token = await signWhatsappInviteToken(id);
+    return `https://uwcbayarea.org/join-whatsapp?invite=${encodeURIComponent(token)}`;
+  } catch {
+    return fallback;
+  }
+}
 
 /** Save a deliberate blank as null (so the action falls back to the
  * default copy on the next signup). Trim only — don't strip empty lines
@@ -43,11 +64,15 @@ export async function sendTestSignupEmailAction(formData: FormData): Promise<voi
     nullIfBlank(formData.get("subject")) ?? DEFAULT_SIGNUP_CONFIRMATION.subject;
   const bodyMd =
     nullIfBlank(formData.get("body_md")) ?? DEFAULT_SIGNUP_CONFIRMATION.bodyMd;
-  const previewCount = await fetchCollegeAlumniCount(PREVIEW_COLLEGE).catch(() => 0);
+  const [previewCount, whatsappLink] = await Promise.all([
+    fetchCollegeAlumniCount(PREVIEW_COLLEGE).catch(() => 0),
+    buildAdminWhatsappLink(),
+  ]);
   const resolvedMd = ensureParagraphBreaks(
     applyConfirmationPlaceholders(bodyMd, {
       college: PREVIEW_COLLEGE,
       collegeCount: previewCount,
+      whatsappLink,
     }),
   );
   const bodyHtml = renderSimpleMarkdown(resolvedMd, EMAIL_LINK_ATTRS, EMAIL_PARAGRAPH_ATTRS);
