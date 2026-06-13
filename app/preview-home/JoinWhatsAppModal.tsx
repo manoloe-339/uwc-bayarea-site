@@ -149,7 +149,13 @@ export function JoinWhatsAppModal({
     startTransition(async () => {
       const result = await sendInviteFromToken(invitePrefill.token);
       if (result.ok) {
-        setView("sent");
+        // Skip the local setView("sent") that submitRegistered/
+        // submitVisiting use — those exist as a fallback for the
+        // homepage-modal mode where there's no parent to navigate.
+        // The trusted-token flow ONLY runs from the /join-whatsapp
+        // page (parent always sets onSent → router.push), so we
+        // navigate directly. Avoids the visible flash of the
+        // SentView between submit and the thanks-page swap.
         onSent?.();
       } else {
         setError(result.error ?? "Something went wrong. Try again?");
