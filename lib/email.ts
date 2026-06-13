@@ -57,8 +57,8 @@ function wrapEmailHtml(bodyHtml: string, alumniId: number | null): string {
 
   return `<!doctype html>
 <html>
-  <body style="margin:0;padding:0;background:#F4EFE3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0B2545;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F4EFE3;">
+  <body style="margin:0;padding:0;background:#0265A8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0B2545;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0265A8;">
       <tr>
         <td align="center" style="padding:32px 16px;">
           <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border:1px solid rgba(11,37,69,0.16);border-radius:10px;">
