@@ -16,6 +16,7 @@ import {
   ensureParagraphBreaks,
   fetchCollegeAlumniCount,
 } from "@/lib/signup-confirmation";
+import { signWhatsappInviteToken } from "@/lib/whatsapp-invite-token";
 import {
   computeSignupDiff,
   recordSignupSubmission,
@@ -343,10 +344,20 @@ export async function submitSignup(
   const collegeCount = uwcCollege
     ? await fetchCollegeAlumniCount(uwcCollege, alumniId).catch(() => 0)
     : 0;
+  // Per-signup signed token so the {whatsapp_link} placeholder in
+  // the confirmation email resolves to a single-click invite URL.
+  // Falls back to a token-less URL if signing fails (it shouldn't —
+  // DIRECTORY_PASSWORD is always set in prod — but we don't want a
+  // signature failure to block the welcome email).
+  const inviteToken = await signWhatsappInviteToken(alumniId).catch(() => null);
+  const whatsappLink = inviteToken
+    ? `https://uwcbayarea.org/join-whatsapp?invite=${encodeURIComponent(inviteToken)}`
+    : `https://uwcbayarea.org/join-whatsapp`;
   const resolvedConfirmationMd = ensureParagraphBreaks(
     applyConfirmationPlaceholders(confirmationMd, {
       college: uwcCollege,
       collegeCount,
+      whatsappLink,
     }),
   );
   const confirmationHtml = renderSimpleMarkdown(

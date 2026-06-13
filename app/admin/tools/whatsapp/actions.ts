@@ -4,16 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { sendTestEmail } from "@/lib/email-send";
 import {
-  renderSimpleMarkdown,
-  EMAIL_LINK_ATTRS,
-  EMAIL_PARAGRAPH_ATTRS,
-} from "@/lib/simple-markdown";
-import {
   getSiteSettings,
   updateSiteSettings,
   DEFAULT_WHATSAPP_INVITE,
 } from "@/lib/settings";
 import { ensureParagraphBreaks } from "@/lib/signup-confirmation";
+import {
+  renderSimpleMarkdown,
+  EMAIL_LINK_ATTRS,
+  EMAIL_PARAGRAPH_ATTRS,
+} from "@/lib/simple-markdown";
 import { setVisitingRequestContacted } from "@/lib/visiting-requests";
 import {
   clearRegisteredWhatsappRequestAlumni,
@@ -25,6 +25,10 @@ import {
   markRegisteredWhatsappRequestSent,
 } from "@/lib/whatsapp-requests";
 import { sql } from "@/lib/db";
+import {
+  sendWhatsappInviteToAlum,
+  type AlumInvitePayload,
+} from "@/lib/whatsapp-invite-send";
 
 const ADMIN_EMAIL = "manoloe@gmail.com";
 const TOOL_PATH = "/admin/tools/whatsapp";
@@ -35,10 +39,9 @@ function nullIfBlank(v: FormDataEntryValue | null): string | null {
   return t.length ? t : null;
 }
 
-/** Substitute {whatsapp_url} (and {firstName} for direct rendering)
- * in the WhatsApp invite body. {firstName} is only used for the
- * preview/test path; the live send path leaves it intact and lets the
- * email-send salutation flow handle it. */
+/** Substitute {whatsapp_url} in the WhatsApp invite body. Used by the
+ *  preview/test path; the live send path goes through the shared
+ *  helper in lib/whatsapp-invite-send.ts. */
 function applyWhatsappPlaceholders(
   md: string,
   ctx: { whatsappUrl: string },
@@ -61,68 +64,6 @@ export async function toggleVisitingContactedAction(formData: FormData): Promise
 /* ------------------------------------------------------------------ */
 /* Registered-alum requests tab                                       */
 /* ------------------------------------------------------------------ */
-
-type AlumInvitePayload = {
-  alumni_id: number;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  uwc_college: string | null;
-  grad_year: number | null;
-  raw_name: string;
-};
-
-/** Render the saved template, send to the alum, and fire the admin
- * notification. Shared by the request-driven and admin-initiated send
- * paths so the email + log + notification stay identical. */
-async function sendWhatsappInviteToAlum(
-  alum: AlumInvitePayload,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const settings = await getSiteSettings();
-  const subject =
-    (settings.whatsapp_invite_subject ?? "").trim() || DEFAULT_WHATSAPP_INVITE.subject;
-  const bodyMd =
-    (settings.whatsapp_invite_body_md ?? "").trim() || DEFAULT_WHATSAPP_INVITE.bodyMd;
-  const whatsappUrl = (settings.whatsapp_url ?? "").trim();
-  const resolvedMd = ensureParagraphBreaks(
-    applyWhatsappPlaceholders(bodyMd, { whatsappUrl }),
-  );
-  const bodyHtml = renderSimpleMarkdown(resolvedMd, EMAIL_LINK_ATTRS, EMAIL_PARAGRAPH_ATTRS);
-
-  const result = await sendTestEmail({
-    to: alum.email,
-    subject,
-    bodyHtml,
-    textFallback: resolvedMd,
-    salutation: "Hi",
-    includeFirstName: true,
-    firstName: alum.first_name,
-    logTo: { alumniId: alum.alumni_id, kind: "whatsapp_invite" },
-  });
-  if (!result.ok) return { ok: false, error: result.error };
-
-  const fullName =
-    [alum.first_name, alum.last_name].filter(Boolean).join(" ") || alum.raw_name;
-  const adminBody = [
-    `Sent the WhatsApp invite email to:`,
-    ``,
-    `Name:    ${fullName}`,
-    `Email:   ${alum.email}`,
-    `College: ${alum.uwc_college ?? "—"}${alum.grad_year ? ` · ${alum.grad_year}` : ""}`,
-    ``,
-    `View / undo: https://uwcbayarea.org/admin/tools/whatsapp?tab=requests`,
-  ].join("\n");
-  void sendTestEmail({
-    to: ADMIN_EMAIL,
-    subject: `WhatsApp invite sent · ${fullName}`,
-    body: adminBody,
-    salutation: "",
-    includeFirstName: false,
-  }).then((r) => {
-    if (!r.ok) console.warn(`[whatsapp-invite] admin notification failed: ${r.error}`);
-  });
-  return { ok: true };
-}
 
 /** Send the WhatsApp invite email to the matched alum and stamp
  * sent_at. Renders the saved template with {whatsapp_url} substituted

@@ -39,16 +39,29 @@ export function buildCollegeBlurb(college: string | null, count: number): string
   return `You're joining ${count} other ${college} alumni already in our network.`;
 }
 
-/** Substitute {college}, {college_count}, {college_blurb} in the
- * confirmation markdown body. Unknown {placeholders} are left as-is. */
+/** Substitute {college}, {college_count}, {college_blurb}, and
+ *  {whatsapp_link} in the confirmation markdown body. Unknown
+ *  {placeholders} are left as-is. */
 export function applyConfirmationPlaceholders(
   md: string,
-  ctx: { college: string | null; collegeCount: number },
+  ctx: {
+    college: string | null;
+    collegeCount: number;
+    /** Optional fully-qualified URL with a signed token, e.g.
+     *  "https://uwcbayarea.org/join-whatsapp?invite=...". When set,
+     *  {whatsapp_link} substitutes to this URL; when omitted it
+     *  falls back to a generic /join-whatsapp link so the preview
+     *  rendering in the admin tool still produces a valid URL. */
+    whatsappLink?: string;
+  },
 ): string {
+  const whatsappLink =
+    ctx.whatsappLink ?? "https://uwcbayarea.org/join-whatsapp";
   return md
     .replaceAll("{college_blurb}", buildCollegeBlurb(ctx.college, ctx.collegeCount))
     .replaceAll("{college_count}", String(ctx.collegeCount))
-    .replaceAll("{college}", ctx.college ?? "");
+    .replaceAll("{college}", ctx.college ?? "")
+    .replaceAll("{whatsapp_link}", whatsappLink);
 }
 
 /** If the body has no blank lines but multiple text lines, the author

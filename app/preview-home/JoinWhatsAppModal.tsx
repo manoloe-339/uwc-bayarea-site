@@ -6,6 +6,7 @@ import {
   sendJustVisitingNotification,
   sendRegisteredAlumRequest,
 } from "./visiting-actions";
+import { sendInviteFromToken } from "@/app/join-whatsapp/invite-actions";
 
 const MANOLO_WHATSAPP_URL = "https://wa.me/14154652848";
 
@@ -34,14 +35,28 @@ interface Props {
    * gate and the "are you already registered" question and land
    * directly on the email-entry form. Defaults to "choose". */
   initialView?: View;
+  /** Trusted prefill from a signed signup-confirmation link. When
+   *  set, the modal opens straight on a one-click "send invite to
+   *  your registered email" CTA. */
+  invitePrefill?: InvitePrefill | null;
 }
 
 type View =
   | "choose"
   | "registered-choice"
   | "registered-form"
+  | "invite-prefill"
   | "visiting"
   | "sent";
+
+/** Trusted-token prefill data — set by the page server-component
+ *  after verifying ?invite=<token>. Carries the alum's first name +
+ *  email so the modal can render a one-click "send to me" CTA. */
+export type InvitePrefill = {
+  token: string;
+  firstName: string | null;
+  email: string;
+};
 
 export function JoinWhatsAppModal({
   whatsappUrl,
@@ -52,11 +67,16 @@ export function JoinWhatsAppModal({
   chooseTitle,
   chooseBody,
   initialView,
+  invitePrefill,
 }: Props) {
   const isControlled = typeof controlledOpen === "boolean";
   const [internalOpen, setInternalOpen] = useState(false);
   const open = isControlled ? controlledOpen : internalOpen;
-  const [view, setView] = useState<View>(initialView ?? "choose");
+  // Trusted-token prefill wins over initialView so the signup-email
+  // link always lands on the one-click confirmation view.
+  const [view, setView] = useState<View>(
+    invitePrefill ? "invite-prefill" : (initialView ?? "choose"),
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -123,6 +143,20 @@ export function JoinWhatsAppModal({
     });
   };
 
+  const submitInvite = () => {
+    if (!invitePrefill) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await sendInviteFromToken(invitePrefill.token);
+      if (result.ok) {
+        setView("sent");
+        onSent?.();
+      } else {
+        setError(result.error ?? "Something went wrong. Try again?");
+      }
+    });
+  };
+
   return (
     <>
       {!isControlled && (
@@ -180,6 +214,16 @@ export function JoinWhatsAppModal({
               <RegisteredForm
                 onBack={() => setView("registered-choice")}
                 onSubmit={submitRegistered}
+                isPending={isPending}
+                error={error}
+              />
+            )}
+
+            {view === "invite-prefill" && invitePrefill && (
+              <InvitePrefillView
+                firstName={invitePrefill.firstName}
+                email={invitePrefill.email}
+                onSubmit={submitInvite}
                 isPending={isPending}
                 error={error}
               />
@@ -369,6 +413,58 @@ function ManoloWhatsAppHint() {
         Send Manolo a quick WhatsApp →
       </a>
     </p>
+  );
+}
+
+/** Trusted-token confirmation view — fired by the signed link in the
+ *  signup-confirmation email. We already know who the user is, so the
+ *  CTA is a single click: send the WhatsApp invite email to the
+ *  registered address. The first name is shown for warmth ("Hi Tara")
+ *  but is not user-editable here; if they need to change either,
+ *  they can use the public form via the "Use a different name or
+ *  email" link. */
+function InvitePrefillView({
+  firstName, email, onSubmit, isPending, error,
+}: {
+  firstName: string | null;
+  email: string;
+  onSubmit: () => void;
+  isPending: boolean;
+  error: string | null;
+}) {
+  return (
+    <div className="p-7 sm:p-8">
+      <h2
+        id="join-whatsapp-title"
+        className="font-serif font-semibold text-[color:var(--navy-ink)] text-[26px] sm:text-[30px] leading-[1.1] tracking-[-0.005em] m-0"
+      >
+        {firstName ? <>Hi <em className="italic">{firstName}</em> — ready?</> : <>Ready to join?</>}
+      </h2>
+      <p className="mt-4 text-[15px] leading-[1.55] text-[color:var(--navy-ink)]/80">
+        We&rsquo;ll send the WhatsApp join link to your registered email.
+      </p>
+      <div className="mt-5 px-4 py-3 bg-[color:var(--ivory-2)] border border-[color:var(--rule)] rounded-[10px]">
+        <div className="text-[11px] tracking-[.18em] uppercase font-bold text-navy mb-0.5">
+          Sending to
+        </div>
+        <div className="font-semibold text-[color:var(--navy-ink)] break-all">
+          {email}
+        </div>
+      </div>
+      {error && (
+        <p className="mt-4 text-[13px] text-[color:#b03030]" role="alert">
+          {error}
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={isPending}
+        className="mt-6 block w-full bg-[#25D366] text-white text-center px-6 py-3.5 rounded-full text-[12px] font-bold tracking-[.22em] uppercase hover:opacity-90 disabled:opacity-60"
+      >
+        {isPending ? "Sending…" : "Send the WhatsApp invite"}
+      </button>
+    </div>
   );
 }
 
