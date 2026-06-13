@@ -147,15 +147,21 @@ export function JoinWhatsAppModal({
     if (!invitePrefill) return;
     setError(null);
     startTransition(async () => {
-      const result = await sendInviteFromToken(invitePrefill.token);
+      let result: { ok: true } | { ok: false; error: string };
+      try {
+        result = await sendInviteFromToken(invitePrefill.token);
+      } catch (err) {
+        // Without this catch, an unhandled server-action throw
+        // would be swallowed by useTransition and the button would
+        // just sit at "Sending…" forever with no feedback.
+        const msg =
+          err instanceof Error ? err.message : "Unexpected error";
+        setError(`Couldn't send the invite (${msg}). Try again?`);
+        return;
+      }
       if (result.ok) {
         // Skip the local setView("sent") that submitRegistered/
-        // submitVisiting use — those exist as a fallback for the
-        // homepage-modal mode where there's no parent to navigate.
-        // The trusted-token flow ONLY runs from the /join-whatsapp
-        // page (parent always sets onSent → router.push), so we
-        // navigate directly. Avoids the visible flash of the
-        // SentView between submit and the thanks-page swap.
+        // submitVisiting use — onSent always navigates here.
         onSent?.();
       } else {
         setError(result.error ?? "Something went wrong. Try again?");

@@ -22,8 +22,13 @@ import {
 export async function sendInviteFromToken(
   token: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  console.log("[invite-send] sendInviteFromToken invoked");
   const verified = await verifyWhatsappInviteToken(token);
-  if (!verified) return { ok: false, error: "Invalid or expired invite link." };
+  if (!verified) {
+    console.warn("[invite-send] token verification failed");
+    return { ok: false, error: "Invalid or expired invite link." };
+  }
+  console.log(`[invite-send] verified alumniId=${verified.alumniId}`);
 
   const rows = (await sql`
     SELECT id, email, first_name, last_name, uwc_college, grad_year
@@ -37,8 +42,15 @@ export async function sendInviteFromToken(
     grad_year: number | null;
   }>;
   const alum = rows[0];
-  if (!alum) return { ok: false, error: "Alumni record not found." };
-  if (!alum.email) return { ok: false, error: "No email on file for this alum." };
+  if (!alum) {
+    console.warn(`[invite-send] alumni row ${verified.alumniId} not found`);
+    return { ok: false, error: "Alumni record not found." };
+  }
+  if (!alum.email) {
+    console.warn(`[invite-send] alumni ${alum.id} has no email`);
+    return { ok: false, error: "No email on file for this alum." };
+  }
+  console.log(`[invite-send] sending to ${alum.email}`);
 
   const result = await sendWhatsappInviteToAlum({
     alumni_id: alum.id,
@@ -50,6 +62,7 @@ export async function sendInviteFromToken(
     raw_name:
       [alum.first_name, alum.last_name].filter(Boolean).join(" ") || alum.email,
   });
+  console.log(`[invite-send] sendWhatsappInviteToAlum returned ok=${result.ok}`);
   if (!result.ok) return result;
 
   // Best-effort: if there's a pending public request row for this
