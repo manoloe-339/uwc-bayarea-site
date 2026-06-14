@@ -344,7 +344,16 @@ async function OtherEmailsTable({ sp }: { sp: { kind?: string } }) {
                       </span>
                     </td>
                     <td className="px-4 py-2.5">
-                      <div className="text-[color:var(--navy-ink)]">{fullName || r.email}</div>
+                      {r.alumni_id ? (
+                        <Link
+                          href={`/admin/alumni/${r.alumni_id}`}
+                          className="text-[color:var(--navy-ink)] hover:underline"
+                        >
+                          {fullName || r.email}
+                        </Link>
+                      ) : (
+                        <span className="text-[color:var(--navy-ink)]">{fullName || r.email}</span>
+                      )}
                       {fullName && (
                         <div className="text-[11px] text-[color:var(--muted)]">{r.email}</div>
                       )}
