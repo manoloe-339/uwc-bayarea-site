@@ -12,6 +12,7 @@
  * and notify the admin the same way — keeping the logic here ensures
  * they don't drift apart.
  */
+import { sql } from "@/lib/db";
 import { sendTestEmail } from "@/lib/email-send";
 import {
   renderSimpleMarkdown,
@@ -40,9 +41,47 @@ function applyWhatsappPlaceholders(
   return md.replaceAll("{whatsapp_url}", ctx.whatsappUrl);
 }
 
+/** How recently we'll silently dedupe a duplicate send to the same
+ * alum. 1 hour catches the common double-click / refresh-and-retry
+ * pattern without blocking a legitimate later re-send. */
+const WHATSAPP_DEDUP_WINDOW_MINUTES = 60;
+
 export async function sendWhatsappInviteToAlum(
   alum: AlumInvitePayload,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+  opts: { force?: boolean } = {},
+): Promise<
+  | { ok: true; deduped?: boolean }
+  | { ok: false; error: string }
+> {
+  // Guard against double-fires: if a WhatsApp invite already went to
+  // this alum within the dedup window, return ok without sending
+  // again. Pass { force: true } to bypass (admin re-send path).
+  if (!opts.force) {
+    try {
+      const recent = (await sql`
+        SELECT id FROM email_sends
+        WHERE alumni_id = ${alum.alumni_id}
+          AND kind = 'whatsapp_invite'
+          AND status = 'sent'
+          AND sent_at > NOW() - (${WHATSAPP_DEDUP_WINDOW_MINUTES} || ' minutes')::interval
+        LIMIT 1
+      `) as Array<{ id: string }>;
+      if (recent.length > 0) {
+        console.log(
+          `[whatsapp-invite] dedup hit for alumni=${alum.alumni_id} — already sent in last ${WHATSAPP_DEDUP_WINDOW_MINUTES}min, skipping`,
+        );
+        return { ok: true, deduped: true };
+      }
+    } catch (err) {
+      // Dedup query failure shouldn't block a legitimate send — log
+      // and continue.
+      console.warn(
+        `[whatsapp-invite] dedup check failed for alumni=${alum.alumni_id}:`,
+        err,
+      );
+    }
+  }
+
   const settings = await getSiteSettings();
   const subject =
     (settings.whatsapp_invite_subject ?? "").trim() ||
