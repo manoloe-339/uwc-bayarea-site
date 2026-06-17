@@ -1,4 +1,9 @@
 import { signUnsubscribeToken } from "./unsubscribe-token";
+import {
+  renderSimpleMarkdown,
+  EMAIL_LINK_ATTRS,
+  EMAIL_PARAGRAPH_ATTRS,
+} from "./simple-markdown";
 
 export const GROUP_NAME = "UWC Bay Area";
 
@@ -48,6 +53,43 @@ export function renderEmailHtml(body: string, alumniId: number | null): string {
  * HTML for the body (e.g. rendered from markdown). Skips escape/linkify. */
 export function renderEmailHtmlFromHtml(bodyHtml: string, alumniId: number | null): string {
   return wrapEmailHtml(bodyHtml, alumniId);
+}
+
+/** Render a body that supports lightweight markdown ([text](url),
+ * **bold**, *italic*, paragraphs) AND continues to auto-link bare
+ * URLs. Used by Quick Note campaigns and any other plain-text-feeling
+ * input that should still accept embedded links. */
+export function renderEmailHtmlWithMarkdown(body: string, alumniId: number | null): string {
+  const md = renderSimpleMarkdown(body, EMAIL_LINK_ATTRS, EMAIL_PARAGRAPH_ATTRS);
+  const linkedBody = linkifyOutsideAnchors(md);
+  return wrapEmailHtml(linkedBody, alumniId);
+}
+
+/** Auto-link bare URLs in already-rendered HTML, skipping text that
+ * sits inside an existing <a>…</a> tag (so markdown links aren't
+ * double-linked). */
+function linkifyOutsideAnchors(html: string): string {
+  const re = /<a\b[^>]*>[\s\S]*?<\/a>/g;
+  let out = "";
+  let lastIdx = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(html)) !== null) {
+    out += linkify(html.slice(lastIdx, match.index));
+    out += match[0];
+    lastIdx = match.index + match[0].length;
+  }
+  out += linkify(html.slice(lastIdx));
+  return out;
+}
+
+/** Plain-text companion: flatten markdown links so text-only readers
+ * see both the label and the URL. "[Click here](https://x.com)" →
+ * "Click here (https://x.com)". Bold/italic markers are stripped. */
+export function flattenMarkdownForText(body: string): string {
+  return body
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, "$1 ($2)")
+    .replace(/\*\*([^*\n]+)\*\*/g, "$1")
+    .replace(/\*([^*\n]+)\*/g, "$1");
 }
 
 function wrapEmailHtml(bodyHtml: string, alumniId: number | null): string {

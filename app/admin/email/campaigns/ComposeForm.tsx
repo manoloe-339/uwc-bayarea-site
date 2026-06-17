@@ -514,7 +514,7 @@ function QuickNoteSection({
         value={qn.body}
         onChange={(v) => update({ body: v })}
         disabled={disabled}
-        hint="Plain text — line breaks preserved, URLs auto-linked. Supports {{firstName}}."
+        hint='Line breaks preserved · URLs auto-linked · Supports {{firstName}} · Embedded links: [Click here](https://example.com) · **bold** · *italic*'
       />
     </FormCard>
   );

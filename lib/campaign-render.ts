@@ -3,7 +3,11 @@ import React from "react";
 import AlumniNewsletter, {
   type AlumniNewsletterProps,
 } from "@/emails/AlumniNewsletter";
-import { renderEmailHtml, renderEmailText } from "./email";
+import {
+  renderEmailHtmlWithMarkdown,
+  renderEmailText,
+  flattenMarkdownForText,
+} from "./email";
 import { generateUnsubscribeUrl, renderPersonalization } from "./recipients";
 import type { NewsletterContent, QuickNoteContent } from "./campaign-content";
 
@@ -75,8 +79,12 @@ export async function renderCampaign(
     wrapWithSalutation(baseBody, qn, firstName),
     vars
   );
-  const html = renderEmailHtml(finalBody, recipient.alumniId);
-  const text = renderEmailText(finalBody, recipient.alumniId);
+  // HTML supports lightweight markdown — [text](url) links, **bold**,
+  // *italic* — on top of the existing bare-URL auto-linking. Plain text
+  // version flattens the markdown so text-only readers still see both
+  // label and URL.
+  const html = renderEmailHtmlWithMarkdown(finalBody, recipient.alumniId);
+  const text = renderEmailText(flattenMarkdownForText(finalBody), recipient.alumniId);
   return { subject, html, text, preheader, unsubscribeUrl };
 }
 
