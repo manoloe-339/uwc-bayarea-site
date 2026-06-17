@@ -175,14 +175,24 @@ export default async function CampaignDetail({ params }: { params: Promise<{ id:
                   [r.first_name, r.last_name].filter(Boolean).join(" ") || "—";
                 const isComplaint = !!r.complained_at;
                 const isBounce = !!r.bounced_at;
+                const isClicked = !!r.clicked_at;
+                const isOpened = !!r.opened_at;
+                // Highest-signal event wins — clicked/opened beat
+                // plain "sent" so the engagement state is visible at
+                // a glance from the badge column alone, without
+                // having to scan the timestamp columns.
                 const statusBadge = isComplaint
                   ? { label: "complained", tone: "red" }
                   : isBounce
                   ? { label: "bounced", tone: "orange" }
-                  : r.status === "sent"
-                  ? { label: "sent", tone: "green" }
                   : r.status === "failed"
                   ? { label: "failed", tone: "red" }
+                  : isClicked
+                  ? { label: "clicked", tone: "blue" }
+                  : isOpened
+                  ? { label: "opened", tone: "sky" }
+                  : r.status === "sent"
+                  ? { label: "sent", tone: "green" }
                   : { label: r.status, tone: "gray" };
                 return (
                   <tr key={r.id} className="border-t border-[color:var(--rule)] hover:bg-ivory">
@@ -288,6 +298,8 @@ function Badge({ tone, children }: { tone: string; children: React.ReactNode }) 
     green: "bg-green-50 text-green-800 border-green-200",
     red: "bg-red-50 text-red-800 border-red-200",
     orange: "bg-orange-50 text-orange-800 border-orange-200",
+    sky: "bg-sky-50 text-sky-800 border-sky-200",
+    blue: "bg-blue-100 text-blue-900 border-blue-300",
     gray: "bg-ivory-2 text-[color:var(--navy-ink)] border-[color:var(--rule)]",
   };
   return (
