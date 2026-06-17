@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { render } from "@react-email/render";
 import Link from "next/link";
@@ -11,6 +11,11 @@ import type { CampaignDraft } from "@/lib/campaign-content";
 import type { AlumniFilters } from "@/lib/alumni-query";
 import { COLLEGES } from "@/lib/uwc-colleges";
 import { REGIONS } from "@/lib/region";
+import {
+  renderSimpleMarkdown,
+  EMAIL_LINK_ATTRS,
+  EMAIL_PARAGRAPH_ATTRS,
+} from "@/lib/simple-markdown";
 import {
   saveDraftAction,
   deleteCampaign,
@@ -508,13 +513,10 @@ function QuickNoteSection({
           Include first name
         </label>
       </div>
-      <Textarea
-        label="Body"
-        rows={14}
+      <QuickNoteBodyEditor
         value={qn.body}
         onChange={(v) => update({ body: v })}
         disabled={disabled}
-        hint='Line breaks preserved · URLs auto-linked · Supports {{firstName}} · Embedded links: [Click here](https://example.com) · **bold** · *italic*'
       />
     </FormCard>
   );
@@ -1091,6 +1093,95 @@ function Field({
   );
 }
 
+/** Body editor for Quick note campaigns. Wraps the plain textarea
+ * with a small toolbar — currently just one button for inserting a
+ * markdown link. Click it after selecting some text and you'll be
+ * prompted for the URL; the selection is replaced with the
+ * [text](url) syntax in-place. With no selection, you get prompted
+ * for both the visible label AND the URL. */
+function QuickNoteBodyEditor({
+  value, onChange, disabled,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const taRef = useRef<HTMLTextAreaElement | null>(null);
+
+  function insertLink() {
+    const ta = taRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart ?? value.length;
+    const end = ta.selectionEnd ?? value.length;
+    const selection = value.slice(start, end);
+
+    let linkText = selection;
+    if (!linkText) {
+      const promptedText = window.prompt("Link text — the words readers will click");
+      if (!promptedText) return;
+      linkText = promptedText.trim();
+      if (!linkText) return;
+    }
+    const url = window.prompt(
+      `URL the link should point to:\n\n(must start with https:// or http:// or mailto:)`,
+      "https://",
+    );
+    if (!url) return;
+    const trimmedUrl = url.trim();
+    if (!/^(https?:|mailto:|tel:)/i.test(trimmedUrl) && !trimmedUrl.startsWith("/") && !trimmedUrl.startsWith("#")) {
+      window.alert("That URL doesn't look right — needs to start with https:// (or http://, mailto:).");
+      return;
+    }
+
+    const snippet = `[${linkText}](${trimmedUrl})`;
+    const next = value.slice(0, start) + snippet + value.slice(end);
+    onChange(next);
+
+    // Restore focus + put the cursor right after the inserted snippet
+    // so the user can keep typing.
+    requestAnimationFrame(() => {
+      ta.focus();
+      const pos = start + snippet.length;
+      ta.setSelectionRange(pos, pos);
+    });
+  }
+
+  return (
+    <label className="block mb-3">
+      <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+        Body
+      </span>
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <button
+          type="button"
+          onClick={insertLink}
+          disabled={disabled}
+          className="text-xs font-semibold border border-[color:var(--rule)] rounded px-2.5 py-1 hover:border-navy hover:text-navy disabled:opacity-50"
+          title="Select text first, then click to wrap it as a link. With no selection, you'll be prompted for both the label and the URL."
+        >
+          🔗 Insert link
+        </button>
+        <span className="text-[11px] text-[color:var(--muted)]">
+          Tip: select the text you want to make clickable first, then click <strong>Insert link</strong>.
+        </span>
+      </div>
+      <textarea
+        ref={taRef}
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        rows={14}
+        className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white font-sans disabled:bg-ivory-2"
+      />
+      <span className="block mt-1 text-xs text-[color:var(--muted)]">
+        Line breaks preserved · Bare URLs auto-linked · Supports {"{{firstName}}"} ·
+        Manual link syntax: <code>[text](https://example.com)</code> ·
+        <code>**bold**</code> · <code>*italic*</code>
+      </span>
+    </label>
+  );
+}
+
 function Textarea({
   label, value, onChange, disabled, rows = 4, hint,
 }: {
@@ -1118,18 +1209,46 @@ function Textarea({
   );
 }
 
+/** Auto-link bare URLs in already-rendered HTML, skipping text that
+ * sits inside an existing <a>…</a> tag. Mirror of the same helper
+ * in lib/email.ts (kept local so this client component doesn't
+ * pull in the server-only email module). */
+function linkifyOutsideAnchors(html: string): string {
+  const re = /<a\b[^>]*>[\s\S]*?<\/a>/g;
+  const linkify = (s: string) =>
+    s.replace(
+      /(\bhttps?:\/\/[^\s<]+|\bwww\.[^\s<]+)/gi,
+      (url) => {
+        const href = /^www\./i.test(url) ? `https://${url}` : url;
+        return `<a href="${href}" style="color:#0265A8;">${url}</a>`;
+      },
+    );
+  let out = "";
+  let lastIdx = 0;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(html)) !== null) {
+    out += linkify(html.slice(lastIdx, match.index));
+    out += match[0];
+    lastIdx = match.index + match[0].length;
+  }
+  out += linkify(html.slice(lastIdx));
+  return out;
+}
+
 function quickNoteHtml(draft: CampaignDraft, settings: PreviewSettings, firstName: string): string {
   const body = draft.quickNote?.body ?? "";
   const sal = draft.quickNote?.salutation?.trim();
   const include = draft.quickNote?.includeFirstName;
   const prefix = sal ? `${sal}${include ? ` ${firstName}` : ""},\n\n` : "";
   const full = prefix + body;
-  const html = full
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/(https?:\/\/[^\s<]+)/g, (u) => `<a href="${u}" style="color:#0265A8;">${u}</a>`)
-    .replace(/\n/g, "<br>");
+  // Match the SEND pipeline: render the markdown subset first, then
+  // auto-link any bare URLs that aren't already inside an <a>.
+  const rendered = renderSimpleMarkdown(
+    full,
+    EMAIL_LINK_ATTRS,
+    EMAIL_PARAGRAPH_ATTRS,
+  );
+  const html = linkifyOutsideAnchors(rendered);
   return `<!doctype html><html><body style="margin:0;padding:0;background:#F4EFE3;font-family:system-ui,sans-serif;color:#0B2545;">
     <div style="max-width:560px;margin:0 auto;padding:32px 16px;">
       <div style="background:#ffffff;border:1px solid rgba(11,37,69,0.16);border-radius:10px;padding:28px 32px;font-size:16px;line-height:1.55;">

@@ -80,10 +80,14 @@ export function renderSimpleMarkdown(
   const paragraphs = escaped.split(/\n{2,}/);
   const blocks = paragraphs
     .map((p) => {
-      // Within a paragraph, single newlines become <br>.
-      const withBreaks = p
+      // Apply inline transforms (links, bold, italic) to the WHOLE
+      // paragraph first so a markdown link can span multiple lines —
+      // the compose textarea wraps long URLs across newlines often.
+      const inlined = applyInline(p, linkAttrs);
+      // Then convert single newlines to <br>.
+      const withBreaks = inlined
         .split("\n")
-        .map((line) => applyInline(line.trim(), linkAttrs))
+        .map((line) => line.trim())
         .filter((line) => line.length > 0)
         .join("<br>");
       if (!withBreaks) return "";
