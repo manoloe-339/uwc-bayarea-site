@@ -20,6 +20,8 @@ const HELP_OPTIONS: ReadonlyArray<HelpOption> = [
 
 type Affiliation = "Alum" | "Friend" | "Parent";
 
+type ContactField = "mobile" | "linkedin";
+
 export default function SignupForm() {
   const [affiliation, setAffiliation] = useState<Affiliation | "">("");
   const [college, setCollege] = useState<string>("");
@@ -28,13 +30,14 @@ export default function SignupForm() {
   const [confirmEmail, setConfirmEmail] = useState("");
   const [isWorking, setIsWorking] = useState(false);
   const [isStudying, setIsStudying] = useState(false);
-  // "I don't have one" checkboxes for mobile + linkedin. When ticked,
-  // the corresponding input is disabled and the server stores NULL.
-  // We need to flag this on the server because today an empty input
-  // is indistinguishable from "user just forgot" — these checkboxes
-  // make the user's intent explicit.
-  const [noMobile, setNoMobile] = useState(false);
-  const [noLinkedin, setNoLinkedin] = useState(false);
+  // Modal shown when the user tries to submit without mobile or
+  // linkedin. The modal explains why we ask, lets them enter a
+  // value inline, or skip. We stash the FormData on submit so the
+  // "Add / Skip" handlers can pick up exactly the payload the user
+  // just tried to submit — no state races, no re-serialization.
+  const [modalOpen, setModalOpen] = useState<ContactField | null>(null);
+  const [modalValue, setModalValue] = useState("");
+  const stashedFormData = useRef<FormData | null>(null);
   // useActionState lets the server action return validation errors
   // without redirecting, so the form keeps every field the user typed
   // when validation fails. Successful submissions still redirect.
@@ -75,11 +78,64 @@ export default function SignupForm() {
   const emailsMatch =
     !confirmEmail || email.trim().toLowerCase() === confirmEmail.trim().toLowerCase();
 
+  /** Walk the submit-time gates for the contact fields. If mobile or
+   * linkedin is empty AND hasn't been explicitly opted out of, stash
+   * the FormData and open the corresponding modal. Otherwise, hand
+   * off to the server action. Recursive-safe: the modal handlers
+   * mutate the stashed FormData in place and re-enter this function. */
+  function runSubmitGates(fd: FormData) {
+    const mobileVal = String(fd.get("mobile") ?? "").trim();
+    const noMobile = fd.get("no_mobile") === "on";
+    if (!mobileVal && !noMobile) {
+      stashedFormData.current = fd;
+      setModalValue("");
+      setModalOpen("mobile");
+      return;
+    }
+    const linkedinVal = String(fd.get("linkedin_url") ?? "").trim();
+    const noLinkedin = fd.get("no_linkedin") === "on";
+    if (!linkedinVal && !noLinkedin) {
+      stashedFormData.current = fd;
+      setModalValue("");
+      setModalOpen("linkedin");
+      return;
+    }
+    formAction(fd);
+  }
+
+  function handleModalAdd() {
+    const fd = stashedFormData.current;
+    if (!fd || !modalOpen) return;
+    const field = modalOpen === "mobile" ? "mobile" : "linkedin_url";
+    fd.set(field, modalValue.trim());
+    setModalOpen(null);
+    setModalValue("");
+    runSubmitGates(fd);
+  }
+
+  function handleModalSkip() {
+    const fd = stashedFormData.current;
+    if (!fd || !modalOpen) return;
+    const flag = modalOpen === "mobile" ? "no_mobile" : "no_linkedin";
+    fd.set(flag, "on");
+    setModalOpen(null);
+    setModalValue("");
+    runSubmitGates(fd);
+  }
+
+  function handleModalCancel() {
+    // User clicked the backdrop or the close (X). Discard the stashed
+    // submit — they can fill in the field then click Sign me up again.
+    stashedFormData.current = null;
+    setModalOpen(null);
+    setModalValue("");
+  }
+
   return (
     <form
       action={(fd) => {
         if (!emailsMatch) return;
-        formAction(fd);
+        runSubmitGates(fd);
       }}
       className="space-y-7"
       noValidate
@@ -143,64 +199,36 @@ export default function SignupForm() {
               </span>
             )}
           </label>
-          <div className="block sm:col-span-2">
-            <label className="block">
-              <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-                Mobile *
-              </span>
-              <input
-                name="mobile"
-                type="tel"
-                autoComplete="tel"
-                placeholder="+1 415 555 0123"
-                required={!noMobile}
-                disabled={noMobile}
-                className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white disabled:bg-ivory-2 disabled:text-[color:var(--muted)]"
-              />
-            </label>
-            <label className="mt-1.5 inline-flex items-center gap-2 text-xs text-[color:var(--muted)]">
-              <input
-                type="checkbox"
-                name="no_mobile"
-                checked={noMobile}
-                onChange={(e) => setNoMobile(e.target.checked)}
-              />
-              I don't have a mobile number
-            </label>
-            <span className="block mt-1 text-xs text-[color:var(--muted)]">
-              {noMobile
-                ? "Without a mobile number you won't be eligible for the UWC Bay Area WhatsApp group."
-                : "Required for UWC Bay Area WhatsApp access."}
+          <label className="block sm:col-span-2">
+            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+              Mobile *
             </span>
-          </div>
-          <div className="block sm:col-span-2">
-            <label className="block">
-              <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-                LinkedIn profile URL *
-              </span>
-              <input
-                name="linkedin_url"
-                type="text"
-                inputMode="url"
-                placeholder="https://linkedin.com/in/yourname"
-                required={!noLinkedin}
-                disabled={noLinkedin}
-                className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white disabled:bg-ivory-2 disabled:text-[color:var(--muted)]"
-              />
-            </label>
-            <label className="mt-1.5 inline-flex items-center gap-2 text-xs text-[color:var(--muted)]">
-              <input
-                type="checkbox"
-                name="no_linkedin"
-                checked={noLinkedin}
-                onChange={(e) => setNoLinkedin(e.target.checked)}
-              />
-              I don't have a LinkedIn profile
-            </label>
+            <input
+              name="mobile"
+              type="tel"
+              autoComplete="tel"
+              placeholder="+1 415 555 0123"
+              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            />
             <span className="block mt-1 text-xs text-[color:var(--muted)]">
-              Helps us recognize you and connect alumni with similar backgrounds.
+              Required for UWC Bay Area WhatsApp access.
             </span>
-          </div>
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+              LinkedIn profile URL *
+            </span>
+            <input
+              name="linkedin_url"
+              type="text"
+              inputMode="url"
+              placeholder="https://linkedin.com/in/yourname"
+              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            />
+            <span className="block mt-1 text-xs text-[color:var(--muted)]">
+              Helps us match you with alumni in the same field, industry, or company.
+            </span>
+          </label>
         </Grid>
       </Section>
 
@@ -407,7 +435,108 @@ export default function SignupForm() {
           {pending ? "Sending…" : "Sign me up"}
         </button>
       </div>
+
+      <ContactModal
+        open={modalOpen}
+        value={modalValue}
+        onValueChange={setModalValue}
+        onAdd={handleModalAdd}
+        onSkip={handleModalSkip}
+        onCancel={handleModalCancel}
+      />
     </form>
+  );
+}
+
+/** Modal shown on submit when the user left mobile or linkedin empty.
+ * Each variant pitches the value of the field, offers an inline
+ * input to add it right there, or a Skip button that submits without.
+ * The Skip UX explicitly names what the user forfeits — WhatsApp
+ * access for mobile, alumni-matching for linkedin — so the decision
+ * is informed. */
+function ContactModal({
+  open, value, onValueChange, onAdd, onSkip, onCancel,
+}: {
+  open: ContactField | null;
+  value: string;
+  onValueChange: (v: string) => void;
+  onAdd: () => void;
+  onSkip: () => void;
+  onCancel: () => void;
+}) {
+  if (!open) return null;
+  const copy =
+    open === "mobile"
+      ? {
+          title: "Add your mobile number",
+          body: "Without a mobile number you won't be eligible for the UWC Bay Area WhatsApp group — that's where most day-to-day chapter conversation happens.",
+          placeholder: "+1 415 555 0123",
+          inputType: "tel" as const,
+          addLabel: "Add mobile & continue",
+          skipLabel: "Skip — no WhatsApp",
+        }
+      : {
+          title: "Add your LinkedIn profile",
+          body: "We use LinkedIn to match you with alumni working in the same field, industry, or company — that's how the network becomes useful beyond the mailing list.",
+          placeholder: "https://linkedin.com/in/yourname",
+          inputType: "text" as const,
+          addLabel: "Add LinkedIn & continue",
+          skipLabel: "Skip — don't match me",
+        };
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="contact-modal-title"
+      onClick={(e) => {
+        // Backdrop click cancels. Inner clicks stopPropagation.
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3
+          id="contact-modal-title"
+          className="text-lg font-bold text-navy mb-2"
+        >
+          {copy.title}
+        </h3>
+        <p className="text-sm text-[color:var(--muted)] mb-4 leading-relaxed">
+          {copy.body}
+        </p>
+        <input
+          type={copy.inputType}
+          autoFocus
+          value={value}
+          onChange={(e) => onValueChange(e.target.value)}
+          placeholder={copy.placeholder}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && value.trim()) {
+              e.preventDefault();
+              onAdd();
+            }
+          }}
+          className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white mb-4"
+        />
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <button
+            type="button"
+            onClick={onSkip}
+            className="px-4 py-2 rounded text-sm text-[color:var(--muted)] hover:bg-ivory-2"
+          >
+            {copy.skipLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onAdd}
+            disabled={!value.trim()}
+            className="bg-navy text-white px-4 py-2 rounded text-sm font-semibold disabled:opacity-50"
+          >
+            {copy.addLabel}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
