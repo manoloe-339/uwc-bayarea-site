@@ -59,6 +59,12 @@ export default async function SignupEmailSettingsPage({
     applyConfirmationPlaceholders(previewMd, {
       college: PREVIEW_COLLEGE,
       collegeCount: previewCount,
+      // Synthetic company so {company_blurb} renders in the preview.
+      // The real value is whatever LinkedIn enrichment produces for
+      // each signup; we keep this generic since the admin tool can't
+      // know upfront which signup they're previewing for.
+      company: "Anthropic",
+      companyCount: 3,
       whatsappLink,
     }),
   );
@@ -133,7 +139,7 @@ export default async function SignupEmailSettingsPage({
           label="Message body"
           defaultValue={currentBodyMd || DEFAULT_SIGNUP_CONFIRMATION.bodyMd}
           rows={14}
-          hint="Salutation and unsubscribe footer are added automatically. Markdown: blank line for paragraph, **bold**, *italic*, [click here](https://uwcbayarea.org/photos). Placeholders: {college_blurb} (auto-generated sentence), {college}, {college_count} — all hide gracefully when the signup didn't pick a college. {whatsapp_link} — one-click WhatsApp invite URL signed for this specific signup; use it inside a markdown link, e.g. [Join our WhatsApp →]({whatsapp_link})."
+          hint="Salutation and unsubscribe footer are added automatically. Markdown: blank line for paragraph, **bold**, *italic*, [click here](https://uwcbayarea.org/photos). Placeholders: {college_blurb} (auto-generated sentence), {college}, {college_count} — all hide gracefully when the signup didn't pick a college. {company_blurb}, {company}, {company_count} — populated only when LinkedIn enrichment succeeded AND ≥1 colleague is in our network; collapses to empty otherwise. {whatsapp_link} — one-click WhatsApp invite URL signed for this specific signup; use it inside a markdown link, e.g. [Join our WhatsApp →]({whatsapp_link})."
         />
 
         <div className="flex flex-wrap gap-3 pt-3 border-t border-[color:var(--rule)]">

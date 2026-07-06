@@ -28,6 +28,13 @@ export default function SignupForm() {
   const [confirmEmail, setConfirmEmail] = useState("");
   const [isWorking, setIsWorking] = useState(false);
   const [isStudying, setIsStudying] = useState(false);
+  // "I don't have one" checkboxes for mobile + linkedin. When ticked,
+  // the corresponding input is disabled and the server stores NULL.
+  // We need to flag this on the server because today an empty input
+  // is indistinguishable from "user just forgot" — these checkboxes
+  // make the user's intent explicit.
+  const [noMobile, setNoMobile] = useState(false);
+  const [noLinkedin, setNoLinkedin] = useState(false);
   // useActionState lets the server action return validation errors
   // without redirecting, so the form keeps every field the user typed
   // when validation fails. Successful submissions still redirect.
@@ -136,36 +143,64 @@ export default function SignupForm() {
               </span>
             )}
           </label>
-          <label className="block sm:col-span-2">
-            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-              Mobile (optional)
-            </span>
-            <input
-              name="mobile"
-              type="tel"
-              autoComplete="tel"
-              placeholder="+1 415 555 0123"
-              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
-            />
+          <div className="block sm:col-span-2">
+            <label className="block">
+              <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+                Mobile *
+              </span>
+              <input
+                name="mobile"
+                type="tel"
+                autoComplete="tel"
+                placeholder="+1 415 555 0123"
+                required={!noMobile}
+                disabled={noMobile}
+                className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white disabled:bg-ivory-2 disabled:text-[color:var(--muted)]"
+              />
+            </label>
+            <label className="mt-1.5 inline-flex items-center gap-2 text-xs text-[color:var(--muted)]">
+              <input
+                type="checkbox"
+                name="no_mobile"
+                checked={noMobile}
+                onChange={(e) => setNoMobile(e.target.checked)}
+              />
+              I don't have a mobile number
+            </label>
             <span className="block mt-1 text-xs text-[color:var(--muted)]">
-              Required for UWC Bay Area WhatsApp access.
+              {noMobile
+                ? "Without a mobile number you won't be eligible for the UWC Bay Area WhatsApp group."
+                : "Required for UWC Bay Area WhatsApp access."}
             </span>
-          </label>
-          <label className="block sm:col-span-2">
-            <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
-              LinkedIn profile URL (optional, preferred)
-            </span>
-            <input
-              name="linkedin_url"
-              type="url"
-              inputMode="url"
-              placeholder="https://linkedin.com/in/yourname"
-              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
-            />
+          </div>
+          <div className="block sm:col-span-2">
+            <label className="block">
+              <span className="block text-[11px] tracking-[.22em] uppercase font-bold text-[color:var(--muted)] mb-1">
+                LinkedIn profile URL *
+              </span>
+              <input
+                name="linkedin_url"
+                type="text"
+                inputMode="url"
+                placeholder="https://linkedin.com/in/yourname"
+                required={!noLinkedin}
+                disabled={noLinkedin}
+                className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white disabled:bg-ivory-2 disabled:text-[color:var(--muted)]"
+              />
+            </label>
+            <label className="mt-1.5 inline-flex items-center gap-2 text-xs text-[color:var(--muted)]">
+              <input
+                type="checkbox"
+                name="no_linkedin"
+                checked={noLinkedin}
+                onChange={(e) => setNoLinkedin(e.target.checked)}
+              />
+              I don't have a LinkedIn profile
+            </label>
             <span className="block mt-1 text-xs text-[color:var(--muted)]">
               Helps us recognize you and connect alumni with similar backgrounds.
             </span>
-          </label>
+          </div>
         </Grid>
       </Section>
 

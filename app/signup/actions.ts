@@ -15,6 +15,7 @@ import {
   applyConfirmationPlaceholders,
   ensureParagraphBreaks,
   fetchCollegeAlumniCount,
+  fetchCompanyAlumniCount,
 } from "@/lib/signup-confirmation";
 import { signWhatsappInviteToken } from "@/lib/whatsapp-invite-token";
 import {
@@ -147,13 +148,44 @@ export async function submitSignup(
 
   const currentCity = s(formData.get("current_city"));
   const region = cityToRegion(currentCity);
-  const mobile = s(formData.get("mobile"));
+  // Mobile + LinkedIn are required, BUT users can opt out by ticking
+  // the matching "I don't have one" checkbox in the form. The
+  // checkbox makes the user's intent explicit (vs. forgotten field)
+  // — that distinction matters for WhatsApp eligibility and for
+  // future enrichment retries.
+  const noMobile = formData.get("no_mobile") === "on";
+  const noLinkedin = formData.get("no_linkedin") === "on";
+  const mobileRaw = s(formData.get("mobile"));
+  const linkedinRaw = s(formData.get("linkedin_url"));
+  if (!noMobile && !mobileRaw) {
+    return err(
+      "Please enter your mobile number, or tick \"I don't have a mobile number\" if you don't have one.",
+      "mobile",
+    );
+  }
+  if (!noLinkedin && !linkedinRaw) {
+    return err(
+      "Please enter your LinkedIn URL, or tick \"I don't have a LinkedIn profile\" if you don't have one.",
+      "linkedin_url",
+    );
+  }
+  const mobile = noMobile ? null : mobileRaw;
   // Permissive normalize: turns "/manoloe", "linkedin.com/in/x", bare
   // slugs, regional subdomains, trailing slashes, etc. into the canonical
   // https://www.linkedin.com/in/<slug>. Returns null when the input
-  // can't plausibly be a profile URL (and we just store null in that case
-  // — better than persisting garbage).
-  const linkedinUrl = normalizeLinkedinForStorage(formData.get("linkedin_url"));
+  // can't plausibly be a profile URL. We surface that as a validation
+  // error so the user can fix it — silently storing null would be
+  // worse than rejecting (they think they gave us LinkedIn; we have
+  // nothing to enrich on).
+  const linkedinUrl = noLinkedin
+    ? null
+    : normalizeLinkedinForStorage(linkedinRaw);
+  if (!noLinkedin && !linkedinUrl) {
+    return err(
+      "That doesn't look like a LinkedIn profile URL. Paste the full URL (e.g. https://linkedin.com/in/yourname) or tick \"I don't have a LinkedIn profile\".",
+      "linkedin_url",
+    );
+  }
   const company = s(formData.get("company"));
   const working = s(formData.get("working"));
   const workLocation = s(formData.get("work_location"));
@@ -301,29 +333,6 @@ export async function submitSignup(
     console.error(`[signup] failed to record submission for ${alumniId}:`, err);
   });
 
-  // Kick off LinkedIn auto-enrichment if we have enough to search on.
-  // Uses Next 15's after() so the Railway call + polling continues to
-  // run after the redirect response is sent. Plain fire-and-forget
-  // (no await) inside a Server Action is fragile on Vercel — the
-  // worker can tear down before the floating promise resolves.
-  if (firstName && lastName && (linkedinUrl || uwcCollege || company)) {
-    after(async () => {
-      try {
-        await triggerEnrichment(alumniId, {
-          linkedin_url: linkedinUrl,
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          uwc_college: uwcCollege,
-          grad_year: gradYear,
-          company,
-        });
-      } catch (err) {
-        console.error(`[signup] enrichment failed for ${alumniId}:`, err);
-      }
-    });
-  }
-
   // Fire analytics counter (uses the same helper our page beacons use).
   try {
     await trackClick("signup");
@@ -331,40 +340,12 @@ export async function submitSignup(
     // non-fatal
   }
 
-  // Fire-and-forget emails (don't block the redirect on Resend latency).
-  // Confirmation copy is admin-editable via /admin/tools/signup-email; we
-  // fall back to DEFAULT_SIGNUP_CONFIRMATION when settings are blank.
-  const settings = await getSiteSettings();
-  const confirmationSubject =
-    (settings.signup_confirmation_subject ?? "").trim() ||
-    DEFAULT_SIGNUP_CONFIRMATION.subject;
-  const confirmationMd =
-    (settings.signup_confirmation_body_md ?? "").trim() ||
-    DEFAULT_SIGNUP_CONFIRMATION.bodyMd;
-  const collegeCount = uwcCollege
-    ? await fetchCollegeAlumniCount(uwcCollege, alumniId).catch(() => 0)
-    : 0;
-  // Per-signup signed token so the {whatsapp_link} placeholder in
-  // the confirmation email resolves to a single-click invite URL.
-  // Falls back to a token-less URL if signing fails (it shouldn't —
-  // DIRECTORY_PASSWORD is always set in prod — but we don't want a
-  // signature failure to block the welcome email).
-  const inviteToken = await signWhatsappInviteToken(alumniId).catch(() => null);
-  const whatsappLink = inviteToken
-    ? `https://uwcbayarea.org/join-whatsapp?invite=${encodeURIComponent(inviteToken)}`
-    : `https://uwcbayarea.org/join-whatsapp`;
-  const resolvedConfirmationMd = ensureParagraphBreaks(
-    applyConfirmationPlaceholders(confirmationMd, {
-      college: uwcCollege,
-      collegeCount,
-      whatsappLink,
-    }),
-  );
-  const confirmationHtml = renderSimpleMarkdown(
-    resolvedConfirmationMd,
-    EMAIL_LINK_ATTRS,
-    EMAIL_PARAGRAPH_ATTRS,
-  );
+  // Everything from here on — enrichment, user confirmation email,
+  // admin notifications — runs inside after(). That keeps the redirect
+  // snappy and lets us await enrichment before composing the
+  // confirmation email so it can include the {company_blurb} populated
+  // from the LinkedIn-canonical current_company. Without this we'd
+  // never have post-enrichment data in time for the email.
   const adminBody = buildAdminNotificationBody({
     id: alumniId,
     firstName,
@@ -378,9 +359,141 @@ export async function submitSignup(
     wasNew,
     diff,
   });
+  const settings = await getSiteSettings();
 
-  await Promise.allSettled([
-    sendTestEmail({
+  after(async () => {
+    // Admin notifications fire in parallel with enrichment — they
+    // don't care about the company blurb and admins want them fast.
+    const adminEmailsPromise = Promise.allSettled([
+      sendTestEmail({
+        to: "manolo@uwcbayarea.org",
+        subject: wasNew
+          ? `New UWC Bay Area signup: ${firstName} ${lastName}`
+          : `Updated UWC Bay Area signup: ${firstName} ${lastName}`,
+        body: adminBody,
+        salutation: "",
+        includeFirstName: false,
+      }).then((r) => {
+        if (!r.ok)
+          console.warn(`[signup] admin notification (workspace) failed: ${r.error}`);
+      }),
+      sendTestEmail({
+        to: "manoloe@gmail.com",
+        subject: wasNew
+          ? `New UWC Bay Area signup: ${firstName} ${lastName}`
+          : `Updated UWC Bay Area signup: ${firstName} ${lastName}`,
+        body: adminBody,
+        salutation: "",
+        includeFirstName: false,
+      }).then((r) => {
+        if (!r.ok)
+          console.warn(`[signup] admin notification (gmail) failed: ${r.error}`);
+      }),
+    ]);
+
+    // Run enrichment with a hard 2-minute timeout. Median enrichment
+    // completes well under that; the cap protects against the long
+    // Apify tail (10-min budget) which would otherwise delay the
+    // user's welcome email by far too much.
+    const ENRICHMENT_TIMEOUT_MS = 120_000;
+    const canEnrich =
+      !!firstName &&
+      !!lastName &&
+      !!(linkedinUrl || uwcCollege || company);
+    if (canEnrich) {
+      try {
+        await Promise.race([
+          triggerEnrichment(alumniId, {
+            linkedin_url: linkedinUrl,
+            first_name: firstName,
+            last_name: lastName,
+            email,
+            uwc_college: uwcCollege,
+            grad_year: gradYear,
+            company,
+          }),
+          new Promise<void>((_, reject) =>
+            setTimeout(
+              () => reject(new Error("enrichment-timeout")),
+              ENRICHMENT_TIMEOUT_MS,
+            ),
+          ),
+        ]);
+      } catch (err) {
+        console.error(`[signup] enrichment race ended for ${alumniId}:`, err);
+        // Fall through — we still send the confirmation, just without
+        // the company blurb.
+      }
+    }
+
+    // Read whatever enrichment populated (may be nothing if it failed
+    // or timed out). current_company is LinkedIn-canonical;
+    // current_company_linkedin is the LinkedIn company URL.
+    let currentCompany: string | null = null;
+    let currentCompanyLinkedin: string | null = null;
+    try {
+      const rows = (await sql`
+        SELECT current_company, current_company_linkedin
+        FROM alumni WHERE id = ${alumniId} LIMIT 1
+      `) as Array<{
+        current_company: string | null;
+        current_company_linkedin: string | null;
+      }>;
+      currentCompany = rows[0]?.current_company ?? null;
+      currentCompanyLinkedin = rows[0]?.current_company_linkedin ?? null;
+    } catch (err) {
+      console.error(`[signup] post-enrichment read failed for ${alumniId}:`, err);
+    }
+
+    // Build the counts. Both calls swallow their own errors so a DB
+    // hiccup on one count never blocks the welcome email.
+    const [collegeCount, companyCount] = await Promise.all([
+      uwcCollege
+        ? fetchCollegeAlumniCount(uwcCollege, alumniId).catch(() => 0)
+        : Promise.resolve(0),
+      currentCompany || currentCompanyLinkedin
+        ? fetchCompanyAlumniCount(
+            currentCompanyLinkedin,
+            currentCompany,
+            alumniId,
+          ).catch(() => 0)
+        : Promise.resolve(0),
+    ]);
+
+    // Confirmation copy is admin-editable via /admin/tools/signup-email;
+    // we fall back to DEFAULT_SIGNUP_CONFIRMATION when settings are blank.
+    const confirmationSubject =
+      (settings.signup_confirmation_subject ?? "").trim() ||
+      DEFAULT_SIGNUP_CONFIRMATION.subject;
+    const confirmationMd =
+      (settings.signup_confirmation_body_md ?? "").trim() ||
+      DEFAULT_SIGNUP_CONFIRMATION.bodyMd;
+
+    // Per-signup signed token so the {whatsapp_link} placeholder in
+    // the confirmation email resolves to a single-click invite URL.
+    // Falls back to a token-less URL if signing fails (it shouldn't —
+    // DIRECTORY_PASSWORD is always set in prod — but we don't want a
+    // signature failure to block the welcome email).
+    const inviteToken = await signWhatsappInviteToken(alumniId).catch(() => null);
+    const whatsappLink = inviteToken
+      ? `https://uwcbayarea.org/join-whatsapp?invite=${encodeURIComponent(inviteToken)}`
+      : `https://uwcbayarea.org/join-whatsapp`;
+    const resolvedConfirmationMd = ensureParagraphBreaks(
+      applyConfirmationPlaceholders(confirmationMd, {
+        college: uwcCollege,
+        collegeCount,
+        company: currentCompany,
+        companyCount,
+        whatsappLink,
+      }),
+    );
+    const confirmationHtml = renderSimpleMarkdown(
+      resolvedConfirmationMd,
+      EMAIL_LINK_ATTRS,
+      EMAIL_PARAGRAPH_ATTRS,
+    );
+
+    const userEmail = await sendTestEmail({
       to: email,
       subject: confirmationSubject,
       bodyHtml: confirmationHtml,
@@ -389,32 +502,15 @@ export async function submitSignup(
       includeFirstName: true,
       firstName,
       logTo: { alumniId, kind: "signup_confirmation" },
-    }).then((r) => {
-      if (!r.ok) console.warn(`[signup] confirmation email failed: ${r.error}`);
-    }),
-    sendTestEmail({
-      to: "manolo@uwcbayarea.org",
-      subject: wasNew
-        ? `New UWC Bay Area signup: ${firstName} ${lastName}`
-        : `Updated UWC Bay Area signup: ${firstName} ${lastName}`,
-      body: adminBody,
-      salutation: "",
-      includeFirstName: false,
-    }).then((r) => {
-      if (!r.ok) console.warn(`[signup] admin notification (workspace) failed: ${r.error}`);
-    }),
-    sendTestEmail({
-      to: "manoloe@gmail.com",
-      subject: wasNew
-        ? `New UWC Bay Area signup: ${firstName} ${lastName}`
-        : `Updated UWC Bay Area signup: ${firstName} ${lastName}`,
-      body: adminBody,
-      salutation: "",
-      includeFirstName: false,
-    }).then((r) => {
-      if (!r.ok) console.warn(`[signup] admin notification (gmail) failed: ${r.error}`);
-    }),
-  ]);
+    });
+    if (!userEmail.ok)
+      console.warn(`[signup] confirmation email failed: ${userEmail.error}`);
+
+    // Make sure the admin notifications resolved before the function
+    // tears down. Promise.allSettled already swallowed individual
+    // failures.
+    await adminEmailsPromise;
+  });
 
   console.log(`[signup] ${wasNew ? "inserted" : "updated"} alumni_id=${alumniId} email=${email}`);
   redirect("/signup/thanks");

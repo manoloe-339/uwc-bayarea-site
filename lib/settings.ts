@@ -47,6 +47,8 @@ We've saved your details. You'll hear from us when we're organizing events or ha
 
 {college_blurb}
 
+{company_blurb}
+
 You can reply to this email any time (it'll reach our team directly), and every message we send has an unsubscribe link at the bottom.
 
 Looking forward to connecting,

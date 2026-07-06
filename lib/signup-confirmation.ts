@@ -39,14 +39,86 @@ export function buildCollegeBlurb(college: string | null, count: number): string
   return `You're joining ${count} other ${college} alumni already in our network.`;
 }
 
-/** Substitute {college}, {college_count}, {college_blurb}, and
- *  {whatsapp_link} in the confirmation markdown body. Unknown
- *  {placeholders} are left as-is. */
+/** Count other alumni at the same company. Prefers an exact LinkedIn
+ * company-URL match (the strongest canonical key — both rows
+ * originate from the same enrichment pipeline so format is
+ * consistent), falls back to a lower-trimmed name match on
+ * current_company. Excludes deceased and admin-added rows, plus the
+ * new signup themselves. */
+export async function fetchCompanyAlumniCount(
+  currentCompanyLinkedin: string | null,
+  currentCompany: string | null,
+  excludeId?: number,
+): Promise<number> {
+  // Nothing to match against → zero. Caller will skip the blurb.
+  if (!currentCompanyLinkedin && !currentCompany) return 0;
+
+  if (currentCompanyLinkedin) {
+    const slug = currentCompanyLinkedin.trim().toLowerCase();
+    const rows =
+      excludeId != null
+        ? ((await sql`
+            SELECT COUNT(*)::int AS n FROM alumni
+            WHERE LOWER(TRIM(current_company_linkedin)) = ${slug}
+              AND deceased IS NOT TRUE
+              AND NOT ('admin_added' = ANY(sources))
+              AND id <> ${excludeId}
+          `) as { n: number }[])
+        : ((await sql`
+            SELECT COUNT(*)::int AS n FROM alumni
+            WHERE LOWER(TRIM(current_company_linkedin)) = ${slug}
+              AND deceased IS NOT TRUE
+              AND NOT ('admin_added' = ANY(sources))
+          `) as { n: number }[]);
+    return rows[0]?.n ?? 0;
+  }
+
+  const name = currentCompany!.trim().toLowerCase();
+  const rows =
+    excludeId != null
+      ? ((await sql`
+          SELECT COUNT(*)::int AS n FROM alumni
+          WHERE LOWER(TRIM(current_company)) = ${name}
+            AND deceased IS NOT TRUE
+            AND NOT ('admin_added' = ANY(sources))
+            AND id <> ${excludeId}
+        `) as { n: number }[])
+      : ((await sql`
+          SELECT COUNT(*)::int AS n FROM alumni
+          WHERE LOWER(TRIM(current_company)) = ${name}
+            AND deceased IS NOT TRUE
+            AND NOT ('admin_added' = ANY(sources))
+        `) as { n: number }[]);
+  return rows[0]?.n ?? 0;
+}
+
+/** Human-readable sentence describing how many other UWC alumni work
+ * at the new signup's current company. Returns "" when company is
+ * unknown OR count is zero — both are graceful-collapse cases (we
+ * never want to send "You're the first UWC alum at <Company>" because
+ * absence of enrichment data is indistinguishable from "really alone"). */
+export function buildCompanyBlurb(company: string | null, count: number): string {
+  if (!company || count <= 0) return "";
+  if (count === 1) {
+    return `You're joining 1 other UWC alum at ${company}.`;
+  }
+  return `You're joining ${count} other UWC alumni at ${company}.`;
+}
+
+/** Substitute {college}, {college_count}, {college_blurb},
+ *  {company}, {company_count}, {company_blurb}, and {whatsapp_link}
+ *  in the confirmation markdown body. Unknown {placeholders} are
+ *  left as-is. */
 export function applyConfirmationPlaceholders(
   md: string,
   ctx: {
     college: string | null;
     collegeCount: number;
+    /** LinkedIn-canonical company name (alumni.current_company), only
+     *  populated when enrichment succeeded. When null, all {company_*}
+     *  placeholders collapse to empty. */
+    company?: string | null;
+    companyCount?: number;
     /** Optional fully-qualified URL with a signed token, e.g.
      *  "https://uwcbayarea.org/join-whatsapp?invite=...". When set,
      *  {whatsapp_link} substitutes to this URL; when omitted it
@@ -57,10 +129,15 @@ export function applyConfirmationPlaceholders(
 ): string {
   const whatsappLink =
     ctx.whatsappLink ?? "https://uwcbayarea.org/join-whatsapp";
+  const company = ctx.company ?? null;
+  const companyCount = ctx.companyCount ?? 0;
   return md
     .replaceAll("{college_blurb}", buildCollegeBlurb(ctx.college, ctx.collegeCount))
     .replaceAll("{college_count}", String(ctx.collegeCount))
     .replaceAll("{college}", ctx.college ?? "")
+    .replaceAll("{company_blurb}", buildCompanyBlurb(company, companyCount))
+    .replaceAll("{company_count}", String(companyCount))
+    .replaceAll("{company}", company ?? "")
     .replaceAll("{whatsapp_link}", whatsappLink);
 }
 

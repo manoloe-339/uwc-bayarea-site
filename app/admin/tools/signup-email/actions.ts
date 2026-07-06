@@ -72,6 +72,10 @@ export async function sendTestSignupEmailAction(formData: FormData): Promise<voi
     applyConfirmationPlaceholders(bodyMd, {
       college: PREVIEW_COLLEGE,
       collegeCount: previewCount,
+      // Same synthetic company values as the on-page preview so the
+      // test email matches what the admin sees in the dashboard.
+      company: "Anthropic",
+      companyCount: 3,
       whatsappLink,
     }),
   );
