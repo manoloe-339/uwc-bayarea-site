@@ -346,51 +346,9 @@ export async function submitSignup(
   // confirmation email so it can include the {company_blurb} populated
   // from the LinkedIn-canonical current_company. Without this we'd
   // never have post-enrichment data in time for the email.
-  const adminBody = buildAdminNotificationBody({
-    id: alumniId,
-    firstName,
-    lastName,
-    email,
-    affiliation,
-    uwcCollege,
-    gradYear,
-    currentCity,
-    region,
-    wasNew,
-    diff,
-  });
   const settings = await getSiteSettings();
 
   after(async () => {
-    // Admin notifications fire in parallel with enrichment — they
-    // don't care about the company blurb and admins want them fast.
-    const adminEmailsPromise = Promise.allSettled([
-      sendTestEmail({
-        to: "manolo@uwcbayarea.org",
-        subject: wasNew
-          ? `New UWC Bay Area signup: ${firstName} ${lastName}`
-          : `Updated UWC Bay Area signup: ${firstName} ${lastName}`,
-        body: adminBody,
-        salutation: "",
-        includeFirstName: false,
-      }).then((r) => {
-        if (!r.ok)
-          console.warn(`[signup] admin notification (workspace) failed: ${r.error}`);
-      }),
-      sendTestEmail({
-        to: "manoloe@gmail.com",
-        subject: wasNew
-          ? `New UWC Bay Area signup: ${firstName} ${lastName}`
-          : `Updated UWC Bay Area signup: ${firstName} ${lastName}`,
-        body: adminBody,
-        salutation: "",
-        includeFirstName: false,
-      }).then((r) => {
-        if (!r.ok)
-          console.warn(`[signup] admin notification (gmail) failed: ${r.error}`);
-      }),
-    ]);
-
     // Run enrichment with a hard 2-minute timeout. Median enrichment
     // completes well under that; the cap protects against the long
     // Apify tail (10-min budget) which would otherwise delay the
@@ -493,23 +451,64 @@ export async function submitSignup(
       EMAIL_PARAGRAPH_ATTRS,
     );
 
-    const userEmail = await sendTestEmail({
-      to: email,
-      subject: confirmationSubject,
-      bodyHtml: confirmationHtml,
-      textFallback: resolvedConfirmationMd,
-      salutation: "Hi",
-      includeFirstName: true,
+    // Admin notification body — built here (post-enrichment) so it
+    // can include the LinkedIn-canonical current_company from the
+    // enrichment pipeline. Prefer the enriched value; fall back to
+    // whatever the user typed on the form.
+    const adminBody = buildAdminNotificationBody({
+      id: alumniId,
       firstName,
-      logTo: { alumniId, kind: "signup_confirmation" },
+      lastName,
+      email,
+      affiliation,
+      uwcCollege,
+      gradYear,
+      currentCity,
+      region,
+      linkedinUrl,
+      company: currentCompany ?? company,
+      wasNew,
+      diff,
     });
-    if (!userEmail.ok)
-      console.warn(`[signup] confirmation email failed: ${userEmail.error}`);
+    const adminSubject = wasNew
+      ? `UWC Signup: ${firstName} ${lastName}`
+      : `UWC Re-signup: ${firstName} ${lastName}`;
 
-    // Make sure the admin notifications resolved before the function
-    // tears down. Promise.allSettled already swallowed individual
-    // failures.
-    await adminEmailsPromise;
+    // Fire all three emails in parallel. The user confirmation
+    // logs to email_sends; admin notifications don't.
+    const results = await Promise.allSettled([
+      sendTestEmail({
+        to: email,
+        subject: confirmationSubject,
+        bodyHtml: confirmationHtml,
+        textFallback: resolvedConfirmationMd,
+        salutation: "Hi",
+        includeFirstName: true,
+        firstName,
+        logTo: { alumniId, kind: "signup_confirmation" },
+      }),
+      sendTestEmail({
+        to: "manolo@uwcbayarea.org",
+        subject: adminSubject,
+        body: adminBody,
+        salutation: "",
+        includeFirstName: false,
+      }),
+      sendTestEmail({
+        to: "manoloe@gmail.com",
+        subject: adminSubject,
+        body: adminBody,
+        salutation: "",
+        includeFirstName: false,
+      }),
+    ]);
+    const [userR, adminWsR, adminGmailR] = results;
+    if (userR.status === "fulfilled" && !userR.value.ok)
+      console.warn(`[signup] confirmation email failed: ${userR.value.error}`);
+    if (adminWsR.status === "fulfilled" && !adminWsR.value.ok)
+      console.warn(`[signup] admin notification (workspace) failed: ${adminWsR.value.error}`);
+    if (adminGmailR.status === "fulfilled" && !adminGmailR.value.ok)
+      console.warn(`[signup] admin notification (gmail) failed: ${adminGmailR.value.error}`);
   });
 
   console.log(`[signup] ${wasNew ? "inserted" : "updated"} alumni_id=${alumniId} email=${email}`);
@@ -526,17 +525,32 @@ function buildAdminNotificationBody(r: {
   gradYear: number | null;
   currentCity: string | null;
   region: string | null;
+  /** Normalized LinkedIn profile URL (may be null if the signup ticked
+   * "I don't have LinkedIn" in the modal or hasn't been enriched). */
+  linkedinUrl: string | null;
+  /** Best-known current company. Enriched value from
+   * alumni.current_company if enrichment ran; falls back to whatever
+   * the signup typed on the form. Null when neither is available. */
+  company: string | null;
   wasNew: boolean;
   diff: SubmissionDiff;
 }): string {
+  // Distinct header shape for new vs re-signup so the admin can
+  // eyeball the difference without reading the subject line —
+  // re-signups are less urgent and the header should convey that.
+  const header = r.wasNew
+    ? `New signup · ${r.firstName} ${r.lastName}`
+    : `⚑ RE-SIGNUP (existing email) · ${r.firstName} ${r.lastName}`;
   const lines = [
-    `${r.wasNew ? "New signup" : "Updated record"}: ${r.firstName} ${r.lastName}`,
+    header,
     "",
     `Email:       ${r.email}`,
+    `LinkedIn:    ${r.linkedinUrl ?? "—"}`,
+    `Company:     ${r.company ?? "—"}`,
     `Affiliation: ${r.affiliation}`,
     `College:     ${r.uwcCollege ?? "—"}`,
     `Grad year:   ${r.gradYear ?? "—"}`,
-    `City:        ${r.currentCity ?? "—"} ${r.region ? `(${r.region})` : ""}`,
+    `City:        ${r.currentCity ?? "—"}${r.region ? ` (${r.region})` : ""}`,
   ];
   // For re-submissions, inline the field-by-field diff so the admin
   // doesn't have to click through to see what changed.
