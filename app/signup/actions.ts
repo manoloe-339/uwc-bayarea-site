@@ -389,22 +389,32 @@ export async function submitSignup(
     // or timed out). current_company is LinkedIn-canonical;
     // current_company_linkedin is the LinkedIn company URL;
     // current_title makes the admin email read "Software Engineer at
-    // J.P. Morgan" instead of just "J.P. Morgan".
+    // J.P. Morgan" instead of just "J.P. Morgan". photo_headshot_url
+    // + photo_url feed the small headshot at the top of the admin
+    // email — prefer the headshot (our Blob-stored crop, reliable in
+    // Gmail) over the LinkedIn URL (LinkedIn's CDN sometimes blocks
+    // hotlinking with a Referer check).
     let currentCompany: string | null = null;
     let currentCompanyLinkedin: string | null = null;
     let currentTitle: string | null = null;
+    let photoUrl: string | null = null;
     try {
       const rows = (await sql`
-        SELECT current_company, current_company_linkedin, current_title
+        SELECT current_company, current_company_linkedin, current_title,
+               photo_headshot_url, photo_url
         FROM alumni WHERE id = ${alumniId} LIMIT 1
       `) as Array<{
         current_company: string | null;
         current_company_linkedin: string | null;
         current_title: string | null;
+        photo_headshot_url: string | null;
+        photo_url: string | null;
       }>;
       currentCompany = rows[0]?.current_company ?? null;
       currentCompanyLinkedin = rows[0]?.current_company_linkedin ?? null;
       currentTitle = rows[0]?.current_title ?? null;
+      photoUrl =
+        rows[0]?.photo_headshot_url ?? rows[0]?.photo_url ?? null;
     } catch (err) {
       console.error(`[signup] post-enrichment read failed for ${alumniId}:`, err);
     }
@@ -496,6 +506,14 @@ export async function submitSignup(
       ? `UWC Signup: ${firstName} ${lastName}`
       : `UWC Re-signup: ${firstName} ${lastName}`;
 
+    // HTML wrapper for the admin notification: a small headshot at
+    // the top, then the plain-text body inside a <pre> so the
+    // aligned columns and same-company alumni list keep their
+    // formatting. Gmail auto-linkifies bare URLs inside <pre> so
+    // LinkedIn links remain clickable. Text fallback is the same
+    // adminBody so no info is lost when HTML doesn't render.
+    const adminBodyHtml = buildAdminNotificationHtml(adminBody, photoUrl, `${firstName} ${lastName}`);
+
     // Fire all three emails in parallel. The user confirmation
     // logs to email_sends; admin notifications don't.
     const results = await Promise.allSettled([
@@ -512,14 +530,16 @@ export async function submitSignup(
       sendTestEmail({
         to: "manolo@uwcbayarea.org",
         subject: adminSubject,
-        body: adminBody,
+        bodyHtml: adminBodyHtml,
+        textFallback: adminBody,
         salutation: "",
         includeFirstName: false,
       }),
       sendTestEmail({
         to: "manoloe@gmail.com",
         subject: adminSubject,
-        body: adminBody,
+        bodyHtml: adminBodyHtml,
+        textFallback: adminBody,
         salutation: "",
         includeFirstName: false,
       }),
@@ -691,6 +711,35 @@ function quote(text: string): string {
     .split("\n")
     .map((line) => `   ${line}`)
     .join("\n");
+}
+
+/** Wrap the plain-text admin body in a minimal HTML shell with the
+ * signup's LinkedIn / Blob-stored headshot at the top. Everything
+ * that renders in the plain-text version renders here — the <pre>
+ * block preserves the aligned columns and the same-company alumni
+ * list, and Gmail auto-linkifies bare URLs inside <pre>. */
+function buildAdminNotificationHtml(
+  textBody: string,
+  photoUrl: string | null,
+  name: string,
+): string {
+  // Escape the plain-text body once so nothing inside gets
+  // interpreted as HTML (a stray "<" in an About/Questions blurb
+  // shouldn't be able to break layout).
+  const escapedBody = textBody
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+  const escapedName = name
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+  const photoImg = photoUrl
+    ? `<img src="${photoUrl}" width="88" height="88" alt="${escapedName}" style="border-radius:8px;display:block;margin-bottom:16px;object-fit:cover;">`
+    : "";
+  return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;">
+${photoImg}<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;margin:0;">${escapedBody}</pre>
+</div>`;
 }
 
 /** English ordinal for a positive integer: 1 → "1st", 2 → "2nd",
