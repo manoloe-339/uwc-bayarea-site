@@ -37,6 +37,10 @@ export default function SignupForm() {
   // just tried to submit — no state races, no re-serialization.
   const [modalOpen, setModalOpen] = useState<ContactField | null>(null);
   const [modalValue, setModalValue] = useState("");
+  // Separate modal for the work/study section — three-way choice
+  // (Working / Studying / Neither) instead of a text-input pattern
+  // since the useful data lives in one of two different field pairs.
+  const [workStudyModalOpen, setWorkStudyModalOpen] = useState(false);
   const stashedFormData = useRef<FormData | null>(null);
   // useActionState lets the server action return validation errors
   // without redirecting, so the form keeps every field the user typed
@@ -100,6 +104,24 @@ export default function SignupForm() {
       setModalOpen("linkedin");
       return;
     }
+    // Work/study gate. Passes when EITHER (a) the user has already
+    // engaged with the section (checkbox ticked or any field
+    // populated) OR (b) they've explicitly declined via the modal.
+    // Fields are only in the FormData when isWorking/isStudying is
+    // true, so field-based check implies engagement.
+    const hasWorkStudyField =
+      !!String(fd.get("company") ?? "").trim() ||
+      !!String(fd.get("working") ?? "").trim() ||
+      !!String(fd.get("work_location") ?? "").trim() ||
+      !!String(fd.get("studying") ?? "").trim() ||
+      !!String(fd.get("study_location") ?? "").trim();
+    const declaredWorkStudy = isWorking || isStudying;
+    const declinedWorkStudy = fd.get("no_work_study") === "on";
+    if (!hasWorkStudyField && !declaredWorkStudy && !declinedWorkStudy) {
+      stashedFormData.current = fd;
+      setWorkStudyModalOpen(true);
+      return;
+    }
     formAction(fd);
   }
 
@@ -129,6 +151,52 @@ export default function SignupForm() {
     stashedFormData.current = null;
     setModalOpen(null);
     setModalValue("");
+  }
+
+  /** Scroll to and focus a form field by name, after a short delay so
+   * the field is guaranteed to have mounted following the checkbox
+   * setState that reveals it. */
+  function focusFieldAfter(name: string) {
+    setTimeout(() => {
+      const el = document.querySelector<HTMLInputElement>(`input[name="${name}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus({ preventScroll: true });
+      }
+    }, 120);
+  }
+
+  function handleWorkStudyChoose(kind: "working" | "studying") {
+    // Tick the corresponding checkbox to reveal the section's fields,
+    // then focus the primary input. We do NOT resubmit — the user
+    // needs to fill the fields first. Discard the stashed submit so
+    // the next click of Sign me up produces a fresh FormData with
+    // the newly-filled values.
+    stashedFormData.current = null;
+    setWorkStudyModalOpen(false);
+    if (kind === "working") {
+      setIsWorking(true);
+      focusFieldAfter("company");
+    } else {
+      setIsStudying(true);
+      focusFieldAfter("study_location");
+    }
+  }
+
+  function handleWorkStudyDecline() {
+    const fd = stashedFormData.current;
+    if (!fd) {
+      setWorkStudyModalOpen(false);
+      return;
+    }
+    fd.set("no_work_study", "on");
+    setWorkStudyModalOpen(false);
+    runSubmitGates(fd);
+  }
+
+  function handleWorkStudyCancel() {
+    stashedFormData.current = null;
+    setWorkStudyModalOpen(false);
   }
 
   return (
@@ -336,7 +404,7 @@ export default function SignupForm() {
         />
       </Section>
 
-      <Section title="Work & study (optional)">
+      <Section title="Work or study">
         <div className="flex flex-wrap gap-5 mb-4 text-sm">
           <label className="flex items-center gap-2">
             <input
@@ -444,6 +512,12 @@ export default function SignupForm() {
         onSkip={handleModalSkip}
         onCancel={handleModalCancel}
       />
+      <WorkStudyModal
+        open={workStudyModalOpen}
+        onChoose={handleWorkStudyChoose}
+        onDecline={handleWorkStudyDecline}
+        onCancel={handleWorkStudyCancel}
+      />
     </form>
   );
 }
@@ -533,6 +607,79 @@ function ContactModal({
             className="bg-navy text-white px-4 py-2 rounded text-sm font-semibold disabled:opacity-50"
           >
             {copy.addLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Modal shown when the user tries to submit without engaging with
+ * the Work or study section. Three-way choice: I'm working, I'm
+ * studying, Neither. Working/Studying tick the corresponding
+ * checkbox and focus the primary field so the user can fill it in
+ * before re-submitting. Neither sets a hidden no_work_study flag
+ * and re-enters the submit gate. */
+function WorkStudyModal({
+  open, onChoose, onDecline, onCancel,
+}: {
+  open: boolean;
+  onChoose: (kind: "working" | "studying") => void;
+  onDecline: () => void;
+  onCancel: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="workstudy-modal-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3
+          id="workstudy-modal-title"
+          className="text-lg font-bold text-navy mb-2"
+        >
+          Are you working or studying right now?
+        </h3>
+        <p className="text-sm text-[color:var(--muted)] mb-5 leading-relaxed">
+          We use this to match you with UWC alumni at your company or school —
+          people you might actually cross paths with. If you're between things
+          right now, that's fine — you can skip.
+        </p>
+        <div className="flex flex-col gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => onChoose("working")}
+            className="w-full text-left border border-[color:var(--rule)] rounded px-4 py-3 hover:border-navy hover:bg-ivory text-sm text-[color:var(--navy-ink)]"
+          >
+            <span className="font-semibold">I'm working</span>
+            <span className="block text-xs text-[color:var(--muted)] mt-0.5">
+              Add your company and role.
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onChoose("studying")}
+            className="w-full text-left border border-[color:var(--rule)] rounded px-4 py-3 hover:border-navy hover:bg-ivory text-sm text-[color:var(--navy-ink)]"
+          >
+            <span className="font-semibold">I'm studying</span>
+            <span className="block text-xs text-[color:var(--muted)] mt-0.5">
+              Add your school and what you're studying.
+            </span>
+          </button>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onDecline}
+            className="px-4 py-2 rounded text-sm text-[color:var(--muted)] hover:bg-ivory-2"
+          >
+            Neither — I'll skip
           </button>
         </div>
       </div>
