@@ -386,19 +386,24 @@ export async function submitSignup(
 
     // Read whatever enrichment populated (may be nothing if it failed
     // or timed out). current_company is LinkedIn-canonical;
-    // current_company_linkedin is the LinkedIn company URL.
+    // current_company_linkedin is the LinkedIn company URL;
+    // current_title makes the admin email read "Software Engineer at
+    // J.P. Morgan" instead of just "J.P. Morgan".
     let currentCompany: string | null = null;
     let currentCompanyLinkedin: string | null = null;
+    let currentTitle: string | null = null;
     try {
       const rows = (await sql`
-        SELECT current_company, current_company_linkedin
+        SELECT current_company, current_company_linkedin, current_title
         FROM alumni WHERE id = ${alumniId} LIMIT 1
       `) as Array<{
         current_company: string | null;
         current_company_linkedin: string | null;
+        current_title: string | null;
       }>;
       currentCompany = rows[0]?.current_company ?? null;
       currentCompanyLinkedin = rows[0]?.current_company_linkedin ?? null;
+      currentTitle = rows[0]?.current_title ?? null;
     } catch (err) {
       console.error(`[signup] post-enrichment read failed for ${alumniId}:`, err);
     }
@@ -452,21 +457,28 @@ export async function submitSignup(
     );
 
     // Admin notification body — built here (post-enrichment) so it
-    // can include the LinkedIn-canonical current_company from the
-    // enrichment pipeline. Prefer the enriched value; fall back to
-    // whatever the user typed on the form.
+    // can include the LinkedIn-canonical current_company + title from
+    // the enrichment pipeline. Prefer the enriched company value;
+    // fall back to whatever the user typed on the form.
     const adminBody = buildAdminNotificationBody({
       id: alumniId,
       firstName,
       lastName,
       email,
+      mobile,
       affiliation,
       uwcCollege,
       gradYear,
       currentCity,
       region,
+      origin,
       linkedinUrl,
       company: currentCompany ?? company,
+      currentTitle,
+      helpTags,
+      nationalCommittee,
+      about,
+      questions,
       wasNew,
       diff,
     });
@@ -520,11 +532,13 @@ function buildAdminNotificationBody(r: {
   firstName: string;
   lastName: string;
   email: string;
+  mobile: string | null;
   affiliation: string;
   uwcCollege: string | null;
   gradYear: number | null;
   currentCity: string | null;
   region: string | null;
+  origin: string | null;
   /** Normalized LinkedIn profile URL (may be null if the signup ticked
    * "I don't have LinkedIn" in the modal or hasn't been enriched). */
   linkedinUrl: string | null;
@@ -532,6 +546,16 @@ function buildAdminNotificationBody(r: {
    * alumni.current_company if enrichment ran; falls back to whatever
    * the signup typed on the form. Null when neither is available. */
   company: string | null;
+  /** LinkedIn-enriched job title. Null when enrichment failed. */
+  currentTitle: string | null;
+  /** Comma-separated list of "how can I help" options the signup
+   * ticked (Organize events / Campus contact / etc.). Null when none
+   * were picked. Flagged prominently in the body when present since
+   * it's a lead worth acting on. */
+  helpTags: string | null;
+  nationalCommittee: string | null;
+  about: string | null;
+  questions: string | null;
   wasNew: boolean;
   diff: SubmissionDiff;
 }): string {
@@ -541,17 +565,54 @@ function buildAdminNotificationBody(r: {
   const header = r.wasNew
     ? `New signup · ${r.firstName} ${r.lastName}`
     : `⚑ RE-SIGNUP (existing email) · ${r.firstName} ${r.lastName}`;
-  const lines = [
+
+  // One-line identity: "Alum · UWC Li Po Chun 2018 · Palo Alto (Bay
+  // Area) · from Korea". Skips segments that are null so it reads
+  // cleanly regardless of what the signup captured.
+  const identitySegments = [
+    r.affiliation,
+    r.uwcCollege
+      ? `${r.uwcCollege}${r.gradYear ? ` ${r.gradYear}` : ""}`
+      : null,
+    r.currentCity
+      ? `${r.currentCity}${r.region ? ` (${r.region})` : ""}`
+      : null,
+    r.origin ? `from ${r.origin}` : null,
+  ].filter(Boolean);
+
+  // Combine title + company into a single readable phrase.
+  const titleLine = [r.currentTitle, r.company]
+    .filter(Boolean)
+    .join(" at ") || "—";
+
+  const lines: (string | null)[] = [
     header,
+    identitySegments.length ? identitySegments.join(" · ") : null,
     "",
     `Email:       ${r.email}`,
+    `Mobile:      ${r.mobile ?? "—"}`,
     `LinkedIn:    ${r.linkedinUrl ?? "—"}`,
-    `Company:     ${r.company ?? "—"}`,
-    `Affiliation: ${r.affiliation}`,
-    `College:     ${r.uwcCollege ?? "—"}`,
-    `Grad year:   ${r.gradYear ?? "—"}`,
-    `City:        ${r.currentCity ?? "—"}${r.region ? ` (${r.region})` : ""}`,
+    `Title:       ${titleLine}`,
   ];
+
+  // National Committee — only include when they said they volunteer
+  // for one. Keeps the routine "no NC" case out of the way.
+  if (r.nationalCommittee) {
+    lines.push(`NC:          ${r.nationalCommittee}`);
+  }
+
+  // Prominent action zones — surface these only when non-empty so
+  // routine no-action signups stay short.
+  if (r.helpTags) {
+    lines.push("", `⚡ Wants to help: ${r.helpTags}`);
+  }
+  if (r.questions) {
+    lines.push("", `📝 Questions from ${r.firstName}:`, quote(r.questions));
+  }
+  if (r.about) {
+    lines.push("", `📝 About:`, quote(r.about));
+  }
+
   // For re-submissions, inline the field-by-field diff so the admin
   // doesn't have to click through to see what changed.
   if (!r.wasNew) {
@@ -565,5 +626,14 @@ function buildAdminNotificationBody(r: {
     `Review re-signups: https://uwcbayarea.org/admin/tools/re-signups`,
     `View record:       https://uwcbayarea.org/admin/alumni/${r.id}`,
   );
-  return lines.join("\n");
+  return lines.filter((l): l is string => l !== null).join("\n");
+}
+
+/** Indent a multi-line block by two spaces so quoted user text reads
+ * as a distinct chunk in the plain-text email body. */
+function quote(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => `   ${line}`)
+    .join("\n");
 }
