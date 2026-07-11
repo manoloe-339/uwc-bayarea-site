@@ -333,6 +333,11 @@ async function OtherEmailsTable({ sp }: { sp: { kind?: string } }) {
                     : status === "sent"
                     ? { bg: "#F3F4F6", fg: "#374151" }
                     : { bg: "#F3F4F6", fg: "#6B7280" };
+                // Subject cell doubles as the click target for the
+                // send-detail page. It's the most natural affordance —
+                // "click the subject line to read the email" is the
+                // shape everyone knows from Gmail.
+                const detailHref = `/admin/email/sends/${r.id}`;
                 return (
                   <tr key={r.id} className="border-t border-[color:var(--rule)] hover:bg-ivory">
                     <td className="px-4 py-2.5">
@@ -358,8 +363,13 @@ async function OtherEmailsTable({ sp }: { sp: { kind?: string } }) {
                         <div className="text-[11px] text-[color:var(--muted)]">{r.email}</div>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-[color:var(--navy-ink)]">
-                      {r.subject || <span className="italic text-[color:var(--muted)]">(no subject)</span>}
+                    <td className="px-4 py-2.5 text-xs">
+                      <Link
+                        href={detailHref}
+                        className="text-[color:var(--navy-ink)] hover:text-navy hover:underline"
+                      >
+                        {r.subject || <span className="italic text-[color:var(--muted)]">(no subject)</span>}
+                      </Link>
                     </td>
                     <td className="px-4 py-2.5 text-xs">
                       {r.event_slug ? (
