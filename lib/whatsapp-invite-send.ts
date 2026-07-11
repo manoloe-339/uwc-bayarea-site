@@ -114,7 +114,17 @@ export async function sendWhatsappInviteToAlum(
   const fullName =
     [alum.first_name, alum.last_name].filter(Boolean).join(" ") ||
     alum.raw_name;
+
+  // Enrich the admin notification with affiliation + LinkedIn-verified
+  // UWC status so a non-alum (Friend / Parent) request is obvious in the
+  // inbox before opening. The interesting mismatch case — self-declared
+  // non-alum but LinkedIn found a UWC school in their education history
+  // — is called out explicitly so the admin can follow up. No DB
+  // changes: this is purely presentational.
+  const flag = await classifyForAdminNotification(alum.alumni_id);
   const adminBody = [
+    flag.bodyNote,
+    flag.bodyNote ? "" : null,
     `Sent the WhatsApp invite email to:`,
     ``,
     `Name:    ${fullName}`,
@@ -122,10 +132,12 @@ export async function sendWhatsappInviteToAlum(
     `College: ${alum.uwc_college ?? "—"}${alum.grad_year ? ` · ${alum.grad_year}` : ""}`,
     ``,
     `View / undo: https://uwcbayarea.org/admin/tools/whatsapp?tab=requests`,
-  ].join("\n");
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
   void sendTestEmail({
     to: ADMIN_EMAIL,
-    subject: `WhatsApp invite sent · ${fullName}`,
+    subject: `${flag.subjectPrefix}WhatsApp invite sent · ${fullName}`,
     body: adminBody,
     salutation: "",
     includeFirstName: false,
@@ -134,4 +146,79 @@ export async function sendWhatsappInviteToAlum(
       console.warn(`[whatsapp-invite] admin notification failed: ${r.error}`);
   });
   return { ok: true };
+}
+
+/** Look up the extra fields we need to annotate the admin notification
+ * — affiliation, LinkedIn-derived uwc_verified + matched school, and
+ * parent-of details — and return the subject-line prefix + body note
+ * that best summarizes who's requesting.
+ *
+ * Falls open on any DB / lookup error: returns empty prefix and no
+ * note so the notification still goes out cleanly, just without the
+ * annotation. */
+async function classifyForAdminNotification(
+  alumniId: number,
+): Promise<{ subjectPrefix: string; bodyNote: string | null }> {
+  try {
+    const rows = (await sql`
+      SELECT affiliation, uwc_verified, uwc_school_matched,
+             parent_of_name, parent_of_uwc_college, parent_of_grad_year
+        FROM alumni WHERE id = ${alumniId} LIMIT 1
+    `) as Array<{
+      affiliation: string | null;
+      uwc_verified: boolean | null;
+      uwc_school_matched: string | null;
+      parent_of_name: string | null;
+      parent_of_uwc_college: string | null;
+      parent_of_grad_year: number | null;
+    }>;
+    const r = rows[0];
+    if (!r) return { subjectPrefix: "", bodyNote: null };
+
+    const isAlum = r.affiliation === "Alum";
+    const isParent = r.affiliation === "Parent";
+    const isFriend = r.affiliation === "Friend";
+    const linkedinFoundUwc = r.uwc_verified === true && !!r.uwc_school_matched;
+
+    // Alum path — no flag by default. If self-declared as Alum but
+    // enrichment didn't confirm any UWC school, drop a soft note in
+    // the body so the admin can decide whether it's an enrichment
+    // failure (very common) or worth a light double-check.
+    if (isAlum) {
+      if (r.uwc_verified) return { subjectPrefix: "", bodyNote: null };
+      return {
+        subjectPrefix: "",
+        bodyNote: `Note: self-declared as Alum but LinkedIn enrichment didn't find a UWC school in their education history. Could be an enrichment miss — verify if this looks unfamiliar.`,
+      };
+    }
+
+    // Non-alum path — everyone else. Compose an affiliation summary,
+    // then either flag [NON-ALUM] plainly OR upgrade to [NON-ALUM ·
+    // possibly UWC alum] when LinkedIn contradicts.
+    const affiliationSummary = isParent
+      ? [
+          `Parent of ${r.parent_of_name ?? "(child's name not given)"}`,
+          r.parent_of_uwc_college ? `at ${r.parent_of_uwc_college}` : null,
+          r.parent_of_grad_year ? `(grad ${r.parent_of_grad_year})` : null,
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : isFriend
+      ? "Friend of UWC"
+      : `Non-alum (${r.affiliation ?? "unknown affiliation"})`;
+
+    if (linkedinFoundUwc) {
+      return {
+        subjectPrefix: "[NON-ALUM · possibly UWC alum] ",
+        bodyNote: `⚑ ${affiliationSummary}. LinkedIn shows they attended ${r.uwc_school_matched} — worth following up to see if they should actually be listed as an alum.`,
+      };
+    }
+    return {
+      subjectPrefix: "[NON-ALUM] ",
+      bodyNote: `${affiliationSummary}. LinkedIn enrichment did not find a UWC school in their education history.`,
+    };
+  } catch (err) {
+    console.warn(`[whatsapp-invite] admin classification failed for ${alumniId}:`, err);
+    return { subjectPrefix: "", bodyNote: null };
+  }
 }
