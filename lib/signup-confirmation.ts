@@ -105,6 +105,56 @@ export function buildCompanyBlurb(company: string | null, count: number): string
   return `You're joining ${count} other UWC alumni at ${company}.`;
 }
 
+/** A trimmed alumni row for admin notifications: enough to identify
+ * the person, their UWC school, and reach out via LinkedIn. */
+export type CompanyMatch = {
+  id: number;
+  first_name: string | null;
+  last_name: string | null;
+  linkedin_url: string | null;
+  uwc_college: string | null;
+  grad_year: number | null;
+};
+
+/** Fetch the actual list of other UWC alumni at the same company (up
+ * to `limit`), most-recently-active first. Uses the same match logic
+ * as fetchCompanyAlumniCount — LinkedIn slug preferred, name fallback,
+ * excludes deceased / admin-added rows and the new signup themselves.
+ *
+ * Returns [] when nothing to match against or on any query failure. */
+export async function fetchCompanyAlumniList(
+  currentCompanyLinkedin: string | null,
+  currentCompany: string | null,
+  excludeId: number,
+  limit = 15,
+): Promise<CompanyMatch[]> {
+  if (!currentCompanyLinkedin && !currentCompany) return [];
+  if (currentCompanyLinkedin) {
+    const slug = currentCompanyLinkedin.trim().toLowerCase();
+    return (await sql`
+      SELECT id, first_name, last_name, linkedin_url, uwc_college, grad_year
+        FROM alumni
+       WHERE LOWER(TRIM(current_company_linkedin)) = ${slug}
+         AND deceased IS NOT TRUE
+         AND NOT ('admin_added' = ANY(sources))
+         AND id <> ${excludeId}
+       ORDER BY updated_at DESC NULLS LAST
+       LIMIT ${limit}
+    `) as CompanyMatch[];
+  }
+  const name = currentCompany!.trim().toLowerCase();
+  return (await sql`
+    SELECT id, first_name, last_name, linkedin_url, uwc_college, grad_year
+      FROM alumni
+     WHERE LOWER(TRIM(current_company)) = ${name}
+       AND deceased IS NOT TRUE
+       AND NOT ('admin_added' = ANY(sources))
+       AND id <> ${excludeId}
+     ORDER BY updated_at DESC NULLS LAST
+     LIMIT ${limit}
+  `) as CompanyMatch[];
+}
+
 /** Substitute {college}, {college_count}, {college_blurb},
  *  {company}, {company_count}, {company_blurb}, and {whatsapp_link}
  *  in the confirmation markdown body. Unknown {placeholders} are

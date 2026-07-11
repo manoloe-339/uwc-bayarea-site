@@ -15,7 +15,8 @@ import {
   applyConfirmationPlaceholders,
   ensureParagraphBreaks,
   fetchCollegeAlumniCount,
-  fetchCompanyAlumniCount,
+  fetchCompanyAlumniList,
+  type CompanyMatch,
 } from "@/lib/signup-confirmation";
 import { signWhatsappInviteToken } from "@/lib/whatsapp-invite-token";
 import {
@@ -409,19 +410,24 @@ export async function submitSignup(
     }
 
     // Build the counts. Both calls swallow their own errors so a DB
-    // hiccup on one count never blocks the welcome email.
-    const [collegeCount, companyCount] = await Promise.all([
+    // hiccup on one count never blocks the welcome email. For the
+    // company side we fetch the actual list of matches — the user
+    // confirmation only uses the length, but the admin notification
+    // wants the names + LinkedIn URLs so the admin can eyeball who
+    // this signup could be connected to at their new employer.
+    const [collegeCount, companyMatches] = await Promise.all([
       uwcCollege
         ? fetchCollegeAlumniCount(uwcCollege, alumniId).catch(() => 0)
         : Promise.resolve(0),
       currentCompany || currentCompanyLinkedin
-        ? fetchCompanyAlumniCount(
+        ? fetchCompanyAlumniList(
             currentCompanyLinkedin,
             currentCompany,
             alumniId,
-          ).catch(() => 0)
-        : Promise.resolve(0),
+          ).catch((): CompanyMatch[] => [])
+        : Promise.resolve([] as CompanyMatch[]),
     ]);
+    const companyCount = companyMatches.length;
 
     // Confirmation copy is admin-editable via /admin/tools/signup-email;
     // we fall back to DEFAULT_SIGNUP_CONFIRMATION when settings are blank.
@@ -476,7 +482,9 @@ export async function submitSignup(
       linkedinUrl,
       company: currentCompany ?? company,
       currentTitle,
+      collegeCount,
       companyCount,
+      companyMatches,
       helpTags,
       nationalCommittee,
       about,
@@ -550,10 +558,16 @@ function buildAdminNotificationBody(r: {
   company: string | null;
   /** LinkedIn-enriched job title. Null when enrichment failed. */
   currentTitle: string | null;
+  /** Count of OTHER UWC alumni from the same UWC college (excludes
+   * the new signup). Only meaningful when uwcCollege is set. */
+  collegeCount: number;
   /** Count of OTHER UWC alumni at the same company (excludes the new
    * signup). Used to show the admin whether this signup lands into an
    * existing UWC pocket at their employer or is the first one. */
   companyCount: number;
+  /** The actual same-company alumni (up to a cap), so the admin body
+   * can name them + their LinkedIn URLs. */
+  companyMatches: CompanyMatch[];
   /** Comma-separated list of "how can I help" options the signup
    * ticked (Organize events / Campus contact / etc.). Null when none
    * were picked. Flagged prominently in the body when present since
@@ -574,15 +588,20 @@ function buildAdminNotificationBody(r: {
 
   // One-line identity: "Alum · UWC Li Po Chun 2018 · Palo Alto (Bay
   // Area) · from Korea". Skips segments that are null so it reads
-  // cleanly regardless of what the signup captured.
+  // cleanly regardless of what the signup captured. When city and
+  // region resolve to the same string (common for anchor cities like
+  // "San Francisco") we suppress the parenthetical.
+  const cityLabel = r.currentCity
+    ? r.region && r.region !== r.currentCity
+      ? `${r.currentCity} (${r.region})`
+      : r.currentCity
+    : null;
   const identitySegments = [
     r.affiliation,
     r.uwcCollege
       ? `${r.uwcCollege}${r.gradYear ? ` ${r.gradYear}` : ""}`
       : null,
-    r.currentCity
-      ? `${r.currentCity}${r.region ? ` (${r.region})` : ""}`
-      : null,
+    cityLabel,
     r.origin ? `from ${r.origin}` : null,
   ].filter(Boolean);
 
@@ -601,19 +620,34 @@ function buildAdminNotificationBody(r: {
     `Title:       ${titleLine}`,
   ];
 
-  // Company-network match — only when we know the company. Formats
-  // the signup's position at the company as an ordinal so at a glance
-  // it's clear whether they're solo or landing in an existing pocket.
-  //   1st UWC alum at Anthropic
-  //   2nd UWC alum at J.P. Morgan (1 other already in network)
-  //   4th UWC alum at J.P. Morgan (3 others already in network)
+  // College-network position — only meaningful when we know the college.
+  // Reads "45th UWC Li Po Chun alum in network (44 others)".
+  if (r.uwcCollege) {
+    const pos = r.collegeCount + 1;
+    const others =
+      r.collegeCount === 0
+        ? ""
+        : ` (${r.collegeCount} other${r.collegeCount === 1 ? "" : "s"})`;
+    lines.push(`College:     ${ordinal(pos)} ${r.uwcCollege} alum in network${others}`);
+  }
+
+  // Company-network match — only when we know the company. When there
+  // are other UWC alumni at the same company, follow the summary line
+  // with an indented list of names + LinkedIn URLs (up to the fetch
+  // cap) so the admin can see who this signup could connect to.
   if (r.company) {
     const position = r.companyCount + 1;
-    const others =
-      r.companyCount === 0
-        ? ""
-        : ` (${r.companyCount} other${r.companyCount === 1 ? "" : "s"} already in network)`;
-    lines.push(`Network:     ${ordinal(position)} UWC alum at ${r.company}${others}`);
+    if (r.companyCount === 0) {
+      lines.push(`Company:     ${ordinal(position)} UWC alum at ${r.company}`);
+    } else {
+      const noun = r.companyCount === 1 ? "other" : "others";
+      lines.push(
+        `Company:     ${ordinal(position)} UWC alum at ${r.company} (${r.companyCount} ${noun}):`,
+      );
+      for (const m of r.companyMatches) {
+        lines.push(`   ${formatCompanyMatchLine(m)}`);
+      }
+    }
   }
 
   // National Committee — only include when they said they volunteer
@@ -670,4 +704,19 @@ function ordinal(n: number): string {
   if (mod10 === 2) return `${n}nd`;
   if (mod10 === 3) return `${n}rd`;
   return `${n}th`;
+}
+
+/** One-line summary of an existing UWC alum at the same company:
+ *  "Jack Smith · UWC Atlantic '10 · https://linkedin.com/in/jacksmith"
+ * — with reasonable fallbacks when name, college, or LinkedIn is
+ * missing. */
+function formatCompanyMatchLine(m: CompanyMatch): string {
+  const name =
+    [m.first_name, m.last_name].filter(Boolean).join(" ") || "(name missing)";
+  const collegeSegment = m.uwc_college
+    ? m.uwc_college +
+      (m.grad_year ? ` '${String(m.grad_year).slice(-2)}` : "")
+    : null;
+  const linkedin = m.linkedin_url ?? "(no LinkedIn)";
+  return [name, collegeSegment, linkedin].filter(Boolean).join(" · ");
 }
