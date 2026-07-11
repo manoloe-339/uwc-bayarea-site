@@ -458,8 +458,9 @@ export async function submitSignup(
 
     // Admin notification body — built here (post-enrichment) so it
     // can include the LinkedIn-canonical current_company + title from
-    // the enrichment pipeline. Prefer the enriched company value;
-    // fall back to whatever the user typed on the form.
+    // the enrichment pipeline and the company-match count computed
+    // for the user's own confirmation email. Prefer the enriched
+    // company value; fall back to whatever the user typed on the form.
     const adminBody = buildAdminNotificationBody({
       id: alumniId,
       firstName,
@@ -475,6 +476,7 @@ export async function submitSignup(
       linkedinUrl,
       company: currentCompany ?? company,
       currentTitle,
+      companyCount,
       helpTags,
       nationalCommittee,
       about,
@@ -548,6 +550,10 @@ function buildAdminNotificationBody(r: {
   company: string | null;
   /** LinkedIn-enriched job title. Null when enrichment failed. */
   currentTitle: string | null;
+  /** Count of OTHER UWC alumni at the same company (excludes the new
+   * signup). Used to show the admin whether this signup lands into an
+   * existing UWC pocket at their employer or is the first one. */
+  companyCount: number;
   /** Comma-separated list of "how can I help" options the signup
    * ticked (Organize events / Campus contact / etc.). Null when none
    * were picked. Flagged prominently in the body when present since
@@ -595,6 +601,21 @@ function buildAdminNotificationBody(r: {
     `Title:       ${titleLine}`,
   ];
 
+  // Company-network match — only when we know the company. Formats
+  // the signup's position at the company as an ordinal so at a glance
+  // it's clear whether they're solo or landing in an existing pocket.
+  //   1st UWC alum at Anthropic
+  //   2nd UWC alum at J.P. Morgan (1 other already in network)
+  //   4th UWC alum at J.P. Morgan (3 others already in network)
+  if (r.company) {
+    const position = r.companyCount + 1;
+    const others =
+      r.companyCount === 0
+        ? ""
+        : ` (${r.companyCount} other${r.companyCount === 1 ? "" : "s"} already in network)`;
+    lines.push(`Network:     ${ordinal(position)} UWC alum at ${r.company}${others}`);
+  }
+
   // National Committee — only include when they said they volunteer
   // for one. Keeps the routine "no NC" case out of the way.
   if (r.nationalCommittee) {
@@ -636,4 +657,17 @@ function quote(text: string): string {
     .split("\n")
     .map((line) => `   ${line}`)
     .join("\n");
+}
+
+/** English ordinal for a positive integer: 1 → "1st", 2 → "2nd",
+ * 3 → "3rd", 4 → "4th", 21 → "21st", etc. Handles the teen-block
+ * exception (11th / 12th / 13th) correctly. */
+function ordinal(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  const mod10 = n % 10;
+  if (mod10 === 1) return `${n}st`;
+  if (mod10 === 2) return `${n}nd`;
+  if (mod10 === 3) return `${n}rd`;
+  return `${n}th`;
 }
