@@ -4,6 +4,7 @@ import {
   applyConfirmationPlaceholders,
   ensureParagraphBreaks,
   fetchCollegeAlumniCount,
+  fetchCompanyAlumniCount,
 } from "@/lib/signup-confirmation";
 import {
   renderSimpleMarkdown,
@@ -38,7 +39,12 @@ export default async function SignupEmailSettingsPage({
   // Sign a token for the admin's own alumni row (if present) so the
   // preview shows a clickable, working {whatsapp_link} — saves a
   // round-trip when QA-ing the trusted-token flow.
-  const [previewCount, whatsappLink] = await Promise.all([
+  // Pull the admin's own alumni row so the preview renders with the
+  // admin's real current_company (from LinkedIn enrichment) rather
+  // than a hardcoded placeholder. Falls back to a clearly-synthetic
+  // marker when the row isn't found — better than picking a real
+  // company at random.
+  const [previewCount, whatsappLink, adminSelf] = await Promise.all([
     fetchCollegeAlumniCount(PREVIEW_COLLEGE).catch(() => 0),
     (async () => {
       const fallback = "https://uwcbayarea.org/join-whatsapp";
@@ -54,17 +60,35 @@ export default async function SignupEmailSettingsPage({
         return fallback;
       }
     })(),
+    (async () => {
+      try {
+        const rows = (await sql`
+          SELECT id, current_company, current_company_linkedin
+          FROM alumni WHERE email = 'manoloe@gmail.com' LIMIT 1
+        `) as Array<{
+          id: number;
+          current_company: string | null;
+          current_company_linkedin: string | null;
+        }>;
+        return rows[0] ?? null;
+      } catch {
+        return null;
+      }
+    })(),
   ]);
+  const previewCompanyCount = adminSelf
+    ? await fetchCompanyAlumniCount(
+        adminSelf.current_company_linkedin,
+        adminSelf.current_company,
+        adminSelf.id,
+      ).catch(() => 0)
+    : 0;
   const previewResolvedMd = ensureParagraphBreaks(
     applyConfirmationPlaceholders(previewMd, {
       college: PREVIEW_COLLEGE,
       collegeCount: previewCount,
-      // Synthetic company so {company_blurb} renders in the preview.
-      // The real value is whatever LinkedIn enrichment produces for
-      // each signup; we keep this generic since the admin tool can't
-      // know upfront which signup they're previewing for.
-      company: "Anthropic",
-      companyCount: 3,
+      company: adminSelf?.current_company ?? "{Your company}",
+      companyCount: previewCompanyCount,
       whatsappLink,
     }),
   );

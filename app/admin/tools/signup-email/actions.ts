@@ -7,6 +7,7 @@ import {
   applyConfirmationPlaceholders,
   ensureParagraphBreaks,
   fetchCollegeAlumniCount,
+  fetchCompanyAlumniCount,
 } from "@/lib/signup-confirmation";
 import { sendTestEmail } from "@/lib/email-send";
 import {
@@ -64,18 +65,42 @@ export async function sendTestSignupEmailAction(formData: FormData): Promise<voi
     nullIfBlank(formData.get("subject")) ?? DEFAULT_SIGNUP_CONFIRMATION.subject;
   const bodyMd =
     nullIfBlank(formData.get("body_md")) ?? DEFAULT_SIGNUP_CONFIRMATION.bodyMd;
-  const [previewCount, whatsappLink] = await Promise.all([
+  const [previewCount, whatsappLink, adminSelf] = await Promise.all([
     fetchCollegeAlumniCount(PREVIEW_COLLEGE).catch(() => 0),
     buildAdminWhatsappLink(),
+    (async () => {
+      try {
+        const rows = (await sql`
+          SELECT id, current_company, current_company_linkedin
+          FROM alumni WHERE email = ${ADMIN_EMAIL} LIMIT 1
+        `) as Array<{
+          id: number;
+          current_company: string | null;
+          current_company_linkedin: string | null;
+        }>;
+        return rows[0] ?? null;
+      } catch {
+        return null;
+      }
+    })(),
   ]);
+  const previewCompanyCount = adminSelf
+    ? await fetchCompanyAlumniCount(
+        adminSelf.current_company_linkedin,
+        adminSelf.current_company,
+        adminSelf.id,
+      ).catch(() => 0)
+    : 0;
   const resolvedMd = ensureParagraphBreaks(
     applyConfirmationPlaceholders(bodyMd, {
       college: PREVIEW_COLLEGE,
       collegeCount: previewCount,
-      // Same synthetic company values as the on-page preview so the
-      // test email matches what the admin sees in the dashboard.
-      company: "Anthropic",
-      companyCount: 3,
+      // Preview against the admin's own real current_company so the
+      // test email matches what a signup would see and doesn't invent
+      // an unrelated employer. Falls back to a "{Your company}"
+      // marker when the admin row can't be read.
+      company: adminSelf?.current_company ?? "{Your company}",
+      companyCount: previewCompanyCount,
       whatsappLink,
     }),
   );
