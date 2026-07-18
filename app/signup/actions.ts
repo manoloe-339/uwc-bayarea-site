@@ -630,12 +630,24 @@ function buildAdminNotificationBody(r: {
     .filter(Boolean)
     .join(" at ") || "—";
 
+  // WhatsApp click-to-chat link built from the signup's mobile. Only
+  // rendered when the mobile looks like a plausible phone number
+  // (>=8 digits after stripping formatting). wa.me expects country
+  // code + national number as pure digits; we pass whatever we have.
+  // If the user typed without a country code, wa.me will show a
+  // "number not found" page and the admin can fall back to the raw
+  // number printed on the line above.
+  const waLink = whatsappLinkFor(r.mobile);
+  const mobileLine = r.mobile
+    ? `${r.mobile}${waLink ? ` · ${waLink}` : ""}`
+    : "—";
+
   const lines: (string | null)[] = [
     header,
     identitySegments.length ? identitySegments.join(" · ") : null,
     "",
     `Email:       ${r.email}`,
-    `Mobile:      ${r.mobile ?? "—"}`,
+    `Mobile:      ${mobileLine}`,
     `LinkedIn:    ${r.linkedinUrl ?? "—"}`,
     `Title:       ${titleLine}`,
   ];
@@ -740,6 +752,17 @@ function buildAdminNotificationHtml(
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;">
 ${photoImg}<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;margin:0;">${escapedBody}</pre>
 </div>`;
+}
+
+/** Build a WhatsApp click-to-chat URL from a stored mobile string.
+ *  Strips all non-digits (parens, dashes, spaces, leading "+") and
+ *  returns https://wa.me/<digits>, or null if the input doesn't have
+ *  enough digits to plausibly be a phone number. */
+function whatsappLinkFor(mobile: string | null): string | null {
+  if (!mobile) return null;
+  const digits = mobile.replace(/\D/g, "");
+  if (digits.length < 8) return null;
+  return `https://wa.me/${digits}`;
 }
 
 /** English ordinal for a positive integer: 1 → "1st", 2 → "2nd",
