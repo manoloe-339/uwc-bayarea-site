@@ -383,6 +383,23 @@ export async function submitSignup(
         // Fall through — we still send the confirmation, just without
         // the company blurb.
       }
+      // If the inline attempt didn't finish (timed out / serverless
+      // termination), schedule ONE delayed re-check via QStash so we
+      // don't leave the row in 'pending' forever. Fire-and-forget:
+      // schedule failure never blocks signup.
+      try {
+        const [row] = (await sql`
+          SELECT linkedin_enrichment_status FROM alumni WHERE id = ${alumniId} LIMIT 1
+        `) as Array<{ linkedin_enrichment_status: string | null }>;
+        if (row?.linkedin_enrichment_status === "pending") {
+          const { scheduleEnrichmentRecheck } = await import(
+            "@/lib/enrichment/schedule-recheck"
+          );
+          await scheduleEnrichmentRecheck(alumniId);
+        }
+      } catch (err) {
+        console.error(`[signup] recheck schedule failed for ${alumniId}:`, err);
+      }
     }
 
     // Read whatever enrichment populated (may be nothing if it failed
