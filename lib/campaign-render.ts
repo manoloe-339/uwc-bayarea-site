@@ -9,7 +9,7 @@ import {
   flattenMarkdownForText,
 } from "./email";
 import { generateUnsubscribeUrl, renderPersonalization } from "./recipients";
-import type { NewsletterContent, QuickNoteContent } from "./campaign-content";
+import { normalizeNewsletterForRender, type NewsletterContent, type QuickNoteContent } from "./campaign-content";
 
 export type CampaignRow = {
   id: string;
@@ -101,7 +101,7 @@ function wrapWithSalutation(
 }
 
 function buildNewsletterProps(
-  content: NewsletterContent,
+  rawContent: NewsletterContent,
   recipient: RecipientCtx,
   settings: Parameters<typeof renderCampaign>[2],
   preheader: string | null,
@@ -109,6 +109,9 @@ function buildNewsletterProps(
 ): AlumniNewsletterProps {
   const vars = { firstName: (recipient.firstName ?? "").trim() || null };
   const P = (s?: string | null) => (s ? renderPersonalization(s, vars) : s ?? undefined);
+  // Same normalization the preview uses — keeps sent emails in sync
+  // with what the admin sees.
+  const content = normalizeNewsletterForRender(rawContent);
 
   return {
     logoUrl: settings.logoUrl ?? undefined,

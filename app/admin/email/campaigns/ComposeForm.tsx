@@ -8,6 +8,7 @@ import AlumniNewsletter, {
   type AlumniNewsletterProps,
 } from "@/emails/AlumniNewsletter";
 import type { CampaignDraft } from "@/lib/campaign-content";
+import { normalizeNewsletterForRender } from "@/lib/campaign-content";
 import ChatPanel from "@/components/newsletter-ai/ChatPanel";
 import type { AlumniFilters } from "@/lib/alumni-query";
 import { COLLEGES } from "@/lib/uwc-colleges";
@@ -168,8 +169,10 @@ export default function ComposeForm({
 
   const previewProps = useMemo<AlumniNewsletterProps | null>(() => {
     if (draft.format !== "newsletter") return null;
-    const nl = draft.newsletter;
-    if (!nl) return null;
+    if (!draft.newsletter) return null;
+    // Normalize mode so update-block content actually renders even when
+    // whoever wrote the draft (AI or admin) forgot to set mode='update'.
+    const nl = normalizeNewsletterForRender(draft.newsletter);
     return {
       logoUrl: settings.logoUrl,
       physicalAddress: settings.physicalAddress,

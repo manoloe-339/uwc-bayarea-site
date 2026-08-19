@@ -106,3 +106,19 @@ export function emptyDraft(): CampaignDraft {
 }
 
 export type { Speaker, CTA, EventDetails, Mode };
+
+/** The email template gates rendering strictly on `mode` — if
+ *  update.body has content but mode is "announcement" or "reminder",
+ *  the main content block silently doesn't render. That was tripping
+ *  up the AI composer (Claude writes update.body without always
+ *  setting mode). Normalize whenever we're about to render: if the
+ *  update block has real content, force mode='update'. Callers in
+ *  both the preview useMemo and the server render pipeline use this
+ *  so the two stay consistent. */
+export function normalizeNewsletterForRender(nl: NewsletterContent): NewsletterContent {
+  const hasUpdateContent = !!(nl.update?.body?.trim() || nl.update?.headline?.trim());
+  if (hasUpdateContent && nl.mode !== "update") {
+    return { ...nl, mode: "update" };
+  }
+  return nl;
+}
