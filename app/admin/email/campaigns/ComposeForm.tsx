@@ -491,34 +491,35 @@ export default function ComposeForm({
             {draft.format === "newsletter" ? "Newsletter · 600px" : "Quick note"}
           </span>
         </div>
-        {rightTab === "preview" ? (
-          <>
-            <iframe
-              srcDoc={previewHtml}
-              title="email preview"
-              style={{
-                width: "100%",
-                height: "720px",
-                background: "#ffffff",
-                border: "1px solid rgba(11,37,69,0.16)",
-                borderRadius: "10px",
-              }}
-            />
-            <p className="mt-2 text-xs text-[color:var(--muted)]">
-              Preview shows <code>{previewFirstName}</code>{recipientPreview?.[0]?.firstName ? " (first recipient's first name)" : " (placeholder — no recipients yet)"}. Real sends personalize per recipient.
-            </p>
-          </>
-        ) : (
-          <div style={{ height: "720px" }}>
-            <ChatPanel
-              draft={draft}
-              onDraftUpdate={(next) => {
-                setDraft(next);
-                setDirty(true);
-              }}
-            />
-          </div>
-        )}
+        {/* Both panels stay MOUNTED at all times — toggling with the
+            `hidden` attr rather than conditional render preserves the
+            chat's in-memory message history when the admin flips back
+            to Preview to check the email, then returns to keep drafting. */}
+        <div hidden={rightTab !== "preview"}>
+          <iframe
+            srcDoc={previewHtml}
+            title="email preview"
+            style={{
+              width: "100%",
+              height: "720px",
+              background: "#ffffff",
+              border: "1px solid rgba(11,37,69,0.16)",
+              borderRadius: "10px",
+            }}
+          />
+          <p className="mt-2 text-xs text-[color:var(--muted)]">
+            Preview shows <code>{previewFirstName}</code>{recipientPreview?.[0]?.firstName ? " (first recipient's first name)" : " (placeholder — no recipients yet)"}. Real sends personalize per recipient.
+          </p>
+        </div>
+        <div hidden={rightTab !== "ai"} style={{ height: "720px" }}>
+          <ChatPanel
+            draft={draft}
+            onDraftUpdate={(next) => {
+              setDraft(next);
+              setDirty(true);
+            }}
+          />
+        </div>
       </div>
     </div>
   );
