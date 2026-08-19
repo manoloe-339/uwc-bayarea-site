@@ -96,6 +96,34 @@ export default function ComposeForm({
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
 
+  // Global autosave — any time the draft is dirty (from AI updates OR
+  // manual edits), save 1.5s after the last change. This is the primary
+  // durability guarantee; the manual "Save draft" button is now just
+  // an explicit "save now" shortcut. Errors surface in an inline banner
+  // so silent failures don't leave the admin thinking things are saved.
+  useEffect(() => {
+    if (!dirty || saving) return;
+    const timeout = setTimeout(async () => {
+      try {
+        const { id } = await saveDraftAction(draft);
+        setSavedAt(new Date().toLocaleTimeString());
+        setDirty(false);
+        setAutoSaveError(null);
+        if (isNew) router.replace(`/admin/email/campaigns/${id}/edit`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[autosave] failed:", err);
+        setAutoSaveError(msg);
+        // Leave dirty=true so the next change re-triggers, and the
+        // manual Save Draft button remains available.
+      }
+    }, 1500);
+    return () => clearTimeout(timeout);
+    // Explicitly not including saveDraftAction/router/isNew — those
+    // are stable references across renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, draft, saving]);
+
   function patch<K extends keyof CampaignDraft>(key: K, value: CampaignDraft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
     setDirty(true);
@@ -219,6 +247,7 @@ export default function ComposeForm({
 
   const [previewHtml, setPreviewHtml] = useState("<p>rendering…</p>");
   const [rightTab, setRightTab] = useState<"preview" | "ai">("preview");
+  const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
   useEffect(() => {
     if (!previewProps) {
       setPreviewHtml(quickNoteHtml(draft, settings, previewFirstName));
@@ -426,8 +455,20 @@ export default function ComposeForm({
             </button>
           )}
 
-          <span className="ml-auto text-xs text-[color:var(--muted)]">
-            {dirty ? "Unsaved changes" : savedAt ? `Saved ${savedAt}` : "—"}
+          <span
+            className={
+              autoSaveError
+                ? "ml-auto text-xs text-red-700"
+                : "ml-auto text-xs text-[color:var(--muted)]"
+            }
+          >
+            {autoSaveError
+              ? `Autosave failed: ${autoSaveError.slice(0, 80)}`
+              : dirty
+                ? "Autosaving…"
+                : savedAt
+                  ? `Autosaved ${savedAt}`
+                  : "—"}
           </span>
 
           <Link
@@ -518,22 +559,11 @@ export default function ComposeForm({
           <ChatPanel
             campaignId={initial.id ?? null}
             draft={draft}
-            onDraftUpdate={async (next) => {
+            onDraftUpdate={(next) => {
+              // Just push into state + mark dirty. The autosave useEffect
+              // above catches the change and persists 1.5s later.
               setDraft(next);
               setDirty(true);
-              // Auto-persist so a page reload doesn't lose the AI work.
-              // Uses the JUST-generated `next` — passing state.draft here
-              // would race the React setDraft above and save stale data.
-              try {
-                const { id } = await saveDraftAction(next);
-                setSavedAt(new Date().toLocaleTimeString());
-                setDirty(false);
-                if (isNew) router.replace(`/admin/email/campaigns/${id}/edit`);
-              } catch (err) {
-                // Keep dirty=true so the manual "Save draft" button remains
-                // available; log but don't crash the chat flow.
-                console.error("AI auto-save failed:", err);
-              }
             }}
           />
         </div>
