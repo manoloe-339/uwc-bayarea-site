@@ -246,8 +246,8 @@ Editorial rules:
 
 Draft structure (what update_draft controls):
 - subject / preheader — the email envelope
-- mode — 'newsletter' for multi-section drafts (default), 'announcement' for one-event blasts
-- update_headline + update_body — the main content block. THIS is where past-event summaries, alum spotlights, and other prose live. Body is markdown.
+- mode — email template mode. Rule: set mode='update' whenever you use the update_* fields (that's the multi-section newsletter shape). Use 'announcement' only for a single-event blast (fills the 'event' block, which you can't set from here — the admin picks the event manually). Use 'reminder' for follow-up nudges to a specific event.
+- update_headline + update_body — the main content block. THIS is where past-event summaries, alum spotlights, and other prose live. Body is markdown. Whenever you use these, mode MUST be 'update' (auto-flipped if you forget, but be explicit for clarity).
 - update_image_url / update_image_caption — hero image for the main block (pick from a past event's cover)
 - whats_next_* — the "coming up" spotlight, typically for ONE upcoming event
 - whatsapp_show / foodies_show — toggle the footer CTA blocks
@@ -323,7 +323,9 @@ function applyDraftPatch(
   const updateBody = str("update_body");
   const updateImage = str("update_image_url");
   const updateCaption = str("update_image_caption");
-  if (updateHeadline != null || updateBody != null || updateImage != null || updateCaption != null) {
+  const touchedUpdateBlock =
+    updateHeadline != null || updateBody != null || updateImage != null || updateCaption != null;
+  if (touchedUpdateBlock) {
     const prev = nl.update ?? { headline: "", body: "" };
     nl.update = {
       headline: updateHeadline ?? prev.headline,
@@ -337,6 +339,15 @@ function applyDraftPatch(
     if (updateBody != null) changed.push("update.body");
     if (updateImage != null) changed.push("update.imageUrl");
     if (updateCaption != null) changed.push("update.imageCaption");
+    // The email template only RENDERS the update block when mode is
+    // "update" — so writing update.* without touching mode leaves the
+    // content invisible in the preview. Auto-flip when Claude sets
+    // update fields, unless Claude was explicit about a different mode
+    // in the same patch (handled above — mode already set overrides).
+    if (mode == null && nl.mode !== "update") {
+      nl.mode = "update";
+      changed.push("mode(auto→update)");
+    }
   }
 
   const whatsNextShow = bool("whats_next_show");
