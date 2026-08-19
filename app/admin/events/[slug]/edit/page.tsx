@@ -108,6 +108,9 @@ export default async function EditEventPage({
               : "none",
           card_backdrop_image_url: event.card_backdrop_image_url,
           show_on_home: event.show_on_home,
+          feature_in_nav: event.feature_in_nav,
+          nav_label: event.nav_label,
+          nav_link_url: event.nav_link_url,
           featured_alumni,
         }}
       />

@@ -29,6 +29,9 @@ export type EventRecord = {
   event_type: "ticketed" | "casual";
   is_foodies: boolean;
   show_on_home: boolean;
+  feature_in_nav: boolean;
+  nav_label: string | null;
+  nav_link_url: string | null;
   gallery_description_md: string | null;
   foodies_region: string | null;
   foodies_cuisine: string | null;

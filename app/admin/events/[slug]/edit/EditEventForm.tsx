@@ -35,6 +35,9 @@ type Props = {
     card_backdrop: CardBackdrop;
     card_backdrop_image_url: string | null;
     show_on_home: boolean;
+    feature_in_nav: boolean;
+    nav_label: string | null;
+    nav_link_url: string | null;
     featured_alumni: FeaturedAlumnusEntry[];
   };
   action: (formData: FormData) => void;
@@ -114,6 +117,60 @@ export default function EditEventForm({ slug, initial, action }: Props) {
             </span>
           </label>
         )}
+
+        {/* Top-nav featured slot: opt this event into the site header
+            as a distinct nav item. Manual on/off — no auto-unfeature
+            after the event date. Only one event shows at a time (soonest
+            date wins). */}
+        <label className="mt-3 flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            name="feature_in_nav"
+            defaultChecked={initial.feature_in_nav}
+            className="mt-0.5"
+          />
+          <span className="text-sm">
+            <span className="font-bold text-[color:var(--navy-ink)]">Feature in the top nav</span>
+            <span className="block text-xs text-[color:var(--muted)]">
+              Adds a nav item next to &ldquo;Events&rdquo; that points to this
+              event. Set a short label + optional custom URL below. Only one
+              featured event shows at a time (soonest date wins). Doesn&rsquo;t
+              auto-drop after the date passes — uncheck when done.
+            </span>
+          </span>
+        </label>
+        <div className="mt-3 grid sm:grid-cols-2 gap-3 pl-6">
+          <label className="block">
+            <span className="block text-[10px] font-bold tracking-[.22em] uppercase text-navy mb-1">
+              Nav label (short)
+            </span>
+            <input
+              type="text"
+              name="nav_label"
+              defaultValue={initial.nav_label ?? ""}
+              placeholder="e.g. May 1"
+              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            />
+            <span className="block text-[11px] text-[color:var(--muted)] mt-1">
+              Leave blank to use the event name.
+            </span>
+          </label>
+          <label className="block">
+            <span className="block text-[10px] font-bold tracking-[.22em] uppercase text-navy mb-1">
+              Nav link URL (optional)
+            </span>
+            <input
+              type="text"
+              name="nav_link_url"
+              defaultValue={initial.nav_link_url ?? ""}
+              placeholder="/may-1-2026 or https://…"
+              className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white"
+            />
+            <span className="block text-[11px] text-[color:var(--muted)] mt-1">
+              Leave blank to link to the event photos page.
+            </span>
+          </label>
+        </div>
       </fieldset>
 
       <Field name="name" label="Event name" defaultValue={initial.name} required />

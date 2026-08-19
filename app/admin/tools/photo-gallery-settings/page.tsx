@@ -27,8 +27,8 @@ export default async function PhotoGallerySettingsPage({
           </h1>
           <p className="text-[color:var(--muted)] text-sm">
             Controls the public{" "}
-            <Link href="/photos" className="text-navy underline">
-              /photos
+            <Link href="/events" className="text-navy underline">
+              /events
             </Link>{" "}
             page layout and the Present-mode slideshow.
           </p>

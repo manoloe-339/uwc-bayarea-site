@@ -137,6 +137,14 @@ export async function updateEventAction(id: number, formData: FormData): Promise
   // Homepage "Highlights" opt-in — non-Foodies only. Force off if
   // Foodies is on so the flag can't drift into a nonsensical state.
   const showOnHome = !isFoodies && formData.get("show_on_home") != null;
+  // Top-nav featured slot. nav_label / nav_link_url are always
+  // persisted (even when the checkbox is off) so admins can prep the
+  // label ahead of flipping the switch.
+  const featureInNav = formData.get("feature_in_nav") != null;
+  const navLabelRaw = String(formData.get("nav_label") ?? "").trim();
+  const navLabel = navLabelRaw || null;
+  const navLinkUrlRaw = String(formData.get("nav_link_url") ?? "").trim();
+  const navLinkUrl = navLinkUrlRaw || null;
 
   if (!name || !date) throw new Error("Name and date are required");
 
@@ -162,6 +170,9 @@ export async function updateEventAction(id: number, formData: FormData): Promise
       card_backdrop = ${cardBackdrop},
       card_backdrop_image_url = ${cardBackdropImageUrl},
       show_on_home = ${showOnHome},
+      feature_in_nav = ${featureInNav},
+      nav_label = ${navLabel},
+      nav_link_url = ${navLinkUrl},
       updated_at = NOW()
     WHERE id = ${id}
     RETURNING slug

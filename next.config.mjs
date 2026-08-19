@@ -45,6 +45,10 @@ const nextConfig = {
       // Homepage swap (2026-05-15): /preview-home was the staging route
       // for the editorial homepage; it became /. Redirect any old links.
       { source: "/preview-home", destination: "/", permanent: true },
+      // Photos → Events rename (2026-08-19): the public gallery lives
+      // at /events now (past events, browseable). /photos was the old
+      // label. Old inbound links redirect.
+      { source: "/photos", destination: "/events", permanent: true },
     ];
   },
 };

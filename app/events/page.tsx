@@ -13,9 +13,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Photo Galleries · UWC Bay Area",
+  title: "Events · UWC Bay Area",
   description:
-    "Photographs from UWC Bay Area gatherings — dinners, firesides, picnics, and more.",
+    "Past UWC Bay Area gatherings — dinners, firesides, picnics, and more.",
 };
 
 export default async function PhotosPage() {
@@ -32,7 +32,7 @@ export default async function PhotosPage() {
 
   return (
     <>
-      <SiteHeader active="photos" />
+      <SiteHeader active="events" />
       <main className="bg-ivory">
         {settings.photo_gallery_show_intro && (
           <IntroBand
