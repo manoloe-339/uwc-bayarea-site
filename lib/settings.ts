@@ -32,6 +32,7 @@ export type SiteSettings = {
   signup_thanks_button_label: string | null;
   whatsapp_invite_subject: string | null;
   whatsapp_invite_body_md: string | null;
+  newsletter_style_guide: string | null;
   updated_at: string;
 };
 
@@ -146,6 +147,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     signup_thanks_button_label: null,
     whatsapp_invite_subject: null,
     whatsapp_invite_body_md: null,
+    newsletter_style_guide: null,
     updated_at: new Date().toISOString(),
   };
 }
@@ -227,6 +229,10 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
       patch.whatsapp_invite_body_md !== undefined
         ? patch.whatsapp_invite_body_md
         : existing.whatsapp_invite_body_md,
+    newsletter_style_guide:
+      patch.newsletter_style_guide !== undefined
+        ? patch.newsletter_style_guide
+        : existing.newsletter_style_guide,
   };
 
   await sql`
@@ -261,6 +267,7 @@ export async function updateSiteSettings(patch: Partial<Omit<SiteSettings, "id" 
       signup_thanks_button_label            = ${next.signup_thanks_button_label},
       whatsapp_invite_subject               = ${next.whatsapp_invite_subject},
       whatsapp_invite_body_md               = ${next.whatsapp_invite_body_md},
+      newsletter_style_guide                = ${next.newsletter_style_guide},
       updated_at                            = NOW()
     WHERE id = ${existing.id}
   `;

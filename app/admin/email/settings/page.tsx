@@ -94,6 +94,20 @@ export default async function SettingsPage({
           </Grid>
         </Section>
 
+        <Section title="AI newsletter composer">
+          <div className="text-[11px] text-[color:var(--muted)] mb-2">
+            Voice/tone guide fed into the AI chat panel on every newsletter draft.
+            Write once, reused across every campaign — describe how the newsletter should read,
+            what &ldquo;we&rdquo; means, tone (warm/serious/etc), typical section shapes,
+            things to always/never do.
+          </div>
+          <Textarea
+            label="Newsletter style guide"
+            name="newsletter_style_guide"
+            defaultValue={s.newsletter_style_guide}
+          />
+        </Section>
+
         <div className="pt-4 border-t border-[color:var(--rule)]">
           <button type="submit" className="bg-navy text-white px-5 py-2.5 rounded text-sm font-semibold tracking-wide">
             Save changes

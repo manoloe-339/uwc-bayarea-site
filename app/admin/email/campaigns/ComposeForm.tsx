@@ -8,6 +8,7 @@ import AlumniNewsletter, {
   type AlumniNewsletterProps,
 } from "@/emails/AlumniNewsletter";
 import type { CampaignDraft } from "@/lib/campaign-content";
+import ChatPanel from "@/components/newsletter-ai/ChatPanel";
 import type { AlumniFilters } from "@/lib/alumni-query";
 import { COLLEGES } from "@/lib/uwc-colleges";
 import { REGIONS } from "@/lib/region";
@@ -214,6 +215,7 @@ export default function ComposeForm({
   }, [draft, settings]);
 
   const [previewHtml, setPreviewHtml] = useState("<p>rendering…</p>");
+  const [rightTab, setRightTab] = useState<"preview" | "ai">("preview");
   useEffect(() => {
     if (!previewProps) {
       setPreviewHtml(quickNoteHtml(draft, settings, previewFirstName));
@@ -456,28 +458,67 @@ export default function ComposeForm({
         )}
       </div>
 
-      {/* --- Preview column --- */}
+      {/* --- Preview / AI column --- */}
       <div className="lg:sticky lg:top-4 self-start">
         <div className="flex items-baseline justify-between mb-2">
-          <span className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">Preview</span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setRightTab("preview")}
+              className={`text-[11px] tracking-[.22em] uppercase font-bold px-2 py-1 rounded ${
+                rightTab === "preview"
+                  ? "text-navy bg-[color:var(--ivory-2)]"
+                  : "text-[color:var(--muted)] hover:text-navy"
+              }`}
+            >
+              Preview
+            </button>
+            {draft.format === "newsletter" && (
+              <button
+                type="button"
+                onClick={() => setRightTab("ai")}
+                className={`text-[11px] tracking-[.22em] uppercase font-bold px-2 py-1 rounded ${
+                  rightTab === "ai"
+                    ? "text-navy bg-[color:var(--ivory-2)]"
+                    : "text-[color:var(--muted)] hover:text-navy"
+                }`}
+              >
+                AI co-pilot
+              </button>
+            )}
+          </div>
           <span className="text-xs text-[color:var(--muted)]">
             {draft.format === "newsletter" ? "Newsletter · 600px" : "Quick note"}
           </span>
         </div>
-        <iframe
-          srcDoc={previewHtml}
-          title="email preview"
-          style={{
-            width: "100%",
-            height: "720px",
-            background: "#ffffff",
-            border: "1px solid rgba(11,37,69,0.16)",
-            borderRadius: "10px",
-          }}
-        />
-        <p className="mt-2 text-xs text-[color:var(--muted)]">
-          Preview shows <code>{previewFirstName}</code>{recipientPreview?.[0]?.firstName ? " (first recipient's first name)" : " (placeholder — no recipients yet)"}. Real sends personalize per recipient.
-        </p>
+        {rightTab === "preview" ? (
+          <>
+            <iframe
+              srcDoc={previewHtml}
+              title="email preview"
+              style={{
+                width: "100%",
+                height: "720px",
+                background: "#ffffff",
+                border: "1px solid rgba(11,37,69,0.16)",
+                borderRadius: "10px",
+              }}
+            />
+            <p className="mt-2 text-xs text-[color:var(--muted)]">
+              Preview shows <code>{previewFirstName}</code>{recipientPreview?.[0]?.firstName ? " (first recipient's first name)" : " (placeholder — no recipients yet)"}. Real sends personalize per recipient.
+            </p>
+          </>
+        ) : (
+          <div style={{ height: "720px" }}>
+            <ChatPanel
+              draft={draft}
+              onDraftUpdate={(next) => {
+                setDraft(next);
+                setDirty(true);
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
