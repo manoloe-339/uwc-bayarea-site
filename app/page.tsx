@@ -6,6 +6,7 @@ import SiteFooter from "@/components/SiteFooter";
 import PageviewBeacon from "@/components/analytics/PageviewBeacon";
 import { getSiteSettings } from "@/lib/settings";
 import {
+  getHomepageHighlights,
   getUpcomingFoodies,
   getOtherUpcomingGatherings,
   getRecentFoodiesDisplay,
@@ -42,6 +43,7 @@ export default async function HomePage() {
     foodies,
     otherGatherings,
     recentFoodies,
+    highlights,
     alumniCount,
     heroSlides,
     newsDisplay,
@@ -50,6 +52,7 @@ export default async function HomePage() {
     getUpcomingFoodies(4),
     getOtherUpcomingGatherings(6),
     getRecentFoodiesDisplay(),
+    getHomepageHighlights(4),
     getAlumniCount(),
     getActiveHeroSlides(),
     getNewsFeatureDisplay(),
@@ -64,7 +67,12 @@ export default async function HomePage() {
       <SiteHeader active="home" />
       <HeroCarousel slides={slides} />
       <JoinInterrupt alumniCount={alumniCount} />
-      <FoodiesSection meals={foodies} recent={recentFoodies} whatsappUrl={settings.whatsapp_url} />
+      <AroundTheBaySection
+        highlights={highlights}
+        foodies={foodies}
+        recentFoodies={recentFoodies}
+        whatsappUrl={settings.whatsapp_url}
+      />
       <OtherGatheringsSection gatherings={otherGatherings} />
       <WhatsAppBand
         url={settings.whatsapp_url}
@@ -132,73 +140,123 @@ function WhatsAppMark({ className }: { className?: string }) {
   );
 }
 
-/* ─── Foodies section ─────────────────────────────────────────── */
+/* ─── Around the Bay (umbrella) ───────────────────────────────── */
 
-function FoodiesSection({
-  meals, recent, whatsappUrl,
+/** Umbrella section wrapping two sub-blocks — Highlights (curated
+ *  non-Foodies past events with photos) and Foodies (upcoming meals +
+ *  past-meals row). "Around the Bay" is the shared H2 for both.
+ *  Highlights sub-block is hidden entirely when nothing is opted in
+ *  or none of the opted-in events have an approved cover photo. */
+function AroundTheBaySection({
+  highlights, foodies, recentFoodies, whatsappUrl,
+}: {
+  highlights: RecentEventCover[];
+  foodies: FoodiesUpcoming[];
+  recentFoodies: RecentFoodiesDisplay;
+  whatsappUrl: string | null;
+}) {
+  return (
+    <section className="bg-[color:var(--ivory)] px-6 py-14 sm:px-16 sm:py-[88px]">
+      <div className="max-w-[1180px] mx-auto">
+        <div className="mb-10 sm:mb-14">
+          <Eyebrow>Around the Bay</Eyebrow>
+          <h2 className="mt-2.5 font-serif font-semibold leading-[1.04] tracking-[-0.01em] text-[color:var(--navy-ink)] text-[38px] sm:text-[56px]">
+            Around the <em className="italic">Bay</em>
+          </h2>
+        </div>
+        {highlights.length > 0 && (
+          <HighlightsSubblock highlights={highlights} />
+        )}
+        <FoodiesSubblock
+          meals={foodies}
+          recent={recentFoodies}
+          whatsappUrl={whatsappUrl}
+          hasHighlightsAbove={highlights.length > 0}
+        />
+      </div>
+    </section>
+  );
+}
+
+/* ─── Highlights sub-block ────────────────────────────────────── */
+
+function HighlightsSubblock({ highlights }: { highlights: RecentEventCover[] }) {
+  return (
+    <div className="mb-14 sm:mb-[88px]">
+      <div className="mb-5">
+        <Eyebrow>Highlights</Eyebrow>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+        {highlights.map((e) => (
+          <RecentEventThumb key={e.id} event={e} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Foodies sub-block ───────────────────────────────────────── */
+
+function FoodiesSubblock({
+  meals, recent, whatsappUrl, hasHighlightsAbove,
 }: {
   meals: FoodiesUpcoming[];
   recent: RecentFoodiesDisplay;
   whatsappUrl: string | null;
+  hasHighlightsAbove: boolean;
 }) {
   const count = meals.length;
   const featured = meals[0];
   const rest = meals.slice(1);
-
   return (
-    <section className="bg-[color:var(--ivory)] px-6 py-14 sm:px-16 sm:py-[88px]">
-      <div className="max-w-[1180px] mx-auto">
-        <div className="flex justify-between items-end flex-wrap gap-4 mb-8 sm:mb-10">
-          <div>
-            <Eyebrow>{count === 0 ? "Foodies" : "Foodies · upcoming meals"}</Eyebrow>
-            <h2 className="mt-2.5 font-serif font-semibold leading-[1.04] tracking-[-0.01em] text-[color:var(--navy-ink)] text-[38px] sm:text-[56px]">
-              {count === 1 ? (
-                <>The next <em className="italic">meal</em></>
-              ) : (
-                <>Around the <em className="italic">Bay</em></>
-              )}
-            </h2>
-            <p className="mt-3 text-[14px] sm:text-[15px] leading-[1.5] text-[color:var(--muted)] max-w-[560px]">
-              {count === 0
-                ? "No Foodies meals on the calendar right now — check back soon, or join the WhatsApp group to hear about them first."
-                : count === 1
-                  ? "Small alumni-hosted dinner. Hosts rotate, all are welcome."
-                  : `${count} alumni-hosted meal${count === 1 ? "" : "s"} on the calendar. Hosts rotate · all are welcome.`}
-            </p>
-          </div>
-        </div>
-
-        {/* Cards */}
-        {count === 4 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-            {meals.map((m) => (
-              <FoodiesCard key={m.id} meal={m} featured={false} whatsappUrl={whatsappUrl} />
-            ))}
-          </div>
-        ) : count === 1 ? (
-          <FoodiesCard meal={featured} featured whatsappUrl={whatsappUrl} />
-        ) : count > 0 ? (
-          <div
-            className="grid grid-cols-1 gap-4 sm:gap-5 items-stretch sm:[grid-template-columns:1.4fr_1fr]"
-          >
-            <FoodiesCard meal={featured} featured whatsappUrl={whatsappUrl} />
-            {rest.length > 0 && (
-              <div
-                className="grid gap-4 sm:gap-5"
-                style={{ gridTemplateRows: rest.length > 1 ? "1fr 1fr" : "1fr" }}
-              >
-                {rest.map((m) => (
-                  <FoodiesCard key={m.id} meal={m} featured={false} whatsappUrl={whatsappUrl} />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : null}
-
-        {/* Recent Foodies row — adapts when only one past Foodies has photos */}
-        {recent.mode !== "empty" && <RecentFoodiesRow recent={recent} />}
+    <div
+      className={
+        hasHighlightsAbove
+          ? "border-t border-[color:var(--rule)] pt-14 sm:pt-[72px]"
+          : undefined
+      }
+    >
+      <div className="mb-8 sm:mb-10">
+        <Eyebrow>{count === 0 ? "Foodies" : "Foodies · upcoming meals"}</Eyebrow>
+        <p className="mt-3 text-[14px] sm:text-[15px] leading-[1.5] text-[color:var(--muted)] max-w-[560px]">
+          {count === 0
+            ? "No Foodies meals on the calendar right now — check back soon, or join the WhatsApp group to hear about them first."
+            : count === 1
+              ? "Small alumni-hosted dinner. Hosts rotate, all are welcome."
+              : `${count} alumni-hosted meal${count === 1 ? "" : "s"} on the calendar. Hosts rotate · all are welcome.`}
+        </p>
       </div>
-    </section>
+
+      {/* Cards */}
+      {count === 4 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+          {meals.map((m) => (
+            <FoodiesCard key={m.id} meal={m} featured={false} whatsappUrl={whatsappUrl} />
+          ))}
+        </div>
+      ) : count === 1 ? (
+        <FoodiesCard meal={featured} featured whatsappUrl={whatsappUrl} />
+      ) : count > 0 ? (
+        <div
+          className="grid grid-cols-1 gap-4 sm:gap-5 items-stretch sm:[grid-template-columns:1.4fr_1fr]"
+        >
+          <FoodiesCard meal={featured} featured whatsappUrl={whatsappUrl} />
+          {rest.length > 0 && (
+            <div
+              className="grid gap-4 sm:gap-5"
+              style={{ gridTemplateRows: rest.length > 1 ? "1fr 1fr" : "1fr" }}
+            >
+              {rest.map((m) => (
+                <FoodiesCard key={m.id} meal={m} featured={false} whatsappUrl={whatsappUrl} />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Recent Foodies row — adapts when only one past Foodies has photos */}
+      {recent.mode !== "empty" && <RecentFoodiesRow recent={recent} />}
+    </div>
   );
 }
 

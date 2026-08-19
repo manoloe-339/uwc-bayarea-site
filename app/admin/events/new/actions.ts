@@ -134,6 +134,9 @@ export async function updateEventAction(id: number, formData: FormData): Promise
   const cuisineEmoji = isFoodies ? pickText(String(formData.get("cuisine_emoji") ?? "")) : null;
   const cardBackdrop = isFoodies ? pickBackdrop(String(formData.get("card_backdrop") ?? "")) : "none";
   const cardBackdropImageUrl = isFoodies ? pickText(String(formData.get("card_backdrop_image_url") ?? "")) : null;
+  // Homepage "Highlights" opt-in — non-Foodies only. Force off if
+  // Foodies is on so the flag can't drift into a nonsensical state.
+  const showOnHome = !isFoodies && formData.get("show_on_home") != null;
 
   if (!name || !date) throw new Error("Name and date are required");
 
@@ -158,6 +161,7 @@ export async function updateEventAction(id: number, formData: FormData): Promise
       cuisine_emoji = ${cuisineEmoji},
       card_backdrop = ${cardBackdrop},
       card_backdrop_image_url = ${cardBackdropImageUrl},
+      show_on_home = ${showOnHome},
       updated_at = NOW()
     WHERE id = ${id}
     RETURNING slug
@@ -171,5 +175,6 @@ export async function updateEventAction(id: number, formData: FormData): Promise
   revalidatePath("/admin/events");
   revalidatePath(`/admin/events/${rows[0].slug}/attendees`);
   revalidatePath(`/events/${rows[0].slug}/photos`);
+  revalidatePath("/");                                // Highlights row may change
   redirect(`/admin/events/${rows[0].slug}/attendees`);
 }

@@ -185,6 +185,41 @@ export async function getOtherUpcomingGatherings(limit = 6): Promise<OtherGather
   `) as OtherGathering[];
 }
 
+/** Past non-Foodies events opted in via events.show_on_home, with an
+ * approved cover photo. Drives the "Highlights" row inside the
+ * "Around the Bay" umbrella. Events with no approved photo are
+ * excluded — no placeholder tiles. Newest first. */
+export async function getHomepageHighlights(limit = 4): Promise<RecentEventCover[]> {
+  const rows = (await sql`
+    WITH picked AS (
+      SELECT id, slug, name, date, location
+      FROM events
+      WHERE show_on_home = TRUE
+        AND is_foodies = FALSE
+        AND date < CURRENT_DATE
+        AND slug <> 'archive'
+      ORDER BY date DESC
+      LIMIT ${limit}
+    ),
+    cover AS (
+      SELECT DISTINCT ON (ep.event_id)
+        ep.event_id, ep.blob_url
+      FROM event_photos ep
+      JOIN picked p ON p.id = ep.event_id
+      WHERE ep.approval_status = 'approved'
+      ORDER BY ep.event_id,
+        CASE WHEN ep.display_role = 'marquee' THEN 0 ELSE 1 END,
+        ep.display_order ASC NULLS LAST,
+        ep.id ASC
+    )
+    SELECT p.id, p.slug, p.name, p.date, p.location, c.blob_url AS cover_url
+    FROM picked p
+    JOIN cover c ON c.event_id = p.id
+    ORDER BY p.date DESC
+  `) as RecentEventCover[];
+  return rows;
+}
+
 /** Past Foodies events that have at least one approved photo, plus
  * one cover image per event. Drives the "one cover per event" mode of
  * the Recent Foodies row when ≥2 such events exist. */

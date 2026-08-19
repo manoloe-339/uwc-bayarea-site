@@ -34,6 +34,7 @@ type Props = {
     cuisine_emoji: string | null;
     card_backdrop: CardBackdrop;
     card_backdrop_image_url: string | null;
+    show_on_home: boolean;
     featured_alumni: FeaturedAlumnusEntry[];
   };
   action: (formData: FormData) => void;
@@ -88,6 +89,27 @@ export default function EditEventForm({ slug, initial, action }: Props) {
               <span className="font-bold text-[color:var(--navy-ink)]">This is a Foodies meal</span>
               <span className="block text-xs text-[color:var(--muted)]">
                 Surfaces this event in the Foodies section on the homepage.
+              </span>
+            </span>
+          </label>
+        )}
+
+        {/* Homepage "Highlights" row opt-in — only meaningful for
+            past non-Foodies events (Foodies have their own past-meals
+            row). Hidden when Foodies is on to keep the form clean. */}
+        {!isFoodies && (
+          <label className="mt-3 flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              name="show_on_home"
+              defaultChecked={initial.show_on_home}
+              className="mt-0.5"
+            />
+            <span className="text-sm">
+              <span className="font-bold text-[color:var(--navy-ink)]">Show in homepage Highlights</span>
+              <span className="block text-xs text-[color:var(--muted)]">
+                Appears in the &ldquo;Highlights&rdquo; row on the homepage after
+                the event date. Requires an approved photo in the gallery.
               </span>
             </span>
           </label>
