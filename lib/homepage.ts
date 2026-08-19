@@ -202,6 +202,13 @@ export async function getHomepageHighlights(limit = 4): Promise<RecentEventCover
       LIMIT ${limit}
     ),
     cover AS (
+      -- Tiebreak MUST match the public gallery's ordering
+      -- (getApprovedPhotosOrdered) so the homepage cover is the same
+      -- photo the admin sees as position 1. Star/unstar sets
+      -- display_role='marquee' but leaves display_order NULL for
+      -- every marquee photo, so the real ordering fell through to
+      -- id — using id ASC picked the oldest-uploaded photo, not the
+      -- currently-featured one.
       SELECT DISTINCT ON (ep.event_id)
         ep.event_id, ep.blob_url
       FROM event_photos ep
@@ -210,7 +217,8 @@ export async function getHomepageHighlights(limit = 4): Promise<RecentEventCover
       ORDER BY ep.event_id,
         CASE WHEN ep.display_role = 'marquee' THEN 0 ELSE 1 END,
         ep.display_order ASC NULLS LAST,
-        ep.id ASC
+        COALESCE(ep.taken_at, ep.uploaded_at) DESC,
+        ep.id DESC
     )
     SELECT p.id, p.slug, p.name, p.date, p.location, c.blob_url AS cover_url
     FROM picked p
@@ -235,6 +243,9 @@ export async function getRecentFoodiesCovers(limit = 4): Promise<RecentEventCove
       LIMIT ${limit}
     ),
     cover AS (
+      -- Tiebreak matches getApprovedPhotosOrdered so the homepage
+      -- cover is the same photo the admin sees as position 1.
+      -- See getHomepageHighlights above for the full rationale.
       SELECT DISTINCT ON (ep.event_id)
         ep.event_id, ep.blob_url
       FROM event_photos ep
@@ -243,7 +254,8 @@ export async function getRecentFoodiesCovers(limit = 4): Promise<RecentEventCove
       ORDER BY ep.event_id,
         CASE WHEN ep.display_role = 'marquee' THEN 0 ELSE 1 END,
         ep.display_order ASC NULLS LAST,
-        ep.id ASC
+        COALESCE(ep.taken_at, ep.uploaded_at) DESC,
+        ep.id DESC
     )
     SELECT pf.id, pf.slug, pf.name, pf.date, pf.location, c.blob_url AS cover_url
     FROM past_foodies pf
