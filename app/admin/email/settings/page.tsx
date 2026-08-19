@@ -76,7 +76,7 @@ export default async function SettingsPage({
           </Grid>
         </Section>
 
-        <Section title="WhatsApp defaults">
+        <Section title="WhatsApp defaults" id="whatsapp-defaults">
           <Grid>
             <Field label="WhatsApp URL (join link)" name="whatsapp_url" defaultValue={s.whatsapp_url} placeholder="https://chat.whatsapp.com/..." full />
             <Field label="Default headline" name="whatsapp_default_headline" defaultValue={s.whatsapp_default_headline} full />
@@ -104,9 +104,9 @@ export default async function SettingsPage({
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, id }: { title: string; children: React.ReactNode; id?: string }) {
   return (
-    <section>
+    <section id={id} className={id ? "scroll-mt-6" : undefined}>
       <h2 className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-3">{title}</h2>
       {children}
     </section>

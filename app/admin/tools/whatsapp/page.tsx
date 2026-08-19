@@ -28,10 +28,10 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type Tab = "requests" | "log" | "visiting" | "template";
+type Tab = "requests" | "log" | "visiting" | "template" | "link";
 
 function pickTab(value: string | undefined): Tab {
-  if (value === "visiting" || value === "template" || value === "log") return value;
+  if (value === "visiting" || value === "template" || value === "log" || value === "link") return value;
   return "requests";
 }
 
@@ -112,6 +112,7 @@ export default async function WhatsappAdminPage({
       {tab === "requests" && <RequestsTab rows={pendingRows} />}
       {tab === "log" && <LogTab rows={closedRows} />}
       {tab === "template" && <TemplateTab settings={settings} />}
+      {tab === "link" && <LinkTab whatsappUrl={settings.whatsapp_url ?? null} />}
     </div>
   );
 }
@@ -132,6 +133,7 @@ function TabNav({
     { key: "log", label: "Invite log" },
     { key: "visiting", label: "Visiting", count: counts.visiting },
     { key: "template", label: "Email template" },
+    { key: "link", label: "Group chat link" },
   ];
   return (
     <div className="flex flex-wrap gap-1.5 mb-6 border-b border-[color:var(--rule)]">
@@ -577,6 +579,62 @@ async function TemplateTab({
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Group chat link tab — signpost only                                */
+/* ------------------------------------------------------------------ */
+
+/** The group invite URL isn't edited here — it lives in the shared
+ *  site-settings page so it can also feed the homepage modal, foodies
+ *  cards, campaign templates, etc. This tab exists purely so admins
+ *  who land in WhatsApp admin looking for the link know where to go
+ *  instead of guessing.  Shows the current value read-only for
+ *  reassurance that something IS set. */
+function LinkTab({ whatsappUrl }: { whatsappUrl: string | null }) {
+  const url = (whatsappUrl ?? "").trim();
+  return (
+    <div className="max-w-[720px]">
+      <div className="bg-white border border-[color:var(--rule)] rounded-[10px] p-6">
+        <h2 className="font-sans text-lg font-bold text-[color:var(--navy-ink)] mb-2">
+          Group chat link lives in Email settings
+        </h2>
+        <p className="text-sm text-[color:var(--navy-ink)]/80 leading-[1.55] mb-5">
+          The WhatsApp group invite URL is stored in site settings so it
+          feeds every place it&rsquo;s used — the invite email above, the
+          homepage join modal, Foodies cards, and campaign templates.
+          Change it in one place and everything picks it up.
+        </p>
+
+        <div className="mb-5">
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy mb-1">
+            Current link
+          </div>
+          {url ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-[#0265A8] underline break-all"
+            >
+              {url}
+            </a>
+          ) : (
+            <div className="text-sm text-[color:var(--muted)] italic">
+              (not set — invite emails will show a placeholder)
+            </div>
+          )}
+        </div>
+
+        <Link
+          href="/admin/email/settings#whatsapp-defaults"
+          className="inline-flex items-center gap-2 rounded-full bg-navy text-white px-5 py-2.5 text-[12px] font-bold tracking-[.22em] uppercase hover:opacity-90"
+        >
+          Change link in Email settings →
+        </Link>
+      </div>
     </div>
   );
 }
