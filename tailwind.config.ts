@@ -11,7 +11,7 @@ const config: Config = {
         "ivory-2": "#EFE8D6",
       },
       fontFamily: {
-        display: ["Fraunces", "Georgia", "serif"],
+        display: ["Instrument Serif", "Georgia", "serif"],
         sans: ["Inter", "system-ui", "sans-serif"],
       },
     },

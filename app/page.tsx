@@ -161,7 +161,7 @@ function AroundTheBaySection({
         <div className="mb-10 sm:mb-14">
           <Eyebrow>Around the Bay</Eyebrow>
           <h2 className="mt-2.5 font-serif font-semibold leading-[1.04] tracking-[-0.01em] text-[color:var(--navy-ink)] text-[38px] sm:text-[56px]">
-            Around the <em className="italic">Bay</em>
+            Around the Bay
           </h2>
         </div>
         {highlights.length > 0 && (
@@ -601,7 +601,7 @@ function OtherGatheringsSection({ gatherings }: { gatherings: OtherGathering[] }
           <div>
             <Eyebrow>Other gatherings</Eyebrow>
             <h2 className="mt-2.5 font-serif font-semibold leading-[1.1] text-[color:var(--navy-ink)] text-[28px] sm:text-[38px]">
-              Beyond <em className="italic">the table</em>
+              Beyond the table
             </h2>
           </div>
         </div>
@@ -617,7 +617,7 @@ function OtherGatheringsSection({ gatherings }: { gatherings: OtherGathering[] }
               }}
             >
               <div>
-                <div className="font-serif font-semibold italic text-[color:var(--navy-ink)] leading-none text-[26px] sm:text-[36px]">
+                <div className="font-serif font-semibold text-[color:var(--navy-ink)] leading-none text-[26px] sm:text-[36px]">
                   {fmtDate(e.date)}
                 </div>
                 <div className="mt-1.5 text-[10px] font-bold tracking-[.22em] uppercase text-[color:var(--muted)]">
@@ -658,13 +658,13 @@ function JoinInterrupt({ alumniCount }: { alumniCount: number }) {
       <div className="w-16 h-px bg-white/40 mx-auto mb-6" />
       <Eyebrow color="rgba(255,255,255,.7)">Member sign-up · 2026</Eyebrow>
       <h2 className="mt-3.5 font-serif font-semibold text-white leading-[1.04] tracking-[-0.01em] text-balance text-[36px] sm:text-[64px]">
-        Join <em className="italic font-semibold">UWC Bay Area</em>
+        Join <span className="font-semibold">UWC Bay Area</span>
       </h2>
       <p className="mx-auto mt-5 sm:mt-6 leading-[1.55] text-white/80 max-w-[640px] text-[15px] sm:text-[18px] text-pretty">
         Over <strong className="text-white font-semibold">{rounded}+ alumni</strong> from
         all <strong className="text-white font-semibold">18 UWC colleges</strong>, across{" "}
         <strong className="text-white font-semibold">50 years</strong>{" "}
-        <span className="font-serif italic">(1976–2026)</span>.
+        <span className="font-serif">(1976–2026)</span>.
         We'd love for you to be one of them.
       </p>
       <div className="mt-8 flex gap-3 justify-center flex-wrap">
@@ -698,7 +698,7 @@ function AlumniNewsSection({ display }: { display: NewsFeatureDisplay }) {
         <div className="mb-8 sm:mb-12">
           <Eyebrow>Updates and news</Eyebrow>
           <h2 className="mt-2.5 font-serif font-semibold leading-[1.04] tracking-[-0.01em] text-[color:var(--navy-ink)] text-[32px] sm:text-[48px]">
-            {single ? <>One <em className="italic">spotlight</em></> : <>Local <em className="italic">Alumni</em></>}
+            {single ? <>One spotlight</> : <>Local Alumni</>}
           </h2>
         </div>
         {display.layout === "spotlight" ? (
@@ -762,7 +762,7 @@ function NewsSpotlight({ feature }: { feature: ResolvedNewsFeature }) {
         >
           “
         </div>
-        <blockquote className="m-0 font-serif italic font-medium text-[color:var(--navy-ink)] text-[26px] sm:text-[38px] leading-[1.18] tracking-[-0.005em] text-balance">
+        <blockquote className="m-0 font-serif font-medium text-[color:var(--navy-ink)] text-[26px] sm:text-[38px] leading-[1.18] tracking-[-0.005em] text-balance">
           {feature.pull_quote}
         </blockquote>
         <NewsByline feature={feature} sizePx={56} />
@@ -832,7 +832,7 @@ function NewsCard({
         logoUrl={feature.publication_logo_url}
       />
       <blockquote
-        className={`m-0 mt-3.5 font-serif italic font-medium text-[color:var(--navy-ink)] leading-[1.25] text-balance ${
+        className={`m-0 mt-3.5 font-serif font-medium text-[color:var(--navy-ink)] leading-[1.25] text-balance ${
           hero
             ? "text-[26px] sm:text-[32px]"
             : "text-[22px] sm:text-[26px]"

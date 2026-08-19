@@ -26,7 +26,22 @@ body { font-family: Inter, system-ui, sans-serif; }
 .flyer-stage { container-type: inline-size; }
 
 /* Text rendering */
-h1, h2, h3, .display { font-family: Fraunces, Georgia, serif; }
+h1, h2, h3, .display { font-family: "Instrument Serif", Georgia, serif; }
+/* Instrument Serif ships one weight (400) + italic. Anything bolder
+ * gets browser-synthesized (ugly stretched strokes). Force the
+ * intended weight on headings so tailwind's font-semibold / font-bold
+ * classes don't trigger synthesis — the font's natural elegance at
+ * 400 is the point. */
+h1, h2, h3, .display { font-weight: 400 !important; }
+h1, h2, h3, .display { letter-spacing: -0.01em; }
+
+/* Site-wide "no italics" rule. Kills tailwind's .italic utility,
+ * <em>/<i>/<cite> semantics, and any inline font-style:italic that
+ * slipped through. Emails render with their own inline styles and
+ * are not affected by this stylesheet. */
+.italic, em, i, cite, address, dfn, var {
+  font-style: normal !important;
+}
 
 /* Utility: subtle underline animation on links */
 .link-underline {
