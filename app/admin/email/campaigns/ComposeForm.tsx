@@ -513,10 +513,24 @@ export default function ComposeForm({
         </div>
         <div hidden={rightTab !== "ai"} style={{ height: "720px" }}>
           <ChatPanel
+            campaignId={initial.id ?? null}
             draft={draft}
-            onDraftUpdate={(next) => {
+            onDraftUpdate={async (next) => {
               setDraft(next);
               setDirty(true);
+              // Auto-persist so a page reload doesn't lose the AI work.
+              // Uses the JUST-generated `next` — passing state.draft here
+              // would race the React setDraft above and save stale data.
+              try {
+                const { id } = await saveDraftAction(next);
+                setSavedAt(new Date().toLocaleTimeString());
+                setDirty(false);
+                if (isNew) router.replace(`/admin/email/campaigns/${id}/edit`);
+              } catch (err) {
+                // Keep dirty=true so the manual "Save draft" button remains
+                // available; log but don't crash the chat flow.
+                console.error("AI auto-save failed:", err);
+              }
             }}
           />
         </div>

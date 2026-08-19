@@ -1,24 +1,60 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CampaignDraft } from "@/lib/campaign-content";
 
 type Msg = { role: "user" | "assistant"; content: string; changed?: string[]; tools?: string[] };
 
 type Props = {
+  /** Campaign id (or null for a not-yet-saved new draft). Used as the
+   *  sessionStorage key so chat history follows the campaign across
+   *  page reloads and the /new → /[id]/edit URL swap after first save. */
+  campaignId: string | null;
   /** Current draft state — sent with every turn so Claude sees the latest. */
   draft: CampaignDraft;
   /** Called when Claude's tool_use produces a new draft. */
   onDraftUpdate: (nextDraft: CampaignDraft) => void;
 };
 
+const STORAGE_PREFIX = "uwc-newsletter-ai-chat:";
+
 /** Chat co-pilot for the newsletter editor. Uses Claude Sonnet with
  *  tool-use — Claude sees the current draft + real event/newsletter
  *  grounding and applies changes via update_draft tool calls that
  *  produce a new CampaignDraft, which is pushed back into the form
- *  via onDraftUpdate. */
-export default function ChatPanel({ draft, onDraftUpdate }: Props) {
-  const [messages, setMessages] = useState<Msg[]>([]);
+ *  via onDraftUpdate. Messages persist in sessionStorage keyed by
+ *  campaignId so switching tabs, hard-refreshing, or the first-save
+ *  URL swap don't wipe the transcript. */
+export default function ChatPanel({ campaignId, draft, onDraftUpdate }: Props) {
+  const storageKey = `${STORAGE_PREFIX}${campaignId ?? "new"}`;
+  const [messages, setMessages] = useState<Msg[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.sessionStorage.getItem(storageKey);
+      if (raw) return JSON.parse(raw) as Msg[];
+    } catch { /* corrupt session storage — start empty */ }
+    // Fallback: if this is a newly-saved campaign (was "new", now has id),
+    // migrate any pre-save chat from the "new" bucket.
+    if (campaignId) {
+      try {
+        const legacyRaw = window.sessionStorage.getItem(`${STORAGE_PREFIX}new`);
+        if (legacyRaw) {
+          const parsed = JSON.parse(legacyRaw) as Msg[];
+          window.sessionStorage.setItem(storageKey, legacyRaw);
+          window.sessionStorage.removeItem(`${STORAGE_PREFIX}new`);
+          return parsed;
+        }
+      } catch { /* nothing to migrate */ }
+    }
+    return [];
+  });
+  // Persist on every messages change.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(messages));
+    } catch { /* quota or private mode — silently skip */ }
+  }, [messages, storageKey]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,12 +106,26 @@ export default function ChatPanel({ draft, onDraftUpdate }: Props) {
 
   return (
     <div className="flex flex-col h-full bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden">
-      <header className="px-4 py-3 border-b border-[color:var(--rule)] bg-[color:var(--ivory-2)]">
-        <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">AI co-pilot</div>
-        <div className="text-[11px] text-[color:var(--muted)] mt-0.5">
-          Ask me to draft sections, pull past events, or spotlight an alum. Try:{" "}
-          <em className="not-italic">&ldquo;Summarize the last 3 events with hosts and one photo each.&rdquo;</em>
+      <header className="px-4 py-3 border-b border-[color:var(--rule)] bg-[color:var(--ivory-2)] flex justify-between items-start gap-3">
+        <div className="min-w-0">
+          <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">AI co-pilot</div>
+          <div className="text-[11px] text-[color:var(--muted)] mt-0.5">
+            Ask me to draft sections, pull past events, or spotlight an alum.
+          </div>
         </div>
+        {messages.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm("Clear the chat transcript? The newsletter draft itself is not affected.")) {
+                setMessages([]);
+              }
+            }}
+            className="text-[10px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)] hover:text-navy shrink-0"
+          >
+            Clear
+          </button>
+        )}
       </header>
 
       <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-[300px]">
