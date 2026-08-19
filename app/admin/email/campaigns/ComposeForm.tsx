@@ -191,7 +191,11 @@ export default function ComposeForm({
             imageAlt: nl.whatsapp.imageAlt,
             imageCaption: nl.whatsapp.imageCaption,
             ctaLabel: nl.whatsapp.ctaLabel ?? settings.whatsappDefaultCtaLabel,
-            ctaUrl: nl.whatsapp.ctaUrl ?? settings.whatsappDefaultUrl ?? "https://uwcbayarea.org",
+            // ALWAYS the registration gate. Ignoring per-campaign
+            // ctaUrl overrides and the settings default (which held
+            // the raw chat.whatsapp.com invite) — never leak that
+            // link into a mass email.
+            ctaUrl: "https://uwcbayarea.org/join-whatsapp",
           }
         : undefined,
       foodies: nl.foodies?.show
@@ -855,18 +859,17 @@ function NewsletterSection({
             disabled={disabled}
           />
           <Field
-            label="Override CTA URL"
-            value={nl.whatsapp?.ctaUrl ?? ""}
-            onChange={(v) => update({ whatsapp: { ...(nl.whatsapp ?? { show: true }), ctaUrl: v } })}
-            disabled={disabled}
-          />
-          <Field
             label="Image URL"
             value={nl.whatsapp?.imageUrl ?? ""}
             onChange={(v) => update({ whatsapp: { ...(nl.whatsapp ?? { show: true }), imageUrl: v } })}
             disabled={disabled}
           />
         </div>
+        <p className="mt-2 text-[11px] text-[color:var(--muted)]">
+          CTA always links to{" "}
+          <code className="bg-[color:var(--ivory-2)] px-1 rounded">/join-whatsapp</code>
+          {" "}— the registration gate. The raw group invite is never in the email.
+        </p>
         <Textarea
           label="Override body"
           value={nl.whatsapp?.body ?? ""}

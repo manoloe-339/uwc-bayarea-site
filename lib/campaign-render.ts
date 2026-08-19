@@ -166,7 +166,11 @@ function buildNewsletterProps(
           imageAlt: content.whatsapp.imageAlt,
           imageCaption: content.whatsapp.imageCaption,
           ctaLabel: P(content.whatsapp.ctaLabel) ?? settings.whatsappDefaultCtaLabel ?? undefined,
-          ctaUrl: content.whatsapp.ctaUrl ?? settings.whatsappDefaultUrl ?? "https://uwcbayarea.org",
+          // Locked to the registration gate. Any per-campaign
+          // ctaUrl override and the settings default (which used to
+          // contain the raw chat.whatsapp.com invite) are ignored so
+          // the direct group link can never end up in a mass email.
+          ctaUrl: "https://uwcbayarea.org/join-whatsapp",
         }
       : undefined,
     foodies: content.foodies?.show

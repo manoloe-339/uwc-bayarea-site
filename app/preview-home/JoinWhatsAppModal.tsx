@@ -298,20 +298,6 @@ function ChooseView({
         </button>
       </div>
 
-      {whatsappUrl && (
-        <p className="mt-5 text-[12px] text-[color:var(--muted)] text-center">
-          Already in the alumni database?{" "}
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-navy"
-          >
-            Open WhatsApp directly
-          </a>
-          .
-        </p>
-      )}
     </div>
   );
 }
