@@ -322,9 +322,22 @@ Draft structure (what update_draft controls):
 - whats_next_* — the "coming up" spotlight, typically for ONE upcoming event
 - whatsapp_show / foodies_show — toggle the footer CTA blocks
 
-<current_draft subject="${escapeXml(params.subject)}" preheader="${escapeXml(params.preheader)}">
-${JSON.stringify(params.currentDraft, null, 2)}
+<current_draft>
+  subject: ${escapeXml(params.subject)}
+  preheader: ${escapeXml(params.preheader)}
+  mode: ${params.currentDraft?.mode ?? "(unset)"}
+  update.headline: ${escapeXml(params.currentDraft?.update?.headline)}
+  update.image_url: ${escapeXml(params.currentDraft?.update?.imageUrl)}
+  whats_next.title: ${escapeXml(params.currentDraft?.whatsNext?.title)}
+  whatsapp.show: ${params.currentDraft?.whatsapp?.show ?? "(unset)"}
+  foodies.show: ${params.currentDraft?.foodies?.show ?? "(unset)"}
+
+  <update_body_raw>
+${params.currentDraft?.update?.body ?? "(empty)"}
+  </update_body_raw>
 </current_draft>${styleSection}${pastNewslettersSection}
+
+CRITICAL: when you emit update_body in tool calls, use REAL newlines (paragraph breaks), NOT literal backslash-n sequences. Copy the current body's structure but write real newlines directly.
 
 After making updates, briefly (1-2 sentences) tell the admin what you did and what to check.`;
 }
@@ -414,7 +427,13 @@ function applyDraftPatch(
   }
 
   const updateHeadline = str("update_headline");
+  // Normalize backslash-n sequences to real newlines. Claude
+  // occasionally over-escapes when it sees the current_draft in the
+  // system prompt (which we JSON.stringify) and echoes the escaped
+  // form back verbatim, producing literal "\n" text in the DB body.
+  const unescapeNL = (s: string) => s.replace(/\\n/g, "\n").replace(/\\t/g, "\t");
   const updateBody = str("update_body");
+  const updateBodyNorm = updateBody != null ? unescapeNL(updateBody) : undefined;
   const updateImage = str("update_image_url");
   const updateCaption = str("update_image_caption");
   const touchedUpdateBlock =
@@ -423,7 +442,7 @@ function applyDraftPatch(
     const prev = nl.update ?? { headline: "", body: "" };
     nl.update = {
       headline: updateHeadline ?? prev.headline,
-      body: updateBody ?? prev.body,
+      body: updateBodyNorm ?? prev.body,
       imageUrl: updateImage ?? prev.imageUrl,
       imageAlt: prev.imageAlt,
       imageCaption: updateCaption ?? prev.imageCaption,

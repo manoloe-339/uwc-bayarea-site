@@ -147,7 +147,16 @@ export function renderSimpleMarkdown(
   //   2. Auto-close a lone opening `[[bg=…]]` at the end of the input
   //      if the AI forgot the closing tag (better to render the panel
   //      than to show literal '[[bg=#F6E9D7]]' in the email).
-  let normalized = String(md).replace(/([^\n])\n(#{1,3}\s)/g, "$1\n\n$2");
+  // Belt: if the input has ZERO real newlines but has literal
+  // backslash-n sequences, treat it as over-escaped and unescape.
+  // Real markdown rarely contains bare \n text; AI over-escape
+  // (seen when Claude echoes the JSON-stringified draft from the
+  // system prompt) does.
+  let raw = String(md);
+  if (!raw.includes("\n") && /\\n/.test(raw)) {
+    raw = raw.replace(/\\n/g, "\n").replace(/\\t/g, "\t");
+  }
+  let normalized = raw.replace(/([^\n])\n(#{1,3}\s)/g, "$1\n\n$2");
   const openBgCount = (normalized.match(/\[\[bg=/g) ?? []).length;
   const closeBgCount = (normalized.match(/\[\[\/bg\]\]/g) ?? []).length;
   if (openBgCount > closeBgCount) {
