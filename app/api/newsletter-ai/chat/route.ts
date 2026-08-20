@@ -297,6 +297,8 @@ Markdown-only rule for update_body:
     [[bg=#f4efe3]]…[[/bg]]           — wrap enclosed block in a background-colored panel
 - To resize an existing image the admin asks about, rewrite the markdown with the size suffix — never emit <img> HTML.
 - Section headings should typically be ## (h2) — reserve # for a single top-level. Emoji are fine (e.g. "## 🌉 Around the Bay").
+- ALWAYS put a blank line before AND after a heading, and blank lines around [[bg=...]]…[[/bg]] fences — otherwise adjacent lines get lumped into one paragraph and the heading/bg detection breaks.
+- Every [[bg=...]] MUST have a matching [[/bg]] close before the end of update_body. An orphan opening tag will show up as literal "[[bg=#F6E9D7]]" text in the email.
 
 Photo layout rules (important — apply consistently):
 - ONE photo in a section → hero: \`![alt](url)\` (no size suffix, renders full-width).
