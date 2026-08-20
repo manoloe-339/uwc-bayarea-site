@@ -361,6 +361,13 @@ export default function AlumniNewsletter(props: AlumniNewsletterProps): JSX.Elem
         <meta name="color-scheme" content="only light" />
         <meta name="supported-color-schemes" content="only light" />
         <meta httpEquiv="Content-Type" content="text/html; charset=UTF-8" />
+        {/* Viewport meta prevents Gmail Mobile's auto-shrink-to-fit,
+             which was making body text look tiny on phones whenever a
+             fixed-pixel element inside the 600px container overflowed
+             the mobile viewport. With this, mobile clients render at
+             natural scale and let the 100%-width cells reflow. */}
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="format-detection" content="telephone=no,address=no,email=no" />
         <style
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{
