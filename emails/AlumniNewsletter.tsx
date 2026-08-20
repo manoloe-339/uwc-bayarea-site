@@ -847,9 +847,14 @@ function FooterBlock({
         .
       </Text>
       {physicalAddress ? (
+        // Present for CAN-SPAM compliance but visually invisible —
+        // color matches the footer background so it doesn't grab
+        // attention. Dark-mode auto-invert in some clients can still
+        // surface it; that's acceptable for a compliance element.
         <Text
           style={{
-            color: COLORS.footerFinePrint,
+            color: COLORS.footerBg,
+            backgroundColor: COLORS.footerBg,
             fontFamily: FONT_STACK,
             fontSize: "10px",
             lineHeight: 1.4,
