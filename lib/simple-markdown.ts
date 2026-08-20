@@ -189,6 +189,14 @@ export function renderSimpleMarkdown(
           `</div>`
         );
       }
+      // Image-grid detection — a paragraph that consists ONLY of
+      // percentage-width images (with optional whitespace between) gets
+      // rendered as a <table>. Gmail + Outlook ignore inline-block on
+      // <img>, so we get vertical stacks; tables are the reliable
+      // horizontal layout primitive in email HTML.
+      const gridRow = tryRenderImageGrid(p);
+      if (gridRow) return gridRow;
+
       // Heading detection — paragraph starts with 1–3 hashes + space.
       // Inline styles so headings survive in email clients that strip
       // stylesheets. Level-appropriate sizing; tight top margin so a
@@ -219,6 +227,71 @@ export function renderSimpleMarkdown(
   // dropped.
   const separator = paragraphAttrs ? `\n${EMAIL_SPACER}\n` : "\n";
   return blocks.join(separator);
+}
+
+/** Detect a paragraph that's ONLY percentage-width markdown images
+ *  and render as a <table>-based grid — the reliable email-safe way
+ *  to lay images out side-by-side. Returns null if the paragraph
+ *  isn't a pure image grid, so the caller falls through to normal
+ *  paragraph rendering.
+ *
+ *  Layout: cells fill `100 / <first-cell-width>%` per row and wrap.
+ *  Four images at 48% → 2 per row → 2 rows. Two at 48% → 1 row.
+ *  Three at 32% → 3 per row → 1 row.
+ */
+function tryRenderImageGrid(paragraph: string): string | null {
+  const trimmed = paragraph.trim();
+  if (!trimmed.startsWith("![")) return null;
+  // Match a percentage-width image (must have the =W% suffix to qualify).
+  const cellRe = /!\[([^\]]*)\]\(([^)\s]+)\s+=(\d+)%\)/g;
+  const cells: Array<{ alt: string; url: string; width: number }> = [];
+  let lastEnd = 0;
+  let m: RegExpExecArray | null;
+  while ((m = cellRe.exec(trimmed)) !== null) {
+    // Anything between matches (other than whitespace) disqualifies —
+    // don't want to accidentally table-ize paragraphs with mixed content.
+    const gap = trimmed.slice(lastEnd, m.index);
+    if (gap.trim().length > 0) return null;
+    cells.push({ alt: m[1], url: m[2], width: Number(m[3]) });
+    lastEnd = cellRe.lastIndex;
+  }
+  // Trailing content check: after the last image, only whitespace allowed.
+  const trailing = trimmed.slice(lastEnd);
+  if (trailing.trim().length > 0) return null;
+  if (cells.length < 2) return null; // single image → not a grid; let normal renderer handle it
+  const firstWidth = cells[0].width;
+  const cellsPerRow = Math.max(1, Math.floor(100 / firstWidth));
+  const rows: Array<typeof cells> = [];
+  for (let i = 0; i < cells.length; i += cellsPerRow) {
+    rows.push(cells.slice(i, i + cellsPerRow));
+  }
+  const rowsHtml = rows
+    .map((row) => {
+      const cellHtml = row
+        .map((cell) => {
+          const optimizedSrc = emailOptimizedImageUrl(cell.url, 300);
+          const altAttr = escapeAttr(cell.alt);
+          return (
+            `<td style="width:${cell.width}%;padding:3px;vertical-align:top">` +
+            `<img src="${escapeAttr(optimizedSrc)}" alt="${altAttr}"` +
+            ` style="display:block;width:100%;height:auto;border-radius:6px" />` +
+            `</td>`
+          );
+        })
+        .join("");
+      // Pad short trailing row with empty cells so widths line up.
+      const padCount = cellsPerRow - row.length;
+      const padding = padCount > 0
+        ? `<td style="width:${row[0].width * padCount}%">&nbsp;</td>`
+        : "";
+      return `<tr>${cellHtml}${padding}</tr>`;
+    })
+    .join("");
+  return (
+    `<table role="presentation" cellpadding="0" cellspacing="0" ` +
+    `style="width:100%;border-collapse:collapse;margin:10px 0"><tbody>` +
+    `${rowsHtml}</tbody></table>`
+  );
 }
 
 // Heading styles used both in the compose preview (light) and in
