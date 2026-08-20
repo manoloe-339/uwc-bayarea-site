@@ -205,6 +205,44 @@ export async function listEventPhotosForAI(
   return rows.map((r) => ({ url: r.blob_url, order: r.rn }));
 }
 
+/** Append a new rule/learning to the persistent newsletter style guide.
+ *  Called by the co-pilot when the admin says "remember X for next
+ *  time". Appends to (does not replace) so accumulated wisdom is
+ *  preserved. Returns the resulting guide so Claude can confirm what
+ *  was saved. */
+export async function appendStyleGuideNote(note: string): Promise<{ guide: string }> {
+  const trimmed = note.trim();
+  if (!trimmed) throw new Error("note is empty");
+  const rows = (await sql`
+    SELECT id, newsletter_style_guide
+    FROM site_settings ORDER BY updated_at DESC LIMIT 1
+  `) as Array<{ id: string; newsletter_style_guide: string | null }>;
+  const row = rows[0];
+  const existing = (row?.newsletter_style_guide ?? "").trimEnd();
+  // Timestamp so future edits can spot the AI-added block.
+  const stamped = `- (added ${new Date().toISOString().slice(0, 10)}) ${trimmed}`;
+  const next = existing
+    ? `${existing}\n\n## Learned from admin\n${stamped}`
+    : `## Learned from admin\n${stamped}`;
+  // If the "## Learned from admin" section already exists, append under
+  // it rather than creating a duplicate header.
+  const learnedHeader = "## Learned from admin";
+  let merged: string;
+  if (existing.includes(learnedHeader)) {
+    merged = existing + `\n${stamped}`;
+  } else {
+    merged = next;
+  }
+  if (row?.id) {
+    await sql`
+      UPDATE site_settings
+      SET newsletter_style_guide = ${merged}, updated_at = NOW()
+      WHERE id = ${row.id}
+    `;
+  }
+  return { guide: merged };
+}
+
 /** Look up alumni by name (case-insensitive substring) for the "special
  *  alum" workflow. Returns up to 5. */
 export async function searchAlumniByName(query: string): Promise<Array<{

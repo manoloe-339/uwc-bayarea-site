@@ -7,6 +7,7 @@ import {
   listPastNewslettersForAI,
   listEventPhotosForAI,
   searchAlumniByName,
+  appendStyleGuideNote,
 } from "@/lib/newsletter-ai/context";
 import type { CampaignDraft, NewsletterContent } from "@/lib/campaign-content";
 
@@ -74,6 +75,21 @@ const TOOLS: Anthropic.Messages.Tool[] = [
       properties: {
         slug: { type: "string", description: "Event slug (from list_past_events / list_upcoming_events)" },
         limit: { type: "number", description: "Max photos to return (default 5)" },
+      },
+    },
+  },
+  {
+    name: "save_style_guide_note",
+    description:
+      "Persist a durable rule to the newsletter style guide. Use ONLY when the admin has explicitly told you to remember something for future newsletters (e.g. 'always use 150px thumbnails', 'never mention Alan in the recap', 'sign off with Manolo'). Appends under a '## Learned from admin' section — does not overwrite existing rules. Confirm what you saved back to the admin.",
+    input_schema: {
+      type: "object",
+      required: ["note"],
+      properties: {
+        note: {
+          type: "string",
+          description: "The rule / preference to save. Write it as a standalone bullet the future you will see with no prior context — no 'you said' / 'the admin wants', just the rule itself.",
+        },
       },
     },
   },
@@ -250,6 +266,7 @@ Your job:
 - Call the grounding tools to fetch real events, hosts, photos, and alumni — never invent names, dates, or facts.
 - Compose section copy that matches the site's voice.
 - Apply changes via update_draft. Send only the fields you want to change; unmentioned fields are preserved.
+- When the admin gives you a durable preference ("always use 150px thumbnails", "sign off as Manolo", "don't feature Alan"), call save_style_guide_note to persist it — the style_guide feeds into every future chat. Only save when the admin was clearly instructing for the future, not for a one-off request.
 
 Editorial rules:
 - Reference events by their real hosts and dates. If unsure, call list_past_events / list_upcoming_events first.
@@ -306,6 +323,16 @@ async function runTool(
       const limit = typeof input.limit === "number" ? input.limit : undefined;
       const events = await listPastEventsForAI(since, limit);
       return { data: { events } };
+    }
+    case "save_style_guide_note": {
+      const note = typeof input.note === "string" ? input.note : "";
+      if (!note.trim()) return { data: { error: "note required" } };
+      try {
+        const { guide } = await appendStyleGuideNote(note);
+        return { data: { ok: true, guide_length: guide.length } };
+      } catch (err) {
+        return { data: { error: err instanceof Error ? err.message : String(err) } };
+      }
     }
     case "list_event_photos": {
       const slug = typeof input.slug === "string" ? input.slug : "";
