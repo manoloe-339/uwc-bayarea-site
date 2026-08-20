@@ -5,6 +5,7 @@ import {
   listUpcomingEventsForAI,
   listPastEventsForAI,
   listPastNewslettersForAI,
+  listEventPhotosForAI,
   searchAlumniByName,
 } from "@/lib/newsletter-ai/context";
 import type { CampaignDraft, NewsletterContent } from "@/lib/campaign-content";
@@ -60,6 +61,19 @@ const TOOLS: Anthropic.Messages.Tool[] = [
           description: "ISO date (YYYY-MM-DD) — only events on/after this date. Default is 60 days ago.",
         },
         limit: { type: "number", description: "Max events to return (default 8)" },
+      },
+    },
+  },
+  {
+    name: "list_event_photos",
+    description:
+      "Return the top N approved gallery photos for a single event (by slug), ordered exactly as the public gallery renders them (marquee first, then supporting). Use this when you want to build a thumbnail strip of multiple photos from one event — the list_past_events / list_upcoming_events tools only expose the single cover photo per event, which isn't enough for a photo strip.",
+    input_schema: {
+      type: "object",
+      required: ["slug"],
+      properties: {
+        slug: { type: "string", description: "Event slug (from list_past_events / list_upcoming_events)" },
+        limit: { type: "number", description: "Max photos to return (default 5)" },
       },
     },
   },
@@ -292,6 +306,13 @@ async function runTool(
       const limit = typeof input.limit === "number" ? input.limit : undefined;
       const events = await listPastEventsForAI(since, limit);
       return { data: { events } };
+    }
+    case "list_event_photos": {
+      const slug = typeof input.slug === "string" ? input.slug : "";
+      if (!slug) return { data: { error: "slug required" } };
+      const limit = typeof input.limit === "number" ? input.limit : undefined;
+      const photos = await listEventPhotosForAI(slug, limit);
+      return { data: { photos } };
     }
     case "search_alumni_by_name": {
       const q = typeof input.name === "string" ? input.name : "";

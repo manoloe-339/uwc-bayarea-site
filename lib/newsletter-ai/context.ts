@@ -176,6 +176,35 @@ export async function listPastNewslettersForAI(limit = 3): Promise<PastNewslette
   }));
 }
 
+/** The top N approved photos for one event, in the same order as the
+ *  public gallery renders them (marquee first, then supporting, by
+ *  display_order then taken_at/uploaded_at). Used when Claude wants a
+ *  thumbnail strip of 3-5 photos from a single event, not just the
+ *  cover the list_* tools already expose. */
+export async function listEventPhotosForAI(
+  slug: string,
+  limit = 5,
+): Promise<Array<{ url: string; order: number }>> {
+  const rows = (await sql`
+    WITH ev AS (SELECT id FROM events WHERE slug = ${slug} LIMIT 1),
+    ranked AS (
+      SELECT ep.blob_url,
+             ROW_NUMBER() OVER (
+               ORDER BY
+                 CASE WHEN ep.display_role = 'marquee' THEN 0 ELSE 1 END,
+                 ep.display_order ASC NULLS LAST,
+                 COALESCE(ep.taken_at, ep.uploaded_at) DESC,
+                 ep.id DESC
+             ) AS rn
+      FROM event_photos ep
+      JOIN ev ON ev.id = ep.event_id
+      WHERE ep.approval_status = 'approved'
+    )
+    SELECT blob_url, rn FROM ranked WHERE rn <= ${limit} ORDER BY rn ASC
+  `) as Array<{ blob_url: string; rn: number }>;
+  return rows.map((r) => ({ url: r.blob_url, order: r.rn }));
+}
+
 /** Look up alumni by name (case-insensitive substring) for the "special
  *  alum" workflow. Returns up to 5. */
 export async function searchAlumniByName(query: string): Promise<Array<{
