@@ -160,9 +160,9 @@ export default function ComposeForm({
     setConfirmOpen(true);
   }
 
-  function sendNow() {
+  function sendNow(overrideQuota = false) {
     startPending(async () => {
-      const result = await sendNowAction({ draft });
+      const result = await sendNowAction({ draft, overrideQuota });
       if (result.ok) {
         setSendResult(
           `Sent: ${result.sent} · Failed: ${result.failed} · Recipients: ${result.recipients}`
@@ -171,9 +171,24 @@ export default function ComposeForm({
         setDirty(false);
         if (result.id && isNew) router.replace(`/admin/email/campaigns/${result.id}`);
         else if (result.id) router.push(`/admin/email/campaigns/${result.id}`);
-      } else {
-        setSendResult(`Error: ${result.error}`);
+        return;
       }
+      // Overridable quota alert — the same click can bypass it.
+      if (result.quotaExceeded && result.quotaState && !overrideQuota) {
+        const q = result.quotaState;
+        const ok = window.confirm(
+          `Daily send cap warning:\n\n` +
+            `Sending ${recipientCount} messages, but only ${q.remaining} of ${q.cap} remain today (${q.usedToday} already sent).\n\n` +
+            `Send anyway? (Your Resend account still enforces its own real cap — overage will land as failed rows you can retry after ${q.resetsAtUtc.replace("T", " ").slice(0, 16)} UTC.)`,
+        );
+        if (ok) {
+          sendNow(true);
+          return;
+        }
+        setSendResult("Send cancelled.");
+        return;
+      }
+      setSendResult(`Error: ${result.error}`);
     });
   }
 
@@ -588,7 +603,7 @@ export default function ComposeForm({
             confirmText={confirmText}
             setConfirmText={setConfirmText}
             onCancel={() => setConfirmOpen(false)}
-            onConfirm={sendNow}
+            onConfirm={() => sendNow(false)}
             pending={pending}
             error={sendResult && sendResult.startsWith("Error") ? sendResult : null}
           />

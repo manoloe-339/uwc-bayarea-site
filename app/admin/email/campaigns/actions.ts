@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import type { CampaignDraft } from "@/lib/campaign-content";
 import { sendCampaignNow, sendCampaignTest, retryFailedSends, MAX_RECIPIENTS_PER_CAMPAIGN } from "@/lib/campaign-send";
+import type { QuotaState } from "@/lib/resend-quota";
 import { countFilteredRecipients, getFilteredRecipients } from "@/lib/recipients";
 import { refreshNextDueAt } from "@/lib/scheduled-work";
 import type { AlumniFilters } from "@/lib/alumni-query";
@@ -92,13 +93,45 @@ export async function cancelScheduled(id: string): Promise<void> {
 }
 
 export async function retryFailedAction(
-  id: string
-): Promise<{ ok: boolean; retried?: number; sent?: number; failed?: number; error?: string }> {
-  const result = await retryFailedSends(id);
+  id: string,
+  overrideQuota = false,
+): Promise<{
+  ok: boolean;
+  retried?: number;
+  sent?: number;
+  failed?: number;
+  error?: string;
+  quotaExceeded?: boolean;
+  quotaState?: QuotaState;
+}> {
+  const result = await retryFailedSends(id, { overrideQuota });
   revalidatePath(`/admin/email/campaigns/${id}`);
   revalidatePath(`/admin/email/campaigns`);
-  if (!result.ok) return { ok: false, error: result.error };
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.error,
+      quotaExceeded: result.quotaExceeded,
+      quotaState: result.quotaState,
+    };
+  }
   return { ok: true, retried: result.retried, sent: result.sent, failed: result.failed };
+}
+
+/**
+ * Mark an alum's email as invalid (or clear the flag). Used from the
+ * campaign detail page's "Bounced" section so future sends skip
+ * addresses that bounced.
+ */
+export async function markEmailInvalidAction(
+  alumniId: number,
+  invalid = true,
+  campaignId?: string,
+): Promise<{ ok: true }> {
+  await sql`UPDATE alumni SET email_invalid = ${invalid} WHERE id = ${alumniId}`;
+  if (campaignId) revalidatePath(`/admin/email/campaigns/${campaignId}`);
+  revalidatePath(`/admin/alumni/${alumniId}`);
+  return { ok: true };
 }
 
 export async function duplicateAndRedirect(sourceId: string): Promise<void> {
@@ -159,18 +192,35 @@ export async function sendTestAction(input: {
 
 export async function sendNowAction(input: {
   draft: CampaignDraft;
+  overrideQuota?: boolean;
 }): Promise<
   { ok: true; recipients: number; sent: number; failed: number; id: string }
-  | { ok: false; error: string; id?: string }
+  | {
+      ok: false;
+      error: string;
+      id?: string;
+      quotaExceeded?: boolean;
+      quotaState?: QuotaState;
+    }
 > {
   if (!input.draft.subject.trim()) return { ok: false, error: "Subject is required." };
   // Save first so we send the exact content the UI shows.
   const campaignId = await saveDraft({ ...input.draft, sendMode: "now" });
-  const result = await sendCampaignNow(campaignId);
+  const result = await sendCampaignNow(campaignId, {
+    overrideQuota: input.overrideQuota,
+  });
   revalidatePath(`/admin/email/campaigns`);
   revalidatePath(`/admin/email/campaigns/${campaignId}`);
   revalidatePath(`/admin/email/campaigns/${campaignId}/edit`);
-  if (!result.ok) return { ok: false, error: result.error, id: campaignId };
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.error,
+      id: campaignId,
+      quotaExceeded: result.quotaExceeded,
+      quotaState: result.quotaState,
+    };
+  }
   return {
     ok: true,
     id: campaignId,

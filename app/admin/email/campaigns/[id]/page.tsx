@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { sql } from "@/lib/db";
 import { fmtDateTime, fmtDateTimeShort } from "@/lib/admin-time";
 import DetailActions from "./DetailActions";
+import BouncedList from "./BouncedList";
 
 export const dynamic = "force-dynamic";
 
@@ -85,10 +86,22 @@ export default async function CampaignDetail({ params }: { params: Promise<{ id:
     LEFT JOIN alumni a ON a.id = s.alumni_id
     WHERE s.campaign_id = ${id} AND (s.is_test IS NOT TRUE)
     ORDER BY
-      CASE s.status WHEN 'failed' THEN 0 WHEN 'sent' THEN 1 ELSE 2 END,
+      -- Bounces first (they need admin action), then failures,
+      -- then everyone else. Sort within each group by most-recent.
+      CASE
+        WHEN s.bounced_at IS NOT NULL THEN 0
+        WHEN s.status = 'failed' THEN 1
+        WHEN s.status = 'sent' THEN 2
+        ELSE 3
+      END,
       s.sent_at DESC NULLS LAST,
       s.email
   `) as SendListRow[];
+
+  // Bounced rows called out separately at the top of the page so the
+  // admin can quickly mark them as email_invalid — the alumni row's
+  // flag causes future campaigns to skip these addresses.
+  const bouncedRows = sendList.filter((r) => r.bounced_at != null);
 
   // Per-URL click log (populated by the Resend webhook). Multiple clicks
   // per recipient possible — show them inline under their Clicked cell.
@@ -154,6 +167,19 @@ export default async function CampaignDetail({ params }: { params: Promise<{ id:
           canEdit={c.status === "draft" || c.status === "scheduled"}
         />
       </div>
+
+      {bouncedRows.length > 0 && (
+        <BouncedList
+          campaignId={c.id}
+          rows={bouncedRows.map((r) => ({
+            alumniId: r.alumni_id,
+            email: r.email,
+            firstName: r.first_name,
+            lastName: r.last_name,
+            bouncedAt: r.bounced_at,
+          }))}
+        />
+      )}
 
       {/* Per-recipient list */}
       <section className="bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden mb-6">

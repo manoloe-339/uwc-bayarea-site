@@ -4,7 +4,7 @@ import { getFilteredRecipients, type Recipient } from "./recipients";
 import { renderCampaign, type CampaignRow, type RecipientCtx } from "./campaign-render";
 import { getSiteSettings } from "./settings";
 import { acquireCampaignLock, releaseCampaignLock } from "./send-lock";
-import { checkDailyQuota } from "./resend-quota";
+import { checkDailyQuota, type QuotaState } from "./resend-quota";
 import type { AlumniFilters } from "./alumni-query";
 
 export const MAX_RECIPIENTS_PER_CAMPAIGN = 600;
@@ -113,9 +113,21 @@ export async function sendCampaignTest(args: {
  * upsert means a second invocation won't duplicate rows, and already-sent rows
  * keep their existing resend_message_id.
  */
+export type SendResult =
+  | { ok: true; recipients: number; sent: number; failed: number }
+  | {
+      ok: false;
+      error: string;
+      /** Present when the block was specifically about the Resend
+       *  daily quota — the client can show a "Send anyway?" confirm. */
+      quotaExceeded?: boolean;
+      quotaState?: QuotaState;
+    };
+
 export async function sendCampaignNow(
-  campaignId: string
-): Promise<{ ok: true; recipients: number; sent: number; failed: number } | { ok: false; error: string }> {
+  campaignId: string,
+  opts: { overrideQuota?: boolean } = {},
+): Promise<SendResult> {
   const locked = await acquireCampaignLock(campaignId);
   if (!locked) return { ok: false, error: "Another send is already running for this campaign." };
 
@@ -146,21 +158,24 @@ export async function sendCampaignNow(
       };
     }
 
-    // Hard-block if the send would exceed today's Resend quota.
-    // Without this, we discover the limit mid-batch and hundreds of
-    // recipients get status=failed with "You have exceeded your
-    // daily email sending quota" — recoverable via retryFailedSends
-    // once the quota resets, but avoidable up front.
+    // Advise if the send would exceed today's Resend quota. Not
+    // a hard block by default — the cap is informational, and the
+    // admin can override on the same click. Only enforced when
+    // overrideQuota is false (the default from the UI). Without an
+    // override, the client's "Send anyway?" confirm turns this
+    // into a two-click send whenever the projected count exceeds
+    // the local cap.
     const quota = await checkDailyQuota(recipients.length);
-    if (quota.wouldExceed) {
+    if (quota.wouldExceed && !opts.overrideQuota) {
       return {
         ok: false,
         error:
-          `Would exceed Resend daily quota: ${recipients.length} recipients but only ` +
+          `Would exceed daily send cap: ${recipients.length} recipients but only ` +
           `${quota.remaining} of ${quota.cap} remain today ` +
           `(${quota.usedToday} already sent). ` +
-          `Quota resets at ${quota.resetsAtUtc.replace("T", " ").slice(0, 16)} UTC. ` +
-          `Raise RESEND_DAILY_CAP or wait for the reset.`,
+          `Confirm to send anyway, or wait until ${quota.resetsAtUtc.replace("T", " ").slice(0, 16)} UTC.`,
+        quotaExceeded: true,
+        quotaState: quota,
       };
     }
 
@@ -278,9 +293,19 @@ export async function sendCampaignNow(
  * email_sends row is `failed`. Safe to call on a 'sent' or 'failed' campaign —
  * we'll recompute tallies at the end.
  */
+export type RetryResult =
+  | { ok: true; retried: number; sent: number; failed: number }
+  | {
+      ok: false;
+      error: string;
+      quotaExceeded?: boolean;
+      quotaState?: QuotaState;
+    };
+
 export async function retryFailedSends(
-  campaignId: string
-): Promise<{ ok: true; retried: number; sent: number; failed: number } | { ok: false; error: string }> {
+  campaignId: string,
+  opts: { overrideQuota?: boolean } = {},
+): Promise<RetryResult> {
   const locked = await acquireCampaignLock(campaignId);
   if (!locked) return { ok: false, error: "Another send is already running for this campaign." };
   try {
@@ -314,18 +339,18 @@ export async function retryFailedSends(
       last_name: r.last_name,
     }));
 
-    // Same daily-quota guard as sendCampaignNow — a retry that
-    // busts the cap just recreates the exact problem it's meant
-    // to recover from.
+    // Same overridable quota advisory as sendCampaignNow.
     const quota = await checkDailyQuota(recipients.length);
-    if (quota.wouldExceed) {
+    if (quota.wouldExceed && !opts.overrideQuota) {
       return {
         ok: false,
         error:
-          `Would exceed Resend daily quota: ${recipients.length} to retry but only ` +
+          `Would exceed daily send cap: ${recipients.length} to retry but only ` +
           `${quota.remaining} of ${quota.cap} remain today ` +
           `(${quota.usedToday} already sent). ` +
-          `Resets at ${quota.resetsAtUtc.replace("T", " ").slice(0, 16)} UTC.`,
+          `Confirm to send anyway, or wait until ${quota.resetsAtUtc.replace("T", " ").slice(0, 16)} UTC.`,
+        quotaExceeded: true,
+        quotaState: quota,
       };
     }
 

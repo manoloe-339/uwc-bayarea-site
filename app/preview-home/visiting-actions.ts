@@ -13,7 +13,16 @@ type AlumniCandidate = {
   first_name: string | null;
   last_name: string | null;
   email: string | null;
+  mobile: string | null;
+  grad_year: number | null;
+  uwc_college: string | null;
+  current_title: string | null;
+  current_company: string | null;
+  submitted_at: string | null;
 };
+
+const CANDIDATE_COLS = `id, first_name, last_name, email, mobile,
+  grad_year, uwc_college, current_title, current_company, submitted_at`;
 
 /** Find alumni rows that plausibly match a free-form name. Tries
  * first+last, then last-only, then first-only. Caps at 5 rows so the
@@ -26,7 +35,9 @@ async function findAlumniCandidates(name: string): Promise<AlumniCandidate[]> {
 
   if (first && last) {
     const rows = (await sql`
-      SELECT id, first_name, last_name, email FROM alumni
+      SELECT id, first_name, last_name, email, mobile,
+             grad_year, uwc_college, current_title, current_company, submitted_at
+      FROM alumni
       WHERE deceased IS NOT TRUE
         AND lower(first_name) LIKE ${`%${first}%`}
         AND lower(last_name) LIKE ${`%${last}%`}
@@ -38,7 +49,9 @@ async function findAlumniCandidates(name: string): Promise<AlumniCandidate[]> {
 
   if (last) {
     const rows = (await sql`
-      SELECT id, first_name, last_name, email FROM alumni
+      SELECT id, first_name, last_name, email, mobile,
+             grad_year, uwc_college, current_title, current_company, submitted_at
+      FROM alumni
       WHERE deceased IS NOT TRUE
         AND lower(last_name) LIKE ${`%${last}%`}
       ORDER BY last_name, first_name
@@ -48,7 +61,9 @@ async function findAlumniCandidates(name: string): Promise<AlumniCandidate[]> {
   }
 
   const rows = (await sql`
-    SELECT id, first_name, last_name, email FROM alumni
+    SELECT id, first_name, last_name, email, mobile,
+           grad_year, uwc_college, current_title, current_company, submitted_at
+    FROM alumni
     WHERE deceased IS NOT TRUE
       AND lower(first_name) LIKE ${`%${first}%`}
     ORDER BY last_name, first_name
@@ -57,9 +72,33 @@ async function findAlumniCandidates(name: string): Promise<AlumniCandidate[]> {
   return rows;
 }
 
-function candidateLabel(c: AlumniCandidate): string {
-  const name = [c.first_name, c.last_name].filter(Boolean).join(" ").trim() || "(no name)";
-  return c.email ? `${name} <${c.email}>` : name;
+function candidateName(c: AlumniCandidate): string {
+  return [c.first_name, c.last_name].filter(Boolean).join(" ").trim() || "(no name)";
+}
+
+function candidateWaUrl(c: AlumniCandidate): string | null {
+  return whatsappUrl(c.mobile);
+}
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return iso;
+  return d.toISOString().slice(0, 10);
+}
+
+function candidateSummary(c: AlumniCandidate): string {
+  const bits: string[] = [];
+  if (c.uwc_college || c.grad_year) {
+    bits.push(
+      [c.uwc_college, c.grad_year ? `'${String(c.grad_year).slice(-2)}` : ""]
+        .filter(Boolean)
+        .join(" "),
+    );
+  }
+  const role = [c.current_title, c.current_company].filter(Boolean).join(" @ ");
+  if (role) bits.push(role);
+  return bits.join(" · ");
 }
 
 export interface VisitingResult {
@@ -103,13 +142,27 @@ export async function sendRegisteredAlumRequest(formData: FormData): Promise<Vis
         : `Possible matches (${candidates.length}):`;
 
   const text = [
-    "Registered-alum WhatsApp invite request from the homepage modal.",
+    "A registered member has requested WhatsApp access.",
     "",
-    `Name: ${name}`,
+    `Name typed on the form: ${name}`,
     "",
     matchHeader,
-    ...candidates.map((c) => `  ${candidateLabel(c)} — ${ADMIN_BASE}/${c.id}`),
-    "",
+    ...candidates.flatMap((c) => {
+      const wa = candidateWaUrl(c);
+      return [
+        `  ${candidateName(c)}${c.email ? ` <${c.email}>` : ""}`,
+        c.uwc_college || c.grad_year
+          ? `    ${[c.uwc_college, c.grad_year ? `'${String(c.grad_year).slice(-2)}` : ""].filter(Boolean).join(" ")}`
+          : "",
+        c.current_title || c.current_company
+          ? `    ${[c.current_title, c.current_company].filter(Boolean).join(" @ ")}`
+          : "",
+        c.mobile ? `    Phone: ${c.mobile}${wa ? `  (${wa})` : ""}` : "    Phone: none on file",
+        c.submitted_at ? `    Signed up: ${fmtDate(c.submitted_at)}` : "",
+        `    Detail: ${ADMIN_BASE}/${c.id}`,
+        "",
+      ].filter(Boolean);
+    }),
     "Review and send the invite from the admin tool:",
     "https://uwcbayarea.org/admin/tools/whatsapp?tab=requests",
   ]
@@ -119,29 +172,50 @@ export async function sendRegisteredAlumRequest(formData: FormData): Promise<Vis
   const matchHtml =
     candidates.length === 0
       ? `<p style="margin-top:14px;color:#666;font-size:13px">No match found in the alumni directory.</p>`
-      : `
-          <p style="margin-top:14px;margin-bottom:4px;color:#666;font-size:13px"><strong>${
-            candidates.length === 1 ? "Possible match" : `Possible matches (${candidates.length})`
-          }:</strong></p>
-          <ul style="margin:0;padding-left:18px;font-family:system-ui,sans-serif;font-size:14px">
-            ${candidates
-              .map(
-                (c) =>
-                  `<li><a href="${ADMIN_BASE}/${c.id}" style="color:#0265A8">${escapeHtml(
-                    candidateLabel(c),
-                  )}</a></li>`,
-              )
-              .join("")}
-          </ul>
-        `;
+      : candidates
+          .map((c) => {
+            const wa = candidateWaUrl(c);
+            const summary = candidateSummary(c);
+            const detailUrl = `${ADMIN_BASE}/${c.id}`;
+            return `
+              <div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;margin-top:10px;background:#fafafa">
+                <div style="font-size:15px;font-weight:600;color:#0B2545">
+                  <a href="${detailUrl}" style="color:#0265A8;text-decoration:none">${escapeHtml(candidateName(c))}</a>
+                  ${c.email ? `<span style="color:#666;font-weight:normal"> · ${escapeHtml(c.email)}</span>` : ""}
+                </div>
+                ${summary ? `<div style="margin-top:4px;color:#333;font-size:13px">${escapeHtml(summary)}</div>` : ""}
+                <div style="margin-top:6px;font-size:13px;color:#333">
+                  ${
+                    c.mobile
+                      ? wa
+                        ? `📱 <a href="${wa}" style="color:#0265A8">${escapeHtml(c.mobile)}</a>
+                           <span style="color:#999">— tap to open WhatsApp</span>`
+                        : `📱 ${escapeHtml(c.mobile)}`
+                      : `<span style="color:#999">📱 no phone on file</span>`
+                  }
+                </div>
+                <div style="margin-top:6px;color:#666;font-size:12px">
+                  Signed up ${fmtDate(c.submitted_at)} ·
+                  <a href="${detailUrl}" style="color:#0265A8">Alumni detail →</a>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
 
   const html = `
-    <p>Registered-alum WhatsApp invite request from the homepage modal.</p>
-    <table style="border-collapse:collapse;font-family:system-ui,sans-serif;font-size:14px">
-      <tr><td style="padding:4px 12px 4px 0;color:#666"><strong>Name</strong></td><td>${escapeHtml(name)}</td></tr>
-    </table>
-    ${matchHtml}
-    <p style="margin-top:14px;color:#666;font-size:13px">
+    <p>A registered member has requested WhatsApp access.</p>
+    <p style="color:#666;font-size:13px;margin:8px 0 4px">
+      <strong>Name typed:</strong> ${escapeHtml(name)}
+    </p>
+    ${
+      candidates.length === 0
+        ? matchHtml
+        : `<p style="margin-top:14px;margin-bottom:2px;color:#666;font-size:13px"><strong>${
+            candidates.length === 1 ? "Possible match" : `Possible matches (${candidates.length})`
+          }:</strong></p>${matchHtml}`
+    }
+    <p style="margin-top:18px;color:#666;font-size:13px">
       Review and send the invite from the admin tool:
       <a href="https://uwcbayarea.org/admin/tools/whatsapp?tab=requests" style="color:#0265A8">/admin/tools/whatsapp</a>.
     </p>
@@ -152,7 +226,7 @@ export async function sendRegisteredAlumRequest(formData: FormData): Promise<Vis
       from: fromAddress(),
       to: VISITING_TO,
       replyTo: replyToAddress(),
-      subject: "WhatsApp invite request — registered alum",
+      subject: `WhatsApp invite request — ${name}`,
       text,
       html,
     });

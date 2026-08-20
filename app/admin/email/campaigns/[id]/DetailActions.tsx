@@ -17,17 +17,32 @@ export default function DetailActions({
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
-  function retry() {
+  function retry(overrideQuota = false) {
     if (failedCount === 0) return;
     setMsg(null);
     startTransition(async () => {
-      const r = await retryFailedAction(campaignId);
+      const r = await retryFailedAction(campaignId, overrideQuota);
       if (r.ok) {
         setMsg(`Retried ${r.retried}: ${r.sent} sent · ${r.failed} failed.`);
         router.refresh();
-      } else {
-        setMsg(`Error: ${r.error}`);
+        return;
       }
+      // Overridable quota alert — offer a single-click confirm.
+      if (r.quotaExceeded && r.quotaState && !overrideQuota) {
+        const q = r.quotaState;
+        const ok = window.confirm(
+          `Daily send cap warning:\n\n` +
+            `Retrying ${failedCount} messages, but only ${q.remaining} of ${q.cap} remain today (${q.usedToday} already sent).\n\n` +
+            `Send anyway? (Your Resend account still enforces its own real cap.)`,
+        );
+        if (ok) {
+          retry(true);
+          return;
+        }
+        setMsg("Retry cancelled.");
+        return;
+      }
+      setMsg(`Error: ${r.error}`);
     });
   }
 
@@ -58,7 +73,7 @@ export default function DetailActions({
       {failedCount > 0 && (
         <button
           type="button"
-          onClick={retry}
+          onClick={() => retry(false)}
           disabled={pending}
           className="text-sm font-semibold text-white bg-orange-600 px-4 py-2 rounded hover:bg-orange-700 disabled:opacity-50"
         >
