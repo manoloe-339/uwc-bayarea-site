@@ -9,7 +9,9 @@
  *   - **bold**           → <strong>bold</strong>
  *   - *italic*           → <em>italic</em>
  *   - [text](https://x)  → <a href="https://x">text</a>
- *   - ![alt](https://x)  → <img src="https://x" alt="alt"> (inline, block-level)
+ *   - ![alt](https://x)             → <img> (responsive, full-width block)
+ *   - ![alt](https://x =150)        → <img width=150> (thumbnail; still auto-height)
+ *   - ![alt](https://x =150x100)    → <img width=150 height=100>
  *   - Single \n          → <br>
  *
  * Anything HTML-y in the input is escaped first, so admin can't
@@ -40,14 +42,28 @@ function applyInline(escaped: string, linkAttrs: string): string {
   // Images — must run BEFORE links so `![alt](url)` isn't caught by the
   // link regex first. Only https URLs are embedded (safeHref filter);
   // anything else falls back to plain-text (the alt in brackets stays).
-  // Inline-styled so the tag survives in email clients that strip
-  // stylesheets. block + max-width:100% keeps it responsive in 600px
-  // email frames.
-  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_m, alt, src) => {
+  //
+  // Sizing: an optional `=WIDTH` or `=WIDTHxHEIGHT` suffix inside the
+  // parens after the URL renders a smaller thumbnail. Without it, the
+  // image renders full-width (block, max-width:100%) — right for hero
+  // shots. With sizing, we switch to inline-block so multiple sized
+  // images in a paragraph flow horizontally like a thumb strip.
+  const imgRe = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+=(\d+)(?:x(\d+))?)?\)/g;
+  s = s.replace(imgRe, (_m, alt, src, w, h) => {
     const safe = safeHref(src);
     if (!safe) return escapeHtml(String(alt));
+    const altAttr = escapeAttr(String(alt));
+    const width = w ? Number(w) : null;
+    const height = h ? Number(h) : null;
+    if (width) {
+      const dims = height ? ` width="${width}" height="${height}"` : ` width="${width}"`;
+      const style =
+        `display:inline-block;max-width:100%;height:auto;` +
+        `margin:4px 6px 4px 0;border-radius:6px;vertical-align:middle`;
+      return `<img src="${escapeAttr(safe)}" alt="${altAttr}"${dims} style="${style}" />`;
+    }
     return (
-      `<img src="${escapeAttr(safe)}" alt="${escapeAttr(String(alt))}"` +
+      `<img src="${escapeAttr(safe)}" alt="${altAttr}"` +
       ` style="display:block;max-width:100%;height:auto;margin:12px 0;border-radius:6px" />`
     );
   });
