@@ -169,7 +169,7 @@ export function renderSimpleMarkdown(
     }
     bgBlocks.push({ color: safeColor, body: String(body).trim() });
     // Placeholder is a unique paragraph that survives escape+split.
-    return `\n\n BG_BLOCK_${bgBlocks.length - 1} \n\n`;
+    return `\n\n BG_BLOCK_${bgBlocks.length - 1} \n\n`;
   });
   const escaped = escapeHtml(withPlaceholders);
   // Split into paragraphs on blank lines.
