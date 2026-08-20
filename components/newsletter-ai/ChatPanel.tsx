@@ -186,7 +186,7 @@ export default function ChatPanel({ campaignId, draft, onDraftUpdate }: Props) {
           }}
           rows={3}
           disabled={sending}
-          placeholder="Describe what to draft, edit, or add… (Cmd/Ctrl+Enter to send)"
+          placeholder="Describe what to draft, edit, or add… (Cmd/Ctrl+Enter to submit)"
           className="w-full border border-[color:var(--rule)] rounded px-3 py-2 text-sm bg-white resize-none"
         />
         <div className="mt-2 flex justify-between items-center">
@@ -199,7 +199,7 @@ export default function ChatPanel({ campaignId, draft, onDraftUpdate }: Props) {
             disabled={sending || !input.trim()}
             className="bg-navy text-white px-4 py-1.5 rounded text-[12px] font-semibold tracking-wide disabled:opacity-50"
           >
-            {sending ? "Sending…" : "Send"}
+            {sending ? "Working…" : "Enter"}
           </button>
         </div>
       </footer>
