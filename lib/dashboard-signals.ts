@@ -484,7 +484,7 @@ async function fetchPulse(lastCampaign: LastCampaign | null): Promise<PulseTile[
       SUM((sent_at >= NOW() - INTERVAL '30 days' AND opened_at IS NOT NULL)::int)::int AS opened_now,
       SUM((sent_at >= NOW() - INTERVAL '60 days' AND sent_at < NOW() - INTERVAL '30 days')::int)::int AS sent_prior,
       SUM((sent_at >= NOW() - INTERVAL '60 days' AND sent_at < NOW() - INTERVAL '30 days' AND opened_at IS NOT NULL)::int)::int AS opened_prior
-    FROM email_sends WHERE status = 'sent'
+    FROM email_sends WHERE status = 'sent' AND is_test IS NOT TRUE
   `) as {
     sent_now: number | null;
     opened_now: number | null;
