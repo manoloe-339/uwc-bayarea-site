@@ -1,4 +1,4 @@
-import { emailOptimizedImageUrl } from "./image-transform";
+import { emailOptimizedImageUrl, squareCropImageUrl } from "./image-transform";
 
 /**
  * Tiny markdown subset → HTML renderer. Only handles what the event
@@ -323,44 +323,38 @@ function tryRenderImageGrid(paragraph: string): string | null {
   for (let i = 0; i < cells.length; i += cellsPerRow) {
     rows.push(cells.slice(i, i + cellsPerRow));
   }
-  // Responsive percentage-width cells so Gmail Mobile doesn't
-  // shrink-to-fit the whole email (which was making body text look
-  // tiny on phones). Square aspect via padding-top:100% trick on a
-  // responsive inner div — the % is relative to the div's width,
-  // producing width==height. Image is absolutely positioned inside
-  // with explicit top/left/width/height (avoid inset shorthand which
-  // Gmail doesn't parse).
+  // Pre-cropped SQUARE JPEGs from /api/img-crop. The image itself
+  // is already square, so the HTML is trivially Gmail-safe: plain
+  // <img> with width:100% + height:auto naturally renders as a
+  // responsive square (source aspect IS 1:1). No position:absolute,
+  // no padding-top trick — both were being stripped by the Gmail
+  // iOS/Android app and leaving grey boxes around the photos.
+  //
+  // Emitting width=520 as the HTML width attribute + max-width:100%
+  // in the style caps the intrinsic size (Outlook honors the HTML
+  // attribute; everything else scales via CSS).
+  const SQUARE_PX = 520;
   const rowsHtml = rows
     .map((row) => {
       const cellHtml = row
         .map((cell) => {
-          const optimizedSrc = emailOptimizedImageUrl(cell.url, 300);
+          const crop =
+            cell.cropX != null && cell.cropW && cell.cropH
+              ? {
+                  x: cell.cropX,
+                  y: cell.cropY ?? 0,
+                  w: cell.cropW,
+                  h: cell.cropH,
+                }
+              : null;
+          const squareSrc = squareCropImageUrl(cell.url, crop, SQUARE_PX);
           const altAttr = escapeAttr(cell.alt);
-          let imgStyle: string;
-          if (cell.cropX != null && cell.cropW && cell.cropH) {
-            // Scaled + offset in PERCENTAGES of the square container,
-            // so the whole thing stays responsive. Math: image is
-            // sized to (100/cropW * 100)% wide so the crop rect fills
-            // the container; shifted left by -(cropX/cropW)*100%.
-            const imgWpct = 100 / cell.cropW * 100;
-            const imgHpct = 100 / cell.cropH * 100;
-            const leftPct = -cell.cropX * 100 / cell.cropW;
-            const topPct = -(cell.cropY ?? 0) * 100 / cell.cropH;
-            imgStyle =
-              `position:absolute;top:${topPct.toFixed(2)}%;left:${leftPct.toFixed(2)}%;` +
-              `width:${imgWpct.toFixed(2)}%;height:${imgHpct.toFixed(2)}%;` +
-              `max-width:none;display:block;border:0`;
-          } else {
-            imgStyle =
-              `position:absolute;top:0;left:0;width:100%;height:100%;` +
-              `object-fit:cover;object-position:50% 50%;display:block;border:0`;
-          }
           return (
             `<td style="width:${cell.width}%;padding:3px;vertical-align:top">` +
-            `<div style="position:relative;width:100%;padding-top:100%;overflow:hidden;` +
-            `border-radius:6px;background:#e5e7eb">` +
-            `<img src="${escapeAttr(optimizedSrc)}" alt="${altAttr}" style="${imgStyle}" />` +
-            `</div>` +
+            `<img src="${escapeAttr(squareSrc)}" alt="${altAttr}" ` +
+            `width="${SQUARE_PX}" height="${SQUARE_PX}" ` +
+            `style="display:block;width:100%;max-width:${SQUARE_PX}px;` +
+            `height:auto;border:0;border-radius:6px" />` +
             `</td>`
           );
         })

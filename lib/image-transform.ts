@@ -19,6 +19,13 @@
 const HERO_WIDTH = 640; // 2x for a 320px display in retina, safe for 600px email frame
 const THUMB_WIDTH = 384; // 2x for a ~150–192px thumbnail
 
+function appBase(): string {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "") ||
+    "https://uwcbayarea.org"
+  );
+}
+
 /** Wrap a Blob URL in Next's optimizer. Non-Blob URLs (external
  *  images, the UWC logo, whatever) pass through unchanged so we
  *  don't accidentally break hotlinks we don't control.
@@ -37,8 +44,32 @@ export function emailOptimizedImageUrl(
   const w = targetDisplayWidth != null && targetDisplayWidth <= 300
     ? THUMB_WIDTH
     : HERO_WIDTH;
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "") ||
-    "https://uwcbayarea.org";
-  return `${base}/_next/image?url=${encodeURIComponent(src)}&w=${w}&q=75`;
+  return `${appBase()}/_next/image?url=${encodeURIComponent(src)}&w=${w}&q=75`;
+}
+
+/**
+ * Return a URL that resolves to a pre-cropped SQUARE JPEG. Used
+ * by the newsletter photo grid so Gmail can render squares
+ * without CSS aspect tricks (which break in the Gmail app).
+ *
+ * Crop values are percentages 0–100 of the source image. Pass
+ * null crop to get a center-cover square of the whole source.
+ */
+export function squareCropImageUrl(
+  src: string,
+  crop: { x: number; y: number; w: number; h: number } | null,
+  sizePx = 520,
+): string {
+  if (!src) return src;
+  if (!/\.public\.blob\.vercel-storage\.com/.test(src)) return src;
+  const c = crop ?? { x: 0, y: 0, w: 100, h: 100 };
+  const q = new URLSearchParams({
+    url: src,
+    x: String(c.x),
+    y: String(c.y),
+    w: String(c.w),
+    h: String(c.h),
+    size: String(sizePx),
+  });
+  return `${appBase()}/api/img-crop?${q.toString()}`;
 }
