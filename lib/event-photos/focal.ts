@@ -1,11 +1,11 @@
 /**
- * Per-photo crop rectangle storage for newsletter cells. Admin picks
- * a square region via react-easy-crop → we save the region as
- * percentages of the source. Renderer scales+positions the image
- * inside the cell so ONLY that region is visible.
+ * Newsletter-scoped photo crop rectangles. Stored in the dedicated
+ * `newsletter_photo_crops` table (see migration 109) — deliberately
+ * NOT on event_photos so a newsletter square crop can never bleed
+ * into the gallery view, which keeps photos at their natural aspect.
  *
- * Legacy focal_x/y columns are still read for photos adjusted before
- * the crop-rectangle schema (2026-08-20 migration 108).
+ * Admin adjusts a crop from the newsletter compose page's "Adjust
+ * photographs" modal. Values are 0-100 percentages of the source.
  */
 import { sql } from "@/lib/db";
 
@@ -13,7 +13,6 @@ export type PhotoCrop = {
   photo_id: number;
   event_id: number;
   blob_url: string;
-  /** Crop rectangle (source-percent). Null when never adjusted. */
   crop_x: number | null;
   crop_y: number | null;
   crop_w: number | null;
@@ -23,10 +22,11 @@ export type PhotoCrop = {
 export async function lookupCropsForUrls(urls: string[]): Promise<PhotoCrop[]> {
   if (urls.length === 0) return [];
   const rows = (await sql`
-    SELECT id AS photo_id, event_id, blob_url,
-           crop_x, crop_y, crop_w, crop_h
-    FROM event_photos
-    WHERE blob_url = ANY(${urls})
+    SELECT ep.id AS photo_id, ep.event_id, ep.blob_url,
+           npc.crop_x, npc.crop_y, npc.crop_w, npc.crop_h
+    FROM event_photos ep
+    LEFT JOIN newsletter_photo_crops npc ON npc.photo_id = ep.id
+    WHERE ep.blob_url = ANY(${urls})
   `) as Array<{
     photo_id: number;
     event_id: number;
@@ -48,8 +48,7 @@ export async function lookupCropsForUrls(urls: string[]): Promise<PhotoCrop[]> {
   }));
 }
 
-/** Persist a crop rectangle for one photo (by id). All values are
- *  0–100 percentages of the source dimensions. */
+/** Upsert a newsletter-scoped crop rectangle. */
 export async function savePhotoCrop(
   photoId: number,
   cropX: number,
@@ -59,11 +58,15 @@ export async function savePhotoCrop(
 ): Promise<void> {
   const clamp = (n: number) => Math.max(0, Math.min(100, n));
   await sql`
-    UPDATE event_photos
-    SET crop_x = ${clamp(cropX)},
-        crop_y = ${clamp(cropY)},
-        crop_w = ${clamp(cropW)},
-        crop_h = ${clamp(cropH)}
-    WHERE id = ${photoId}
+    INSERT INTO newsletter_photo_crops (photo_id, crop_x, crop_y, crop_w, crop_h, updated_at)
+    VALUES (
+      ${photoId}, ${clamp(cropX)}, ${clamp(cropY)}, ${clamp(cropW)}, ${clamp(cropH)}, NOW()
+    )
+    ON CONFLICT (photo_id) DO UPDATE
+      SET crop_x = EXCLUDED.crop_x,
+          crop_y = EXCLUDED.crop_y,
+          crop_w = EXCLUDED.crop_w,
+          crop_h = EXCLUDED.crop_h,
+          updated_at = NOW()
   `;
 }
