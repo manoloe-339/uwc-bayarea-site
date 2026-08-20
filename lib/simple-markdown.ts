@@ -323,37 +323,51 @@ function tryRenderImageGrid(paragraph: string): string | null {
   for (let i = 0; i < cells.length; i += cellsPerRow) {
     rows.push(cells.slice(i, i + cellsPerRow));
   }
+  // Compute pixel dimensions for cells so we can emit HTML width /
+  // height attributes on <img>. Gmail ignores CSS position:absolute
+  // and object-fit inside <p>/<td>, so the browser-friendly
+  // padding-bottom:100% + absolute-inset trick collapses to
+  // natural-aspect images at the top of a grey box. Assumed email
+  // content width = 552px (matches the template's Img width prop).
+  const EMAIL_CONTENT_PX = 552;
+  const cellPx = Math.round(EMAIL_CONTENT_PX * firstWidth / 100) - 6; // minus 3px padding on each side
   const rowsHtml = rows
     .map((row) => {
       const cellHtml = row
         .map((cell) => {
           const optimizedSrc = emailOptimizedImageUrl(cell.url, 300);
           const altAttr = escapeAttr(cell.alt);
-          // If the cell has a crop rectangle, position the <img> so
-          // only that rectangle is visible through the square window.
-          // Without a crop, default to object-fit:cover / center.
-          let imgStyle: string;
+          let imgHtml: string;
           if (cell.cropX != null && cell.cropW && cell.cropH) {
-            const imgW = 100 / cell.cropW * 100;
-            const imgH = 100 / cell.cropH * 100;
-            const left = -cell.cropX * 100 / cell.cropW;
-            const top = -(cell.cropY ?? 0) * 100 / cell.cropH;
-            imgStyle =
-              `position:absolute;` +
-              `width:${imgW.toFixed(2)}%;` +
-              `height:${imgH.toFixed(2)}%;` +
-              `left:${left.toFixed(2)}%;` +
-              `top:${top.toFixed(2)}%;` +
-              `max-width:none;display:block`;
+            // Scaled image + negative margins so only the crop
+            // rectangle shows through the fixed-size square window.
+            // Everything in px so Gmail respects it.
+            const imgWpx = Math.round(cellPx * 100 / cell.cropW);
+            const imgHpx = Math.round(cellPx * 100 / cell.cropH);
+            const leftPx = Math.round(-cell.cropX * cellPx / cell.cropW);
+            const topPx = Math.round(-(cell.cropY ?? 0) * cellPx / cell.cropH);
+            imgHtml =
+              `<img src="${escapeAttr(optimizedSrc)}" alt="${altAttr}"` +
+              ` width="${imgWpx}" height="${imgHpx}"` +
+              ` style="display:block;width:${imgWpx}px;height:${imgHpx}px;` +
+              `margin-left:${leftPx}px;margin-top:${topPx}px;` +
+              `max-width:none;border:0" />`;
           } else {
-            imgStyle =
-              `position:absolute;inset:0;width:100%;height:100%;` +
-              `object-fit:cover;object-position:50% 50%`;
+            // No custom crop → cover-crop to square via width/height
+            // attributes + object-fit:cover. Modern Gmail respects
+            // object-fit; older clients fall back to native-aspect
+            // (image squished slightly to square-ish, acceptable).
+            imgHtml =
+              `<img src="${escapeAttr(optimizedSrc)}" alt="${altAttr}"` +
+              ` width="${cellPx}" height="${cellPx}"` +
+              ` style="display:block;width:${cellPx}px;height:${cellPx}px;` +
+              `object-fit:cover;object-position:50% 50%;border:0" />`;
           }
           return (
             `<td style="width:${cell.width}%;padding:3px;vertical-align:top">` +
-            `<div style="position:relative;width:100%;padding-bottom:100%;overflow:hidden;border-radius:6px;background:#e5e7eb">` +
-            `<img src="${escapeAttr(optimizedSrc)}" alt="${altAttr}" style="${imgStyle}" />` +
+            `<div style="width:${cellPx}px;height:${cellPx}px;overflow:hidden;` +
+            `border-radius:6px;background:#e5e7eb">` +
+            `${imgHtml}` +
             `</div>` +
             `</td>`
           );
