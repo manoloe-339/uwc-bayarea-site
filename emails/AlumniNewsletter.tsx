@@ -39,6 +39,7 @@ import {
   EMAIL_LINK_ATTRS,
   EMAIL_PARAGRAPH_ATTRS,
 } from "../lib/simple-markdown";
+import { emailOptimizedImageUrl } from "../lib/image-transform";
 
 // ---------------------------------------------------------------------------
 // Design tokens — keep these at the top so future edits are trivial.
@@ -296,9 +297,12 @@ function warn(msg: string): void {
 
 function img(src: string, alt: string | undefined, maxHeight?: number): JSX.Element {
   if (!alt && alt !== "") warn(`image without alt text: ${src}`);
+  // Route Blob URLs through the optimizer so recipients don't download
+  // 2–7 MB originals for a 552px-wide render slot.
+  const optimizedSrc = emailOptimizedImageUrl(src, 552);
   return (
     <Img
-      src={src}
+      src={optimizedSrc}
       alt={alt ?? ""}
       width="552"
       style={{

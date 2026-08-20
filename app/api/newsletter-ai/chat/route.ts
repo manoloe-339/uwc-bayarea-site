@@ -283,11 +283,26 @@ Markdown-only rule for update_body:
     **bold** / *italic*  — inline emphasis
     [text](https://url)  — links
     ![alt](https://url)              — full-width image (single hero-in-body)
-    ![alt](https://url =150)         — thumbnail 150px wide (auto height)
+    ![alt](https://url =150)         — fixed thumbnail 150px wide (thumb strip)
     ![alt](https://url =150x100)     — fixed-size thumbnail
-    Consecutive sized images in one paragraph flow horizontally as a thumb strip.
+    ![alt](https://url =48%)         — percentage-width image (grid cell)
+    [[bg=#f4efe3]]…[[/bg]]           — wrap enclosed block in a background-colored panel
 - To resize an existing image the admin asks about, rewrite the markdown with the size suffix — never emit <img> HTML.
 - Section headings should typically be ## (h2) — reserve # for a single top-level. Emoji are fine (e.g. "## 🌉 Around the Bay").
+
+Photo layout rules (important — apply consistently):
+- ONE photo in a section → hero: \`![alt](url)\` (no size suffix, renders full-width).
+- TWO photos side-by-side → two-column row: each at 48%. Put them in the SAME paragraph so they sit on one line.
+    e.g. \`![a](url1 =48%) ![b](url2 =48%)\`
+- FOUR photos → 2×2 grid: four images at 48% in the SAME paragraph — they wrap into two rows of two.
+    e.g. \`![a](url1 =48%) ![b](url2 =48%) ![c](url3 =48%) ![d](url4 =48%)\`
+- THREE photos → 3-column row: each at 32%.
+- Images are auto-optimized (recipients download ~50 KB compressed JPEGs, not the multi-megabyte originals) — you don't need to worry about file size, just choose the display width.
+
+Section background colors:
+- Use \`[[bg=<color>]]…[[/bg]]\` to give a distinct panel background to a section. Accepts hex (\`#f4efe3\`), named colors (\`ivory\`), or \`rgb(...)\`.
+- Style suggestion: alternate subtle warm tones between sections. Site palette: \`#F4EFE3\` (ivory), \`#EFE8D6\` (ivory-2), \`#FFFFFF\` (white), \`#0B2545\` (navy — bg only for dark section with light text). Keep contrast readable.
+- Don't wrap EVERY section — reserve for the 1–2 sections that deserve extra visual weight (e.g. the "Save the date" panel).
 
 Draft structure (what update_draft controls):
 - subject / preheader — the email envelope
