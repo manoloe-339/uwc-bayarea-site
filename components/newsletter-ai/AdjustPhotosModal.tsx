@@ -7,6 +7,7 @@ import Cropper, { type Area } from "react-easy-crop";
 type PhotoRow = {
   url: string;
   photoId: number | null;
+  eventName: string | null;
   cropX: number | null;
   cropY: number | null;
   cropW: number | null;
@@ -75,7 +76,7 @@ export default function AdjustPhotosModal({ open, onClose, bodyMarkdown, onBodyU
     const qs = urls.map((u) => `url=${encodeURIComponent(u)}`).join("&");
     fetch(`/api/newsletter-ai/photo-focal?${qs}`)
       .then((r) => r.json())
-      .then((data: { crops: Array<{ blob_url: string; photo_id: number; crop_x: number | null; crop_y: number | null; crop_w: number | null; crop_h: number | null }> }) => {
+      .then((data: { crops: Array<{ blob_url: string; photo_id: number; event_name?: string; crop_x: number | null; crop_y: number | null; crop_w: number | null; crop_h: number | null }> }) => {
         const byUrl = new Map(data.crops.map((f) => [f.blob_url, f]));
         setRows(
           urls.map((url) => {
@@ -83,6 +84,7 @@ export default function AdjustPhotosModal({ open, onClose, bodyMarkdown, onBodyU
             return {
               url,
               photoId: f?.photo_id ?? null,
+              eventName: f?.event_name ?? null,
               cropX: f?.crop_x ?? null,
               cropY: f?.crop_y ?? null,
               cropW: f?.crop_w ?? null,
@@ -106,7 +108,7 @@ export default function AdjustPhotosModal({ open, onClose, bodyMarkdown, onBodyU
         if (touched) onBodyUpdate(nextBody);
       })
       .catch(() =>
-        setRows(urls.map((url) => ({ url, photoId: null, cropX: null, cropY: null, cropW: null, cropH: null }))),
+        setRows(urls.map((url) => ({ url, photoId: null, eventName: null, cropX: null, cropY: null, cropW: null, cropH: null }))),
       )
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -234,7 +236,7 @@ function PhotoRowView({
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-[13px] text-[color:var(--navy-ink)] truncate">
-          {row.url.split("/").pop() ?? row.url}
+          {row.eventName ?? "Unlinked photo"}
         </div>
         <div className="text-[11px] text-[color:var(--muted)] mt-0.5">
           {row.photoId == null
