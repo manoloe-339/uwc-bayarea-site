@@ -47,7 +47,15 @@ export async function GET(req: NextRequest) {
   }
   const buf = Buffer.from(await upstream.arrayBuffer());
 
-  const meta = await sharp(buf).metadata();
+  // .rotate() with no args applies EXIF orientation and strips it,
+  // so downstream extract/resize operate on the visually-correct
+  // pixels. Without this, phone photos taken in portrait come out
+  // upside-down or sideways because Sharp otherwise ignores EXIF.
+  // We do rotate → toBuffer once, then run metadata + extract on
+  // the rotated buffer so the crop rectangle lines up with what
+  // the human saw in the crop UI.
+  const oriented = await sharp(buf).rotate().toBuffer();
+  const meta = await sharp(oriented).metadata();
   const srcW = meta.width ?? 0;
   const srcH = meta.height ?? 0;
   if (!srcW || !srcH) return new Response("bad image", { status: 502 });
@@ -60,7 +68,7 @@ export async function GET(req: NextRequest) {
   const pw = Math.max(1, Math.min(srcW - px, Math.round((w / 100) * srcW)));
   const ph = Math.max(1, Math.min(srcH - py, Math.round((h / 100) * srcH)));
 
-  const out = await sharp(buf)
+  const out = await sharp(oriented)
     .extract({ left: px, top: py, width: pw, height: ph })
     .resize(size, size, { fit: "cover" })
     .jpeg({ quality: 78, mozjpeg: true })
