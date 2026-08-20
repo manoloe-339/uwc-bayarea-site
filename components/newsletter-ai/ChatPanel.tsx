@@ -22,26 +22,27 @@ const STORAGE_PREFIX = "uwc-newsletter-ai-chat:";
  *  tool-use — Claude sees the current draft + real event/newsletter
  *  grounding and applies changes via update_draft tool calls that
  *  produce a new CampaignDraft, which is pushed back into the form
- *  via onDraftUpdate. Messages persist in sessionStorage keyed by
- *  campaignId so switching tabs, hard-refreshing, or the first-save
- *  URL swap don't wipe the transcript. */
+ *  via onDraftUpdate. Messages persist in localStorage keyed by
+ *  campaignId so history survives tab closes, browser restarts,
+ *  and the /new → /[id]/edit URL swap after first save. Use the
+ *  "Clear" button in the header to intentionally wipe a transcript. */
 export default function ChatPanel({ campaignId, draft, onDraftUpdate }: Props) {
   const storageKey = `${STORAGE_PREFIX}${campaignId ?? "new"}`;
   const [messages, setMessages] = useState<Msg[]>(() => {
     if (typeof window === "undefined") return [];
     try {
-      const raw = window.sessionStorage.getItem(storageKey);
+      const raw = window.localStorage.getItem(storageKey);
       if (raw) return JSON.parse(raw) as Msg[];
     } catch { /* corrupt session storage — start empty */ }
     // Fallback: if this is a newly-saved campaign (was "new", now has id),
     // migrate any pre-save chat from the "new" bucket.
     if (campaignId) {
       try {
-        const legacyRaw = window.sessionStorage.getItem(`${STORAGE_PREFIX}new`);
+        const legacyRaw = window.localStorage.getItem(`${STORAGE_PREFIX}new`);
         if (legacyRaw) {
           const parsed = JSON.parse(legacyRaw) as Msg[];
-          window.sessionStorage.setItem(storageKey, legacyRaw);
-          window.sessionStorage.removeItem(`${STORAGE_PREFIX}new`);
+          window.localStorage.setItem(storageKey, legacyRaw);
+          window.localStorage.removeItem(`${STORAGE_PREFIX}new`);
           return parsed;
         }
       } catch { /* nothing to migrate */ }
@@ -52,7 +53,7 @@ export default function ChatPanel({ campaignId, draft, onDraftUpdate }: Props) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      window.sessionStorage.setItem(storageKey, JSON.stringify(messages));
+      window.localStorage.setItem(storageKey, JSON.stringify(messages));
     } catch { /* quota or private mode — silently skip */ }
   }, [messages, storageKey]);
   const [input, setInput] = useState("");
