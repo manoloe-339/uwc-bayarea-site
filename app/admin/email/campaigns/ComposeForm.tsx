@@ -10,6 +10,7 @@ import AlumniNewsletter, {
 import type { CampaignDraft } from "@/lib/campaign-content";
 import { normalizeNewsletterForRender } from "@/lib/campaign-content";
 import ChatPanel from "@/components/newsletter-ai/ChatPanel";
+import AdjustPhotosModal from "@/components/newsletter-ai/AdjustPhotosModal";
 import type { AlumniFilters } from "@/lib/alumni-query";
 import { COLLEGES } from "@/lib/uwc-colleges";
 import { REGIONS } from "@/lib/region";
@@ -248,6 +249,7 @@ export default function ComposeForm({
   const [previewHtml, setPreviewHtml] = useState("<p>rendering…</p>");
   const [rightTab, setRightTab] = useState<"preview" | "ai">("preview");
   const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
+  const [adjustPhotosOpen, setAdjustPhotosOpen] = useState(false);
   type PreflightCheck = { name: string; status: "ok" | "warn" | "fail"; summary: string };
   type PreflightResult = { ok: boolean; checks: PreflightCheck[] };
   const [preflightRunning, setPreflightRunning] = useState(false);
@@ -484,6 +486,16 @@ export default function ComposeForm({
             {preflightRunning ? "Checking…" : "Preflight"}
           </button>
 
+          <button
+            type="button"
+            onClick={() => setAdjustPhotosOpen(true)}
+            disabled={draft.format !== "newsletter"}
+            className="bg-white border border-[color:var(--rule)] text-navy px-4 py-2.5 rounded text-sm font-semibold disabled:opacity-50"
+            title="Fine-tune the crop centering on any gallery photo in this draft"
+          >
+            Adjust photographs
+          </button>
+
           {!isLocked && draft.sendMode === "now" && (
             <button
               type="button"
@@ -649,6 +661,24 @@ export default function ComposeForm({
           />
         </div>
       </div>
+      <AdjustPhotosModal
+        open={adjustPhotosOpen}
+        onClose={() => setAdjustPhotosOpen(false)}
+        bodyMarkdown={draft.newsletter?.update?.body ?? ""}
+        onBodyUpdate={(nextBody) => {
+          setDraft((d) => ({
+            ...d,
+            newsletter: {
+              ...(d.newsletter ?? { mode: "update" }),
+              update: {
+                ...(d.newsletter?.update ?? { headline: "", body: "" }),
+                body: nextBody,
+              },
+            },
+          }));
+          setDirty(true);
+        }}
+      />
     </div>
   );
 }

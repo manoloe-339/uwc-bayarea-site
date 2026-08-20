@@ -238,27 +238,41 @@ export function renderSimpleMarkdown(
  *  Layout: cells fill `100 / <first-cell-width>%` per row and wrap.
  *  Four images at 48% → 2 per row → 2 rows. Two at 48% → 1 row.
  *  Three at 32% → 3 per row → 1 row.
+ *
+ *  Cells are always SQUARE (1:1) with object-fit:cover, so mixed
+ *  portrait/landscape/square source photos land in a uniform grid.
+ *  Optional `focal=X,Y` suffix on each image (`![alt](url =48% focal=30,60)`)
+ *  moves the crop centering — 50/50 by default.
  */
 function tryRenderImageGrid(paragraph: string): string | null {
   const trimmed = paragraph.trim();
   if (!trimmed.startsWith("![")) return null;
-  // Match a percentage-width image (must have the =W% suffix to qualify).
-  const cellRe = /!\[([^\]]*)\]\(([^)\s]+)\s+=(\d+)%\)/g;
-  const cells: Array<{ alt: string; url: string; width: number }> = [];
+  // Match a percentage-width image with optional focal=X,Y suffix.
+  const cellRe = /!\[([^\]]*)\]\(([^)\s]+)\s+=(\d+)%(?:\s+focal=(\d+),(\d+))?\)/g;
+  const cells: Array<{
+    alt: string;
+    url: string;
+    width: number;
+    focalX: number | null;
+    focalY: number | null;
+  }> = [];
   let lastEnd = 0;
   let m: RegExpExecArray | null;
   while ((m = cellRe.exec(trimmed)) !== null) {
-    // Anything between matches (other than whitespace) disqualifies —
-    // don't want to accidentally table-ize paragraphs with mixed content.
     const gap = trimmed.slice(lastEnd, m.index);
     if (gap.trim().length > 0) return null;
-    cells.push({ alt: m[1], url: m[2], width: Number(m[3]) });
+    cells.push({
+      alt: m[1],
+      url: m[2],
+      width: Number(m[3]),
+      focalX: m[4] != null ? Number(m[4]) : null,
+      focalY: m[5] != null ? Number(m[5]) : null,
+    });
     lastEnd = cellRe.lastIndex;
   }
-  // Trailing content check: after the last image, only whitespace allowed.
   const trailing = trimmed.slice(lastEnd);
   if (trailing.trim().length > 0) return null;
-  if (cells.length < 2) return null; // single image → not a grid; let normal renderer handle it
+  if (cells.length < 2) return null;
   const firstWidth = cells[0].width;
   const cellsPerRow = Math.max(1, Math.floor(100 / firstWidth));
   const rows: Array<typeof cells> = [];
@@ -271,15 +285,26 @@ function tryRenderImageGrid(paragraph: string): string | null {
         .map((cell) => {
           const optimizedSrc = emailOptimizedImageUrl(cell.url, 300);
           const altAttr = escapeAttr(cell.alt);
+          const objectPos =
+            cell.focalX != null && cell.focalY != null
+              ? `${cell.focalX}% ${cell.focalY}%`
+              : "50% 50%";
+          // Square 1:1 cell — parent <td> is the sized container; the
+          // <img> inside object-fits with focal-point centering. Email
+          // clients that don't support aspect-ratio fall back to
+          // width/height attrs. Use padding-bottom hack for widest
+          // compatibility: wrap img in a div with position:relative +
+          // padding-bottom:100% and absolute img inside.
           return (
             `<td style="width:${cell.width}%;padding:3px;vertical-align:top">` +
+            `<div style="position:relative;width:100%;padding-bottom:100%;overflow:hidden;border-radius:6px;background:#e5e7eb">` +
             `<img src="${escapeAttr(optimizedSrc)}" alt="${altAttr}"` +
-            ` style="display:block;width:100%;height:auto;border-radius:6px" />` +
+            ` style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${objectPos}" />` +
+            `</div>` +
             `</td>`
           );
         })
         .join("");
-      // Pad short trailing row with empty cells so widths line up.
       const padCount = cellsPerRow - row.length;
       const padding = padCount > 0
         ? `<td style="width:${row[0].width * padCount}%">&nbsp;</td>`
