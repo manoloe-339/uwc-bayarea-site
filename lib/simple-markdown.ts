@@ -390,10 +390,18 @@ function tryRenderImageGrid(paragraph: string): string | null {
 // Heading styles used both in the compose preview (light) and in
 // sent emails. Inline styles because mail clients strip stylesheets.
 const HEADING_TAG: Record<number, string> = { 1: "h1", 2: "h2", 3: "h3" };
+// Match the newsletter template's H1/H2 font stack (system sans-serif)
+// so AI-generated ## headings in the body look like the template's
+// built-in headings — not a serif fallback in the middle of a sans
+// email. Web fonts (Fraunces / Instrument Serif) don't reliably load
+// in Gmail/Outlook anyway; system fonts are the honest choice for
+// email + preview consistency.
+const HEADING_FONT_STACK =
+  "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 const HEADING_STYLE: Record<number, string> = {
-  1: "font-family:'Fraunces','Georgia',serif;font-size:26px;font-weight:600;line-height:1.15;color:#0B2545;margin:18px 0 8px",
-  2: "font-family:'Fraunces','Georgia',serif;font-size:20px;font-weight:600;line-height:1.2;color:#0B2545;margin:16px 0 6px",
-  3: "font-family:'Fraunces','Georgia',serif;font-size:16px;font-weight:600;line-height:1.25;color:#0B2545;margin:12px 0 4px",
+  1: `font-family:${HEADING_FONT_STACK};font-size:26px;font-weight:700;line-height:1.15;color:#0B2545;margin:18px 0 8px;letter-spacing:-0.01em`,
+  2: `font-family:${HEADING_FONT_STACK};font-size:20px;font-weight:700;line-height:1.2;color:#0B2545;margin:16px 0 6px`,
+  3: `font-family:${HEADING_FONT_STACK};font-size:16px;font-weight:700;line-height:1.25;color:#0B2545;margin:12px 0 4px`,
 };
 
 /** Inline-styled link attrs matching the rest of the email chrome. */
