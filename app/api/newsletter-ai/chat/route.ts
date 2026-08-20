@@ -9,6 +9,7 @@ import {
   searchAlumniByName,
   appendStyleGuideNote,
 } from "@/lib/newsletter-ai/context";
+import { runPreflight } from "@/lib/newsletter-ai/preflight";
 import type { CampaignDraft, NewsletterContent } from "@/lib/campaign-content";
 
 export const runtime = "nodejs";
@@ -77,6 +78,12 @@ const TOOLS: Anthropic.Messages.Tool[] = [
         limit: { type: "number", description: "Max photos to return (default 5)" },
       },
     },
+  },
+  {
+    name: "run_preflight_checks",
+    description:
+      "Run pre-send checks on the current newsletter draft. Currently returns email_weight (total bytes recipients will download for images, warning if >500 KB, fail if >3 MB). Use before telling the admin the draft is send-ready, and any time the admin asks 'is this too heavy?' / 'what's the file size?'. Extensible — more checks (spelling, broken links, missing subject) will be added over time.",
+    input_schema: { type: "object", properties: {} },
   },
   {
     name: "save_style_guide_note",
@@ -267,6 +274,7 @@ Your job:
 - Compose section copy that matches the site's voice.
 - Apply changes via update_draft. Send only the fields you want to change; unmentioned fields are preserved.
 - When the admin gives you a durable preference ("always use 150px thumbnails", "sign off as Manolo", "don't feature Alan"), call save_style_guide_note to persist it — the style_guide feeds into every future chat. Only save when the admin was clearly instructing for the future, not for a one-off request.
+- Before telling the admin the draft is send-ready, and whenever they ask "is this too heavy" / "what's the file size" / "will it clip", call run_preflight_checks and report back with the totals. Do the same after adding lots of new images to a draft.
 
 Editorial rules:
 - Reference events by their real hosts and dates. If unsure, call list_past_events / list_upcoming_events first.
@@ -338,6 +346,13 @@ async function runTool(
       const limit = typeof input.limit === "number" ? input.limit : undefined;
       const events = await listPastEventsForAI(since, limit);
       return { data: { events } };
+    }
+    case "run_preflight_checks": {
+      // Preflight uses the JUST-updated draft, not the one from the
+      // start of this turn — Claude may have called update_draft
+      // earlier in the same tool loop.
+      const result = await runPreflight(currentDraft);
+      return { data: result };
     }
     case "save_style_guide_note": {
       const note = typeof input.note === "string" ? input.note : "";

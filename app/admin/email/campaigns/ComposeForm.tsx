@@ -248,6 +248,33 @@ export default function ComposeForm({
   const [previewHtml, setPreviewHtml] = useState("<p>rendering…</p>");
   const [rightTab, setRightTab] = useState<"preview" | "ai">("preview");
   const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
+  type PreflightCheck = { name: string; status: "ok" | "warn" | "fail"; summary: string };
+  type PreflightResult = { ok: boolean; checks: PreflightCheck[] };
+  const [preflightRunning, setPreflightRunning] = useState(false);
+  const [preflightResult, setPreflightResult] = useState<PreflightResult | null>(null);
+
+  async function runPreflight() {
+    setPreflightRunning(true);
+    setPreflightResult(null);
+    try {
+      const res = await fetch("/api/newsletter-ai/preflight", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ draft }),
+      });
+      const data = (await res.json()) as PreflightResult | { error: string };
+      if ("error" in data) {
+        setPreflightResult({ ok: false, checks: [{ name: "error", status: "fail", summary: data.error }] });
+      } else {
+        setPreflightResult(data);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "network error";
+      setPreflightResult({ ok: false, checks: [{ name: "error", status: "fail", summary: msg }] });
+    } finally {
+      setPreflightRunning(false);
+    }
+  }
   useEffect(() => {
     if (!previewProps) {
       setPreviewHtml(quickNoteHtml(draft, settings, previewFirstName));
@@ -393,6 +420,50 @@ export default function ComposeForm({
           </FormCard>
         )}
 
+        {preflightResult && (
+          <div
+            className={
+              "mb-2 rounded border px-4 py-3 " +
+              (preflightResult.ok
+                ? "border-emerald-300 bg-emerald-50"
+                : "border-amber-300 bg-amber-50")
+            }
+          >
+            <div className="flex items-baseline justify-between mb-1.5">
+              <div className="text-[11px] tracking-[.22em] uppercase font-bold text-navy">
+                Preflight — {preflightResult.ok ? "clear" : "attention needed"}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreflightResult(null)}
+                className="text-[10px] tracking-[.18em] uppercase font-bold text-[color:var(--muted)] hover:text-navy"
+              >
+                Dismiss
+              </button>
+            </div>
+            <ul className="text-[12px] space-y-1 text-[color:var(--navy-ink)]">
+              {preflightResult.checks.map((c) => (
+                <li key={c.name} className="flex gap-2">
+                  <span
+                    className={
+                      c.status === "ok"
+                        ? "text-emerald-700 font-bold"
+                        : c.status === "warn"
+                          ? "text-amber-700 font-bold"
+                          : "text-red-700 font-bold"
+                    }
+                    style={{ minWidth: 40 }}
+                  >
+                    {c.status.toUpperCase()}
+                  </span>
+                  <span>
+                    <span className="font-semibold">{c.name.replace(/_/g, " ")}:</span> {c.summary}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="sticky bottom-0 z-10 bg-ivory border-t border-[color:var(--rule)] py-4 flex flex-wrap items-center gap-3">
           <button
             type="button"
@@ -401,6 +472,16 @@ export default function ComposeForm({
             className="bg-white border border-navy text-navy px-5 py-2.5 rounded text-sm font-semibold disabled:opacity-50"
           >
             {saving ? "Saving…" : savedAt && !dirty ? `Saved at ${savedAt}` : "Save draft"}
+          </button>
+
+          <button
+            type="button"
+            onClick={runPreflight}
+            disabled={preflightRunning || draft.format !== "newsletter"}
+            className="bg-white border border-[color:var(--rule)] text-navy px-4 py-2.5 rounded text-sm font-semibold disabled:opacity-50"
+            title="Check email weight (and future health checks) before sending"
+          >
+            {preflightRunning ? "Checking…" : "Preflight"}
           </button>
 
           {!isLocked && draft.sendMode === "now" && (
