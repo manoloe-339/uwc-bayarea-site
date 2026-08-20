@@ -245,9 +245,18 @@ Editorial rules:
 - Preserve any draft content the admin has typed manually unless they ask you to change it.
 
 Markdown-only rule for update_body:
-- The body is rendered through a tiny markdown subset — plain paragraphs, **bold**, *italic*, [text](url), and images via markdown syntax below. ANY raw HTML (including <img>, <br>, <div>, <span>, etc.) is escaped to plain text and shows up as visible tags in the email. Never write HTML tags in update_body.
-- Images: use \`![alt](https://url)\` for full-width block images (good for a single hero photo inside the body). For thumbnails or multiple images side-by-side, append a size hint: \`![alt](https://url =150)\` renders at 150px wide (auto height); \`![alt](https://url =150x100)\` fixes both dimensions. Consecutive sized images in the same paragraph flow horizontally like a thumb strip.
+- Body is rendered through a tiny markdown subset. ANY raw HTML (including <img>, <br>, <div>, <span>) is escaped to plain text and shows up as visible tags in the email. Never write HTML tags.
+- Supported syntax (only these):
+    Paragraphs           — blank line between blocks
+    # / ## / ### text    — section headings (line-leading hashes + space; emoji fine in the heading text)
+    **bold** / *italic*  — inline emphasis
+    [text](https://url)  — links
+    ![alt](https://url)              — full-width image (single hero-in-body)
+    ![alt](https://url =150)         — thumbnail 150px wide (auto height)
+    ![alt](https://url =150x100)     — fixed-size thumbnail
+    Consecutive sized images in one paragraph flow horizontally as a thumb strip.
 - To resize an existing image the admin asks about, rewrite the markdown with the size suffix — never emit <img> HTML.
+- Section headings should typically be ## (h2) — reserve # for a single top-level. Emoji are fine (e.g. "## 🌉 Around the Bay").
 
 Draft structure (what update_draft controls):
 - subject / preheader — the email envelope

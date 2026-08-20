@@ -6,6 +6,7 @@
  *
  * Supported syntax:
  *   - Paragraphs separated by one or more blank lines
+ *   - # Heading / ## Heading / ### Heading    → <h1>/<h2>/<h3> (line-leading only)
  *   - **bold**           → <strong>bold</strong>
  *   - *italic*           → <em>italic</em>
  *   - [text](https://x)  → <a href="https://x">text</a>
@@ -111,6 +112,16 @@ export function renderSimpleMarkdown(
   const paragraphs = escaped.split(/\n{2,}/);
   const blocks = paragraphs
     .map((p) => {
+      // Heading detection — paragraph starts with 1–3 hashes + space.
+      // Inline styles so headings survive in email clients that strip
+      // stylesheets. Level-appropriate sizing; tight top margin so a
+      // heading followed by body copy doesn't over-space.
+      const headingMatch = p.trim().match(/^(#{1,3})\s+(.+?)$/);
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        const text = applyInline(headingMatch[2], linkAttrs);
+        return `<${HEADING_TAG[level]} style="${HEADING_STYLE[level]}">${text}</${HEADING_TAG[level]}>`;
+      }
       // Apply inline transforms (links, bold, italic) to the WHOLE
       // paragraph first so a markdown link can span multiple lines —
       // the compose textarea wraps long URLs across newlines often.
@@ -132,6 +143,15 @@ export function renderSimpleMarkdown(
   const separator = paragraphAttrs ? `\n${EMAIL_SPACER}\n` : "\n";
   return blocks.join(separator);
 }
+
+// Heading styles used both in the compose preview (light) and in
+// sent emails. Inline styles because mail clients strip stylesheets.
+const HEADING_TAG: Record<number, string> = { 1: "h1", 2: "h2", 3: "h3" };
+const HEADING_STYLE: Record<number, string> = {
+  1: "font-family:'Fraunces','Georgia',serif;font-size:26px;font-weight:600;line-height:1.15;color:#0B2545;margin:18px 0 8px",
+  2: "font-family:'Fraunces','Georgia',serif;font-size:20px;font-weight:600;line-height:1.2;color:#0B2545;margin:16px 0 6px",
+  3: "font-family:'Fraunces','Georgia',serif;font-size:16px;font-weight:600;line-height:1.25;color:#0B2545;margin:12px 0 4px",
+};
 
 /** Inline-styled link attrs matching the rest of the email chrome. */
 export const EMAIL_LINK_ATTRS =
