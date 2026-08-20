@@ -271,11 +271,20 @@ function tryRenderImageGrid(paragraph: string): string | null {
     let cropW: number | null = null;
     let cropH: number | null = null;
     if (m[4] != null) {
-      // crop=X,Y,W,H
-      cropX = Number(m[4]);
-      cropY = Number(m[5]);
-      cropW = Number(m[6]);
-      cropH = Number(m[7]);
+      // crop=X,Y,W,H (all percentages 0-100)
+      const cx = Number(m[4]);
+      const cy = Number(m[5]);
+      const cw = Number(m[6]);
+      const ch = Number(m[7]);
+      // Guard against buggy legacy values in pixel units (e.g. 3024).
+      // Any component >100 means these can't be percentages — ignore
+      // and let the cell fall back to default center-cover.
+      if (cx <= 100 && cy <= 100 && cw > 0 && cw <= 100 && ch > 0 && ch <= 100) {
+        cropX = cx;
+        cropY = cy;
+        cropW = cw;
+        cropH = ch;
+      }
     } else if (m[8] != null) {
       // legacy focal=X,Y — approximate as a 60%-square crop centered on it
       const fx = Number(m[8]);

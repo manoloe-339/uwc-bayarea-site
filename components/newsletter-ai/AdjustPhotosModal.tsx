@@ -92,15 +92,22 @@ export default function AdjustPhotosModal({ open, onClose, bodyMarkdown, onBodyU
             };
           }),
         );
-        // Auto-apply saved crops to draft lines that don't have one.
+        // Auto-apply saved crops. Also OVERWRITES existing crop
+        // markdown that looks invalid (values > 100 = legacy pixel
+        // units from an earlier bug), so bad markdown gets healed
+        // from the correct DB value on next open.
         let nextBody = bodyMarkdown;
         let touched = false;
+        const urlEsc = (u: string) => u.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         for (const [url, f] of byUrl.entries()) {
           if (f.crop_x == null || f.crop_y == null || f.crop_w == null || f.crop_h == null) continue;
-          const already = new RegExp(
-            `\\(${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[^)]*crop=`,
-          ).test(nextBody);
-          if (!already) {
+          const existingRe = new RegExp(`\\(${urlEsc(url)}[^)]*crop=([\\d.]+),([\\d.]+),([\\d.]+),([\\d.]+)`);
+          const mExisting = nextBody.match(existingRe);
+          const looksValid =
+            mExisting != null &&
+            Number(mExisting[3]) <= 100 &&
+            Number(mExisting[4]) <= 100;
+          if (!mExisting || !looksValid) {
             nextBody = rewriteCropInMarkdown(nextBody, url, f.crop_x, f.crop_y, f.crop_w, f.crop_h);
             touched = true;
           }
@@ -277,7 +284,11 @@ function CropModal({
   const [zoom, setZoom] = useState(1);
   const [areaPct, setAreaPct] = useState<Area | null>(null);
 
-  const onCropComplete = useCallback((_pixels: Area, pct: Area) => {
+  // react-easy-crop signature is (croppedArea, croppedAreaPixels).
+  // Percentage-based area is FIRST — earlier code got these swapped
+  // and saved pixel values (e.g. 3024) as if they were percentages,
+  // producing broken crops.
+  const onCropComplete = useCallback((pct: Area, _pixels: Area) => {
     setAreaPct(pct);
   }, []);
 
