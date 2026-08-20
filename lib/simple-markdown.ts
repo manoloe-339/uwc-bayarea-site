@@ -247,26 +247,52 @@ export function renderSimpleMarkdown(
 function tryRenderImageGrid(paragraph: string): string | null {
   const trimmed = paragraph.trim();
   if (!trimmed.startsWith("![")) return null;
-  // Match a percentage-width image with optional focal=X,Y suffix.
-  const cellRe = /!\[([^\]]*)\]\(([^)\s]+)\s+=(\d+)%(?:\s+focal=(\d+),(\d+))?\)/g;
+  // Match a percentage-width image with optional crop=X,Y,W,H suffix
+  // (all percentages of the source dimensions). Legacy focal=X,Y is
+  // accepted and converted to a full-source crop centered on X,Y.
+  const cellRe =
+    /!\[([^\]]*)\]\(([^)\s]+)\s+=(\d+)%(?:\s+(?:crop=([\d.]+),([\d.]+),([\d.]+),([\d.]+)|focal=(\d+),(\d+)))?\)/g;
   const cells: Array<{
     alt: string;
     url: string;
     width: number;
-    focalX: number | null;
-    focalY: number | null;
+    cropX: number | null;
+    cropY: number | null;
+    cropW: number | null;
+    cropH: number | null;
   }> = [];
   let lastEnd = 0;
   let m: RegExpExecArray | null;
   while ((m = cellRe.exec(trimmed)) !== null) {
     const gap = trimmed.slice(lastEnd, m.index);
     if (gap.trim().length > 0) return null;
+    let cropX: number | null = null;
+    let cropY: number | null = null;
+    let cropW: number | null = null;
+    let cropH: number | null = null;
+    if (m[4] != null) {
+      // crop=X,Y,W,H
+      cropX = Number(m[4]);
+      cropY = Number(m[5]);
+      cropW = Number(m[6]);
+      cropH = Number(m[7]);
+    } else if (m[8] != null) {
+      // legacy focal=X,Y — approximate as a 60%-square crop centered on it
+      const fx = Number(m[8]);
+      const fy = Number(m[9]);
+      cropW = 60;
+      cropH = 60;
+      cropX = Math.max(0, Math.min(40, fx - 30));
+      cropY = Math.max(0, Math.min(40, fy - 30));
+    }
     cells.push({
       alt: m[1],
       url: m[2],
       width: Number(m[3]),
-      focalX: m[4] != null ? Number(m[4]) : null,
-      focalY: m[5] != null ? Number(m[5]) : null,
+      cropX,
+      cropY,
+      cropW,
+      cropH,
     });
     lastEnd = cellRe.lastIndex;
   }
@@ -285,21 +311,31 @@ function tryRenderImageGrid(paragraph: string): string | null {
         .map((cell) => {
           const optimizedSrc = emailOptimizedImageUrl(cell.url, 300);
           const altAttr = escapeAttr(cell.alt);
-          const objectPos =
-            cell.focalX != null && cell.focalY != null
-              ? `${cell.focalX}% ${cell.focalY}%`
-              : "50% 50%";
-          // Square 1:1 cell — parent <td> is the sized container; the
-          // <img> inside object-fits with focal-point centering. Email
-          // clients that don't support aspect-ratio fall back to
-          // width/height attrs. Use padding-bottom hack for widest
-          // compatibility: wrap img in a div with position:relative +
-          // padding-bottom:100% and absolute img inside.
+          // If the cell has a crop rectangle, position the <img> so
+          // only that rectangle is visible through the square window.
+          // Without a crop, default to object-fit:cover / center.
+          let imgStyle: string;
+          if (cell.cropX != null && cell.cropW && cell.cropH) {
+            const imgW = 100 / cell.cropW * 100;
+            const imgH = 100 / cell.cropH * 100;
+            const left = -cell.cropX * 100 / cell.cropW;
+            const top = -(cell.cropY ?? 0) * 100 / cell.cropH;
+            imgStyle =
+              `position:absolute;` +
+              `width:${imgW.toFixed(2)}%;` +
+              `height:${imgH.toFixed(2)}%;` +
+              `left:${left.toFixed(2)}%;` +
+              `top:${top.toFixed(2)}%;` +
+              `max-width:none;display:block`;
+          } else {
+            imgStyle =
+              `position:absolute;inset:0;width:100%;height:100%;` +
+              `object-fit:cover;object-position:50% 50%`;
+          }
           return (
             `<td style="width:${cell.width}%;padding:3px;vertical-align:top">` +
             `<div style="position:relative;width:100%;padding-bottom:100%;overflow:hidden;border-radius:6px;background:#e5e7eb">` +
-            `<img src="${escapeAttr(optimizedSrc)}" alt="${altAttr}"` +
-            ` style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:${objectPos}" />` +
+            `<img src="${escapeAttr(optimizedSrc)}" alt="${altAttr}" style="${imgStyle}" />` +
             `</div>` +
             `</td>`
           );

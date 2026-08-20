@@ -1,56 +1,69 @@
 /**
- * Focal-point storage for event photos, used by the newsletter
- * "Adjust photographs" flow. Focal is stored per-photo (event_photos
- * table) so an admin only ever re-centers a given photo once.
+ * Per-photo crop rectangle storage for newsletter cells. Admin picks
+ * a square region via react-easy-crop → we save the region as
+ * percentages of the source. Renderer scales+positions the image
+ * inside the cell so ONLY that region is visible.
+ *
+ * Legacy focal_x/y columns are still read for photos adjusted before
+ * the crop-rectangle schema (2026-08-20 migration 108).
  */
 import { sql } from "@/lib/db";
 
-export type PhotoFocal = {
+export type PhotoCrop = {
   photo_id: number;
   event_id: number;
   blob_url: string;
-  focal_x: number | null;
-  focal_y: number | null;
+  /** Crop rectangle (source-percent). Null when never adjusted. */
+  crop_x: number | null;
+  crop_y: number | null;
+  crop_w: number | null;
+  crop_h: number | null;
 };
 
-/** Given a set of image URLs, return the ones that match rows in
- *  event_photos, with their focal points (nulls if never set).
- *  Non-matching URLs (external images, Claude-inserted URLs pointing
- *  elsewhere) are simply omitted from the result. */
-export async function lookupFocalsForUrls(urls: string[]): Promise<PhotoFocal[]> {
+export async function lookupCropsForUrls(urls: string[]): Promise<PhotoCrop[]> {
   if (urls.length === 0) return [];
   const rows = (await sql`
-    SELECT id AS photo_id, event_id, blob_url, focal_x, focal_y
+    SELECT id AS photo_id, event_id, blob_url,
+           crop_x, crop_y, crop_w, crop_h
     FROM event_photos
     WHERE blob_url = ANY(${urls})
   `) as Array<{
     photo_id: number;
     event_id: number;
     blob_url: string;
-    focal_x: string | number | null;
-    focal_y: string | number | null;
+    crop_x: string | number | null;
+    crop_y: string | number | null;
+    crop_w: string | number | null;
+    crop_h: string | number | null;
   }>;
+  const n = (v: string | number | null) => (v != null ? Number(v) : null);
   return rows.map((r) => ({
     photo_id: r.photo_id,
     event_id: r.event_id,
     blob_url: r.blob_url,
-    // Numeric columns come back as strings from the pg client sometimes.
-    focal_x: r.focal_x != null ? Number(r.focal_x) : null,
-    focal_y: r.focal_y != null ? Number(r.focal_y) : null,
+    crop_x: n(r.crop_x),
+    crop_y: n(r.crop_y),
+    crop_w: n(r.crop_w),
+    crop_h: n(r.crop_h),
   }));
 }
 
-/** Persist a focal point for one photo (by id). Clamps to [0, 100]. */
-export async function savePhotoFocal(
+/** Persist a crop rectangle for one photo (by id). All values are
+ *  0–100 percentages of the source dimensions. */
+export async function savePhotoCrop(
   photoId: number,
-  focalX: number,
-  focalY: number,
+  cropX: number,
+  cropY: number,
+  cropW: number,
+  cropH: number,
 ): Promise<void> {
-  const x = Math.max(0, Math.min(100, focalX));
-  const y = Math.max(0, Math.min(100, focalY));
+  const clamp = (n: number) => Math.max(0, Math.min(100, n));
   await sql`
     UPDATE event_photos
-    SET focal_x = ${x}, focal_y = ${y}
+    SET crop_x = ${clamp(cropX)},
+        crop_y = ${clamp(cropY)},
+        crop_w = ${clamp(cropW)},
+        crop_h = ${clamp(cropH)}
     WHERE id = ${photoId}
   `;
 }
