@@ -70,6 +70,11 @@ export function squareCropImageUrl(
     w: String(c.w),
     h: String(c.h),
     size: String(sizePx),
+    // Bump `v` whenever the crop endpoint changes how it derives
+    // output pixels (e.g. added EXIF rotation) — the response is
+    // cached immutable, so identical URLs keep serving stale data
+    // until the URL itself changes.
+    v: "2",
   });
   return `${appBase()}/api/img-crop?${q.toString()}`;
 }
