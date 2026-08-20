@@ -9,6 +9,7 @@
  *   - **bold**           → <strong>bold</strong>
  *   - *italic*           → <em>italic</em>
  *   - [text](https://x)  → <a href="https://x">text</a>
+ *   - ![alt](https://x)  → <img src="https://x" alt="alt"> (inline, block-level)
  *   - Single \n          → <br>
  *
  * Anything HTML-y in the input is escaped first, so admin can't
@@ -36,6 +37,20 @@ function safeHref(raw: string): string | null {
 
 function applyInline(escaped: string, linkAttrs: string): string {
   let s = escaped;
+  // Images — must run BEFORE links so `![alt](url)` isn't caught by the
+  // link regex first. Only https URLs are embedded (safeHref filter);
+  // anything else falls back to plain-text (the alt in brackets stays).
+  // Inline-styled so the tag survives in email clients that strip
+  // stylesheets. block + max-width:100% keeps it responsive in 600px
+  // email frames.
+  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_m, alt, src) => {
+    const safe = safeHref(src);
+    if (!safe) return escapeHtml(String(alt));
+    return (
+      `<img src="${escapeAttr(safe)}" alt="${escapeAttr(String(alt))}"` +
+      ` style="display:block;max-width:100%;height:auto;margin:12px 0;border-radius:6px" />`
+    );
+  });
   // Links — match before bold/italic so the URL part isn't munged.
   // Pattern allows escaped brackets to NOT be inside the text part.
   s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, text, href) => {

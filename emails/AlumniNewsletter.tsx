@@ -34,6 +34,11 @@ import {
   Text,
 } from "@react-email/components";
 import type { CSSProperties } from "react";
+import {
+  renderSimpleMarkdown,
+  EMAIL_LINK_ATTRS,
+  EMAIL_PARAGRAPH_ATTRS,
+} from "../lib/simple-markdown";
 
 // ---------------------------------------------------------------------------
 // Design tokens — keep these at the top so future edits are trivial.
@@ -640,6 +645,11 @@ function EventCard({ event, condensed }: { event: EventDetails; condensed: boole
 }
 
 function UpdateBody({ update }: { update: NonNullable<AlumniNewsletterProps["update"]> }): JSX.Element {
+  // Body is markdown: paragraphs, **bold**, *italic*, [links](url), and
+  // ![images](url). Previously rendered as raw text via <Text> so the
+  // AI's inline photo syntax showed as literal "![alt](url)" — now
+  // parsed through the shared simple-markdown renderer.
+  const bodyHtml = renderSimpleMarkdown(update.body, EMAIL_LINK_ATTRS, EMAIL_PARAGRAPH_ATTRS);
   return (
     <Section style={{ marginBottom: SPACING.s16, textAlign: "left" }}>
       {update.imageUrl ? (
@@ -648,11 +658,10 @@ function UpdateBody({ update }: { update: NonNullable<AlumniNewsletterProps["upd
           {update.imageCaption ? <Text style={captionStyle}>{update.imageCaption}</Text> : null}
         </div>
       ) : null}
-      {update.body.split(/\n\n+/).map((para, i) => (
-        <Text key={i} style={{ ...bodyTextStyle, textAlign: "left" }}>
-          {para}
-        </Text>
-      ))}
+      <div
+        style={{ ...bodyTextStyle, textAlign: "left" }}
+        dangerouslySetInnerHTML={{ __html: bodyHtml }}
+      />
       {update.cta ? (
         <div style={{ marginTop: SPACING.s8 }}>
           <Link href={update.cta.url} style={textLinkStyle}>
