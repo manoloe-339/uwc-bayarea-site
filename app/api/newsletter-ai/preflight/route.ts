@@ -12,10 +12,15 @@ export const maxDuration = 60;
  *  Called by the compose page's "Preflight" button AND by the AI
  *  co-pilot's run_preflight_checks tool. */
 export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => null)) as { draft?: CampaignDraft } | null;
+  const body = (await req.json().catch(() => null)) as {
+    draft?: CampaignDraft;
+    recipientCount?: number;
+  } | null;
   if (!body?.draft) {
     return NextResponse.json({ error: "draft required" }, { status: 400 });
   }
-  const result = await runPreflight(body.draft);
+  const result = await runPreflight(body.draft, {
+    recipientCount: body.recipientCount,
+  });
   return NextResponse.json(result);
 }

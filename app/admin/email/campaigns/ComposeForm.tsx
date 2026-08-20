@@ -262,7 +262,7 @@ export default function ComposeForm({
       const res = await fetch("/api/newsletter-ai/preflight", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ draft }),
+        body: JSON.stringify({ draft, recipientCount }),
       });
       const data = (await res.json()) as PreflightResult | { error: string };
       if ("error" in data) {

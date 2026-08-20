@@ -4,6 +4,7 @@ import { getFilteredRecipients, type Recipient } from "./recipients";
 import { renderCampaign, type CampaignRow, type RecipientCtx } from "./campaign-render";
 import { getSiteSettings } from "./settings";
 import { acquireCampaignLock, releaseCampaignLock } from "./send-lock";
+import { checkDailyQuota } from "./resend-quota";
 import type { AlumniFilters } from "./alumni-query";
 
 export const MAX_RECIPIENTS_PER_CAMPAIGN = 600;
@@ -142,6 +143,24 @@ export async function sendCampaignNow(
       return {
         ok: false,
         error: `Recipient count (${recipients.length}) exceeds cap of ${MAX_RECIPIENTS_PER_CAMPAIGN}. Narrow the filter or raise the cap in lib/campaign-send.ts.`,
+      };
+    }
+
+    // Hard-block if the send would exceed today's Resend quota.
+    // Without this, we discover the limit mid-batch and hundreds of
+    // recipients get status=failed with "You have exceeded your
+    // daily email sending quota" — recoverable via retryFailedSends
+    // once the quota resets, but avoidable up front.
+    const quota = await checkDailyQuota(recipients.length);
+    if (quota.wouldExceed) {
+      return {
+        ok: false,
+        error:
+          `Would exceed Resend daily quota: ${recipients.length} recipients but only ` +
+          `${quota.remaining} of ${quota.cap} remain today ` +
+          `(${quota.usedToday} already sent). ` +
+          `Quota resets at ${quota.resetsAtUtc.replace("T", " ").slice(0, 16)} UTC. ` +
+          `Raise RESEND_DAILY_CAP or wait for the reset.`,
       };
     }
 
@@ -294,6 +313,21 @@ export async function retryFailedSends(
       first_name: r.first_name,
       last_name: r.last_name,
     }));
+
+    // Same daily-quota guard as sendCampaignNow — a retry that
+    // busts the cap just recreates the exact problem it's meant
+    // to recover from.
+    const quota = await checkDailyQuota(recipients.length);
+    if (quota.wouldExceed) {
+      return {
+        ok: false,
+        error:
+          `Would exceed Resend daily quota: ${recipients.length} to retry but only ` +
+          `${quota.remaining} of ${quota.cap} remain today ` +
+          `(${quota.usedToday} already sent). ` +
+          `Resets at ${quota.resetsAtUtc.replace("T", " ").slice(0, 16)} UTC.`,
+      };
+    }
 
     await sql`UPDATE email_campaigns SET status = 'sending' WHERE id = ${campaignId}`;
 

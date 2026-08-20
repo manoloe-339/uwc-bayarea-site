@@ -10,6 +10,7 @@
 
 import type { CampaignDraft } from "@/lib/campaign-content";
 import { emailOptimizedImageUrl } from "@/lib/image-transform";
+import { checkDailyQuota } from "@/lib/resend-quota";
 
 export type CheckStatus = "ok" | "warn" | "fail";
 
@@ -71,8 +72,41 @@ const fmtMB = (bytes: number) => `${(bytes / 1_000_000).toFixed(2)} MB`;
 const WEIGHT_WARN = 500 * 1024;
 const WEIGHT_FAIL = 3 * 1_000_000;
 
-export async function runPreflight(draft: CampaignDraft): Promise<PreflightResult> {
+export async function runPreflight(
+  draft: CampaignDraft,
+  opts: { recipientCount?: number } = {},
+): Promise<PreflightResult> {
   const checks: Check[] = [];
+
+  // ── Check: Resend daily quota ────────────────────────────────────
+  // Skip when recipientCount isn't known (e.g. AI tool call without
+  // context). When known, we compare pending-send against remaining
+  // quota so the admin sees this BEFORE clicking Send.
+  if (typeof opts.recipientCount === "number" && opts.recipientCount > 0) {
+    const q = await checkDailyQuota(opts.recipientCount);
+    const status: CheckStatus = q.wouldExceed
+      ? "fail"
+      : q.remaining - q.pending < Math.max(20, q.cap * 0.1)
+        ? "warn"
+        : "ok";
+    const summary = q.wouldExceed
+      ? `${q.pending} recipients but only ${q.remaining} of ${q.cap} left today — ${q.overageIfSent} would fail. Resets at ${q.resetsAtUtc.replace("T", " ").slice(0, 16)} UTC.`
+      : `${q.pending} recipients · ${q.remaining} of ${q.cap} remaining today (${q.usedToday} already sent).`;
+    checks.push({
+      name: "resend_daily_quota",
+      status,
+      summary,
+      detail: {
+        cap: q.cap,
+        used_today: q.usedToday,
+        remaining: q.remaining,
+        pending: q.pending,
+        would_exceed: q.wouldExceed,
+        overage_if_sent: q.overageIfSent,
+        resets_at_utc: q.resetsAtUtc,
+      },
+    });
+  }
 
   // ── Check: email weight (image bytes) ────────────────────────────
   const urls = collectImageUrls(draft);
