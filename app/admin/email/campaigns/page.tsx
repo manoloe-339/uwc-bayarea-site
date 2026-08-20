@@ -112,8 +112,8 @@ async function CampaignsTable({ sp }: { sp: { status?: string; format?: string }
       c.id, c.subject, c.format, c.mode, c.status,
       c.recipient_count, c.sent_count, c.failed_count,
       c.created_at, c.scheduled_for, c.sent_at,
-      COUNT(*) FILTER (WHERE s.opened_at IS NOT NULL)::int AS opened,
-      COUNT(*) FILTER (WHERE s.clicked_at IS NOT NULL)::int AS clicked
+      COUNT(*) FILTER (WHERE s.opened_at IS NOT NULL AND s.is_test IS NOT TRUE)::int AS opened,
+      COUNT(*) FILTER (WHERE s.clicked_at IS NOT NULL AND s.is_test IS NOT TRUE)::int AS clicked
     FROM email_campaigns c
     LEFT JOIN email_sends s ON s.campaign_id = c.id
     WHERE (${statusFilter}::text IS NULL OR c.status = ${statusFilter})

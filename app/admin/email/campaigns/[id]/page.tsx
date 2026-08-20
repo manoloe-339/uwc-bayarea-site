@@ -144,6 +144,17 @@ export default async function CampaignDetail({ params }: { params: Promise<{ id:
         </dl>
       </div>
 
+      {/* Actions row up-top so Retry Failed is visible without
+          scrolling past 470 recipient rows. Also duplicated below
+          the table for convenience after inspecting failures. */}
+      <div className="mb-6">
+        <DetailActions
+          campaignId={c.id}
+          failedCount={t.failed}
+          canEdit={c.status === "draft" || c.status === "scheduled"}
+        />
+      </div>
+
       {/* Per-recipient list */}
       <section className="bg-white border border-[color:var(--rule)] rounded-[10px] overflow-hidden mb-6">
         <div className="px-5 py-3 border-b border-[color:var(--rule)] flex items-baseline justify-between">
